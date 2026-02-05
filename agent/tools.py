@@ -62,7 +62,7 @@ The plot will appear in an Autoplot window.""",
                 },
                 "time_range": {
                     "type": "string",
-                    "description": "Time range in format 'YYYY-MM-DD to YYYY-MM-DD'"
+                    "description": "Time range. Accepts: relative ('last week', 'last 3 days', 'last month'), month+year ('January 2024'), date range ('YYYY-MM-DD to YYYY-MM-DD'), or datetime range with sub-day precision ('YYYY-MM-DDTHH:MM to YYYY-MM-DDTHH:MM')"
                 }
             },
             "required": ["dataset_id", "parameter_id", "time_range"]
@@ -79,7 +79,7 @@ The plot will appear in an Autoplot window.""",
             "properties": {
                 "time_range": {
                     "type": "string",
-                    "description": "New time range in format 'YYYY-MM-DD to YYYY-MM-DD'"
+                    "description": "New time range. Accepts: relative ('last week', 'last 3 days', 'last month'), month+year ('January 2024'), date range ('YYYY-MM-DD to YYYY-MM-DD'), or datetime range with sub-day precision ('YYYY-MM-DDTHH:MM to YYYY-MM-DDTHH:MM')"
                 }
             },
             "required": ["time_range"]

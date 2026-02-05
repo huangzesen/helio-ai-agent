@@ -15,6 +15,7 @@ from pathlib import Path
 
 import jpype
 
+from agent.time_utils import TimeRange
 from autoplot_bridge.connection import get_script_context
 
 
@@ -65,20 +66,21 @@ class AutoplotCommands:
             self._ctx = get_script_context(verbose=self.verbose)
         return self._ctx
 
-    def plot_cdaweb(self, dataset_id: str, parameter_id: str, time_range: str) -> dict:
+    def plot_cdaweb(self, dataset_id: str, parameter_id: str, time_range: TimeRange) -> dict:
         """
         Plot CDAWeb data.
 
         Args:
             dataset_id: CDAWeb dataset ID (e.g., "AC_H2_MFI")
             parameter_id: Parameter within the dataset (e.g., "Magnitude")
-            time_range: Time range string (e.g., "2024-01-01 to 2024-01-02")
+            time_range: TimeRange object with UTC start/end datetimes.
 
         Returns:
             dict with status and URI
         """
+        tr_str = time_range.to_autoplot_string()
         # Build CDAWeb URI with URL-encoded time range
-        uri = f"vap+cdaweb:ds={dataset_id}&id={parameter_id}&timerange={time_range.replace(' ', '+')}"
+        uri = f"vap+cdaweb:ds={dataset_id}&id={parameter_id}&timerange={tr_str.replace(' ', '+')}"
 
         # Ensure ScriptContext is initialized before logging the plot step
         _ = self.ctx
@@ -97,22 +99,23 @@ class AutoplotCommands:
             "uri": uri,
             "dataset_id": dataset_id,
             "parameter_id": parameter_id,
-            "time_range": time_range,
+            "time_range": tr_str,
         }
 
-    def set_time_range(self, time_range: str) -> dict:
+    def set_time_range(self, time_range: TimeRange) -> dict:
         """
         Set the time range for the current plot.
 
         Args:
-            time_range: Time range string (e.g., "2024-01-01 to 2024-01-02")
+            time_range: TimeRange object with UTC start/end datetimes.
 
         Returns:
             dict with status and new time range
         """
-        self._log(f"Setting time range: {time_range}")
+        tr_str = time_range.to_autoplot_string()
+        self._log(f"Setting time range: {tr_str}")
         DatumRangeUtil = jpype.JClass("org.das2.datum.DatumRangeUtil")
-        tr = DatumRangeUtil.parseTimeRange(time_range)
+        tr = DatumRangeUtil.parseTimeRange(tr_str)
         dom = self.ctx.getDocumentModel()
         dom.setTimeRange(tr)
         self._log("Time range updated.")
@@ -121,7 +124,7 @@ class AutoplotCommands:
 
         return {
             "status": "success",
-            "time_range": time_range,
+            "time_range": tr_str,
         }
 
     def export_png(self, filepath: str) -> dict:
@@ -167,9 +170,10 @@ class AutoplotCommands:
         Returns:
             dict with current URI and time range (or None if not set)
         """
+        tr_str = self._current_time_range.to_autoplot_string() if self._current_time_range else None
         return {
             "uri": self._current_uri,
-            "time_range": self._current_time_range,
+            "time_range": tr_str,
         }
 
 

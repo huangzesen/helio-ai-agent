@@ -2,7 +2,7 @@
 System prompts and response formatting for the agent.
 """
 
-from datetime import datetime, timedelta
+from datetime import datetime
 
 SYSTEM_PROMPT = """You are an intelligent assistant for Autoplot, a scientific data visualization tool for spacecraft and heliophysics data.
 
@@ -27,13 +27,19 @@ Help users visualize spacecraft data by translating natural language requests in
 
 ## Time Range Handling
 
-Accept flexible time inputs and convert to the format `YYYY-MM-DD to YYYY-MM-DD`:
+All times are in UTC (appropriate for spacecraft data). Accept flexible time inputs — the system parses them to UTC datetimes internally.
 
-- "last week" → Calculate from today
-- "last 3 days" → Calculate from today
-- "January 2024" → "2024-01-01 to 2024-01-31"
-- "2024-01-15" → "2024-01-15 to 2024-01-16" (single day)
-- "last month" → Calculate based on current date
+Supported formats (share these with the user when they ask or seem unsure):
+- **Relative**: "last week", "last 3 days", "last month", "last year" — calculated from today
+- **Month + year**: "January 2024", "Jan 2024" — covers the full calendar month
+- **Single date**: "2024-01-15" — expands to the full day (00:00 to next day 00:00)
+- **Date range**: "2024-01-15 to 2024-01-20" — day-level precision
+- **Datetime range**: "2024-01-15T06:00 to 2024-01-15T18:00" — sub-day precision (hours/minutes/seconds)
+- **Single datetime**: "2024-01-15T06:00" — expands to a 1-hour window around that time
+
+When asking the user for a time range, briefly mention that they can use natural expressions like "last week" or specific dates like "2024-01-15 to 2024-01-20", and that sub-day precision is available with the T format (e.g. "2024-01-15T06:00 to 2024-01-15T18:00").
+
+If the system returns a time-range parsing error, relay the error message to the user — it includes format suggestions to help them correct their input.
 
 Today's date is {today}.
 
@@ -145,73 +151,3 @@ def format_tool_result(tool_name: str, result: dict) -> str:
         return f"Currently showing: {result['uri']}\nTime range: {result['time_range']}"
 
     return str(result)
-
-
-def parse_relative_time(text: str) -> str:
-    """Parse relative time expressions to absolute date ranges.
-
-    Args:
-        text: Time expression like "last week", "last 3 days", "January 2024"
-
-    Returns:
-        Date range string in format "YYYY-MM-DD to YYYY-MM-DD"
-    """
-    today = datetime.now().date()
-    text_lower = text.lower().strip()
-
-    # "last N days"
-    if "last" in text_lower and "day" in text_lower:
-        import re
-        match = re.search(r"(\d+)\s*day", text_lower)
-        if match:
-            days = int(match.group(1))
-            start = today - timedelta(days=days)
-            return f"{start} to {today}"
-
-    # "last week"
-    if "last week" in text_lower:
-        start = today - timedelta(days=7)
-        return f"{start} to {today}"
-
-    # "last month"
-    if "last month" in text_lower:
-        start = today - timedelta(days=30)
-        return f"{start} to {today}"
-
-    # "last year"
-    if "last year" in text_lower:
-        start = today - timedelta(days=365)
-        return f"{start} to {today}"
-
-    # Month + year (e.g., "January 2024")
-    import re
-    months = {
-        "january": 1, "february": 2, "march": 3, "april": 4,
-        "may": 5, "june": 6, "july": 7, "august": 8,
-        "september": 9, "october": 10, "november": 11, "december": 12,
-        "jan": 1, "feb": 2, "mar": 3, "apr": 4, "jun": 6, "jul": 7,
-        "aug": 8, "sep": 9, "oct": 10, "nov": 11, "dec": 12
-    }
-    for month_name, month_num in months.items():
-        if month_name in text_lower:
-            year_match = re.search(r"20\d{2}", text_lower)
-            if year_match:
-                year = int(year_match.group())
-                start = datetime(year, month_num, 1).date()
-                if month_num == 12:
-                    end = datetime(year + 1, 1, 1).date()
-                else:
-                    end = datetime(year, month_num + 1, 1).date()
-                return f"{start} to {end}"
-
-    # Already in expected format or single date
-    if re.match(r"\d{4}-\d{2}-\d{2}\s+to\s+\d{4}-\d{2}-\d{2}", text):
-        return text
-
-    # Single date - return as single day range
-    if re.match(r"\d{4}-\d{2}-\d{2}", text):
-        next_day = datetime.strptime(text.strip(), "%Y-%m-%d").date() + timedelta(days=1)
-        return f"{text.strip()} to {next_day}"
-
-    # Default: return as-is and let Autoplot parse it
-    return text

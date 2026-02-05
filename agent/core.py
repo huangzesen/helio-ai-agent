@@ -7,7 +7,8 @@ from google.genai import types
 
 from config import GOOGLE_API_KEY
 from .tools import get_tool_schemas
-from .prompts import get_system_prompt, format_tool_result, parse_relative_time
+from .prompts import get_system_prompt, format_tool_result
+from .time_utils import parse_time_range, TimeRangeError
 from knowledge.catalog import search_by_keywords
 from knowledge.hapi_client import list_parameters as hapi_list_parameters
 from autoplot_bridge.commands import get_commands
@@ -98,8 +99,10 @@ class AutoplotAgent:
             return {"status": "success", "parameters": params}
 
         elif tool_name == "plot_data":
-            # Parse time range if it's a relative expression
-            time_range = parse_relative_time(tool_args["time_range"])
+            try:
+                time_range = parse_time_range(tool_args["time_range"])
+            except TimeRangeError as e:
+                return {"status": "error", "message": str(e)}
             return self.autoplot.plot_cdaweb(
                 dataset_id=tool_args["dataset_id"],
                 parameter_id=tool_args["parameter_id"],
@@ -107,7 +110,10 @@ class AutoplotAgent:
             )
 
         elif tool_name == "change_time_range":
-            time_range = parse_relative_time(tool_args["time_range"])
+            try:
+                time_range = parse_time_range(tool_args["time_range"])
+            except TimeRangeError as e:
+                return {"status": "error", "message": str(e)}
             return self.autoplot.set_time_range(time_range)
 
         elif tool_name == "export_plot":

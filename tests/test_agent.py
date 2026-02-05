@@ -8,48 +8,87 @@ Note: Most tests mock external dependencies to avoid network calls and JVM start
 
 import pytest
 from unittest.mock import patch, MagicMock
-from agent.prompts import parse_relative_time, format_tool_result
-from datetime import datetime, timedelta
+from agent.time_utils import parse_time_range, TimeRange, TimeRangeError
+from agent.prompts import format_tool_result
+from datetime import datetime, timedelta, timezone
 
 
-class TestParseRelativeTime:
+class TestParseTimeRange:
     def test_last_week(self):
-        result = parse_relative_time("last week")
-        today = datetime.now().date()
-        week_ago = today - timedelta(days=7)
-        assert result == f"{week_ago} to {today}"
+        result = parse_time_range("last week")
+        now = datetime.now(timezone.utc)
+        today = now.replace(hour=0, minute=0, second=0, microsecond=0)
+        assert result.end == today
+        assert result.start == today - timedelta(days=7)
 
     def test_last_month(self):
-        result = parse_relative_time("last month")
-        today = datetime.now().date()
-        month_ago = today - timedelta(days=30)
-        assert result == f"{month_ago} to {today}"
+        result = parse_time_range("last month")
+        now = datetime.now(timezone.utc)
+        today = now.replace(hour=0, minute=0, second=0, microsecond=0)
+        assert result.end == today
+        assert result.start == today - timedelta(days=30)
 
     def test_last_n_days(self):
-        result = parse_relative_time("last 3 days")
-        today = datetime.now().date()
-        three_days_ago = today - timedelta(days=3)
-        assert result == f"{three_days_ago} to {today}"
+        result = parse_time_range("last 3 days")
+        now = datetime.now(timezone.utc)
+        today = now.replace(hour=0, minute=0, second=0, microsecond=0)
+        assert result.end == today
+        assert result.start == today - timedelta(days=3)
 
     def test_month_year(self):
-        result = parse_relative_time("January 2024")
-        assert result == "2024-01-01 to 2024-02-01"
+        result = parse_time_range("January 2024")
+        assert result.to_autoplot_string() == "2024-01-01 to 2024-02-01"
 
     def test_december_year(self):
-        result = parse_relative_time("December 2024")
-        assert result == "2024-12-01 to 2025-01-01"
+        result = parse_time_range("December 2024")
+        assert result.to_autoplot_string() == "2024-12-01 to 2025-01-01"
 
     def test_single_date(self):
-        result = parse_relative_time("2024-06-15")
-        assert result == "2024-06-15 to 2024-06-16"
+        result = parse_time_range("2024-06-15")
+        assert result.to_autoplot_string() == "2024-06-15 to 2024-06-16"
 
     def test_already_formatted(self):
-        result = parse_relative_time("2024-01-01 to 2024-01-31")
-        assert result == "2024-01-01 to 2024-01-31"
+        result = parse_time_range("2024-01-01 to 2024-01-31")
+        assert result.to_autoplot_string() == "2024-01-01 to 2024-01-31"
 
     def test_abbreviated_month(self):
-        result = parse_relative_time("Jan 2024")
-        assert result == "2024-01-01 to 2024-02-01"
+        result = parse_time_range("Jan 2024")
+        assert result.to_autoplot_string() == "2024-01-01 to 2024-02-01"
+
+    def test_datetime_range(self):
+        result = parse_time_range("2024-01-15T06:00 to 2024-01-15T18:00")
+        assert result.start == datetime(2024, 1, 15, 6, 0, tzinfo=timezone.utc)
+        assert result.end == datetime(2024, 1, 15, 18, 0, tzinfo=timezone.utc)
+        assert "T" in result.to_autoplot_string()
+
+    def test_datetime_range_with_seconds(self):
+        result = parse_time_range("2024-01-15T06:00:30 to 2024-01-15T18:30:45")
+        assert result.start == datetime(2024, 1, 15, 6, 0, 30, tzinfo=timezone.utc)
+        assert result.end == datetime(2024, 1, 15, 18, 30, 45, tzinfo=timezone.utc)
+
+    def test_unparseable_raises_error(self):
+        with pytest.raises(TimeRangeError, match="Could not parse"):
+            parse_time_range("gobbledygook")
+
+    def test_bad_date_format_raises_error(self):
+        with pytest.raises(TimeRangeError, match="Could not parse"):
+            parse_time_range("15/01/2024")
+
+    def test_start_after_end_raises_error(self):
+        with pytest.raises(ValueError, match="must be before"):
+            parse_time_range("2024-01-20 to 2024-01-15")
+
+    def test_day_precision_omits_time(self):
+        result = parse_time_range("2024-01-15 to 2024-01-20")
+        s = result.to_autoplot_string()
+        assert "T" not in s
+        assert s == "2024-01-15 to 2024-01-20"
+
+    def test_sub_day_includes_time(self):
+        result = parse_time_range("2024-01-15T06:00 to 2024-01-15T18:00")
+        s = result.to_autoplot_string()
+        assert "T" in s
+        assert s == "2024-01-15T06:00:00 to 2024-01-15T18:00:00"
 
 
 class TestFormatToolResult:
