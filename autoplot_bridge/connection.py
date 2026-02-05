@@ -22,7 +22,7 @@ def _find_jvm() -> str:
     return jpype.getDefaultJVMPath()
 
 
-def init_autoplot():
+def init_autoplot(verbose: bool = False):
     """Initialize JVM with Autoplot on classpath. Returns ScriptContext class."""
     if not jpype.isJVMStarted():
         jar_path = Path(AUTOPLOT_JAR).expanduser().resolve()
@@ -30,15 +30,36 @@ def init_autoplot():
             raise FileNotFoundError(f"Autoplot JAR not found: {jar_path}")
 
         jvm_path = _find_jvm()
-        jpype.startJVM(jvm_path, classpath=[str(jar_path)])
+        if verbose:
+            print(f"  [Autoplot] Starting JVM: {jvm_path}")
+            print(f"  [Autoplot] JAR: {jar_path}")
+        jpype.startJVM(jvm_path, '-Djava.awt.headless=true', classpath=[str(jar_path)])
+        if verbose:
+            print("  [Autoplot] JVM started.")
+    elif verbose:
+        print("  [Autoplot] JVM already running.")
 
+    if verbose:
+        print("  [Autoplot] Loading ScriptContext class...")
     ScriptContext = jpype.JClass("org.autoplot.ScriptContext")
+
+    # Create a headless application model so plot() doesn't try to create a GUI.
+    # Without this, plot() hangs on macOS because Swing needs the main thread.
+    if not ScriptContext.isModelInitialized():
+        if verbose:
+            print("  [Autoplot] Creating headless application model...")
+        ScriptContext.createApplicationModel('')
+        if verbose:
+            print("  [Autoplot] Application model ready.")
+
+    if verbose:
+        print("  [Autoplot] ScriptContext ready.")
     return ScriptContext
 
 
-def get_script_context():
+def get_script_context(verbose: bool = False):
     """Get the Autoplot ScriptContext for issuing commands."""
-    return init_autoplot()
+    return init_autoplot(verbose=verbose)
 
 
 if __name__ == "__main__":

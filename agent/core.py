@@ -164,7 +164,7 @@ class AutoplotAgent:
             # Look for function calls
             function_calls = []
             for part in response.candidates[0].content.parts:
-                if hasattr(part, "function_call") and part.function_call.name:
+                if hasattr(part, "function_call") and part.function_call and part.function_call.name:
                     function_calls.append(part.function_call)
 
             if not function_calls:

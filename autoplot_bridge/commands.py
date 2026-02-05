@@ -8,6 +8,9 @@ Usage:
     cmd.export_png("output.png")
 """
 
+import sys
+import threading
+import time
 from pathlib import Path
 
 import jpype
@@ -18,16 +21,48 @@ from autoplot_bridge.connection import get_script_context
 class AutoplotCommands:
     """Wrapper around Autoplot ScriptContext with state tracking."""
 
-    def __init__(self):
+    def __init__(self, verbose: bool = False):
         self._ctx = None
         self._current_uri = None
         self._current_time_range = None
+        self.verbose = verbose
+
+    def _log(self, msg: str):
+        if self.verbose:
+            print(f"  [Autoplot] {msg}")
+            sys.stdout.flush()
+
+    def _run_with_elapsed(self, label: str, func, *args, **kwargs):
+        """Run a function while printing elapsed time if verbose."""
+        if not self.verbose:
+            return func(*args, **kwargs)
+
+        stop_event = threading.Event()
+        start = time.time()
+
+        def print_elapsed():
+            while not stop_event.wait(5.0):
+                elapsed = time.time() - start
+                print(f"  [Autoplot] ... {label} ({elapsed:.0f}s elapsed)")
+                sys.stdout.flush()
+
+        timer_thread = threading.Thread(target=print_elapsed, daemon=True)
+        timer_thread.start()
+        try:
+            result = func(*args, **kwargs)
+        finally:
+            stop_event.set()
+            timer_thread.join()
+        elapsed = time.time() - start
+        self._log(f"{label} done ({elapsed:.1f}s)")
+        return result
 
     @property
     def ctx(self):
         """Lazy-initialize ScriptContext on first access."""
         if self._ctx is None:
-            self._ctx = get_script_context()
+            self._log("Initializing ScriptContext...")
+            self._ctx = get_script_context(verbose=self.verbose)
         return self._ctx
 
     def plot_cdaweb(self, dataset_id: str, parameter_id: str, time_range: str) -> dict:
@@ -45,7 +80,14 @@ class AutoplotCommands:
         # Build CDAWeb URI with URL-encoded time range
         uri = f"vap+cdaweb:ds={dataset_id}&id={parameter_id}&timerange={time_range.replace(' ', '+')}"
 
-        self.ctx.plot(uri)
+        # Ensure ScriptContext is initialized before logging the plot step
+        _ = self.ctx
+
+        self._log(f"Plotting URI: {uri}")
+        self._log("Downloading data and rendering plot...")
+        self._run_with_elapsed("Plotting", self.ctx.plot, uri)
+        self._log("Waiting for render to complete...")
+        self._run_with_elapsed("Rendering", self.ctx.waitUntilIdle)
 
         self._current_uri = uri
         self._current_time_range = time_range
@@ -68,10 +110,12 @@ class AutoplotCommands:
         Returns:
             dict with status and new time range
         """
+        self._log(f"Setting time range: {time_range}")
         DatumRangeUtil = jpype.JClass("org.das2.datum.DatumRangeUtil")
         tr = DatumRangeUtil.parseTimeRange(time_range)
         dom = self.ctx.getDocumentModel()
         dom.setTimeRange(tr)
+        self._log("Time range updated.")
 
         self._current_time_range = time_range
 
@@ -98,7 +142,9 @@ class AutoplotCommands:
         if parent and not parent.exists():
             parent.mkdir(parents=True, exist_ok=True)
 
-        self.ctx.writeToPng(filepath_normalized)
+        self._log(f"Exporting PNG to {filepath_normalized}...")
+        self.ctx.waitUntilIdle()
+        self._run_with_elapsed("Exporting PNG", self.ctx.writeToPng, filepath_normalized)
 
         # Verify file was created
         path_obj = Path(filepath)
@@ -131,9 +177,9 @@ class AutoplotCommands:
 _commands = None
 
 
-def get_commands() -> AutoplotCommands:
+def get_commands(verbose: bool = False) -> AutoplotCommands:
     """Get the singleton AutoplotCommands instance."""
     global _commands
     if _commands is None:
-        _commands = AutoplotCommands()
+        _commands = AutoplotCommands(verbose=verbose)
     return _commands
