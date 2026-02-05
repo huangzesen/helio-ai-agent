@@ -2,8 +2,8 @@
 Core agent logic - orchestrates Gemini calls and tool execution.
 """
 
-import google.generativeai as genai
-from google.generativeai.types import FunctionDeclaration, Tool
+from google import genai
+from google.genai import types
 
 from config import GOOGLE_API_KEY
 from .tools import get_tool_schemas
@@ -24,31 +24,34 @@ class AutoplotAgent:
         """
         self.verbose = verbose
 
-        # Configure Gemini
-        genai.configure(api_key=GOOGLE_API_KEY)
+        # Initialize Gemini client
+        self.client = genai.Client(api_key=GOOGLE_API_KEY)
 
         # Build function declarations for Gemini
         function_declarations = []
         for tool_schema in get_tool_schemas():
-            fd = FunctionDeclaration(
+            fd = types.FunctionDeclaration(
                 name=tool_schema["name"],
                 description=tool_schema["description"],
                 parameters=tool_schema["parameters"],
             )
             function_declarations.append(fd)
 
-        # Create tool object with all functions
-        tools = Tool(function_declarations=function_declarations)
+        # Create tool object with all function declarations
+        tool = types.Tool(function_declarations=function_declarations)
 
-        # Initialize model with tools
-        self.model = genai.GenerativeModel(
-            model_name="gemini-2.5-flash",
+        # Store model name and config
+        self.model_name = "gemini-2.5-flash"
+        self.config = types.GenerateContentConfig(
             system_instruction=get_system_prompt(),
-            tools=[tools],
+            tools=[tool],
         )
 
-        # Conversation history
-        self.chat = self.model.start_chat(history=[])
+        # Create chat session
+        self.chat = self.client.chats.create(
+            model=self.model_name,
+            config=self.config
+        )
 
         # Autoplot commands (lazy-initialized on first plot)
         self._autoplot = None
@@ -57,7 +60,7 @@ class AutoplotAgent:
     def autoplot(self):
         """Lazy initialization of Autoplot commands."""
         if self._autoplot is None:
-            self._autoplot = get_commands()
+            self._autoplot = get_commands(verbose=self.verbose)
         return self._autoplot
 
     def _execute_tool(self, tool_name: str, tool_args: dict) -> dict:
@@ -74,14 +77,24 @@ class AutoplotAgent:
             print(f"  [Tool: {tool_name}({tool_args})]")
 
         if tool_name == "search_datasets":
+            if self.verbose:
+                print(f"  [Catalog] Searching for: {tool_args['query']}")
             result = search_by_keywords(tool_args["query"])
             if result:
+                if self.verbose:
+                    print(f"  [Catalog] Found matches.")
                 return {"status": "success", **result}
             else:
+                if self.verbose:
+                    print(f"  [Catalog] No matches found.")
                 return {"status": "success", "message": "No matching datasets found."}
 
         elif tool_name == "list_parameters":
+            if self.verbose:
+                print(f"  [HAPI] Fetching parameters for {tool_args['dataset_id']}...")
             params = hapi_list_parameters(tool_args["dataset_id"])
+            if self.verbose:
+                print(f"  [HAPI] Got {len(params)} parameters.")
             return {"status": "success", "parameters": params}
 
         elif tool_name == "plot_data":
@@ -131,7 +144,11 @@ class AutoplotAgent:
             The agent's text response
         """
         # Send message to Gemini
-        response = self.chat.send_message(user_message)
+        if self.verbose:
+            print(f"  [Gemini] Sending message to model...")
+        response = self.chat.send_message(message=user_message)
+        if self.verbose:
+            print(f"  [Gemini] Response received.")
 
         # Process tool calls in a loop
         max_iterations = 10  # Safety limit
@@ -173,17 +190,20 @@ class AutoplotAgent:
                         )
                     return question
 
+                # Create function response using types.Part
                 function_responses.append(
-                    genai.protos.Part(
-                        function_response=genai.protos.FunctionResponse(
-                            name=tool_name,
-                            response={"result": result},
-                        )
+                    types.Part.from_function_response(
+                        name=tool_name,
+                        response={"result": result}
                     )
                 )
 
             # Send function results back to the model
-            response = self.chat.send_message(function_responses)
+            if self.verbose:
+                print(f"  [Gemini] Sending {len(function_responses)} tool result(s) back to model...")
+            response = self.chat.send_message(message=function_responses)
+            if self.verbose:
+                print(f"  [Gemini] Response received.")
 
         # Extract text response
         text_parts = []
@@ -195,7 +215,10 @@ class AutoplotAgent:
 
     def reset(self):
         """Reset conversation history."""
-        self.chat = self.model.start_chat(history=[])
+        self.chat = self.client.chats.create(
+            model=self.model_name,
+            config=self.config
+        )
 
 
 def create_agent(verbose: bool = False) -> AutoplotAgent:

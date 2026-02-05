@@ -92,7 +92,7 @@ python -m venv venv
 source venv/bin/activate  # On Windows: venv\Scripts\activate
 
 # Install Python packages
-pip install google-generativeai  # Gemini API
+pip install google-genai          # Gemini API (unified SDK)
 pip install jpype1               # Java-Python bridge
 pip install requests             # For HAPI/HTTP requests
 pip install python-dotenv        # Environment variables
@@ -683,7 +683,8 @@ Create `agent/core.py`:
 """
 Core agent logic - orchestrates Gemini calls and tool execution.
 """
-import google.generativeai as genai
+from google import genai
+from google.genai import types
 from typing import Generator
 import json
 
@@ -933,7 +934,7 @@ if __name__ == "__main__":
 Create `requirements.txt`:
 
 ```
-google-generativeai>=0.3.0
+google-genai>=1.60.0
 jpype1>=1.4.0
 python-dotenv>=1.0.0
 requests>=2.28.0
