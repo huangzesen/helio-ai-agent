@@ -26,3 +26,14 @@ Thumbs.db
 
 # Spike outputs
 spikes/*/output/
+
+# Test outputs
+test_output/
+test.png
+test_commands.py
+
+# Claude Code (user-specific)
+.claude/
+
+# Windows artifacts
+nul
