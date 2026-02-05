@@ -11,6 +11,19 @@ Usage:
 
 import sys
 import argparse
+import readline
+from pathlib import Path
+
+HISTORY_FILE = Path.home() / ".autoplot_history"
+
+
+def setup_readline():
+    """Configure readline for input history."""
+    readline.set_history_length(500)
+    try:
+        readline.read_history_file(HISTORY_FILE)
+    except FileNotFoundError:
+        pass
 
 
 def print_welcome():
@@ -46,6 +59,8 @@ def main():
         help="Show tool execution details",
     )
     args = parser.parse_args()
+
+    setup_readline()
 
     print_welcome()
 
@@ -99,12 +114,14 @@ def main():
 
         except KeyboardInterrupt:
             print("\n\nGoodbye!")
+            readline.write_history_file(HISTORY_FILE)
             break
         except Exception as e:
             print(f"\nError: {e}")
             print("You can continue the conversation or type 'reset' to start fresh.\n")
 
     # Clean shutdown
+    readline.write_history_file(HISTORY_FILE)
     sys.stdout.flush()
     import os
     os._exit(0)
