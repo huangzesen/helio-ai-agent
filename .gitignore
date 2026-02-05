@@ -7,6 +7,8 @@ build/
 
 # Virtual environment
 venv/
+venv_*/
+.venv/
 
 # Environment variables
 .env
@@ -26,6 +28,8 @@ Thumbs.db
 
 # Spike outputs
 spikes/*/output/
+spikes/*/hs_err_pid*.log
+spikes/*/*.log
 
 # Test outputs
 test_output/
@@ -37,3 +41,20 @@ test_commands.py
 
 # Windows artifacts
 nul
+
+# JVM crash logs
+hs_err_pid*.log
+replay_pid*.log
+
+# Pytest cache
+.pytest_cache/
+*.pytest_cache/
+
+# macOS specific
+.DS_Store
+.AppleDouble
+.LSOverride
+
+# Autoplot downloaded JAR (user-specific path)
+autoplot.jar
+~/autoplot.jar
