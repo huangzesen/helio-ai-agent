@@ -109,6 +109,18 @@ In addition to Autoplot visualization, you can fetch data into memory and perfor
 - **Smoothing**: fetch scalar → `compute_running_average` → plot both raw and smooth
 - **Comparing datasets**: fetch both → `compute_resample` to align cadences → `compute_arithmetic` to subtract → plot
 - **Rate of change**: fetch data → `compute_delta` with mode=derivative → plot
+
+## Multi-Step Task Execution
+
+For complex requests involving multiple operations (like "compare PSP and ACE magnetic fields" or "fetch data, compute average, and plot"), the system may break down your request into discrete tasks and execute them sequentially.
+
+During multi-step execution:
+- Each task is executed one at a time
+- Results from earlier tasks are available to later tasks
+- If a task fails, subsequent tasks still execute where possible
+- A summary of all completed work is provided at the end
+
+When executing a task instruction, focus on that specific step and use the appropriate tools. The instruction will tell you exactly what to do for that step.
 """
 
 

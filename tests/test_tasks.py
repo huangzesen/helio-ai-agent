@@ -1,0 +1,322 @@
+"""
+Tests for agent.tasks — Task, TaskPlan, and TaskStore.
+
+Run with: python -m pytest tests/test_tasks.py
+"""
+
+import json
+import tempfile
+from datetime import datetime
+from pathlib import Path
+
+import pytest
+
+from agent.tasks import (
+    Task,
+    TaskStatus,
+    TaskPlan,
+    PlanStatus,
+    TaskStore,
+    create_task,
+    create_plan,
+    get_task_store,
+    reset_task_store,
+)
+
+
+@pytest.fixture
+def temp_store():
+    """Create a TaskStore with a temporary directory."""
+    with tempfile.TemporaryDirectory() as tmpdir:
+        yield TaskStore(base_dir=Path(tmpdir))
+
+
+@pytest.fixture(autouse=True)
+def reset_global_store():
+    """Reset the global store before each test."""
+    reset_task_store()
+    yield
+    reset_task_store()
+
+
+class TestTask:
+    def test_create_with_defaults(self):
+        task = Task(
+            id="task-1",
+            description="Fetch PSP data",
+            instruction="Use fetch_data to get PSP magnetic field"
+        )
+        assert task.id == "task-1"
+        assert task.status == TaskStatus.PENDING
+        assert task.result is None
+        assert task.error is None
+        assert task.tool_calls == []
+
+    def test_to_dict(self):
+        task = Task(
+            id="task-1",
+            description="Test task",
+            instruction="Do something",
+            status=TaskStatus.COMPLETED,
+            result="Done",
+            tool_calls=["fetch_data", "compute_magnitude"]
+        )
+        d = task.to_dict()
+        assert d["id"] == "task-1"
+        assert d["status"] == "completed"
+        assert d["result"] == "Done"
+        assert d["tool_calls"] == ["fetch_data", "compute_magnitude"]
+
+    def test_from_dict(self):
+        data = {
+            "id": "task-2",
+            "description": "Another task",
+            "instruction": "Do another thing",
+            "status": "failed",
+            "result": None,
+            "error": "Something went wrong",
+            "tool_calls": ["plot_data"]
+        }
+        task = Task.from_dict(data)
+        assert task.id == "task-2"
+        assert task.status == TaskStatus.FAILED
+        assert task.error == "Something went wrong"
+        assert task.tool_calls == ["plot_data"]
+
+    def test_roundtrip(self):
+        original = Task(
+            id="task-rt",
+            description="Roundtrip test",
+            instruction="Test serialization",
+            status=TaskStatus.IN_PROGRESS,
+            tool_calls=["search_datasets"]
+        )
+        restored = Task.from_dict(original.to_dict())
+        assert restored.id == original.id
+        assert restored.status == original.status
+        assert restored.tool_calls == original.tool_calls
+
+
+class TestTaskPlan:
+    def test_create_with_defaults(self):
+        tasks = [
+            create_task("Step 1", "Do step 1"),
+            create_task("Step 2", "Do step 2"),
+        ]
+        plan = TaskPlan(
+            id="plan-1",
+            user_request="Do a complex thing",
+            tasks=tasks,
+            created_at=datetime(2026, 2, 5, 10, 0, 0),
+        )
+        assert plan.id == "plan-1"
+        assert plan.status == PlanStatus.PLANNING
+        assert plan.current_task_index == 0
+        assert len(plan.tasks) == 2
+
+    def test_get_current_task(self):
+        tasks = [
+            Task(id="t1", description="First", instruction="Do first"),
+            Task(id="t2", description="Second", instruction="Do second"),
+        ]
+        plan = TaskPlan(
+            id="plan",
+            user_request="Test",
+            tasks=tasks,
+            created_at=datetime.now(),
+        )
+        assert plan.get_current_task().id == "t1"
+        plan.current_task_index = 1
+        assert plan.get_current_task().id == "t2"
+        plan.current_task_index = 5  # Out of range
+        assert plan.get_current_task() is None
+
+    def test_get_pending_completed_failed(self):
+        tasks = [
+            Task(id="t1", description="D1", instruction="I1", status=TaskStatus.COMPLETED),
+            Task(id="t2", description="D2", instruction="I2", status=TaskStatus.FAILED),
+            Task(id="t3", description="D3", instruction="I3", status=TaskStatus.PENDING),
+        ]
+        plan = TaskPlan(
+            id="plan",
+            user_request="Test",
+            tasks=tasks,
+            created_at=datetime.now(),
+        )
+        assert len(plan.get_pending_tasks()) == 1
+        assert len(plan.get_completed_tasks()) == 1
+        assert len(plan.get_failed_tasks()) == 1
+
+    def test_is_complete(self):
+        tasks = [
+            Task(id="t1", description="D1", instruction="I1", status=TaskStatus.COMPLETED),
+            Task(id="t2", description="D2", instruction="I2", status=TaskStatus.PENDING),
+        ]
+        plan = TaskPlan(
+            id="plan",
+            user_request="Test",
+            tasks=tasks,
+            created_at=datetime.now(),
+        )
+        assert not plan.is_complete()
+        tasks[1].status = TaskStatus.COMPLETED
+        assert plan.is_complete()
+        # Failed and skipped also count as terminal
+        tasks[1].status = TaskStatus.FAILED
+        assert plan.is_complete()
+        tasks[1].status = TaskStatus.SKIPPED
+        assert plan.is_complete()
+
+    def test_progress_summary(self):
+        tasks = [
+            Task(id="t1", description="D1", instruction="I1", status=TaskStatus.COMPLETED),
+            Task(id="t2", description="D2", instruction="I2", status=TaskStatus.FAILED),
+            Task(id="t3", description="D3", instruction="I3", status=TaskStatus.PENDING),
+        ]
+        plan = TaskPlan(
+            id="plan",
+            user_request="Test",
+            tasks=tasks,
+            created_at=datetime.now(),
+        )
+        summary = plan.progress_summary()
+        assert "1/3 completed" in summary
+        assert "1 failed" in summary
+
+    def test_to_dict_and_from_dict(self):
+        tasks = [create_task("Step 1", "Do step 1")]
+        plan = TaskPlan(
+            id="plan-serial",
+            user_request="Serialize me",
+            tasks=tasks,
+            created_at=datetime(2026, 2, 5, 12, 30, 45),
+            status=PlanStatus.EXECUTING,
+            current_task_index=0,
+        )
+        d = plan.to_dict()
+        assert d["id"] == "plan-serial"
+        assert d["status"] == "executing"
+        assert d["created_at"] == "2026-02-05T12:30:45"
+
+        restored = TaskPlan.from_dict(d)
+        assert restored.id == plan.id
+        assert restored.status == PlanStatus.EXECUTING
+        assert restored.created_at == plan.created_at
+        assert len(restored.tasks) == 1
+
+
+class TestTaskStore:
+    def test_save_and_load(self, temp_store):
+        plan = create_plan(
+            "Test request",
+            [create_task("Task 1", "Instruction 1")]
+        )
+        temp_store.save(plan)
+
+        loaded = temp_store.load(plan.id)
+        assert loaded is not None
+        assert loaded.id == plan.id
+        assert loaded.user_request == plan.user_request
+        assert len(loaded.tasks) == 1
+
+    def test_load_nonexistent(self, temp_store):
+        assert temp_store.load("nonexistent-id") is None
+
+    def test_delete(self, temp_store):
+        plan = create_plan("Delete me", [create_task("T", "I")])
+        temp_store.save(plan)
+        assert temp_store.delete(plan.id) is True
+        assert temp_store.load(plan.id) is None
+        assert temp_store.delete(plan.id) is False
+
+    def test_list_plans(self, temp_store):
+        p1 = create_plan("First plan", [create_task("T1", "I1")])
+        p2 = create_plan("Second plan", [create_task("T2", "I2"), create_task("T3", "I3")])
+        temp_store.save(p1)
+        temp_store.save(p2)
+
+        plans = temp_store.list_plans()
+        assert len(plans) == 2
+        ids = {p["id"] for p in plans}
+        assert p1.id in ids
+        assert p2.id in ids
+        # Check that task_count is correct
+        for p in plans:
+            if p["id"] == p2.id:
+                assert p["task_count"] == 2
+
+    def test_get_incomplete_plans(self, temp_store):
+        # Completed plan
+        p1 = create_plan("Completed", [create_task("T1", "I1")])
+        p1.status = PlanStatus.COMPLETED
+        temp_store.save(p1)
+
+        # Executing plan
+        p2 = create_plan("Executing", [create_task("T2", "I2")])
+        p2.status = PlanStatus.EXECUTING
+        temp_store.save(p2)
+
+        # Cancelled plan
+        p3 = create_plan("Cancelled", [create_task("T3", "I3")])
+        p3.status = PlanStatus.CANCELLED
+        temp_store.save(p3)
+
+        incomplete = temp_store.get_incomplete_plans()
+        assert len(incomplete) == 1
+        assert incomplete[0].id == p2.id
+
+    def test_clear_all(self, temp_store):
+        temp_store.save(create_plan("P1", [create_task("T", "I")]))
+        temp_store.save(create_plan("P2", [create_task("T", "I")]))
+        count = temp_store.clear_all()
+        assert count == 2
+        assert temp_store.list_plans() == []
+
+    def test_update_existing_plan(self, temp_store):
+        plan = create_plan("Update me", [create_task("Task", "Instruction")])
+        temp_store.save(plan)
+
+        # Update the plan
+        plan.status = PlanStatus.EXECUTING
+        plan.tasks[0].status = TaskStatus.COMPLETED
+        plan.tasks[0].result = "Done!"
+        temp_store.save(plan)
+
+        # Reload and verify
+        loaded = temp_store.load(plan.id)
+        assert loaded.status == PlanStatus.EXECUTING
+        assert loaded.tasks[0].status == TaskStatus.COMPLETED
+        assert loaded.tasks[0].result == "Done!"
+
+
+class TestFactoryFunctions:
+    def test_create_task(self):
+        task = create_task("Description", "Instruction")
+        assert task.id  # Has a UUID
+        assert len(task.id) == 36  # UUID format
+        assert task.description == "Description"
+        assert task.instruction == "Instruction"
+        assert task.status == TaskStatus.PENDING
+
+    def test_create_plan(self):
+        tasks = [create_task("T1", "I1"), create_task("T2", "I2")]
+        plan = create_plan("User request", tasks)
+        assert plan.id
+        assert len(plan.id) == 36
+        assert plan.user_request == "User request"
+        assert len(plan.tasks) == 2
+        assert plan.status == PlanStatus.PLANNING
+        assert isinstance(plan.created_at, datetime)
+
+
+class TestGlobalStore:
+    def test_singleton(self):
+        s1 = get_task_store()
+        s2 = get_task_store()
+        assert s1 is s2
+
+    def test_reset(self):
+        s1 = get_task_store()
+        reset_task_store()
+        s2 = get_task_store()
+        assert s1 is not s2

@@ -7,6 +7,14 @@ Run this to start an interactive conversation with the Autoplot agent.
 Usage:
     python main.py           # Normal mode
     python main.py --verbose # Show tool execution details
+
+Commands:
+    status  - Show current plan progress
+    retry   - Retry a failed task
+    cancel  - Cancel the current plan
+    reset   - Clear conversation history
+    help    - Show help message
+    quit    - Exit the program
 """
 
 import sys
@@ -37,6 +45,10 @@ def print_welcome():
     print("  - 'What data is available for Solar Orbiter?'")
     print("  - 'Plot ACE solar wind velocity for January 2024'")
     print()
+    print("Complex requests work too:")
+    print("  - 'Compare PSP and ACE magnetic field for last week'")
+    print("  - 'Fetch solar wind data, compute running average, and plot'")
+    print()
     print("Supported time ranges:")
     print("  - Relative:  'last week', 'last 3 days', 'last month', 'last year'")
     print("  - Month:     'January 2024', 'Jan 2024'")
@@ -44,10 +56,49 @@ def print_welcome():
     print("  - Range:     '2024-01-15 to 2024-01-20'")
     print("  - Sub-day:   '2024-01-15T06:00 to 2024-01-15T18:00'")
     print()
-    print("Type 'quit' or 'exit' to end the session.")
-    print("Type 'reset' to clear conversation history.")
+    print("Commands: quit, reset, status, retry, cancel, help")
     print("-" * 60)
     print()
+
+
+def check_incomplete_plans(agent, verbose: bool):
+    """Check for incomplete plans from previous sessions and offer to resume."""
+    from agent.tasks import get_task_store
+
+    store = get_task_store()
+    incomplete = store.get_incomplete_plans()
+
+    if not incomplete:
+        return
+
+    # Get the most recent incomplete plan
+    plan = sorted(incomplete, key=lambda p: p.created_at, reverse=True)[0]
+
+    print("-" * 60)
+    print("Found incomplete plan from previous session:")
+    print(f"  Request: {plan.user_request[:60]}...")
+    print(f"  Status: {plan.progress_summary()}")
+    print()
+
+    while True:
+        choice = input("Resume (r), discard (d), or ignore (i)? ").strip().lower()
+        if choice in ("r", "resume"):
+            print()
+            result = agent.resume_plan(plan)
+            print(f"Agent: {result}")
+            print()
+            break
+        elif choice in ("d", "discard"):
+            result = agent.discard_plan(plan)
+            print(result)
+            print()
+            break
+        elif choice in ("i", "ignore"):
+            print("Ignoring incomplete plan.")
+            print()
+            break
+        else:
+            print("Please enter 'r' to resume, 'd' to discard, or 'i' to ignore.")
 
 
 def main():
@@ -82,6 +133,9 @@ def main():
         print("  2. Check that google-genai is installed")
         sys.exit(1)
 
+    # Check for incomplete plans from previous sessions
+    check_incomplete_plans(agent, args.verbose)
+
     print("Agent ready. Type your request:\n")
 
     while True:
@@ -104,6 +158,27 @@ def main():
 
             if user_input.lower() == "help":
                 print_welcome()
+                continue
+
+            if user_input.lower() == "status":
+                status = agent.get_plan_status()
+                if status:
+                    print(status)
+                else:
+                    print("No active or incomplete plans.")
+                print()
+                continue
+
+            if user_input.lower() == "retry":
+                result = agent.retry_failed_task()
+                print(result)
+                print()
+                continue
+
+            if user_input.lower() == "cancel":
+                result = agent.cancel_plan()
+                print(result)
+                print()
                 continue
 
             # Process the message

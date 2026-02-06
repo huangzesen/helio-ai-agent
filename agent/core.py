@@ -2,6 +2,8 @@
 Core agent logic - orchestrates Gemini calls and tool execution.
 """
 
+from typing import Optional
+
 from google import genai
 from google.genai import types
 
@@ -9,6 +11,11 @@ from config import GOOGLE_API_KEY
 from .tools import get_tool_schemas
 from .prompts import get_system_prompt, format_tool_result
 from .time_utils import parse_time_range, TimeRangeError
+from .tasks import (
+    Task, TaskPlan, TaskStatus, PlanStatus,
+    get_task_store, create_task, create_plan,
+)
+from .planner import is_complex_request, create_plan_from_request, format_plan_for_display
 from knowledge.catalog import search_by_keywords
 from knowledge.hapi_client import list_parameters as hapi_list_parameters
 from autoplot_bridge.commands import get_commands
@@ -64,6 +71,9 @@ class AutoplotAgent:
         self._total_input_tokens = 0
         self._total_output_tokens = 0
         self._api_calls = 0
+
+        # Current plan being executed (if any)
+        self._current_plan: Optional[TaskPlan] = None
 
     @property
     def autoplot(self):
@@ -331,11 +341,226 @@ class AutoplotAgent:
         else:
             return {"status": "error", "message": f"Unknown tool: {tool_name}"}
 
-    def process_message(self, user_message: str) -> str:
-        """Process a user message and return the agent's response.
+    def _execute_task(self, task: Task) -> str:
+        """Execute a single task and return the result.
 
-        Handles tool calls automatically in a loop until the model
-        produces a text response.
+        Sends the task instruction to Gemini and handles tool calls.
+        Updates the task status and records tool calls made.
+
+        Args:
+            task: The task to execute
+
+        Returns:
+            The text response from Gemini after completing the task
+        """
+        task.status = TaskStatus.IN_PROGRESS
+        task.tool_calls = []
+
+        if self.verbose:
+            print(f"  [Task] Executing: {task.description}")
+            print(f"  [Gemini] Sending task instruction...")
+
+        try:
+            response = self.chat.send_message(message=task.instruction)
+            self._track_usage(response)
+
+            # Process tool calls
+            max_iterations = 10
+            iteration = 0
+
+            while iteration < max_iterations:
+                iteration += 1
+
+                if not response.candidates or not response.candidates[0].content.parts:
+                    break
+
+                function_calls = []
+                for part in response.candidates[0].content.parts:
+                    if hasattr(part, "function_call") and part.function_call and part.function_call.name:
+                        function_calls.append(part.function_call)
+
+                if not function_calls:
+                    break
+
+                function_responses = []
+                for fc in function_calls:
+                    tool_name = fc.name
+                    tool_args = dict(fc.args) if fc.args else {}
+
+                    task.tool_calls.append(tool_name)
+                    result = self._execute_tool(tool_name, tool_args)
+
+                    if self.verbose and result.get("status") == "error":
+                        print(f"  [Tool Result: ERROR] {result.get('message', '')}")
+
+                    # Don't handle clarification during task execution - let it fail
+                    if result.get("status") == "clarification_needed":
+                        result = {"status": "error", "message": "Task requires clarification, which is not supported during multi-step execution"}
+
+                    function_responses.append(
+                        types.Part.from_function_response(
+                            name=tool_name,
+                            response={"result": result}
+                        )
+                    )
+
+                if self.verbose:
+                    print(f"  [Gemini] Sending {len(function_responses)} tool result(s) back...")
+                response = self.chat.send_message(message=function_responses)
+                self._track_usage(response)
+
+            # Extract text response
+            text_parts = []
+            for part in response.candidates[0].content.parts:
+                if hasattr(part, "text") and part.text:
+                    text_parts.append(part.text)
+
+            result_text = "\n".join(text_parts) if text_parts else "Done."
+            task.status = TaskStatus.COMPLETED
+            task.result = result_text
+
+            if self.verbose:
+                print(f"  [Task] Completed: {task.description}")
+
+            return result_text
+
+        except Exception as e:
+            task.status = TaskStatus.FAILED
+            task.error = str(e)
+            if self.verbose:
+                print(f"  [Task] Failed: {task.description} - {e}")
+            return f"Error: {e}"
+
+    def _summarize_plan_execution(self, plan: TaskPlan) -> str:
+        """Generate a summary of the completed plan execution.
+
+        Asks Gemini to summarize what was accomplished based on the
+        task results.
+
+        Args:
+            plan: The completed plan
+
+        Returns:
+            Natural language summary of the execution
+        """
+        # Build context from completed tasks
+        summary_parts = [f"I just executed a multi-step plan for: \"{plan.user_request}\""]
+        summary_parts.append("")
+
+        completed = plan.get_completed_tasks()
+        failed = plan.get_failed_tasks()
+
+        if completed:
+            summary_parts.append("Completed tasks:")
+            for task in completed:
+                summary_parts.append(f"  - {task.description}")
+                if task.result:
+                    # Truncate long results
+                    result_preview = task.result[:100] + "..." if len(task.result) > 100 else task.result
+                    summary_parts.append(f"    Result: {result_preview}")
+
+        if failed:
+            summary_parts.append("")
+            summary_parts.append("Failed tasks:")
+            for task in failed:
+                summary_parts.append(f"  - {task.description}")
+                if task.error:
+                    summary_parts.append(f"    Error: {task.error}")
+
+        summary_parts.append("")
+        summary_parts.append("Please provide a brief summary of what was accomplished for the user.")
+
+        prompt = "\n".join(summary_parts)
+
+        if self.verbose:
+            print(f"  [Gemini] Generating execution summary...")
+
+        try:
+            response = self.chat.send_message(message=prompt)
+            self._track_usage(response)
+
+            text_parts = []
+            for part in response.candidates[0].content.parts:
+                if hasattr(part, "text") and part.text:
+                    text_parts.append(part.text)
+
+            return "\n".join(text_parts) if text_parts else plan.progress_summary()
+
+        except Exception as e:
+            if self.verbose:
+                print(f"  [Summary] Error generating summary: {e}")
+            return plan.progress_summary()
+
+    def _process_complex_request(self, user_message: str) -> str:
+        """Process a complex multi-step request.
+
+        Creates a plan, executes each task sequentially, and returns
+        a summary of the execution.
+
+        Args:
+            user_message: The user's complex request
+
+        Returns:
+            Summary of what was accomplished
+        """
+        if self.verbose:
+            print(f"  [Planner] Detected complex request, creating plan...")
+
+        # Create a plan using Gemini
+        plan = create_plan_from_request(
+            client=self.client,
+            model_name=self.model_name,
+            user_request=user_message,
+            verbose=self.verbose,
+        )
+
+        # If planning fails or request is actually simple, fall back to direct execution
+        if plan is None:
+            if self.verbose:
+                print(f"  [Planner] Falling back to direct execution")
+            return self._process_single_message(user_message)
+
+        # Store the plan
+        self._current_plan = plan
+        plan.status = PlanStatus.EXECUTING
+        store = get_task_store()
+        store.save(plan)
+
+        if self.verbose:
+            print(format_plan_for_display(plan))
+
+        # Execute each task
+        for i, task in enumerate(plan.tasks):
+            plan.current_task_index = i
+            store.save(plan)
+
+            if self.verbose:
+                print(f"\n  [Plan] Step {i+1}/{len(plan.tasks)}: {task.description}")
+
+            self._execute_task(task)
+            store.save(plan)
+
+            # Continue to next task even if this one failed
+            # The summary will explain what happened
+
+        # Mark plan as complete
+        if plan.get_failed_tasks():
+            plan.status = PlanStatus.FAILED
+        else:
+            plan.status = PlanStatus.COMPLETED
+        store.save(plan)
+
+        # Generate summary
+        summary = self._summarize_plan_execution(plan)
+
+        self._current_plan = None
+
+        return summary
+
+    def _process_single_message(self, user_message: str) -> str:
+        """Process a single (non-complex) user message.
+
+        This is the original process_message logic, extracted to its own method.
 
         Args:
             user_message: The user's input
@@ -418,12 +643,189 @@ class AutoplotAgent:
 
         return "\n".join(text_parts) if text_parts else "Done."
 
+    def process_message(self, user_message: str) -> str:
+        """Process a user message and return the agent's response.
+
+        Routes complex multi-step requests through the planning system,
+        and handles simple requests directly.
+
+        Args:
+            user_message: The user's input
+
+        Returns:
+            The agent's text response
+        """
+        # Check if this is a complex request that needs planning
+        if is_complex_request(user_message):
+            return self._process_complex_request(user_message)
+
+        # Simple request - process directly
+        return self._process_single_message(user_message)
+
     def reset(self):
         """Reset conversation history."""
         self.chat = self.client.chats.create(
             model=self.model_name,
             config=self.config
         )
+        self._current_plan = None
+
+    def get_current_plan(self) -> Optional[TaskPlan]:
+        """Get the currently executing plan, if any."""
+        return self._current_plan
+
+    def get_plan_status(self) -> Optional[str]:
+        """Get a formatted status of the current plan.
+
+        Returns:
+            Formatted plan status string, or None if no plan is active
+        """
+        if self._current_plan is None:
+            # Check for incomplete plans in storage
+            store = get_task_store()
+            incomplete = store.get_incomplete_plans()
+            if incomplete:
+                # Return status of the most recent incomplete plan
+                plan = sorted(incomplete, key=lambda p: p.created_at, reverse=True)[0]
+                return format_plan_for_display(plan)
+            return None
+        return format_plan_for_display(self._current_plan)
+
+    def cancel_plan(self) -> str:
+        """Cancel the current plan and mark remaining tasks as skipped.
+
+        Returns:
+            Status message about what was cancelled
+        """
+        if self._current_plan is None:
+            return "No active plan to cancel."
+
+        plan = self._current_plan
+        skipped_count = 0
+
+        for task in plan.tasks:
+            if task.status == TaskStatus.PENDING:
+                task.status = TaskStatus.SKIPPED
+                skipped_count += 1
+
+        plan.status = PlanStatus.CANCELLED
+        store = get_task_store()
+        store.save(plan)
+
+        completed = len(plan.get_completed_tasks())
+        self._current_plan = None
+
+        return f"Plan cancelled. {completed} task(s) completed, {skipped_count} skipped."
+
+    def retry_failed_task(self) -> str:
+        """Retry the first failed task in the current plan.
+
+        Returns:
+            Result of retrying the task, or error message
+        """
+        if self._current_plan is None:
+            # Check for failed plans in storage
+            store = get_task_store()
+            incomplete = store.get_incomplete_plans()
+            failed_plans = [p for p in incomplete if p.get_failed_tasks()]
+            if not failed_plans:
+                return "No failed tasks to retry."
+            self._current_plan = sorted(failed_plans, key=lambda p: p.created_at, reverse=True)[0]
+
+        plan = self._current_plan
+        failed = plan.get_failed_tasks()
+        if not failed:
+            return "No failed tasks to retry."
+
+        task = failed[0]
+        task.status = TaskStatus.PENDING
+        task.error = None
+        task.result = None
+        task.tool_calls = []
+
+        plan.status = PlanStatus.EXECUTING
+        store = get_task_store()
+        store.save(plan)
+
+        if self.verbose:
+            print(f"  [Retry] Retrying task: {task.description}")
+
+        result = self._execute_task(task)
+        store.save(plan)
+
+        # Check if plan is now complete
+        if plan.is_complete():
+            if plan.get_failed_tasks():
+                plan.status = PlanStatus.FAILED
+            else:
+                plan.status = PlanStatus.COMPLETED
+            store.save(plan)
+
+        return f"Retried: {task.description}\nResult: {result}"
+
+    def resume_plan(self, plan: TaskPlan) -> str:
+        """Resume an incomplete plan from storage.
+
+        Args:
+            plan: The plan to resume
+
+        Returns:
+            Summary of execution after resuming
+        """
+        self._current_plan = plan
+        plan.status = PlanStatus.EXECUTING
+        store = get_task_store()
+
+        if self.verbose:
+            print(f"  [Resume] Resuming plan: {plan.user_request[:50]}...")
+            print(format_plan_for_display(plan))
+
+        # Find the first pending task
+        pending = plan.get_pending_tasks()
+        if not pending:
+            # All tasks already processed
+            plan.status = PlanStatus.COMPLETED if not plan.get_failed_tasks() else PlanStatus.FAILED
+            store.save(plan)
+            return self._summarize_plan_execution(plan)
+
+        # Execute remaining tasks
+        for i, task in enumerate(plan.tasks):
+            if task.status != TaskStatus.PENDING:
+                continue
+
+            plan.current_task_index = i
+            store.save(plan)
+
+            if self.verbose:
+                print(f"\n  [Plan] Resuming step {i+1}/{len(plan.tasks)}: {task.description}")
+
+            self._execute_task(task)
+            store.save(plan)
+
+        # Mark plan as complete
+        if plan.get_failed_tasks():
+            plan.status = PlanStatus.FAILED
+        else:
+            plan.status = PlanStatus.COMPLETED
+        store.save(plan)
+
+        summary = self._summarize_plan_execution(plan)
+        self._current_plan = None
+
+        return summary
+
+    def discard_plan(self, plan: TaskPlan) -> str:
+        """Discard an incomplete plan.
+
+        Args:
+            plan: The plan to discard
+
+        Returns:
+            Confirmation message
+        """
+        store = get_task_store()
+        store.delete(plan.id)
+        return f"Discarded plan: {plan.user_request[:50]}..."
 
 
 def create_agent(verbose: bool = False) -> AutoplotAgent:

@@ -13,12 +13,23 @@ User input
   |
   v
 main.py  (readline CLI, --verbose flag, token usage on exit)
+  |  - Commands: quit, reset, status, retry, cancel, help
+  |  - Checks for incomplete plans on startup
   |
   v
 agent/core.py  AutoplotAgent
   |  - Gemini 2.5-Flash with function calling
   |  - Tool execution loop (up to 10 iterations)
   |  - Token usage tracking (input/output/api_calls)
+  |  - Multi-step task planning for complex requests
+  |
+  +---> agent/planner.py    Task planning
+  |       is_complex_request()    Regex heuristics for complexity detection
+  |       create_plan_from_request()  Gemini JSON output for task decomposition
+  |
+  +---> agent/tasks.py      Task management
+  |       Task, TaskPlan         Data structures for multi-step execution
+  |       TaskStore              JSON persistence to ~/.helio-agent/tasks/
   |
   +---> knowledge/         Dataset discovery
   |       catalog.py         Static spacecraft/instrument catalog (keyword search)
@@ -109,6 +120,14 @@ All times are UTC. Outputs `TimeRange` objects with `start`/`end` datetimes. Con
 - Loop continues until Gemini produces a text response (or 10 iterations).
 - Token usage accumulated from `response.usage_metadata` (prompt_token_count, candidates_token_count).
 
+### Multi-Step Task Handling (`agent/planner.py`, `agent/tasks.py`)
+- **Complexity detection**: Regex patterns identify requests needing decomposition (multiple "and"s, "compare", "then", multiple spacecraft mentions).
+- **Planning**: Complex requests are sent to Gemini with JSON schema output to generate a task list.
+- **Execution**: Tasks execute sequentially; each task gets its own Gemini interaction with the conversation context.
+- **Persistence**: Plans are saved to `~/.helio-agent/tasks/*.json` for crash recovery.
+- **Error handling**: Failed tasks are recorded but don't stop subsequent tasks. Summary explains what succeeded/failed.
+- **CLI commands**: `status` (show progress), `retry` (retry failed task), `cancel` (skip remaining tasks).
+
 ## Configuration
 
 `.env` file at project root:
@@ -124,6 +143,17 @@ JAVA_HOME=<optional, auto-detected>
 python main.py            # Normal mode
 python main.py --verbose  # Show tool calls, timing, errors
 ```
+
+### CLI Commands
+
+| Command | Description |
+|---------|-------------|
+| `quit` / `exit` | Exit the program |
+| `reset` | Clear conversation history |
+| `status` | Show current multi-step plan progress |
+| `retry` | Retry the first failed task in current plan |
+| `cancel` | Cancel current plan, skip remaining tasks |
+| `help` | Show welcome message and help |
 
 ## Tests
 
