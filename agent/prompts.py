@@ -96,10 +96,10 @@ In addition to Autoplot visualization, you can fetch data into memory and perfor
 - Combine two timeseries with arithmetic
 - Compare data from different sources at the same cadence
 
-### Workflow: fetch → compute → plot
+### Workflow: fetch → custom_operation → plot
 
 1. **`fetch_data`** — Pull data from CDAWeb HAPI into memory. Data gets a label like `AC_H2_MFI.BGSEc`.
-2. **`compute_*` tools** — Transform the data: magnitude, arithmetic, running average, resample, delta.
+2. **`custom_operation`** — Transform the data using pandas/numpy code. Write code that operates on `df` (a DataFrame with DatetimeIndex) and assigns to `result`.
    - Computed results get descriptive labels chosen by you (e.g., `"Bmag"`, `"B_smooth"`).
 3. **`plot_computed_data`** — Display one or more labeled timeseries in the Autoplot canvas.
 4. **`list_fetched_data`** — Check what's currently in memory.
@@ -107,7 +107,7 @@ In addition to Autoplot visualization, you can fetch data into memory and perfor
 ### When to use data ops vs direct plot
 
 - **`plot_data`**: Quick visualization of raw CDAWeb data directly from CDAWeb URI. No computation needed.
-- **`fetch_data` → compute → `plot_computed_data`**: When the user wants derived quantities, smoothing, resampling, or multi-dataset comparisons. The result is rendered in the same Autoplot canvas — you can then use `change_time_range` or `export_plot` on it.
+- **`fetch_data` → `custom_operation` → `plot_computed_data`**: When the user wants derived quantities, smoothing, resampling, or multi-dataset comparisons. The result is rendered in the same Autoplot canvas — you can then use `change_time_range` or `export_plot` on it.
 
 ### Label Naming Convention
 
@@ -116,10 +116,23 @@ In addition to Autoplot visualization, you can fetch data into memory and perfor
 
 ### Common Patterns
 
-- **Magnetic field magnitude**: fetch vector field → `compute_magnitude` → plot
-- **Smoothing**: fetch scalar → `compute_running_average` → plot both raw and smooth
-- **Comparing datasets**: fetch both → `compute_resample` to align cadences → `compute_arithmetic` to subtract → plot
-- **Rate of change**: fetch data → `compute_delta` with mode=derivative → plot
+All computations use `custom_operation`. The `pandas_code` operates on `df` and assigns to `result`:
+
+- **Magnetic field magnitude**: `result = df.pow(2).sum(axis=1, skipna=False).pow(0.5).to_frame('magnitude')`
+- **Smoothing**: `result = df.rolling(60, center=True, min_periods=1).mean()`
+- **Resample to fixed cadence**: `result = df.resample('60s').mean().dropna(how='all')`
+- **Arithmetic between series**: fetch both, then use `pd.DataFrame(...)` to embed second operand
+- **Rate of change**: `dv = df.diff().iloc[1:]; dt_s = df.index.to_series().diff().dt.total_seconds().iloc[1:]; result = dv.div(dt_s, axis=0)`
+- **Normalize**: `result = (df - df.mean()) / df.std()`
+- **Clip values**: `result = df.clip(lower=-50, upper=50)`
+
+### custom_operation Code Guidelines
+
+- Always assign to `result` — it must be a DataFrame or Series with DatetimeIndex preserved
+- Use `df`, `pd`, `np` only — no imports, no file I/O, no exec/eval
+- Handle NaN appropriately (use `skipna=True`, `.dropna()`, or `.fillna()` as needed)
+- For multiline code, use intermediate variables (not `result` until the final assignment)
+- Do NOT call `custom_operation` if the request can't be expressed as a data transformation (file I/O, network, email) — explain to the user instead
 
 ## Multi-Step Task Execution
 

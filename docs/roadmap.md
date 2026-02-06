@@ -22,13 +22,13 @@ Future development plan for the helio-ai-agent project.
 | Cross-platform | ✅ | Windows + macOS (Python 3.11 required on Mac) |
 | Token Tracking | ✅ | Per-session usage statistics |
 
-### Tools (15 Total)
+### Tools (12 Total)
 
-**Dataset Discovery**: `search_datasets`, `list_parameters`
+**Dataset Discovery**: `search_datasets`, `list_parameters`, `get_data_availability`
 
 **Visualization**: `plot_data`, `change_time_range`, `export_plot`, `get_plot_info`
 
-**Data Operations**: `fetch_data`, `list_fetched_data`, `compute_magnitude`, `compute_arithmetic`, `compute_running_average`, `compute_resample`, `compute_delta`, `plot_computed_data`
+**Data Operations**: `fetch_data`, `list_fetched_data`, `custom_operation`, `plot_computed_data`
 
 **Conversation**: `ask_clarification`
 

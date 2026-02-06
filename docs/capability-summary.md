@@ -38,7 +38,7 @@ agent/core.py  AutoplotAgent
   +---> data_ops/           Python-side data pipeline (pandas-backed)
   |       fetch.py            HAPI /data endpoint -> pandas DataFrames (pd.read_csv)
   |       store.py            In-memory DataStore singleton (label -> DataEntry w/ DataFrame)
-  |       operations.py       Pandas operations: magnitude, arithmetic, smoothing, resample, delta
+  |       custom_ops.py       AST-validated sandboxed executor for LLM-generated pandas/numpy code
   |       plotting.py         Matplotlib fallback (DEPRECATED — plotting goes through Autoplot)
   |
   +---> autoplot_bridge/    Java visualization via JPype
@@ -47,7 +47,7 @@ agent/core.py  AutoplotAgent
                                numpy->QDataSet conversion, overplot with color management
 ```
 
-## Tools (16 total)
+## Tools (12 total)
 
 ### Dataset Discovery
 | Tool | Purpose |
@@ -64,16 +64,12 @@ agent/core.py  AutoplotAgent
 | `export_plot` | Export current plot to PNG |
 | `get_plot_info` | Get current URI and time range |
 
-### Data Operations (fetch -> compute -> plot)
+### Data Operations (fetch -> custom_operation -> plot)
 | Tool | Purpose |
 |------|---------|
 | `fetch_data` | Pull HAPI data into memory (label: `DATASET.PARAM`) |
 | `list_fetched_data` | Show all in-memory timeseries |
-| `compute_magnitude` | Vector magnitude: sqrt(x^2+y^2+z^2) |
-| `compute_arithmetic` | Element-wise +, -, *, / between two series |
-| `compute_running_average` | Centered moving average (pandas rolling) |
-| `compute_resample` | Bin-average at fixed cadence (pandas resample) |
-| `compute_delta` | Differences or time derivatives (dv/dt) |
+| `custom_operation` | LLM-generated pandas/numpy code (AST-validated, sandboxed) — handles magnitude, arithmetic, smoothing, resampling, derivatives, and any other transformation |
 | `plot_computed_data` | Display in-memory data in Autoplot canvas (overplot support) |
 
 ### Conversation
@@ -111,8 +107,8 @@ All times are UTC. Outputs `TimeRange` objects with `start`/`end` datetimes. Con
 
 ### Data Pipeline (`data_ops/`)
 - `DataEntry` wraps a `pd.DataFrame` (DatetimeIndex + float64 columns) with backward-compat `.time` and `.values` properties for the Autoplot bridge.
-- `DataStore` is a singleton dict keyed by label. The LLM chains tools automatically: fetch -> compute -> plot.
-- Operations are pandas one-liners (rolling, resample, diff) — no DataStore dependency, easy to test.
+- `DataStore` is a singleton dict keyed by label. The LLM chains tools automatically: fetch -> custom_operation -> plot.
+- `custom_ops.py`: AST-validated, sandboxed executor for LLM-generated pandas/numpy code. Replaces all hardcoded compute functions — the LLM writes the pandas code directly.
 - HAPI CSV parsing uses `pd.read_csv()` with `pd.to_numeric(errors="coerce")` for robust handling.
 
 ### Agent Loop (`agent/core.py`)
@@ -168,7 +164,7 @@ python main.py --verbose  # Show tool calls, timing, errors
 ## Tests
 
 ```bash
-python -m pytest tests/test_store.py tests/test_operations.py   # 43 tests, data ops
+python -m pytest tests/test_store.py tests/test_custom_ops.py   # 56 tests, data ops
 python -m pytest tests/                                          # All tests
 ```
 

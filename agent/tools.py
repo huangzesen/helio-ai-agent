@@ -218,121 +218,53 @@ Multiple labels are overlaid on the same plot. The result appears in the Autoplo
         }
     },
     {
-        "name": "compute_magnitude",
-        "description": """Compute the magnitude (sqrt(x²+y²+z²)) of a vector timeseries.
-The source must be a 3-component vector (e.g., magnetic field BGSEc).""",
-        "parameters": {
-            "type": "object",
-            "properties": {
-                "source_label": {
-                    "type": "string",
-                    "description": "Label of the vector timeseries in memory"
-                },
-                "output_label": {
-                    "type": "string",
-                    "description": "Label for the result (e.g., 'Bmag')"
-                }
-            },
-            "required": ["source_label", "output_label"]
-        }
-    },
-    {
-        "name": "compute_arithmetic",
-        "description": """Element-wise arithmetic between two timeseries: +, -, *, /.
-Both series must have the same shape (use compute_resample to align cadences first).""",
-        "parameters": {
-            "type": "object",
-            "properties": {
-                "label_a": {
-                    "type": "string",
-                    "description": "Label of the first operand"
-                },
-                "label_b": {
-                    "type": "string",
-                    "description": "Label of the second operand"
-                },
-                "operation": {
-                    "type": "string",
-                    "description": "Arithmetic operation: '+', '-', '*', or '/'"
-                },
-                "output_label": {
-                    "type": "string",
-                    "description": "Label for the result"
-                }
-            },
-            "required": ["label_a", "label_b", "operation", "output_label"]
-        }
-    },
-    {
-        "name": "compute_running_average",
-        "description": """Compute a centered moving average to smooth a scalar timeseries.
-Uses np.nanmean to skip data gaps. Window size is in number of data points.""",
-        "parameters": {
-            "type": "object",
-            "properties": {
-                "source_label": {
-                    "type": "string",
-                    "description": "Label of the scalar timeseries"
-                },
-                "window_size": {
-                    "type": "integer",
-                    "description": "Number of points in the averaging window"
-                },
-                "output_label": {
-                    "type": "string",
-                    "description": "Label for the smoothed result"
-                }
-            },
-            "required": ["source_label", "window_size", "output_label"]
-        }
-    },
-    {
-        "name": "compute_resample",
-        "description": """Downsample a timeseries by bin-averaging at a fixed cadence.
-Works on both scalar and vector data. Useful for aligning two series to the same time grid.""",
-        "parameters": {
-            "type": "object",
-            "properties": {
-                "source_label": {
-                    "type": "string",
-                    "description": "Label of the timeseries to resample"
-                },
-                "cadence_seconds": {
-                    "type": "number",
-                    "description": "New cadence in seconds (e.g., 60 for 1-minute averages)"
-                },
-                "output_label": {
-                    "type": "string",
-                    "description": "Label for the resampled result"
-                }
-            },
-            "required": ["source_label", "cadence_seconds", "output_label"]
-        }
-    },
-    {
-        "name": "compute_delta",
-        "description": """Compute differences or time derivatives of a timeseries.
-- 'difference' mode: Δv = v[i+1] - v[i]
-- 'derivative' mode: dv/dt in units per second
+        "name": "custom_operation",
+        "description": """Apply a pandas/numpy operation to an in-memory timeseries. This is the universal compute tool — use it for ALL data transformations after fetching data with fetch_data.
 
-Output has n-1 points with midpoint timestamps.""",
+The pandas_code must:
+- Operate on `df` (a pandas DataFrame with DatetimeIndex)
+- Assign the result to `result` (must be a DataFrame or Series with DatetimeIndex)
+- Use only `df`, `pd` (pandas), and `np` (numpy) — no imports, no file I/O
+
+Common operations:
+- Magnitude: `result = df.pow(2).sum(axis=1, skipna=False).pow(0.5).to_frame('magnitude')`
+- Arithmetic: `result = df * 2` or `result = df_a + df_b` (use pd.DataFrame constructor for second operand)
+- Running average: `result = df.rolling(60, center=True, min_periods=1).mean()`
+- Resample: `result = df.resample('60s').mean().dropna(how='all')`
+- Difference: `result = df.diff().iloc[1:]`
+- Derivative: `dv = df.diff().iloc[1:]; dt_s = df.index.to_series().diff().dt.total_seconds().iloc[1:]; result = dv.div(dt_s, axis=0)`
+- Normalize: `result = (df - df.mean()) / df.std()`
+- Clip values: `result = df.clip(lower=-50, upper=50)`
+- Log transform: `result = np.log10(df.abs().replace(0, np.nan))`
+- Interpolate gaps: `result = df.interpolate(method='linear')`
+- Select columns: `result = df[['x', 'z']]`
+- Detrend: `result = df - df.rolling(100, center=True, min_periods=1).mean()`
+- Absolute value: `result = df.abs()`
+- Cumulative sum: `result = df.cumsum()`
+- Z-score filter: `z = (df - df.mean()) / df.std(); result = df[z.abs() < 3].reindex(df.index)`
+
+Do NOT call this tool when the request cannot be expressed as a pandas/numpy operation (e.g., "email me the data", "upload to server"). Instead, explain to the user what is and isn't possible.""",
         "parameters": {
             "type": "object",
             "properties": {
                 "source_label": {
                     "type": "string",
-                    "description": "Label of the source timeseries"
+                    "description": "Label of the source timeseries in memory"
                 },
-                "mode": {
+                "pandas_code": {
                     "type": "string",
-                    "description": "'difference' or 'derivative'"
+                    "description": "Python code using df (DataFrame), pd (pandas), np (numpy). Must assign to 'result'."
                 },
                 "output_label": {
                     "type": "string",
-                    "description": "Label for the result"
+                    "description": "Label for the result (e.g., 'B_normalized', 'B_clipped')"
+                },
+                "description": {
+                    "type": "string",
+                    "description": "Human-readable description of the operation"
                 }
             },
-            "required": ["source_label", "mode", "output_label"]
+            "required": ["source_label", "pandas_code", "output_label", "description"]
         }
     },
 ]

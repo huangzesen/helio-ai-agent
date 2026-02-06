@@ -109,11 +109,7 @@ Your job is to decompose complex user requests into a sequence of discrete tasks
 - search_datasets(query): Find spacecraft/instrument datasets by keyword
 - list_parameters(dataset_id): Get available parameters for a dataset
 - fetch_data(dataset_id, parameter_id, time_range): Pull data into memory. Result stored with label "DATASET.PARAM" format. Time range can be "last week", "last 3 days", or "2024-01-15 to 2024-01-20".
-- compute_magnitude(source_label, output_label): Calculate vector magnitude from 3-component data
-- compute_arithmetic(label_a, label_b, operation, output_label): Add/subtract/multiply/divide two datasets
-- compute_running_average(source_label, window_size, output_label): Smooth data with moving window (window_size is number of points, e.g., 60)
-- compute_resample(source_label, cadence_seconds, output_label): Change data cadence
-- compute_delta(source_label, output_label, mode): Compute differences (mode="difference") or derivatives (mode="derivative")
+- custom_operation(source_label, pandas_code, output_label, description): Apply any pandas/numpy operation. Code operates on `df` (DataFrame) and assigns to `result`. Examples: magnitude, smoothing, resampling, arithmetic, derivatives, normalization, clipping.
 - plot_data(dataset_id, parameter_id, time_range): Plot CDAWeb data directly
 - plot_computed_data(labels): Plot data from memory. Labels is comma-separated, e.g., "AC_H2_MFI.BGSEc,Bmag_smooth"
 - export_plot(filepath): Save plot to PNG

@@ -25,7 +25,7 @@ from knowledge.hapi_client import list_parameters as hapi_list_parameters, get_d
 from autoplot_bridge.commands import get_commands
 from data_ops.store import get_store, DataEntry
 from data_ops.fetch import fetch_hapi_data
-from data_ops import operations as ops
+from data_ops.custom_ops import run_custom_operation
 
 
 class AutoplotAgent:
@@ -323,111 +323,28 @@ class AutoplotAgent:
                 print(f"  [DataOps] Plotted {len(entries)} series via Autoplot")
             return result
 
-        elif tool_name == "compute_magnitude":
+        elif tool_name == "custom_operation":
             store = get_store()
             source = store.get(tool_args["source_label"])
             if source is None:
                 return {"status": "error", "message": f"Label '{tool_args['source_label']}' not found"}
             try:
-                result_df = ops.compute_magnitude(source.data)
+                result_df = run_custom_operation(source.data, tool_args["pandas_code"])
             except ValueError as e:
-                return {"status": "error", "message": str(e)}
+                return {"status": "error", "message": f"Validation error: {e}"}
+            except RuntimeError as e:
+                return {"status": "error", "message": f"Execution error: {e}"}
+            desc = tool_args.get("description", f"Custom operation on {source.label}")
             entry = DataEntry(
                 label=tool_args["output_label"],
                 data=result_df,
                 units=source.units,
-                description=f"Magnitude of {source.label}",
+                description=desc,
                 source="computed",
             )
             store.put(entry)
-            return {"status": "success", **entry.summary()}
-
-        elif tool_name == "compute_arithmetic":
-            store = get_store()
-            a = store.get(tool_args["label_a"])
-            b = store.get(tool_args["label_b"])
-            if a is None:
-                return {"status": "error", "message": f"Label '{tool_args['label_a']}' not found"}
-            if b is None:
-                return {"status": "error", "message": f"Label '{tool_args['label_b']}' not found"}
-            try:
-                result_df = ops.compute_arithmetic(a.data, b.data, tool_args["operation"])
-            except ValueError as e:
-                return {"status": "error", "message": str(e)}
-            entry = DataEntry(
-                label=tool_args["output_label"],
-                data=result_df,
-                units=f"{a.units} {tool_args['operation']} {b.units}" if a.units or b.units else "",
-                description=f"{a.label} {tool_args['operation']} {b.label}",
-                source="computed",
-            )
-            store.put(entry)
-            return {"status": "success", **entry.summary()}
-
-        elif tool_name == "compute_running_average":
-            store = get_store()
-            source = store.get(tool_args["source_label"])
-            if source is None:
-                return {"status": "error", "message": f"Label '{tool_args['source_label']}' not found"}
-            try:
-                result_df = ops.compute_running_average(
-                    source.data, int(tool_args["window_size"])
-                )
-            except ValueError as e:
-                return {"status": "error", "message": str(e)}
-            entry = DataEntry(
-                label=tool_args["output_label"],
-                data=result_df,
-                units=source.units,
-                description=f"Running average (window={tool_args['window_size']}) of {source.label}",
-                source="computed",
-            )
-            store.put(entry)
-            return {"status": "success", **entry.summary()}
-
-        elif tool_name == "compute_resample":
-            store = get_store()
-            source = store.get(tool_args["source_label"])
-            if source is None:
-                return {"status": "error", "message": f"Label '{tool_args['source_label']}' not found"}
-            try:
-                result_df = ops.compute_resample(
-                    source.data, float(tool_args["cadence_seconds"])
-                )
-            except ValueError as e:
-                return {"status": "error", "message": str(e)}
-            entry = DataEntry(
-                label=tool_args["output_label"],
-                data=result_df,
-                units=source.units,
-                description=f"Resampled ({tool_args['cadence_seconds']}s) {source.label}",
-                source="computed",
-            )
-            store.put(entry)
-            return {"status": "success", **entry.summary()}
-
-        elif tool_name == "compute_delta":
-            store = get_store()
-            source = store.get(tool_args["source_label"])
-            if source is None:
-                return {"status": "error", "message": f"Label '{tool_args['source_label']}' not found"}
-            mode = tool_args.get("mode", "difference")
-            try:
-                result_df = ops.compute_delta(source.data, mode)
-            except ValueError as e:
-                return {"status": "error", "message": str(e)}
-            if mode == "derivative":
-                units = f"{source.units}/s" if source.units else "1/s"
-            else:
-                units = source.units
-            entry = DataEntry(
-                label=tool_args["output_label"],
-                data=result_df,
-                units=units,
-                description=f"{mode.capitalize()} of {source.label}",
-                source="computed",
-            )
-            store.put(entry)
+            if self.verbose:
+                print(f"  [DataOps] Custom operation -> '{tool_args['output_label']}' ({len(result_df)} points)")
             return {"status": "success", **entry.summary()}
 
         else:
