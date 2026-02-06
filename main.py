@@ -12,6 +12,7 @@ Commands:
     status  - Show current plan progress
     retry   - Retry a failed task
     cancel  - Cancel the current plan
+    errors  - Show recent errors from logs
     reset   - Clear conversation history
     help    - Show help message
     quit    - Exit the program
@@ -56,7 +57,7 @@ def print_welcome():
     print("  - Range:     '2024-01-15 to 2024-01-20'")
     print("  - Sub-day:   '2024-01-15T06:00 to 2024-01-15T18:00'")
     print()
-    print("Commands: quit, reset, status, retry, cancel, help")
+    print("Commands: quit, reset, status, retry, cancel, errors, help")
     print("-" * 60)
     print()
 
@@ -181,6 +182,12 @@ def main():
                 print()
                 continue
 
+            if user_input.lower() == "errors":
+                from agent.logging import print_recent_errors
+                print_recent_errors(days=7, limit=10)
+                print()
+                continue
+
             # Process the message
             print()
             response = agent.process_message(user_input)
@@ -194,7 +201,7 @@ def main():
             print(f"\nError: {e}")
             print("You can continue the conversation or type 'reset' to start fresh.\n")
 
-    # Print token usage summary
+    # Print token usage summary and log session end
     usage = agent.get_token_usage()
     if usage["api_calls"] > 0:
         print()
@@ -205,6 +212,10 @@ def main():
         print(f"    Total tokens:  {usage['total_tokens']:,}")
         print(f"    API calls:     {usage['api_calls']}")
         print("-" * 60)
+
+        # Log session end
+        from agent.logging import log_session_end
+        log_session_end(usage)
 
     # Clean shutdown
     readline.write_history_file(HISTORY_FILE)

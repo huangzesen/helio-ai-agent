@@ -16,6 +16,10 @@ from .tasks import (
     get_task_store, create_task, create_plan,
 )
 from .planner import is_complex_request, create_plan_from_request, format_plan_for_display
+from .logging import (
+    setup_logging, get_logger, log_error, log_tool_call,
+    log_tool_result, log_plan_event, log_session_end,
+)
 from knowledge.catalog import search_by_keywords
 from knowledge.hapi_client import list_parameters as hapi_list_parameters
 from autoplot_bridge.commands import get_commands
@@ -34,6 +38,10 @@ class AutoplotAgent:
             verbose: If True, print debug info about tool calls.
         """
         self.verbose = verbose
+
+        # Initialize logging
+        self.logger = setup_logging(verbose=verbose)
+        self.logger.info("Initializing AutoplotAgent")
 
         # Initialize Gemini client
         self.client = genai.Client(api_key=GOOGLE_API_KEY)
@@ -109,6 +117,9 @@ class AutoplotAgent:
         Returns:
             Dict with result data (varies by tool)
         """
+        # Log the tool call
+        log_tool_call(tool_name, tool_args)
+
         if self.verbose:
             print(f"  [Tool: {tool_name}({tool_args})]")
 
@@ -339,7 +350,49 @@ class AutoplotAgent:
             return {"status": "success", **entry.summary()}
 
         else:
-            return {"status": "error", "message": f"Unknown tool: {tool_name}"}
+            result = {"status": "error", "message": f"Unknown tool: {tool_name}"}
+            log_error(
+                f"Unknown tool called: {tool_name}",
+                context={"tool_name": tool_name, "tool_args": tool_args}
+            )
+            return result
+
+    def _execute_tool_safe(self, tool_name: str, tool_args: dict) -> dict:
+        """Execute a tool with error handling and logging.
+
+        Wraps _execute_tool to catch unexpected exceptions and log them.
+
+        Args:
+            tool_name: Name of the tool to execute
+            tool_args: Arguments for the tool
+
+        Returns:
+            Dict with result data (varies by tool)
+        """
+        try:
+            result = self._execute_tool_safe(tool_name, tool_args)
+
+            # Log the result
+            is_success = result.get("status") != "error"
+            log_tool_result(tool_name, result, is_success)
+
+            # If error, log with more detail
+            if not is_success:
+                log_error(
+                    f"Tool {tool_name} returned error: {result.get('message', 'Unknown')}",
+                    context={"tool_name": tool_name, "tool_args": tool_args, "result": result}
+                )
+
+            return result
+
+        except Exception as e:
+            # Unexpected exception - log with full stack trace
+            log_error(
+                f"Unexpected exception in tool {tool_name}",
+                exc=e,
+                context={"tool_name": tool_name, "tool_args": tool_args}
+            )
+            return {"status": "error", "message": f"Internal error: {e}"}
 
     def _execute_task(self, task: Task) -> str:
         """Execute a single task and return the result.
@@ -388,7 +441,7 @@ class AutoplotAgent:
                     tool_args = dict(fc.args) if fc.args else {}
 
                     task.tool_calls.append(tool_name)
-                    result = self._execute_tool(tool_name, tool_args)
+                    result = self._execute_tool_safe(tool_name, tool_args)
 
                     if self.verbose and result.get("status") == "error":
                         print(f"  [Tool Result: ERROR] {result.get('message', '')}")
@@ -487,6 +540,7 @@ class AutoplotAgent:
             return "\n".join(text_parts) if text_parts else plan.progress_summary()
 
         except Exception as e:
+            log_error("Error generating plan summary", exc=e, context={"plan_id": plan.id})
             if self.verbose:
                 print(f"  [Summary] Error generating summary: {e}")
             return plan.progress_summary()
@@ -526,6 +580,8 @@ class AutoplotAgent:
         store = get_task_store()
         store.save(plan)
 
+        log_plan_event("created", plan.id, f"{len(plan.tasks)} tasks for: {user_message[:50]}...")
+
         if self.verbose:
             print(format_plan_for_display(plan))
 
@@ -546,8 +602,10 @@ class AutoplotAgent:
         # Mark plan as complete
         if plan.get_failed_tasks():
             plan.status = PlanStatus.FAILED
+            log_plan_event("failed", plan.id, plan.progress_summary())
         else:
             plan.status = PlanStatus.COMPLETED
+            log_plan_event("completed", plan.id, plan.progress_summary())
         store.save(plan)
 
         # Generate summary
@@ -603,7 +661,7 @@ class AutoplotAgent:
                 tool_name = fc.name
                 tool_args = dict(fc.args) if fc.args else {}
 
-                result = self._execute_tool(tool_name, tool_args)
+                result = self._execute_tool_safe(tool_name, tool_args)
 
                 if self.verbose and result.get("status") == "error":
                     print(f"  [Tool Result: ERROR] {result.get('message', '')}")

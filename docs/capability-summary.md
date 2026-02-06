@@ -153,7 +153,16 @@ python main.py --verbose  # Show tool calls, timing, errors
 | `status` | Show current multi-step plan progress |
 | `retry` | Retry the first failed task in current plan |
 | `cancel` | Cancel current plan, skip remaining tasks |
+| `errors` | Show recent errors from log files |
 | `help` | Show welcome message and help |
+
+### Logging (`agent/logging.py`)
+- Log files stored in `~/.helio-agent/logs/agent_YYYYMMDD.log`
+- Daily rotation, detailed error logging with stack traces
+- `log_error()`: Captures context and full stack traces for debugging
+- `log_tool_call()` / `log_tool_result()`: Tracks all tool invocations
+- `log_plan_event()`: Records plan lifecycle events
+- `print_recent_errors()`: CLI command to review recent errors
 
 ## Tests
 
