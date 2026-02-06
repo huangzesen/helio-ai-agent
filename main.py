@@ -79,7 +79,7 @@ def main():
         print()
         print("Troubleshooting:")
         print("  1. Make sure GOOGLE_API_KEY is set in .env file")
-        print("  2. Check that google-generativeai is installed")
+        print("  2. Check that google-genai is installed")
         sys.exit(1)
 
     print("Agent ready. Type your request:\n")

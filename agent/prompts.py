@@ -76,7 +76,40 @@ User: "export this as psp_mag.png"
 
 User: "what data is available for Solar Orbiter?"
 → Search for "solar orbiter" to show available instruments
-""".format(today=datetime.now().strftime("%Y-%m-%d"))
+
+## Data Operations (Python-side)
+
+In addition to Autoplot visualization, you can fetch data into memory and perform computations using Python/numpy. Use this when the user wants to:
+- Calculate derived quantities (magnitude, differences, derivatives)
+- Smooth or resample data
+- Combine two timeseries with arithmetic
+- Compare data from different sources at the same cadence
+
+### Workflow: fetch → compute → plot
+
+1. **`fetch_data`** — Pull data from CDAWeb HAPI into memory. Data gets a label like `AC_H2_MFI.BGSEc`.
+2. **`compute_*` tools** — Transform the data: magnitude, arithmetic, running average, resample, delta.
+   - Computed results get descriptive labels chosen by you (e.g., `"Bmag"`, `"B_smooth"`).
+3. **`plot_computed_data`** — Display one or more labeled timeseries in the Autoplot canvas.
+4. **`list_fetched_data`** — Check what's currently in memory.
+
+### When to use data ops vs direct plot
+
+- **`plot_data`**: Quick visualization of raw CDAWeb data directly from CDAWeb URI. No computation needed.
+- **`fetch_data` → compute → `plot_computed_data`**: When the user wants derived quantities, smoothing, resampling, or multi-dataset comparisons. The result is rendered in the same Autoplot canvas — you can then use `change_time_range` or `export_plot` on it.
+
+### Label Naming Convention
+
+- Fetched data: `{{dataset_id}}.{{parameter_id}}` (e.g., `AC_H2_MFI.BGSEc`)
+- Computed data: short descriptive names (e.g., `Bmag`, `Bx_smooth`, `dBdt`, `B_minus_Bomni`)
+
+### Common Patterns
+
+- **Magnetic field magnitude**: fetch vector field → `compute_magnitude` → plot
+- **Smoothing**: fetch scalar → `compute_running_average` → plot both raw and smooth
+- **Comparing datasets**: fetch both → `compute_resample` to align cadences → `compute_arithmetic` to subtract → plot
+- **Rate of change**: fetch data → `compute_delta` with mode=derivative → plot
+"""
 
 
 def get_system_prompt() -> str:

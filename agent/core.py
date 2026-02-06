@@ -12,6 +12,9 @@ from .time_utils import parse_time_range, TimeRangeError
 from knowledge.catalog import search_by_keywords
 from knowledge.hapi_client import list_parameters as hapi_list_parameters
 from autoplot_bridge.commands import get_commands
+from data_ops.store import get_store, DataEntry
+from data_ops.fetch import fetch_hapi_data
+from data_ops import operations as ops
 
 
 class AutoplotAgent:
@@ -134,6 +137,175 @@ class AutoplotAgent:
                 "context": tool_args.get("context", ""),
             }
 
+        # --- Data Operations Tools ---
+
+        elif tool_name == "fetch_data":
+            try:
+                time_range = parse_time_range(tool_args["time_range"])
+            except TimeRangeError as e:
+                return {"status": "error", "message": str(e)}
+            try:
+                result = fetch_hapi_data(
+                    dataset_id=tool_args["dataset_id"],
+                    parameter_id=tool_args["parameter_id"],
+                    time_min=time_range.start.strftime("%Y-%m-%dT%H:%M:%SZ"),
+                    time_max=time_range.end.strftime("%Y-%m-%dT%H:%M:%SZ"),
+                )
+            except Exception as e:
+                return {"status": "error", "message": str(e)}
+            label = f"{tool_args['dataset_id']}.{tool_args['parameter_id']}"
+            entry = DataEntry(
+                label=label,
+                time=result["time"],
+                values=result["values"],
+                units=result["units"],
+                description=result["description"],
+                source="hapi",
+            )
+            store = get_store()
+            store.put(entry)
+            if self.verbose:
+                print(f"  [DataOps] Stored '{label}' ({len(entry.time)} points)")
+            return {"status": "success", **entry.summary()}
+
+        elif tool_name == "list_fetched_data":
+            store = get_store()
+            entries = store.list_entries()
+            return {"status": "success", "entries": entries, "count": len(entries)}
+
+        elif tool_name == "plot_computed_data":
+            store = get_store()
+            labels = [l.strip() for l in tool_args["labels"].split(",")]
+            entries = []
+            for label in labels:
+                entry = store.get(label)
+                if entry is None:
+                    return {"status": "error", "message": f"Label '{label}' not found in memory"}
+                entries.append(entry)
+            try:
+                result = self.autoplot.plot_dataset(
+                    entries=entries,
+                    title=tool_args.get("title", ""),
+                    filename=tool_args.get("filename", ""),
+                )
+            except Exception as e:
+                return {"status": "error", "message": str(e)}
+            if self.verbose:
+                print(f"  [DataOps] Plotted {len(entries)} series via Autoplot")
+            return result
+
+        elif tool_name == "compute_magnitude":
+            store = get_store()
+            source = store.get(tool_args["source_label"])
+            if source is None:
+                return {"status": "error", "message": f"Label '{tool_args['source_label']}' not found"}
+            try:
+                mag = ops.compute_magnitude(source.values)
+            except ValueError as e:
+                return {"status": "error", "message": str(e)}
+            entry = DataEntry(
+                label=tool_args["output_label"],
+                time=source.time.copy(),
+                values=mag,
+                units=source.units,
+                description=f"Magnitude of {source.label}",
+                source="computed",
+            )
+            store.put(entry)
+            return {"status": "success", **entry.summary()}
+
+        elif tool_name == "compute_arithmetic":
+            store = get_store()
+            a = store.get(tool_args["label_a"])
+            b = store.get(tool_args["label_b"])
+            if a is None:
+                return {"status": "error", "message": f"Label '{tool_args['label_a']}' not found"}
+            if b is None:
+                return {"status": "error", "message": f"Label '{tool_args['label_b']}' not found"}
+            try:
+                result = ops.compute_arithmetic(a.values, b.values, tool_args["operation"])
+            except ValueError as e:
+                return {"status": "error", "message": str(e)}
+            entry = DataEntry(
+                label=tool_args["output_label"],
+                time=a.time.copy(),
+                values=result,
+                units=f"{a.units} {tool_args['operation']} {b.units}" if a.units or b.units else "",
+                description=f"{a.label} {tool_args['operation']} {b.label}",
+                source="computed",
+            )
+            store.put(entry)
+            return {"status": "success", **entry.summary()}
+
+        elif tool_name == "compute_running_average":
+            store = get_store()
+            source = store.get(tool_args["source_label"])
+            if source is None:
+                return {"status": "error", "message": f"Label '{tool_args['source_label']}' not found"}
+            try:
+                new_time, smoothed = ops.compute_running_average(
+                    source.time, source.values, int(tool_args["window_size"])
+                )
+            except ValueError as e:
+                return {"status": "error", "message": str(e)}
+            entry = DataEntry(
+                label=tool_args["output_label"],
+                time=new_time,
+                values=smoothed,
+                units=source.units,
+                description=f"Running average (window={tool_args['window_size']}) of {source.label}",
+                source="computed",
+            )
+            store.put(entry)
+            return {"status": "success", **entry.summary()}
+
+        elif tool_name == "compute_resample":
+            store = get_store()
+            source = store.get(tool_args["source_label"])
+            if source is None:
+                return {"status": "error", "message": f"Label '{tool_args['source_label']}' not found"}
+            try:
+                new_time, resampled = ops.compute_resample(
+                    source.time, source.values, float(tool_args["cadence_seconds"])
+                )
+            except ValueError as e:
+                return {"status": "error", "message": str(e)}
+            entry = DataEntry(
+                label=tool_args["output_label"],
+                time=new_time,
+                values=resampled,
+                units=source.units,
+                description=f"Resampled ({tool_args['cadence_seconds']}s) {source.label}",
+                source="computed",
+            )
+            store.put(entry)
+            return {"status": "success", **entry.summary()}
+
+        elif tool_name == "compute_delta":
+            store = get_store()
+            source = store.get(tool_args["source_label"])
+            if source is None:
+                return {"status": "error", "message": f"Label '{tool_args['source_label']}' not found"}
+            mode = tool_args.get("mode", "difference")
+            try:
+                new_time, delta = ops.compute_delta(source.time, source.values, mode)
+            except ValueError as e:
+                return {"status": "error", "message": str(e)}
+            if mode == "derivative":
+                units = f"{source.units}/s" if source.units else "1/s"
+            else:
+                units = source.units
+            entry = DataEntry(
+                label=tool_args["output_label"],
+                time=new_time,
+                values=delta,
+                units=units,
+                description=f"{mode.capitalize()} of {source.label}",
+                source="computed",
+            )
+            store.put(entry)
+            return {"status": "success", **entry.summary()}
+
         else:
             return {"status": "error", "message": f"Unknown tool: {tool_name}"}
 
@@ -184,6 +356,9 @@ class AutoplotAgent:
                 tool_args = dict(fc.args) if fc.args else {}
 
                 result = self._execute_tool(tool_name, tool_args)
+
+                if self.verbose and result.get("status") == "error":
+                    print(f"  [Tool Result: ERROR] {result.get('message', '')}")
 
                 # Handle clarification specially - return immediately
                 if result.get("status") == "clarification_needed":

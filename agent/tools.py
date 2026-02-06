@@ -136,7 +136,186 @@ Do NOT guess - ask instead.""",
             },
             "required": ["question"]
         }
-    }
+    },
+
+    # --- Data Operations Tools ---
+    {
+        "name": "fetch_data",
+        "description": """Fetch timeseries data from CDAWeb HAPI into memory for Python-side operations.
+Use this instead of plot_data when the user wants to compute on data (magnitude, averages, differences, etc.).
+
+The data is stored in memory with a label like 'AC_H2_MFI.BGSEc' for later reference by compute and plot tools.""",
+        "parameters": {
+            "type": "object",
+            "properties": {
+                "dataset_id": {
+                    "type": "string",
+                    "description": "CDAWeb dataset ID (e.g., 'AC_H2_MFI')"
+                },
+                "parameter_id": {
+                    "type": "string",
+                    "description": "Parameter name (e.g., 'BGSEc', 'Magnitude')"
+                },
+                "time_range": {
+                    "type": "string",
+                    "description": "Time range (same formats as plot_data)"
+                }
+            },
+            "required": ["dataset_id", "parameter_id", "time_range"]
+        }
+    },
+    {
+        "name": "list_fetched_data",
+        "description": "Show all timeseries currently held in memory. Returns labels, shapes, units, and time ranges.",
+        "parameters": {
+            "type": "object",
+            "properties": {},
+            "required": []
+        }
+    },
+    {
+        "name": "plot_computed_data",
+        "description": """Display one or more in-memory timeseries in the Autoplot canvas.
+Use this to visualize data fetched with fetch_data or results from compute operations.
+
+Multiple labels are overlaid on the same plot. The result appears in the Autoplot window and can be further manipulated with change_time_range or exported with export_plot.""",
+        "parameters": {
+            "type": "object",
+            "properties": {
+                "labels": {
+                    "type": "string",
+                    "description": "Comma-separated labels of data to plot (e.g., 'Bmag' or 'AC_H2_MFI.BGSEc,Bmag')"
+                },
+                "title": {
+                    "type": "string",
+                    "description": "Optional plot title"
+                },
+                "filename": {
+                    "type": "string",
+                    "description": "Optional output filename (auto-generated if omitted)"
+                }
+            },
+            "required": ["labels"]
+        }
+    },
+    {
+        "name": "compute_magnitude",
+        "description": """Compute the magnitude (sqrt(x²+y²+z²)) of a vector timeseries.
+The source must be a 3-component vector (e.g., magnetic field BGSEc).""",
+        "parameters": {
+            "type": "object",
+            "properties": {
+                "source_label": {
+                    "type": "string",
+                    "description": "Label of the vector timeseries in memory"
+                },
+                "output_label": {
+                    "type": "string",
+                    "description": "Label for the result (e.g., 'Bmag')"
+                }
+            },
+            "required": ["source_label", "output_label"]
+        }
+    },
+    {
+        "name": "compute_arithmetic",
+        "description": """Element-wise arithmetic between two timeseries: +, -, *, /.
+Both series must have the same shape (use compute_resample to align cadences first).""",
+        "parameters": {
+            "type": "object",
+            "properties": {
+                "label_a": {
+                    "type": "string",
+                    "description": "Label of the first operand"
+                },
+                "label_b": {
+                    "type": "string",
+                    "description": "Label of the second operand"
+                },
+                "operation": {
+                    "type": "string",
+                    "description": "Arithmetic operation: '+', '-', '*', or '/'"
+                },
+                "output_label": {
+                    "type": "string",
+                    "description": "Label for the result"
+                }
+            },
+            "required": ["label_a", "label_b", "operation", "output_label"]
+        }
+    },
+    {
+        "name": "compute_running_average",
+        "description": """Compute a centered moving average to smooth a scalar timeseries.
+Uses np.nanmean to skip data gaps. Window size is in number of data points.""",
+        "parameters": {
+            "type": "object",
+            "properties": {
+                "source_label": {
+                    "type": "string",
+                    "description": "Label of the scalar timeseries"
+                },
+                "window_size": {
+                    "type": "integer",
+                    "description": "Number of points in the averaging window"
+                },
+                "output_label": {
+                    "type": "string",
+                    "description": "Label for the smoothed result"
+                }
+            },
+            "required": ["source_label", "window_size", "output_label"]
+        }
+    },
+    {
+        "name": "compute_resample",
+        "description": """Downsample a timeseries by bin-averaging at a fixed cadence.
+Works on both scalar and vector data. Useful for aligning two series to the same time grid.""",
+        "parameters": {
+            "type": "object",
+            "properties": {
+                "source_label": {
+                    "type": "string",
+                    "description": "Label of the timeseries to resample"
+                },
+                "cadence_seconds": {
+                    "type": "number",
+                    "description": "New cadence in seconds (e.g., 60 for 1-minute averages)"
+                },
+                "output_label": {
+                    "type": "string",
+                    "description": "Label for the resampled result"
+                }
+            },
+            "required": ["source_label", "cadence_seconds", "output_label"]
+        }
+    },
+    {
+        "name": "compute_delta",
+        "description": """Compute differences or time derivatives of a timeseries.
+- 'difference' mode: Δv = v[i+1] - v[i]
+- 'derivative' mode: dv/dt in units per second
+
+Output has n-1 points with midpoint timestamps.""",
+        "parameters": {
+            "type": "object",
+            "properties": {
+                "source_label": {
+                    "type": "string",
+                    "description": "Label of the source timeseries"
+                },
+                "mode": {
+                    "type": "string",
+                    "description": "'difference' or 'derivative'"
+                },
+                "output_label": {
+                    "type": "string",
+                    "description": "Label for the result"
+                }
+            },
+            "required": ["source_label", "mode", "output_label"]
+        }
+    },
 ]
 
 
