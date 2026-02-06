@@ -20,14 +20,22 @@ Commands:
 
 import sys
 import argparse
-import readline
 from pathlib import Path
+
+# readline is optional (not available on Windows without pyreadline3)
+try:
+    import readline
+    READLINE_AVAILABLE = True
+except ImportError:
+    READLINE_AVAILABLE = False
 
 HISTORY_FILE = Path.home() / ".autoplot_history"
 
 
 def setup_readline():
     """Configure readline for input history."""
+    if not READLINE_AVAILABLE:
+        return
     readline.set_history_length(500)
     try:
         readline.read_history_file(HISTORY_FILE)
@@ -110,11 +118,18 @@ def main():
         action="store_true",
         help="Show tool execution details",
     )
+    parser.add_argument(
+        "command",
+        nargs="?",
+        default=None,
+        help="Single command to execute (non-interactive mode)",
+    )
     args = parser.parse_args()
 
-    setup_readline()
-
-    print_welcome()
+    # Skip welcome message and readline in single-command mode
+    if not args.command:
+        setup_readline()
+        print_welcome()
 
     # Import here to delay JVM startup until user is ready
     try:
@@ -133,6 +148,23 @@ def main():
         print("  1. Make sure GOOGLE_API_KEY is set in .env file")
         print("  2. Check that google-genai is installed")
         sys.exit(1)
+
+    # Single command mode (non-interactive)
+    if args.command:
+        print(f"You: {args.command}\n")
+        response = agent.process_message(args.command)
+        print(f"Agent: {response}\n")
+
+        # Print token usage and exit
+        usage = agent.get_token_usage()
+        if usage["api_calls"] > 0:
+            print("-" * 60)
+            print(f"  Tokens: {usage['total_tokens']:,} (in: {usage['input_tokens']:,}, out: {usage['output_tokens']:,})")
+            print("-" * 60)
+
+        sys.stdout.flush()
+        import os
+        os._exit(0)
 
     # Check for incomplete plans from previous sessions
     check_incomplete_plans(agent, args.verbose)

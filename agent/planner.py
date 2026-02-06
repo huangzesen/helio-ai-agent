@@ -104,32 +104,41 @@ PLAN_SCHEMA = {
 PLANNING_PROMPT = """You are a planning assistant for Autoplot, a scientific data visualization tool.
 Your job is to decompose complex user requests into a sequence of discrete tasks.
 
-## Available Tools
-- search_datasets: Find spacecraft/instrument datasets by keyword
-- list_parameters: Get available parameters for a dataset
-- fetch_data: Pull data into memory (result stored with label like "AC_H2_MFI.BGSEc")
-- compute_magnitude: Calculate vector magnitude
-- compute_arithmetic: Add, subtract, multiply, or divide two datasets
-- compute_running_average: Smooth data with a moving window
-- compute_resample: Change data cadence (bin-average)
-- compute_delta: Compute differences or derivatives
-- plot_data: Plot CDAWeb data directly (simple visualization)
-- plot_computed_data: Plot computed/fetched data from memory
-- change_time_range: Adjust the current plot's time range
-- export_plot: Save plot to PNG
+## Available Tools (with required parameters)
+
+- search_datasets(query): Find spacecraft/instrument datasets by keyword
+- list_parameters(dataset_id): Get available parameters for a dataset
+- fetch_data(dataset_id, parameter_id, time_range): Pull data into memory. Result stored with label "DATASET.PARAM" format. Time range can be "last week", "last 3 days", or "2024-01-15 to 2024-01-20".
+- compute_magnitude(source_label, output_label): Calculate vector magnitude from 3-component data
+- compute_arithmetic(label_a, label_b, operation, output_label): Add/subtract/multiply/divide two datasets
+- compute_running_average(source_label, window_size, output_label): Smooth data with moving window (window_size is number of points, e.g., 60)
+- compute_resample(source_label, cadence_seconds, output_label): Change data cadence
+- compute_delta(source_label, output_label, mode): Compute differences (mode="difference") or derivatives (mode="derivative")
+- plot_data(dataset_id, parameter_id, time_range): Plot CDAWeb data directly
+- plot_computed_data(labels): Plot data from memory. Labels is comma-separated, e.g., "AC_H2_MFI.BGSEc,Bmag_smooth"
+- export_plot(filepath): Save plot to PNG
+
+## Important Notes
+- When user doesn't specify a time range, use "last week" as default
+- Labels for fetched data follow the pattern "DATASET.PARAM" (e.g., "AC_H2_MFI.BGSEc")
+- For compute operations, use descriptive output_label names (e.g., "Bmag", "velocity_smooth")
+- For running averages, a window_size of 60 points is a reasonable default
 
 ## Planning Guidelines
 1. Each task should be a single, atomic operation
 2. Tasks execute sequentially - later tasks can reference results from earlier tasks
-3. For comparisons, you typically need: fetch both datasets → optional computation → plot together
+3. For comparisons: fetch both datasets → optional computation → plot together
 4. For derived quantities: fetch raw data → compute derived value → plot
 5. Keep task count minimal - don't split unnecessarily
 
-## Common Patterns
-- "Compare X and Y data": fetch X, fetch Y, plot both
-- "Show magnitude of magnetic field": fetch vector field, compute_magnitude, plot
-- "Smooth X and plot": fetch X, compute_running_average, plot both raw and smoothed
-- "Plot X for last week": single plot_data task (not complex)
+## Task Instruction Format
+Write each instruction as a direct command to call a specific tool. Do NOT use "Use X with..." format.
+Instead, write natural language that clearly states what operation to perform with what values.
+
+Example instructions:
+- "Fetch data from dataset AC_H2_MFI, parameter BGSEc, for last week"
+- "Compute a running average of AC_H2_MFI.BGSEc with window size 60, save as B_smooth"
+- "Plot AC_H2_MFI.BGSEc and B_smooth together"
 
 Analyze the request and return a JSON plan. If the request is actually simple (single step), set is_complex=false and provide a single task.
 
@@ -221,12 +230,13 @@ def format_plan_for_display(plan: TaskPlan) -> str:
     lines.append("-" * 40)
 
     for i, task in enumerate(plan.tasks):
+        # Use ASCII characters for Windows compatibility
         status_icon = {
-            "pending": "○",
-            "in_progress": "◉",
-            "completed": "✓",
-            "failed": "✗",
-            "skipped": "─",
+            "pending": "o",
+            "in_progress": "*",
+            "completed": "+",
+            "failed": "x",
+            "skipped": "-",
         }.get(task.status.value, "?")
 
         lines.append(f"  {i+1}. [{status_icon}] {task.description}")

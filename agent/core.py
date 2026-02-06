@@ -370,7 +370,7 @@ class AutoplotAgent:
             Dict with result data (varies by tool)
         """
         try:
-            result = self._execute_tool_safe(tool_name, tool_args)
+            result = self._execute_tool(tool_name, tool_args)
 
             # Log the result
             is_success = result.get("status") != "error"
@@ -414,11 +414,30 @@ class AutoplotAgent:
             print(f"  [Gemini] Sending task instruction...")
 
         try:
-            response = self.chat.send_message(message=task.instruction)
+            # Create a fresh chat session for task execution with forced function calling
+            # This avoids context pollution from the planning phase
+            task_config = types.GenerateContentConfig(
+                system_instruction=get_system_prompt(),
+                tools=[types.Tool(function_declarations=[
+                    types.FunctionDeclaration(
+                        name=t["name"],
+                        description=t["description"],
+                        parameters=t["parameters"],
+                    ) for t in get_tool_schemas()
+                ])],
+                tool_config=types.ToolConfig(
+                    function_calling_config=types.FunctionCallingConfig(mode="ANY")
+                ),
+            )
+            task_chat = self.client.chats.create(
+                model=self.model_name,
+                config=task_config,
+            )
+            response = task_chat.send_message(f"Execute this task: {task.instruction}")
             self._track_usage(response)
 
-            # Process tool calls
-            max_iterations = 10
+            # Process tool calls (limit to 3 iterations for task execution)
+            max_iterations = 3
             iteration = 0
 
             while iteration < max_iterations:
@@ -435,6 +454,12 @@ class AutoplotAgent:
                 if not function_calls:
                     break
 
+                # Break if Gemini is trying to ask for clarification (not supported in task execution)
+                if any(fc.name == "ask_clarification" for fc in function_calls):
+                    if self.verbose:
+                        print(f"  [Task] Skipping clarification request")
+                    break
+
                 function_responses = []
                 for fc in function_calls:
                     tool_name = fc.name
@@ -446,10 +471,6 @@ class AutoplotAgent:
                     if self.verbose and result.get("status") == "error":
                         print(f"  [Tool Result: ERROR] {result.get('message', '')}")
 
-                    # Don't handle clarification during task execution - let it fail
-                    if result.get("status") == "clarification_needed":
-                        result = {"status": "error", "message": "Task requires clarification, which is not supported during multi-step execution"}
-
                     function_responses.append(
                         types.Part.from_function_response(
                             name=tool_name,
@@ -459,14 +480,25 @@ class AutoplotAgent:
 
                 if self.verbose:
                     print(f"  [Gemini] Sending {len(function_responses)} tool result(s) back...")
-                response = self.chat.send_message(message=function_responses)
+                response = task_chat.send_message(message=function_responses)
                 self._track_usage(response)
+
+            # Warn if no tools were called (Gemini just responded with text)
+            if not task.tool_calls:
+                log_error(
+                    f"Task completed without any tool calls: {task.description}",
+                    context={"task_instruction": task.instruction}
+                )
+                if self.verbose:
+                    print(f"  [WARNING] No tools were called for this task")
 
             # Extract text response
             text_parts = []
-            for part in response.candidates[0].content.parts:
-                if hasattr(part, "text") and part.text:
-                    text_parts.append(part.text)
+            parts = response.candidates[0].content.parts if response.candidates and response.candidates[0].content else None
+            if parts:
+                for part in parts:
+                    if hasattr(part, "text") and part.text:
+                        text_parts.append(part.text)
 
             result_text = "\n".join(text_parts) if text_parts else "Done."
             task.status = TaskStatus.COMPLETED
