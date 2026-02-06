@@ -21,7 +21,7 @@ from .logging import (
     log_tool_result, log_plan_event, log_session_end,
 )
 from knowledge.catalog import search_by_keywords
-from knowledge.hapi_client import list_parameters as hapi_list_parameters
+from knowledge.hapi_client import list_parameters as hapi_list_parameters, get_dataset_time_range
 from autoplot_bridge.commands import get_commands
 from data_ops.store import get_store, DataEntry
 from data_ops.fetch import fetch_hapi_data
@@ -107,6 +107,65 @@ class AutoplotAgent:
             "api_calls": self._api_calls,
         }
 
+    def _validate_time_range(self, dataset_id: str, start, end) -> str | None:
+        """Check if a requested time range overlaps with a dataset's availability.
+
+        Args:
+            dataset_id: CDAWeb dataset ID
+            start: Requested start datetime (timezone-aware)
+            end: Requested end datetime (timezone-aware)
+
+        Returns:
+            None if fully valid, a warning string for partial overlap,
+            or an error string (starting with "No data available") if no overlap.
+            Returns None if the HAPI call fails (fail-open).
+        """
+        from datetime import datetime, timezone
+
+        time_range = get_dataset_time_range(dataset_id)
+        if time_range is None:
+            return None  # fail-open
+
+        try:
+            avail_start_str = time_range.get("start")
+            avail_stop_str = time_range.get("stop")
+            if not avail_start_str or not avail_stop_str:
+                return None
+
+            # Parse HAPI date strings (may or may not have timezone)
+            avail_start = datetime.fromisoformat(avail_start_str)
+            avail_stop = datetime.fromisoformat(avail_stop_str)
+
+            # Normalize to UTC-aware
+            if avail_start.tzinfo is None:
+                avail_start = avail_start.replace(tzinfo=timezone.utc)
+            if avail_stop.tzinfo is None:
+                avail_stop = avail_stop.replace(tzinfo=timezone.utc)
+
+            req_start = start if start.tzinfo else start.replace(tzinfo=timezone.utc)
+            req_end = end if end.tzinfo else end.replace(tzinfo=timezone.utc)
+
+            avail_range_str = f"{avail_start_str} to {avail_stop_str}"
+
+            # No overlap at all
+            if req_end <= avail_start or req_start >= avail_stop:
+                return (
+                    f"No data available for '{dataset_id}' in the requested time range. "
+                    f"Available range: {avail_range_str}"
+                )
+
+            # Partial overlap
+            if req_start < avail_start or req_end > avail_stop:
+                return (
+                    f"Requested range partially outside available data for '{dataset_id}'. "
+                    f"Available range: {avail_range_str}"
+                )
+
+        except (ValueError, TypeError):
+            return None  # fail-open on parse errors
+
+        return None  # fully valid
+
     def _execute_tool(self, tool_name: str, tool_args: dict) -> dict:
         """Execute a tool and return the result.
 
@@ -144,16 +203,36 @@ class AutoplotAgent:
                 print(f"  [HAPI] Got {len(params)} parameters.")
             return {"status": "success", "parameters": params}
 
+        elif tool_name == "get_data_availability":
+            dataset_id = tool_args["dataset_id"]
+            time_range = get_dataset_time_range(dataset_id)
+            if time_range is None:
+                return {"status": "error", "message": f"Could not fetch availability for '{dataset_id}'."}
+            return {
+                "status": "success",
+                "dataset_id": dataset_id,
+                "start": time_range["start"],
+                "stop": time_range["stop"],
+            }
+
         elif tool_name == "plot_data":
             try:
                 time_range = parse_time_range(tool_args["time_range"])
             except TimeRangeError as e:
                 return {"status": "error", "message": str(e)}
-            return self.autoplot.plot_cdaweb(
+            validation = self._validate_time_range(
+                tool_args["dataset_id"], time_range.start, time_range.end
+            )
+            if validation and validation.startswith("No data available"):
+                return {"status": "error", "message": validation}
+            result = self.autoplot.plot_cdaweb(
                 dataset_id=tool_args["dataset_id"],
                 parameter_id=tool_args["parameter_id"],
                 time_range=time_range,
             )
+            if validation:
+                result["warning"] = validation
+            return result
 
         elif tool_name == "change_time_range":
             try:
@@ -187,6 +266,11 @@ class AutoplotAgent:
                 time_range = parse_time_range(tool_args["time_range"])
             except TimeRangeError as e:
                 return {"status": "error", "message": str(e)}
+            validation = self._validate_time_range(
+                tool_args["dataset_id"], time_range.start, time_range.end
+            )
+            if validation and validation.startswith("No data available"):
+                return {"status": "error", "message": validation}
             try:
                 result = fetch_hapi_data(
                     dataset_id=tool_args["dataset_id"],
@@ -209,7 +293,10 @@ class AutoplotAgent:
             store.put(entry)
             if self.verbose:
                 print(f"  [DataOps] Stored '{label}' ({len(entry.time)} points)")
-            return {"status": "success", **entry.summary()}
+            response = {"status": "success", **entry.summary()}
+            if validation:
+                response["warning"] = validation
+            return response
 
         elif tool_name == "list_fetched_data":
             store = get_store()

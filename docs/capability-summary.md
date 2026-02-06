@@ -47,13 +47,14 @@ agent/core.py  AutoplotAgent
                                numpy->QDataSet conversion, overplot with color management
 ```
 
-## Tools (15 total)
+## Tools (16 total)
 
 ### Dataset Discovery
 | Tool | Purpose |
 |------|---------|
 | `search_datasets` | Keyword search across spacecraft/instruments (local catalog) |
 | `list_parameters` | List plottable parameters for a dataset (HAPI /info) |
+| `get_data_availability` | Check available time range for a dataset (HAPI /info) |
 
 ### Autoplot Visualization
 | Tool | Purpose |

@@ -42,6 +42,25 @@ Returns list of 1D numeric parameters with names, units, and descriptions.""",
         }
     },
     {
+        "name": "get_data_availability",
+        "description": """Check the available time range for a CDAWeb dataset. Use this to:
+- Verify data exists for a requested time range before fetching or plotting
+- Tell the user how far back data goes or when it was last updated
+- Diagnose "no data" errors by checking if the time range is valid
+
+Returns the earliest and latest available dates for the dataset.""",
+        "parameters": {
+            "type": "object",
+            "properties": {
+                "dataset_id": {
+                    "type": "string",
+                    "description": "CDAWeb dataset ID (e.g., 'AC_H2_MFI', 'PSP_FLD_L2_MAG_RTN_1MIN')"
+                }
+            },
+            "required": ["dataset_id"]
+        }
+    },
+    {
         "name": "plot_data",
         "description": """Load and display spacecraft data from CDAWeb. Use this when you have:
 - A specific dataset ID
