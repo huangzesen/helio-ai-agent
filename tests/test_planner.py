@@ -196,3 +196,28 @@ class TestFormatPlanForDisplay:
 
         output = format_plan_for_display(plan)
         assert "[-]" in output  # Skipped
+
+    def test_format_mission_tagged_task(self):
+        tasks = [
+            Task(id="1", description="Fetch PSP data", instruction="I1",
+                 mission="PSP", status=TaskStatus.PENDING),
+            Task(id="2", description="Fetch ACE data", instruction="I2",
+                 mission="ACE", status=TaskStatus.COMPLETED),
+            Task(id="3", description="Compare", instruction="I3",
+                 status=TaskStatus.PENDING),  # No mission
+        ]
+        plan = TaskPlan(
+            id="plan",
+            user_request="Compare PSP and ACE",
+            tasks=tasks,
+            created_at=datetime.now(),
+        )
+
+        output = format_plan_for_display(plan)
+        assert "[PSP]" in output
+        assert "[ACE]" in output
+        # Task 3 has no mission tag
+        lines = output.split("\n")
+        compare_line = [l for l in lines if "Compare" in l][0]
+        assert "[PSP]" not in compare_line
+        assert "[ACE]" not in compare_line

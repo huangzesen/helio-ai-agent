@@ -26,10 +26,15 @@ agent/core.py  AutoplotAgent
   +---> agent/planner.py    Task planning
   |       is_complex_request()    Regex heuristics for complexity detection
   |       create_plan_from_request()  Gemini JSON output for task decomposition
+  |                                   Tags tasks with mission IDs and dependencies
   |
   +---> agent/tasks.py      Task management
-  |       Task, TaskPlan         Data structures for multi-step execution
+  |       Task, TaskPlan         Data structures (mission, depends_on fields)
   |       TaskStore              JSON persistence to ~/.helio-agent/tasks/
+  |
+  +---> agent/mission_agent.py  Mission sub-agents
+  |       MissionAgent           Focused Gemini session per spacecraft mission
+  |                              Uses build_mission_prompt() for specialized context
   |
   +---> knowledge/         Dataset discovery + prompt generation
   |       catalog.py         Spacecraft/instrument catalog with mission profiles (keyword search)
@@ -124,10 +129,12 @@ All times are UTC. Outputs `TimeRange` objects with `start`/`end` datetimes. Con
 - Loop continues until Gemini produces a text response (or 10 iterations).
 - Token usage accumulated from `response.usage_metadata` (prompt_token_count, candidates_token_count).
 
-### Multi-Step Task Handling (`agent/planner.py`, `agent/tasks.py`)
+### Multi-Step Task Handling (`agent/planner.py`, `agent/tasks.py`, `agent/mission_agent.py`)
 - **Complexity detection**: Regex patterns identify requests needing decomposition (multiple "and"s, "compare", "then", multiple spacecraft mentions).
-- **Planning**: Complex requests are sent to Gemini with JSON schema output to generate a task list.
-- **Execution**: Tasks execute sequentially; each task gets its own Gemini interaction with the conversation context.
+- **Planning**: Complex requests are sent to Gemini with JSON schema output to generate a task list. Tasks are tagged with mission IDs and inter-task dependencies.
+- **Mission dispatch**: Mission-tagged tasks are executed by specialized `MissionAgent` instances with focused system prompts. Cross-mission tasks use the main agent.
+- **Dependencies**: Tasks declare which other tasks they depend on. Tasks with failed dependencies are skipped.
+- **Execution**: Tasks execute sequentially (parallel dispatch planned for Phase 3); each task gets its own Gemini chat session.
 - **Persistence**: Plans are saved to `~/.helio-agent/tasks/*.json` for crash recovery.
 - **Error handling**: Failed tasks are recorded but don't stop subsequent tasks. Summary explains what succeeded/failed.
 - **CLI commands**: `status` (show progress), `retry` (retry failed task), `cancel` (skip remaining tasks).

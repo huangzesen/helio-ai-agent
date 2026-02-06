@@ -34,6 +34,8 @@ class Task:
         id: Unique identifier for the task
         description: Human-readable summary of what this task does
         instruction: The instruction to send to Gemini for this task
+        mission: Spacecraft ID (e.g., "PSP", "ACE") or None for cross-mission tasks
+        depends_on: List of task IDs that must complete before this task
         status: Current lifecycle state
         result: Result text from Gemini after completion
         error: Error message if the task failed
@@ -42,6 +44,8 @@ class Task:
     id: str
     description: str
     instruction: str
+    mission: Optional[str] = None
+    depends_on: list[str] = field(default_factory=list)
     status: TaskStatus = TaskStatus.PENDING
     result: Optional[str] = None
     error: Optional[str] = None
@@ -53,6 +57,8 @@ class Task:
             "id": self.id,
             "description": self.description,
             "instruction": self.instruction,
+            "mission": self.mission,
+            "depends_on": self.depends_on,
             "status": self.status.value,
             "result": self.result,
             "error": self.error,
@@ -66,6 +72,8 @@ class Task:
             id=data["id"],
             description=data["description"],
             instruction=data["instruction"],
+            mission=data.get("mission"),
+            depends_on=data.get("depends_on", []),
             status=TaskStatus(data["status"]),
             result=data.get("result"),
             error=data.get("error"),
@@ -289,12 +297,19 @@ class TaskStore:
         return count
 
 
-def create_task(description: str, instruction: str) -> Task:
+def create_task(
+    description: str,
+    instruction: str,
+    mission: Optional[str] = None,
+    depends_on: Optional[list[str]] = None,
+) -> Task:
     """Factory function to create a new task with a unique ID."""
     return Task(
         id=str(uuid.uuid4()),
         description=description,
         instruction=instruction,
+        mission=mission,
+        depends_on=depends_on or [],
     )
 
 

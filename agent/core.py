@@ -16,6 +16,7 @@ from .tasks import (
     get_task_store, create_task, create_plan,
 )
 from .planner import is_complex_request, create_plan_from_request, format_plan_for_display
+from .mission_agent import MissionAgent
 from .logging import (
     setup_logging, get_logger, log_error, log_tool_call,
     log_tool_result, log_plan_event, log_session_end,
@@ -709,8 +710,8 @@ class AutoplotAgent:
     def _process_complex_request(self, user_message: str) -> str:
         """Process a complex multi-step request.
 
-        Creates a plan, executes each task sequentially, and returns
-        a summary of the execution.
+        Creates a plan, creates mission-specific agents for tagged tasks,
+        and executes each task sequentially (parallel in Phase 3).
 
         Args:
             user_message: The user's complex request
@@ -746,19 +747,67 @@ class AutoplotAgent:
         if self.verbose:
             print(format_plan_for_display(plan))
 
-        # Execute each task
+        # Create mission agents for each unique mission in the plan
+        mission_agents = {}
+        for task in plan.tasks:
+            if task.mission and task.mission not in mission_agents:
+                try:
+                    mission_agents[task.mission] = MissionAgent(
+                        mission_id=task.mission,
+                        client=self.client,
+                        model_name=self.model_name,
+                        tool_executor=self._execute_tool_safe,
+                        verbose=self.verbose,
+                    )
+                    if self.verbose:
+                        print(f"  [Plan] Created {task.mission} mission agent")
+                except KeyError:
+                    if self.verbose:
+                        print(f"  [Plan] Unknown mission '{task.mission}', will use main agent")
+
+        # Build a lookup of completed task IDs for dependency checking
+        completed_task_ids = set()
+
+        # Execute each task sequentially (parallel dispatch in Phase 3)
         for i, task in enumerate(plan.tasks):
             plan.current_task_index = i
             store.save(plan)
 
-            if self.verbose:
-                print(f"\n  [Plan] Step {i+1}/{len(plan.tasks)}: {task.description}")
+            # Check dependencies — skip if any dependency failed
+            unmet_deps = [dep for dep in task.depends_on if dep not in completed_task_ids]
+            if unmet_deps:
+                # Find if any dependency actually failed (vs just not yet reached)
+                dep_tasks = {t.id: t for t in plan.tasks}
+                failed_deps = [d for d in unmet_deps if dep_tasks.get(d) and dep_tasks[d].status == TaskStatus.FAILED]
+                if failed_deps:
+                    task.status = TaskStatus.SKIPPED
+                    task.error = "Skipped: dependency failed"
+                    if self.verbose:
+                        print(f"\n  [Plan] Step {i+1}/{len(plan.tasks)}: SKIPPED (dependency failed)")
+                    store.save(plan)
+                    continue
 
-            self._execute_task(task)
+            if self.verbose:
+                mission_tag = f" [{task.mission}]" if task.mission else ""
+                print(f"\n  [Plan] Step {i+1}/{len(plan.tasks)}{mission_tag}: {task.description}")
+
+            # Dispatch to mission agent or main agent
+            if task.mission and task.mission in mission_agents:
+                mission_agents[task.mission].execute_task(task)
+            else:
+                self._execute_task(task)
+
+            if task.status == TaskStatus.COMPLETED:
+                completed_task_ids.add(task.id)
+
             store.save(plan)
 
-            # Continue to next task even if this one failed
-            # The summary will explain what happened
+        # Aggregate token usage from mission agents
+        for mission_id, agent in mission_agents.items():
+            usage = agent.get_token_usage()
+            self._total_input_tokens += usage["input_tokens"]
+            self._total_output_tokens += usage["output_tokens"]
+            self._api_calls += usage["api_calls"]
 
         # Mark plan as complete
         if plan.get_failed_tasks():

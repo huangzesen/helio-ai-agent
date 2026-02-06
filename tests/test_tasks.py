@@ -51,12 +51,27 @@ class TestTask:
         assert task.result is None
         assert task.error is None
         assert task.tool_calls == []
+        assert task.mission is None
+        assert task.depends_on == []
+
+    def test_create_with_mission(self):
+        task = Task(
+            id="task-m",
+            description="Fetch PSP mag",
+            instruction="fetch_data PSP_FLD_L2_MAG_RTN_1MIN",
+            mission="PSP",
+            depends_on=["task-0"],
+        )
+        assert task.mission == "PSP"
+        assert task.depends_on == ["task-0"]
 
     def test_to_dict(self):
         task = Task(
             id="task-1",
             description="Test task",
             instruction="Do something",
+            mission="ACE",
+            depends_on=["task-0"],
             status=TaskStatus.COMPLETED,
             result="Done",
             tool_calls=["fetch_data", "compute_magnitude"]
@@ -66,12 +81,22 @@ class TestTask:
         assert d["status"] == "completed"
         assert d["result"] == "Done"
         assert d["tool_calls"] == ["fetch_data", "compute_magnitude"]
+        assert d["mission"] == "ACE"
+        assert d["depends_on"] == ["task-0"]
+
+    def test_to_dict_null_mission(self):
+        task = Task(id="t", description="D", instruction="I")
+        d = task.to_dict()
+        assert d["mission"] is None
+        assert d["depends_on"] == []
 
     def test_from_dict(self):
         data = {
             "id": "task-2",
             "description": "Another task",
             "instruction": "Do another thing",
+            "mission": "PSP",
+            "depends_on": ["task-1"],
             "status": "failed",
             "result": None,
             "error": "Something went wrong",
@@ -82,12 +107,28 @@ class TestTask:
         assert task.status == TaskStatus.FAILED
         assert task.error == "Something went wrong"
         assert task.tool_calls == ["plot_data"]
+        assert task.mission == "PSP"
+        assert task.depends_on == ["task-1"]
+
+    def test_from_dict_missing_new_fields(self):
+        """Backward compat: old task dicts without mission/depends_on still load."""
+        data = {
+            "id": "task-old",
+            "description": "Old task",
+            "instruction": "Do old thing",
+            "status": "completed",
+        }
+        task = Task.from_dict(data)
+        assert task.mission is None
+        assert task.depends_on == []
 
     def test_roundtrip(self):
         original = Task(
             id="task-rt",
             description="Roundtrip test",
             instruction="Test serialization",
+            mission="OMNI",
+            depends_on=["task-a", "task-b"],
             status=TaskStatus.IN_PROGRESS,
             tool_calls=["search_datasets"]
         )
@@ -95,6 +136,8 @@ class TestTask:
         assert restored.id == original.id
         assert restored.status == original.status
         assert restored.tool_calls == original.tool_calls
+        assert restored.mission == original.mission
+        assert restored.depends_on == original.depends_on
 
 
 class TestTaskPlan:
@@ -297,6 +340,23 @@ class TestFactoryFunctions:
         assert task.description == "Description"
         assert task.instruction == "Instruction"
         assert task.status == TaskStatus.PENDING
+        assert task.mission is None
+        assert task.depends_on == []
+
+    def test_create_task_with_mission(self):
+        task = create_task("Fetch PSP data", "fetch_data ...", mission="PSP")
+        assert task.mission == "PSP"
+        assert task.depends_on == []
+
+    def test_create_task_with_depends_on(self):
+        task = create_task("Plot comparison", "plot ...", depends_on=["id-1", "id-2"])
+        assert task.depends_on == ["id-1", "id-2"]
+        assert task.mission is None
+
+    def test_create_task_with_all_new_fields(self):
+        task = create_task("Fetch ACE", "fetch ...", mission="ACE", depends_on=["id-0"])
+        assert task.mission == "ACE"
+        assert task.depends_on == ["id-0"]
 
     def test_create_plan(self):
         tasks = [create_task("T1", "I1"), create_task("T2", "I2")]

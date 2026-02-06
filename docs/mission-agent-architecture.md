@@ -134,94 +134,62 @@ Without Phase 1, Phase 2 would have to hardcode mission-specific prompts (repeat
 
 ---
 
-## Phase 2: Mission Sub-Agents + Dispatch Protocol (NEXT)
+## Phase 2: Mission Sub-Agents + Dispatch Protocol
 
-**Status: NOT STARTED — depends on Phase 1**
+**Status: COMPLETE**
 
-### 2a. Add `mission` field to Task
+### 2a. Add `mission` and `depends_on` fields to Task
 
-```python
-# agent/tasks.py — Task dataclass
-@dataclass
-class Task:
-    id: str
-    description: str
-    instruction: str
-    mission: Optional[str] = None  # NEW: "PSP", "ACE", None for cross-mission
-    depends_on: list[str] = field(default_factory=list)  # NEW: task IDs this depends on
-    status: TaskStatus = TaskStatus.PENDING
-    result: Optional[str] = None
-    ...
-```
+Added `mission: Optional[str]` and `depends_on: list[str]` to the Task dataclass.
+The planner now outputs mission tags and dependency indices, which are resolved to
+task IDs during plan creation. Serialization is backward-compatible — old plans
+without these fields load with defaults (None, []).
 
 ### 2b. Create `agent/mission_agent.py`
 
-```python
-class MissionAgent:
-    """A Gemini session specialized for one mission."""
+`MissionAgent` is a Gemini session specialized for one mission. It receives a
+focused system prompt via `build_mission_prompt(mission_id)` (from Phase 1) and
+uses a shared `tool_executor` callable (from the main agent) so all tools work
+identically. Each task gets a fresh chat session to avoid context pollution.
 
-    def __init__(self, mission_id: str, client, model_name, verbose=False):
-        self.mission_id = mission_id
-        # Build mission-specific prompt from catalog
-        self.prompt = build_mission_prompt(mission_id)  # from prompt_builder
-        self.tools = get_tool_schemas()  # shared tools (+ mission-specific later)
+Key design: the `tool_executor` parameter is `AutoplotAgent._execute_tool_safe`,
+so mission agents share the same Autoplot bridge, data store, and error handling
+as the main agent — no tool duplication.
 
-        # Create Gemini chat with mission-focused context
-        self.chat = client.chats.create(
-            model=model_name,
-            config=GenerateContentConfig(
-                system_instruction=self.prompt,
-                tools=[Tool(function_declarations=...)],
-                tool_config=ToolConfig(
-                    function_calling_config=FunctionCallingConfig(mode="ANY")
-                ),
-            )
-        )
+### 2c. Planner tags tasks with missions
 
-    def execute_task(self, task: Task) -> str:
-        """Execute a task in this mission's context."""
-        # Same logic as current _execute_task(), but using mission-specific chat
-        ...
-```
+The planning prompt now instructs Gemini to:
+- Tag each task with its spacecraft ID (e.g., `"mission": "PSP"`)
+- Declare dependencies via `"depends_on": [0, 1]` (0-based task indices)
+- Use `null` mission for cross-mission tasks (comparison plots, exports)
 
-### 2c. Enhance planner to tag tasks with missions
+The `PLAN_SCHEMA` includes optional `mission` (string) and `depends_on` (array of int)
+fields. Dependency indices are resolved to task UUIDs in `create_plan_from_request()`.
 
-Update `PLANNING_PROMPT` to output:
-```json
-{
-    "tasks": [
-        {"description": "...", "instruction": "...", "mission": "PSP"},
-        {"description": "...", "instruction": "...", "mission": "ACE"},
-        {"description": "...", "instruction": "...", "mission": null, "depends_on": [0, 1]}
-    ]
-}
-```
+### 2d. Dispatch in `core.py`
 
-### 2d. Update task dispatcher in `core.py`
+`_process_complex_request()` now:
+1. Creates one `MissionAgent` per unique mission in the plan
+2. Dispatches mission-tagged tasks to the corresponding agent
+3. Falls back to main agent for cross-mission tasks (mission=None)
+4. Checks dependencies before each task — skips tasks whose dependencies failed
+5. Aggregates token usage from all mission agents into the main agent's totals
 
-```python
-def _process_complex_request(self, user_message):
-    plan = create_plan_from_request(...)
+Execution is still sequential (Phase 3 adds parallelism).
 
-    # Create mission agents for each unique mission in the plan
-    mission_agents = {}
-    for task in plan.tasks:
-        if task.mission and task.mission not in mission_agents:
-            mission_agents[task.mission] = MissionAgent(
-                task.mission, self.client, self.model_name
-            )
+### Phase 2 File Summary
 
-    # Execute tasks (sequential for now, parallel in Phase 3)
-    for task in plan.tasks:
-        if task.mission and task.mission in mission_agents:
-            mission_agents[task.mission].execute_task(task)
-        else:
-            self._execute_task(task)  # cross-mission tasks use main agent
-
-    return self._summarize_plan_execution(plan)
-```
-
-**Files:** `agent/tasks.py` (+2 fields), `agent/mission_agent.py` (NEW, ~150 lines), `agent/planner.py` (schema update), `agent/core.py` (dispatch logic)
+| File | Action | Change |
+|------|--------|--------|
+| `agent/tasks.py` | Modify | +2 fields (mission, depends_on), updated serialization |
+| `agent/mission_agent.py` | **New** | ~180 lines (MissionAgent class) |
+| `agent/planner.py` | Modify | Schema + dependency resolution + mission display |
+| `agent/core.py` | Modify | Mission agent creation + dispatch logic |
+| `knowledge/prompt_builder.py` | Modify | Mission tagging + dependency instructions in planner prompt |
+| `tests/test_mission_agent.py` | **New** | 9 tests (prompt, import, interface) |
+| `tests/test_tasks.py` | Modify | +7 tests for new fields |
+| `tests/test_planner.py` | Modify | +1 test for mission-tagged display |
+| `tests/test_prompt_builder.py` | Modify | +2 tests for mission tagging in planner prompt |
 
 ---
 

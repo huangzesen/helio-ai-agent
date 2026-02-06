@@ -386,6 +386,18 @@ to discover exact parameter names before fetching. Do NOT guess parameter names.
 6. Do NOT include plotting steps unless the user explicitly asked to plot
 7. A "fetch" task should ONLY fetch data, not also plot or describe it
 
+## Mission Tagging
+Tag each task with the spacecraft mission it belongs to using the "mission" field:
+- Use spacecraft IDs: PSP, SolO, ACE, OMNI, WIND, DSCOVR, MMS, STEREO_A
+- Set mission=null for cross-mission tasks (e.g., comparison plots, combined analyses)
+- Tasks that list_parameters or fetch_data for a specific spacecraft should be tagged with that mission
+
+## Task Dependencies
+Use "depends_on" to declare which tasks must complete before another can start:
+- Use 0-based task indices (e.g., depends_on=[0, 1] means this task needs tasks 0 and 1 done first)
+- Independent tasks (e.g., fetching data from PSP and ACE) should have NO dependencies between them
+- Cross-mission tasks (e.g., comparison plots) should depend on all the mission-specific tasks they need
+
 ## Task Instruction Format
 CRITICAL: Every fetch_data instruction MUST include the exact dataset_id. Use list_parameters
 first to discover parameter names — never guess them.
@@ -393,12 +405,12 @@ first to discover parameter names — never guess them.
 Every custom_operation instruction MUST include the exact source_label (e.g., "DATASET.PARAM").
 
 Example instructions:
-- "List parameters for dataset AC_H2_MFI"
-- "Fetch data from dataset AC_H2_MFI, parameter BGSEc, for last week"
-- "Compute the magnitude of AC_H2_MFI.BGSEc, save as ACE_Bmag"
-- "Describe the data labeled ACE_Bmag"
-- "Plot ACE_Bmag and Wind_Bmag together"
-- "Export the plot to output.png"
+- "List parameters for dataset AC_H2_MFI" (mission: "ACE")
+- "Fetch data from dataset AC_H2_MFI, parameter BGSEc, for last week" (mission: "ACE")
+- "Compute the magnitude of AC_H2_MFI.BGSEc, save as ACE_Bmag" (mission: "ACE")
+- "Describe the data labeled ACE_Bmag" (mission: "ACE")
+- "Plot ACE_Bmag and Wind_Bmag together" (mission: null, depends_on: [indices of ACE and Wind tasks])
+- "Export the plot to output.png" (mission: null)
 
 Analyze the request and return a JSON plan. If the request is actually simple (single step), set is_complex=false and provide a single task.
 

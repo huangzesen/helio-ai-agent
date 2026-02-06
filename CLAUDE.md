@@ -12,7 +12,7 @@ helio-ai-agent is an AI-powered natural language interface for [Autoplot](https:
 
 The system has four layers:
 
-1. **Agent layer** (`agent/`) — Gemini 2.5-Flash with function calling decides which tools to invoke based on user input. `core.py` orchestrates the conversation loop and tool execution. Tools are defined declaratively in `tools.py` as JSON schemas (15 tools total). Token usage is tracked per session.
+1. **Agent layer** (`agent/`) — Gemini 2.5-Flash with function calling decides which tools to invoke based on user input. `core.py` orchestrates the conversation loop and tool execution. Tools are defined declaratively in `tools.py` as JSON schemas (15 tools total). Token usage is tracked per session. For multi-mission requests, `mission_agent.py` provides specialized sub-agents with focused system prompts per spacecraft mission.
 
 2. **Autoplot bridge** (`autoplot_bridge/`) — Python-to-Java bridge via JPype. `connection.py` starts the JVM with the Autoplot JAR on the classpath. `commands.py` wraps Autoplot's `ScriptContext` API (plot, set time range, export PNG, plot computed data as QDataSets). Uses a singleton pattern to maintain plot state and color assignments across the session.
 

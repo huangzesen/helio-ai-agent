@@ -152,3 +152,13 @@ class TestBuildPlanningPrompt:
     def test_contains_planning_guidelines(self):
         prompt = build_planning_prompt()
         assert "Planning Guidelines" in prompt
+
+    def test_contains_mission_tagging_instructions(self):
+        prompt = build_planning_prompt()
+        assert "Mission Tagging" in prompt
+        assert "depends_on" in prompt
+
+    def test_contains_spacecraft_ids_for_tagging(self):
+        prompt = build_planning_prompt()
+        assert "PSP" in prompt
+        assert "ACE" in prompt

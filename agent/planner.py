@@ -98,6 +98,15 @@ PLAN_SCHEMA = {
                     "instruction": {
                         "type": "string",
                         "description": "Detailed instruction for executing this task, including tool names and parameters"
+                    },
+                    "mission": {
+                        "type": "string",
+                        "description": "Spacecraft ID this task belongs to (e.g., 'PSP', 'ACE', 'OMNI'). Null for cross-mission tasks like comparison plots."
+                    },
+                    "depends_on": {
+                        "type": "array",
+                        "items": {"type": "integer"},
+                        "description": "Indices (0-based) of tasks that must complete before this one. Empty if no dependencies."
                     }
                 },
                 "required": ["description", "instruction"]
@@ -135,7 +144,7 @@ def create_plan_from_request(
     Returns:
         TaskPlan with decomposed tasks, or None if planning fails
     """
-    prompt = PLANNING_PROMPT.format(user_request=user_request)
+    prompt = PLANNING_PROMPT.replace("{user_request}", user_request)
 
     try:
         response = client.models.generate_content(
@@ -164,11 +173,23 @@ def create_plan_from_request(
         # Build tasks from the plan
         tasks = []
         for i, task_data in enumerate(plan_data["tasks"]):
+            # Normalize mission: "null"/"none" strings → None
+            mission = task_data.get("mission")
+            if isinstance(mission, str) and mission.lower() in ("null", "none", ""):
+                mission = None
             task = create_task(
                 description=task_data["description"],
                 instruction=task_data["instruction"],
+                mission=mission,
             )
             tasks.append(task)
+
+        # Resolve depends_on indices to task IDs
+        for i, task_data in enumerate(plan_data["tasks"]):
+            dep_indices = task_data.get("depends_on", [])
+            for idx in dep_indices:
+                if isinstance(idx, int) and 0 <= idx < len(tasks):
+                    tasks[i].depends_on.append(tasks[idx].id)
 
         if not tasks:
             if verbose:
@@ -212,7 +233,8 @@ def format_plan_for_display(plan: TaskPlan) -> str:
             "skipped": "-",
         }.get(task.status.value, "?")
 
-        lines.append(f"  {i+1}. [{status_icon}] {task.description}")
+        mission_tag = f" [{task.mission}]" if task.mission else ""
+        lines.append(f"  {i+1}. [{status_icon}]{mission_tag} {task.description}")
 
         if task.status.value == "failed" and task.error:
             lines.append(f"       Error: {task.error}")

@@ -16,7 +16,7 @@ _SYSTEM_PROMPT_TEMPLATE = build_system_prompt()
 
 def get_system_prompt() -> str:
     """Return the system prompt with current date."""
-    return _SYSTEM_PROMPT_TEMPLATE.format(today=datetime.now().strftime("%Y-%m-%d"))
+    return _SYSTEM_PROMPT_TEMPLATE.replace("{today}", datetime.now().strftime("%Y-%m-%d"))
 
 
 def format_search_result(result: dict) -> str:
