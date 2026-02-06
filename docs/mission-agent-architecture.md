@@ -21,54 +21,54 @@ The existing planner/task system (`planner.py`, `tasks.py`, `core.py:_execute_ta
 
 This is the foundation. Without it, mission sub-agents have nothing to load.
 
-### 1a. Enhance `knowledge/catalog.py` with rich mission profiles
+### 1a. Enhance `knowledge/catalog.py` with spacecraft-level mission profiles
 
-Add optional `"profile"` dicts with detailed data product info per mission. Existing API unchanged.
+Added `"profile"` dicts at the spacecraft level with domain knowledge that HAPI doesn't provide.
+Instrument-level metadata (parameter names, units, descriptions) is fetched from HAPI at runtime
+via `list_parameters` — not hardcoded in the catalog.
 
 ```python
 "PSP": {
     "name": "Parker Solar Probe",
     "keywords": [...],  # unchanged
     "profile": {
-        "description": "Inner heliosphere probe studying solar corona",
+        "description": "Inner heliosphere probe studying the solar corona and young solar wind",
         "coordinate_systems": ["RTN"],
         "typical_cadence": "1-minute",
-        "data_caveats": ["RTN rotates with spacecraft position"],
+        "data_caveats": ["RTN frame rotates with spacecraft orbital position"],
         "analysis_patterns": [
-            "Switchback detection: compute radial component sign changes",
-            "Parker spiral angle: atan2(Bt, Br) compared to expected"
+            "Switchback detection: compute radial component sign changes in Br",
+            "Parker spiral angle: atan2(Bt, Br) compared to expected spiral",
         ]
     },
     "instruments": {
         "FIELDS/MAG": {
-            ...,  # existing fields unchanged
-            "profile": {
-                "primary_parameters": {
-                    "psp_fld_l2_mag_RTN_1min": "3-component B-field vector (RTN)"
-                },
-                "units": "nT",
-                "tips": "Compute magnitude for overview"
-            }
-        }
+            "name": "FIELDS Magnetometer",
+            "keywords": ["magnetic", "field", "mag", "b-field", "bfield"],
+            "datasets": ["PSP_FLD_L2_MAG_RTN_1MIN"],
+            # No parameter/unit metadata — comes from HAPI at runtime
+        },
     }
 }
 ```
 
-**Files:** `knowledge/catalog.py` (+120 lines for profiles on all 8 missions)
+**Files:** `knowledge/catalog.py` (+90 lines for spacecraft profiles on all 8 missions)
 
 ### 1b. Create `knowledge/prompt_builder.py`
 
-Pure functions that generate prompt sections from the catalog:
+Pure functions that generate prompt sections from the catalog. Dataset reference tables
+list dataset IDs and types only — the agent uses `list_parameters` (HAPI) to discover
+parameter names and units at runtime.
 
-- `generate_spacecraft_overview()` — replaces hardcoded table in prompts.py
-- `generate_dataset_quick_reference()` — replaces hardcoded dataset table in prompts.py
-- `generate_planner_dataset_reference()` — replaces hardcoded table in planner.py
-- `generate_mission_profiles()` — detailed per-mission context (new)
-- **`build_mission_prompt(mission_id)`** — generates a focused prompt for ONE mission (foundation for Phase 2)
+- `generate_spacecraft_overview()` — spacecraft/instruments table for system prompt
+- `generate_dataset_quick_reference()` — dataset ID + type table (no hardcoded parameter names)
+- `generate_planner_dataset_reference()` — dataset reference for planner prompt
+- `generate_mission_profiles()` — domain knowledge (caveats, analysis tips, coordinate systems)
+- **`build_mission_prompt(mission_id)`** — focused prompt for ONE mission (foundation for Phase 2)
 - `build_system_prompt()` — assembles full system prompt (all missions)
 - `build_planning_prompt()` — assembles planning prompt
 
-**Files:** `knowledge/prompt_builder.py` (NEW, ~250 lines)
+**Files:** `knowledge/prompt_builder.py` (NEW, ~230 lines)
 
 ### 1c. Refactor `agent/prompts.py` and `agent/planner.py`
 
@@ -105,33 +105,32 @@ _PLANNING_PROMPT_TEMPLATE = build_planning_prompt()  # cached at import
 
 | File | Action | Change |
 |------|--------|--------|
-| `knowledge/catalog.py` | Modify | +120 lines (mission profiles) |
-| `knowledge/prompt_builder.py` | **New** | ~250 lines (section generators + `build_mission_prompt()`) |
+| `knowledge/catalog.py` | Modify | +90 lines (spacecraft-level mission profiles) |
+| `knowledge/prompt_builder.py` | **New** | ~230 lines (section generators + `build_mission_prompt()`) |
 | `agent/prompts.py` | Modify | -160 lines, +10 (import generated prompt) |
 | `agent/planner.py` | Modify | -65 lines, +10 (import generated reference) |
-| `tests/test_prompt_builder.py` | **New** | ~80 lines (unit tests) |
+| `tests/test_prompt_builder.py` | **New** | 23 unit tests |
 | `docs/capability-summary.md` | Modify | +5 lines |
 | `CLAUDE.md` | Modify | +10 lines |
 
-**Unchanged:** `agent/core.py`, `agent/tasks.py`, `agent/tools.py`, `knowledge/hapi_client.py`, all `data_ops/`, all `autoplot_bridge/`, all existing tests.
+**Unchanged:** `agent/core.py`, `agent/tasks.py`, `agent/tools.py`, `knowledge/hapi_client.py`, all `data_ops/`, all `autoplot_bridge/`, all existing tests (288 total pass).
+
+### Design Decision: HAPI for Parameter Metadata
+
+The original plan included instrument-level `profile` dicts with `primary_parameters`, `units`,
+and `tips`. These were removed because CDAWeb HAPI already provides this metadata via
+`list_parameters`. The catalog now stores only what HAPI doesn't know: domain knowledge
+(analysis patterns, caveats, coordinate system context) and keyword mappings for NLP routing.
 
 ### Why Phase 1 First
 
 Phase 1 is the **critical foundation**:
 - `build_mission_prompt(mission_id)` is exactly what `MissionAgent.__init__()` will call in Phase 2
-- Rich catalog profiles give mission agents their specialized knowledge
-- Single source of truth prevents the current 3-file duplication problem
+- Catalog profiles give mission agents domain knowledge; HAPI gives parameter details
+- Single source of truth prevents the previous 3-file duplication problem
 - Zero risk — no behavioral changes, just prompt generation refactor
 
-Without Phase 1, Phase 2 would have to hardcode mission-specific prompts (repeating the current problem at a larger scale).
-
-### Verification (Phase 1)
-
-1. `python -m pytest tests/` — all existing + new tests pass
-2. `python main.py "show me ACE magnetic field last week"` — identical behavior
-3. `python main.py --verbose` — check token count within 10% of original
-4. Add test mission to catalog → verify it appears in generated prompt
-5. Call `build_mission_prompt("PSP")` → verify it produces a focused PSP-only prompt
+Without Phase 1, Phase 2 would have to hardcode mission-specific prompts (repeating the old problem at a larger scale).
 
 ---
 
