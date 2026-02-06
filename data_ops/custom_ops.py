@@ -8,6 +8,7 @@ restricted namespace with only df, pd, and np available.
 """
 
 import ast
+import builtins
 
 import numpy as np
 import pandas as pd
@@ -107,8 +108,10 @@ def execute_custom_operation(df: pd.DataFrame, code: str) -> pd.DataFrame:
         "result": None,
     }
 
+    safe_builtins = {name: getattr(builtins, name) for name in _SAFE_BUILTINS if hasattr(builtins, name)}
+
     try:
-        exec(code, {"__builtins__": {}}, namespace)
+        exec(code, {"__builtins__": safe_builtins}, namespace)
     except Exception as e:
         raise RuntimeError(f"Execution error: {type(e).__name__}: {e}") from e
 
