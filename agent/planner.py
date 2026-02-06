@@ -35,8 +35,16 @@ COMPLEXITY_INDICATORS = [
     r"\b(compute|calculate)\b.*\band\b.*\b(plot|show)\b",  # Compute + plot
 
     # Multiple spacecraft or datasets
-    r"\b(psp|parker)\b.*\b(ace|omni|solo)\b",   # Two spacecraft mentioned
-    r"\b(ace)\b.*\b(omni|solo)\b",              # Two spacecraft mentioned
+    # Note: "wind" alone is ambiguous ("solar wind" vs Wind spacecraft),
+    # so we only match "wind" as a spacecraft when NOT preceded by "solar "
+    r"\b(psp|parker)\b.*\b(ace|omni|solo|dscovr|mms|stereo)\b",
+    r"\b(psp|parker)\b.*(?<!solar )\bwind\b",
+    r"\b(ace)\b.*\b(omni|solo|dscovr|mms|stereo)\b",
+    r"\b(ace)\b.*(?<!solar )\bwind\b",
+    r"(?<!solar )\bwind\b.*\b(ace|omni|solo|psp|parker|dscovr|mms|stereo)\b",
+    r"\b(dscovr)\b.*\b(ace|omni|solo|psp|parker|mms|stereo)\b",
+    r"\b(mms)\b.*\b(ace|omni|solo|dscovr|stereo)\b",
+    r"\b(stereo)\b.*\b(ace|omni|solo|psp|parker|dscovr|mms)\b",
 
     # Data pipeline phrases
     r"\bsmooth\b.*\band\b.*\bplot\b",           # Smooth and plot
@@ -110,15 +118,28 @@ Your job is to decompose complex user requests into a sequence of discrete tasks
 - list_parameters(dataset_id): Get available parameters for a dataset
 - fetch_data(dataset_id, parameter_id, time_range): Pull data into memory. Result stored with label "DATASET.PARAM" format. Time range can be "last week", "last 3 days", or "2024-01-15 to 2024-01-20".
 - custom_operation(source_label, pandas_code, output_label, description): Apply any pandas/numpy operation. Code operates on `df` (DataFrame) and assigns to `result`. Examples: magnitude, smoothing, resampling, arithmetic, derivatives, normalization, clipping.
+- describe_data(label): Get statistical summary (min, max, mean, std, percentiles, NaN count, cadence) of an in-memory timeseries. Use when user says "describe", "summarize", or asks about data characteristics.
 - plot_data(dataset_id, parameter_id, time_range): Plot CDAWeb data directly
 - plot_computed_data(labels): Plot data from memory. Labels is comma-separated, e.g., "AC_H2_MFI.BGSEc,Bmag_smooth"
-- export_plot(filepath): Save plot to PNG
+- export_plot(filepath): Save current plot to PNG
+- save_data(label, filename): Export in-memory timeseries to CSV file. Use when user says "save to file" or "export data".
+
+## Known Dataset IDs (use these exact IDs with fetch_data)
+- PSP: PSP_FLD_L2_MAG_RTN_1MIN (magnetic), PSP_SWP_SPC_L3I (plasma)
+- Solar Orbiter: SOLO_L2_MAG-RTN-NORMAL-1-MINUTE (magnetic), SOLO_L2_SWA-PAS-GRND-MOM (plasma)
+- ACE: AC_H2_MFI (magnetic, param: BGSEc), AC_H0_SWE (plasma)
+- OMNI: OMNI_HRO_1MIN (combined)
+- Wind: WI_H2_MFI (magnetic), WI_H1_SWE (plasma)
+- DSCOVR: DSCOVR_H0_MAG (magnetic), DSCOVR_H1_FC (plasma)
+- MMS: MMS1_FGM_SRVY_L2 (magnetic), MMS1_FPI_FAST_L2_DIS-MOMS (plasma)
+- STEREO-A: STA_L2_MAG_RTN (magnetic), STA_L2_PLA_1DMAX_1MIN (plasma)
 
 ## Important Notes
 - When user doesn't specify a time range, use "last week" as default
 - Labels for fetched data follow the pattern "DATASET.PARAM" (e.g., "AC_H2_MFI.BGSEc")
 - For compute operations, use descriptive output_label names (e.g., "Bmag", "velocity_smooth")
 - For running averages, a window_size of 60 points is a reasonable default
+- If you're not sure which parameter to use for a dataset, include a search_datasets step first
 
 ## Planning Guidelines
 1. Each task should be a single, atomic operation

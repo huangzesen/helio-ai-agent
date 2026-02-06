@@ -154,7 +154,14 @@ class AutoplotCommands:
             parent.mkdir(parents=True, exist_ok=True)
 
         self._log(f"Exporting PNG to {filepath_normalized}...")
-        self.ctx.waitUntilIdle()
+        try:
+            self.ctx.waitUntilIdle()
+        except Exception as e:
+            # NullPointerException when no plot has been rendered yet
+            return {
+                "status": "error",
+                "message": "No plot to export. Plot data first before exporting.",
+            }
         self._run_with_elapsed("Exporting PNG", self.ctx.writeToPng, filepath_normalized)
 
         # Verify file was created
