@@ -92,6 +92,26 @@ User: "export this as psp_mag.png"
 User: "what data is available for Solar Orbiter?"
 → Search for "solar orbiter" to show available instruments
 
+## Known Dataset IDs and Parameters
+
+Use these exact values with fetch_data. Different spacecraft have DIFFERENT parameter names.
+
+| Spacecraft | Dataset ID | Parameter | Type |
+|-----------|------------|-----------|------|
+| PSP | PSP_FLD_L2_MAG_RTN_1MIN | psp_fld_l2_mag_RTN_1min | Magnetic |
+| Solar Orbiter | SOLO_L2_MAG-RTN-NORMAL-1-MINUTE | B_RTN | Magnetic |
+| ACE | AC_H2_MFI | BGSEc | Magnetic (GSE) |
+| ACE | AC_H0_SWE | Vp | Plasma |
+| OMNI | OMNI_HRO_1MIN | (use list_parameters) | Combined |
+| Wind | WI_H2_MFI | BGSE | Magnetic (GSE) |
+| Wind | WI_H1_SWE | (use list_parameters) | Plasma |
+| DSCOVR | DSCOVR_H0_MAG | B1GSE | Magnetic (GSE) |
+| DSCOVR | DSCOVR_H1_FC | (use list_parameters) | Plasma |
+| MMS | MMS1_FGM_SRVY_L2 | (use list_parameters) | Magnetic |
+| MMS | MMS1_FPI_FAST_L2_DIS-MOMS | (use list_parameters) | Plasma |
+| STEREO-A | STA_L2_MAG_RTN | (use list_parameters) | Magnetic |
+| STEREO-A | STA_L2_PLA_1DMAX_1MIN | (use list_parameters) | Plasma |
+
 ## Data Operations (Python-side)
 
 In addition to Autoplot visualization, you can fetch data into memory and perform computations using Python/numpy. Use this when the user wants to:

@@ -553,6 +553,7 @@ class AutoplotAgent:
             # Process tool calls (limit to 3 iterations for task execution)
             max_iterations = 3
             iteration = 0
+            previous_calls = set()  # Track (tool_name, args_key) to detect duplicates
 
             while iteration < max_iterations:
                 iteration += 1
@@ -574,6 +575,16 @@ class AutoplotAgent:
                         print(f"  [Task] Skipping clarification request")
                     break
 
+                # Detect duplicate tool calls (mode="ANY" forces repeated calls)
+                call_keys = set()
+                for fc in function_calls:
+                    args_str = str(sorted(dict(fc.args).items())) if fc.args else ""
+                    call_keys.add((fc.name, args_str))
+                if call_keys and call_keys.issubset(previous_calls):
+                    if self.verbose:
+                        print(f"  [Task] Duplicate tool call detected, stopping")
+                    break
+
                 function_responses = []
                 for fc in function_calls:
                     tool_name = fc.name
@@ -591,6 +602,10 @@ class AutoplotAgent:
                             response={"result": result}
                         )
                     )
+
+                    # Track this call
+                    args_str = str(sorted(tool_args.items()))
+                    previous_calls.add((tool_name, args_str))
 
                 if self.verbose:
                     print(f"  [Gemini] Sending {len(function_responses)} tool result(s) back...")

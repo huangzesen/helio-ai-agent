@@ -120,8 +120,8 @@ class TestFormatPlanForDisplay:
         assert "Compute magnitude" in output
         assert "Plot result" in output
         assert "0/3 completed" in output
-        # All tasks pending, should show empty circle
-        assert "○" in output
+        # All tasks pending, should show ASCII 'o' (Windows-compatible)
+        assert "[o]" in output
 
     def test_format_in_progress_plan(self):
         tasks = [
@@ -138,9 +138,9 @@ class TestFormatPlanForDisplay:
         )
 
         output = format_plan_for_display(plan)
-        assert "✓" in output  # Completed
-        assert "◉" in output  # In progress
-        assert "○" in output  # Pending
+        assert "[+]" in output  # Completed
+        assert "[*]" in output  # In progress
+        assert "[o]" in output  # Pending
         assert "1/3 completed" in output
 
     def test_format_failed_task(self):
@@ -161,7 +161,7 @@ class TestFormatPlanForDisplay:
         )
 
         output = format_plan_for_display(plan)
-        assert "✗" in output  # Failed
+        assert "[x]" in output  # Failed
         assert "Network timeout" in output
         assert "1 failed" in output
 
@@ -195,4 +195,4 @@ class TestFormatPlanForDisplay:
         )
 
         output = format_plan_for_display(plan)
-        assert "─" in output  # Skipped
+        assert "[-]" in output  # Skipped
