@@ -69,7 +69,9 @@ Time ranges use `YYYY-MM-DD to YYYY-MM-DD` format. The agent accepts flexible in
 ## For Future Sessions
 
 - Read `docs/capability-summary.md` first to understand what has been implemented.
+- Read `docs/roadmap.md` for planned future development.
 - When adding new tools: add schema in `agent/tools.py`, handler in `agent/core.py`, update the system prompt in `agent/prompts.py`, and update `docs/capability-summary.md`.
 - When adding new spacecraft: update the catalog in `knowledge/catalog.py`.
 - Data operations (`data_ops/operations.py`) are pure numpy functions with no side effects — easy to test.
 - Plotting always goes through Autoplot (`autoplot_bridge/commands.py`), not matplotlib.
+- **Ignore `docs/archive/`** — contains outdated historical documents that are no longer relevant.
