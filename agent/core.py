@@ -245,7 +245,29 @@ class AutoplotAgent:
             filename = tool_args["filename"]
             if not filename.endswith(".png"):
                 filename += ".png"
-            return self.autoplot.export_png(filename)
+            result = self.autoplot.export_png(filename)
+
+            # Auto-open the exported file in default viewer
+            if result.get("status") == "success":
+                try:
+                    import os
+                    import platform
+                    filepath = result["filepath"]
+                    if platform.system() == "Windows":
+                        os.startfile(filepath)
+                    elif platform.system() == "Darwin":
+                        import subprocess
+                        subprocess.Popen(["open", filepath])
+                    else:
+                        import subprocess
+                        subprocess.Popen(["xdg-open", filepath])
+                    result["auto_opened"] = True
+                except Exception as e:
+                    if self.verbose:
+                        print(f"  [Export] Could not auto-open: {e}")
+                    result["auto_opened"] = False
+
+            return result
 
         elif tool_name == "get_plot_info":
             return self.autoplot.get_current_state()
@@ -346,6 +368,100 @@ class AutoplotAgent:
             if self.verbose:
                 print(f"  [DataOps] Custom operation -> '{tool_args['output_label']}' ({len(result_df)} points)")
             return {"status": "success", **entry.summary()}
+
+        # --- Describe & Export Tools ---
+
+        elif tool_name == "describe_data":
+            store = get_store()
+            entry = store.get(tool_args["label"])
+            if entry is None:
+                return {"status": "error", "message": f"Label '{tool_args['label']}' not found in memory"}
+
+            df = entry.data
+            stats = {}
+
+            # Per-column statistics
+            desc = df.describe(percentiles=[0.25, 0.5, 0.75])
+            for col in df.columns:
+                col_stats = {
+                    "min": float(desc.loc["min", col]),
+                    "max": float(desc.loc["max", col]),
+                    "mean": float(desc.loc["mean", col]),
+                    "std": float(desc.loc["std", col]),
+                    "25%": float(desc.loc["25%", col]),
+                    "50%": float(desc.loc["50%", col]),
+                    "75%": float(desc.loc["75%", col]),
+                }
+                stats[col] = col_stats
+
+            # Global metadata
+            nan_count = int(df.isna().sum().sum())
+            total_points = len(df)
+            time_span = str(df.index[-1] - df.index[0]) if total_points > 1 else "single point"
+
+            # Cadence estimate (median time step)
+            if total_points > 1:
+                dt = df.index.to_series().diff().dropna()
+                median_cadence = str(dt.median())
+            else:
+                median_cadence = "N/A"
+
+            return {
+                "status": "success",
+                "label": entry.label,
+                "units": entry.units,
+                "num_points": total_points,
+                "num_columns": len(df.columns),
+                "columns": list(df.columns),
+                "time_start": str(df.index[0]),
+                "time_end": str(df.index[-1]),
+                "time_span": time_span,
+                "median_cadence": median_cadence,
+                "nan_count": nan_count,
+                "nan_percentage": round(nan_count / (total_points * len(df.columns)) * 100, 1) if total_points > 0 else 0,
+                "statistics": stats,
+            }
+
+        elif tool_name == "save_data":
+            store = get_store()
+            entry = store.get(tool_args["label"])
+            if entry is None:
+                return {"status": "error", "message": f"Label '{tool_args['label']}' not found in memory"}
+
+            from pathlib import Path
+
+            # Generate filename if not provided
+            filename = tool_args.get("filename", "")
+            if not filename:
+                safe_label = entry.label.replace(".", "_").replace("/", "_")
+                filename = f"{safe_label}.csv"
+            if not filename.endswith(".csv"):
+                filename += ".csv"
+
+            # Ensure parent directory exists
+            parent = Path(filename).parent
+            if parent and str(parent) != "." and not parent.exists():
+                parent.mkdir(parents=True, exist_ok=True)
+
+            # Export with ISO 8601 timestamps
+            df = entry.data.copy()
+            df.index.name = "timestamp"
+            df.to_csv(filename, date_format="%Y-%m-%dT%H:%M:%S.%fZ")
+
+            filepath = str(Path(filename).resolve())
+            file_size = Path(filename).stat().st_size
+
+            if self.verbose:
+                print(f"  [DataOps] Exported '{entry.label}' to {filepath} ({file_size:,} bytes)")
+
+            return {
+                "status": "success",
+                "label": entry.label,
+                "filepath": filepath,
+                "num_points": len(df),
+                "num_columns": len(df.columns),
+                "file_size_bytes": file_size,
+            }
 
         else:
             result = {"status": "error", "message": f"Unknown tool: {tool_name}"}

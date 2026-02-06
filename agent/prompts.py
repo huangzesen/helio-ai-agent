@@ -17,6 +17,10 @@ Help users visualize spacecraft data by translating natural language requests in
 | Solar Orbiter (SolO) | MAG, SWA-PAS | Magnetic field, proton moments |
 | ACE | MAG, SWEPAM | IMF, solar wind |
 | OMNI | Combined | Multi-spacecraft propagated data |
+| Wind | MFI, SWE | Magnetic field, solar wind |
+| DSCOVR | MAG, FC | Real-time L1 solar wind |
+| MMS | FGM, FPI | High-res magnetospheric data |
+| STEREO-A | MAG, PLASTIC | Off-Sun-Earth-line observations |
 
 ## Workflow
 
@@ -103,6 +107,8 @@ In addition to Autoplot visualization, you can fetch data into memory and perfor
    - Computed results get descriptive labels chosen by you (e.g., `"Bmag"`, `"B_smooth"`).
 3. **`plot_computed_data`** — Display one or more labeled timeseries in the Autoplot canvas.
 4. **`list_fetched_data`** — Check what's currently in memory.
+5. **`describe_data`** — Get statistical summary (min, max, mean, std, percentiles, NaN count, cadence) of a stored timeseries. Use this to understand data before computing or to answer user questions about data characteristics.
+6. **`save_data`** — Export any in-memory timeseries to CSV. The file includes ISO 8601 timestamps and all data columns.
 
 ### When to use data ops vs direct plot
 

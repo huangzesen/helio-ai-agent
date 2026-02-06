@@ -68,6 +68,70 @@ SPACECRAFT = {
             },
         },
     },
+    "WIND": {
+        "name": "Wind",
+        "keywords": ["wind"],
+        "instruments": {
+            "MFI": {
+                "name": "Magnetic Fields Investigation",
+                "keywords": ["magnetic", "field", "mag", "b-field", "mfi", "imf"],
+                "datasets": ["WI_H2_MFI"],
+            },
+            "SWE": {
+                "name": "Solar Wind Experiment",
+                "keywords": ["plasma", "solar wind", "proton", "density", "velocity", "electron", "swe"],
+                "datasets": ["WI_H1_SWE"],
+            },
+        },
+    },
+    "DSCOVR": {
+        "name": "Deep Space Climate Observatory",
+        "keywords": ["dscovr", "deep space", "climate observatory"],
+        "instruments": {
+            "MAG": {
+                "name": "Fluxgate Magnetometer",
+                "keywords": ["magnetic", "field", "mag", "b-field", "imf"],
+                "datasets": ["DSCOVR_H0_MAG"],
+            },
+            "FC": {
+                "name": "Faraday Cup",
+                "keywords": ["plasma", "solar wind", "proton", "density", "velocity", "faraday"],
+                "datasets": ["DSCOVR_H1_FC"],
+            },
+        },
+    },
+    "MMS": {
+        "name": "Magnetospheric Multiscale",
+        "keywords": ["mms", "magnetospheric multiscale"],
+        "instruments": {
+            "FGM": {
+                "name": "Fluxgate Magnetometer",
+                "keywords": ["magnetic", "field", "mag", "b-field", "fgm"],
+                "datasets": ["MMS1_FGM_SRVY_L2"],
+            },
+            "FPI-DIS": {
+                "name": "Fast Plasma (Ion)",
+                "keywords": ["plasma", "ion", "density", "velocity", "fpi"],
+                "datasets": ["MMS1_FPI_FAST_L2_DIS-MOMS"],
+            },
+        },
+    },
+    "STEREO_A": {
+        "name": "STEREO-A",
+        "keywords": ["stereo", "stereo-a", "stereo a", "ahead"],
+        "instruments": {
+            "MAG": {
+                "name": "IMPACT Magnetometer",
+                "keywords": ["magnetic", "field", "mag", "b-field", "impact"],
+                "datasets": ["STA_L2_MAG_RTN"],
+            },
+            "PLASTIC": {
+                "name": "Plasma and Suprathermal",
+                "keywords": ["plasma", "solar wind", "proton", "density", "velocity", "plastic"],
+                "datasets": ["STA_L2_PLA_1DMAX_1MIN"],
+            },
+        },
+    },
 }
 
 

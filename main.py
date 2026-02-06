@@ -9,13 +9,14 @@ Usage:
     python main.py --verbose # Show tool execution details
 
 Commands:
-    status  - Show current plan progress
-    retry   - Retry a failed task
-    cancel  - Cancel the current plan
-    errors  - Show recent errors from logs
-    reset   - Clear conversation history
-    help    - Show help message
-    quit    - Exit the program
+    status       - Show current plan progress
+    retry        - Retry a failed task
+    cancel       - Cancel the current plan
+    errors       - Show recent errors from logs
+    capabilities - Show detailed capability summary
+    reset        - Clear conversation history
+    help         - Show help message
+    quit         - Exit the program
 """
 
 import sys
@@ -49,24 +50,41 @@ def print_welcome():
     print("  Autoplot Natural Language Interface")
     print("=" * 60)
     print()
-    print("I can help you visualize spacecraft data. Try commands like:")
-    print("  - 'Show me Parker magnetic field data for last week'")
-    print("  - 'What data is available for Solar Orbiter?'")
-    print("  - 'Plot ACE solar wind velocity for January 2024'")
+    print("I can help you explore and visualize spacecraft data")
+    print("from 8 missions: PSP, Solar Orbiter, ACE, OMNI, Wind,")
+    print("DSCOVR, MMS, and STEREO-A.")
     print()
-    print("Complex requests work too:")
-    print("  - 'Compare PSP and ACE magnetic field for last week'")
-    print("  - 'Fetch solar wind data, compute running average, and plot'")
+    print("What I can do:")
+    print("  Search & plot    - Find datasets and plot them instantly")
+    print("  Compute          - Magnitude, smoothing, derivatives, etc.")
+    print("  Describe data    - Statistical summaries of fetched data")
+    print("  Export           - Save plots to PNG, data to CSV")
+    print("  Multi-step tasks - Complex requests broken into steps")
     print()
-    print("Supported time ranges:")
-    print("  - Relative:  'last week', 'last 3 days', 'last month', 'last year'")
-    print("  - Month:     'January 2024', 'Jan 2024'")
-    print("  - Date:      '2024-01-15' (full day)")
-    print("  - Range:     '2024-01-15 to 2024-01-20'")
-    print("  - Sub-day:   '2024-01-15T06:00 to 2024-01-15T18:00'")
+    print("Examples:")
+    print("  'Show me ACE magnetic field data for last week'")
+    print("  'Fetch Parker solar wind data and compute the magnitude'")
+    print("  'Describe the data'")
+    print("  'Save the data to a CSV file'")
+    print("  'Compare Wind and ACE magnetic field for January 2024'")
     print()
-    print("Commands: quit, reset, status, retry, cancel, errors, help")
+    print("Commands: quit, reset, status, retry, cancel, errors,")
+    print("          capabilities, help")
     print("-" * 60)
+    print()
+
+
+def print_capabilities():
+    """Print detailed capability summary from docs."""
+    docs_path = Path(__file__).parent / "docs" / "capability-summary.md"
+    if not docs_path.exists():
+        print("Capability summary not found.")
+        return
+    print()
+    print("=" * 60)
+    with open(docs_path, "r", encoding="utf-8") as f:
+        print(f.read())
+    print("=" * 60)
     print()
 
 
@@ -218,6 +236,10 @@ def main():
                 from agent.logging import print_recent_errors
                 print_recent_errors(days=7, limit=10)
                 print()
+                continue
+
+            if user_input.lower() in ("capabilities", "caps"):
+                print_capabilities()
                 continue
 
             # Process the message

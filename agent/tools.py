@@ -9,7 +9,7 @@ TOOLS = [
     {
         "name": "search_datasets",
         "description": """Search for spacecraft datasets by keyword. Use this when:
-- User mentions a spacecraft (Parker, ACE, Solar Orbiter, OMNI)
+- User mentions a spacecraft (Parker, ACE, Solar Orbiter, OMNI, Wind, DSCOVR, MMS, STEREO)
 - User mentions a data type (magnetic field, solar wind, plasma, density)
 - User asks what data is available
 
@@ -265,6 +265,51 @@ Do NOT call this tool when the request cannot be expressed as a pandas/numpy ope
                 }
             },
             "required": ["source_label", "pandas_code", "output_label", "description"]
+        }
+    },
+
+    # --- Describe & Export Tools ---
+    {
+        "name": "describe_data",
+        "description": """Get statistical summary of an in-memory timeseries. Use this when:
+- User asks "what does the data look like?" or "summarize the data"
+- You want to understand the data before deciding what operations to apply
+- User asks about min, max, average, or data quality
+
+Returns statistics (min, max, mean, std, percentiles, NaN count) and the LLM can narrate findings.""",
+        "parameters": {
+            "type": "object",
+            "properties": {
+                "label": {
+                    "type": "string",
+                    "description": "Label of the data in memory (e.g., 'AC_H2_MFI.BGSEc')"
+                }
+            },
+            "required": ["label"]
+        }
+    },
+    {
+        "name": "save_data",
+        "description": """Export an in-memory timeseries to a CSV file. Use this when:
+- User asks to save, export, or download data
+- User wants data in a file for external use (Excel, MATLAB, etc.)
+- User wants to keep a copy of computed results
+
+The CSV file has a datetime column (ISO 8601 UTC) followed by data columns.
+If no filename is given, one is auto-generated from the label.""",
+        "parameters": {
+            "type": "object",
+            "properties": {
+                "label": {
+                    "type": "string",
+                    "description": "Label of the data in memory to export"
+                },
+                "filename": {
+                    "type": "string",
+                    "description": "Output filename (e.g., 'ace_mag.csv'). '.csv' is appended if missing. Default: auto-generated from label."
+                }
+            },
+            "required": ["label"]
         }
     },
 ]

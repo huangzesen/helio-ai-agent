@@ -47,7 +47,7 @@ agent/core.py  AutoplotAgent
                                numpy->QDataSet conversion, overplot with color management
 ```
 
-## Tools (12 total)
+## Tools (14 total)
 
 ### Dataset Discovery
 | Tool | Purpose |
@@ -61,7 +61,7 @@ agent/core.py  AutoplotAgent
 |------|---------|
 | `plot_data` | Plot CDAWeb data directly via Autoplot URI |
 | `change_time_range` | Zoom/pan the current plot |
-| `export_plot` | Export current plot to PNG |
+| `export_plot` | Export current plot to PNG (auto-opens in default viewer) |
 | `get_plot_info` | Get current URI and time range |
 
 ### Data Operations (fetch -> custom_operation -> plot)
@@ -71,6 +71,8 @@ agent/core.py  AutoplotAgent
 | `list_fetched_data` | Show all in-memory timeseries |
 | `custom_operation` | LLM-generated pandas/numpy code (AST-validated, sandboxed) — handles magnitude, arithmetic, smoothing, resampling, derivatives, and any other transformation |
 | `plot_computed_data` | Display in-memory data in Autoplot canvas (overplot support) |
+| `describe_data` | Statistical summary of in-memory data (min/max/mean/std/percentiles/NaN) |
+| `save_data` | Export in-memory timeseries to CSV file |
 
 ### Conversation
 | Tool | Purpose |
@@ -85,6 +87,10 @@ agent/core.py  AutoplotAgent
 | Solar Orbiter (SolO) | MAG, SWA-PAS | Magnetic field, proton moments |
 | ACE | MAG, SWEPAM | `AC_H2_MFI`, `AC_H0_SWE` |
 | OMNI | Combined | `OMNI_HRO_1MIN` |
+| Wind | MFI, SWE | `WI_H2_MFI`, `WI_H1_SWE` |
+| DSCOVR | MAG, FC | `DSCOVR_H0_MAG`, `DSCOVR_H1_FC` |
+| MMS | FGM, FPI-DIS | `MMS1_FGM_SRVY_L2` |
+| STEREO-A | MAG, PLASTIC | `STA_L2_MAG_RTN` |
 
 ## Time Range Parsing
 
@@ -151,6 +157,7 @@ python main.py --verbose  # Show tool calls, timing, errors
 | `retry` | Retry the first failed task in current plan |
 | `cancel` | Cancel current plan, skip remaining tasks |
 | `errors` | Show recent errors from log files |
+| `capabilities` / `caps` | Show detailed capability summary |
 | `help` | Show welcome message and help |
 
 ### Logging (`agent/logging.py`)

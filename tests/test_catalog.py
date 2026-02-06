@@ -19,12 +19,16 @@ from knowledge.catalog import (
 class TestListSpacecraft:
     def test_returns_all_spacecraft(self):
         spacecraft = list_spacecraft()
-        assert len(spacecraft) == 4
+        assert len(spacecraft) == 8
         ids = [s["id"] for s in spacecraft]
         assert "PSP" in ids
         assert "SolO" in ids
         assert "ACE" in ids
         assert "OMNI" in ids
+        assert "WIND" in ids
+        assert "DSCOVR" in ids
+        assert "MMS" in ids
+        assert "STEREO_A" in ids
 
     def test_returns_dicts_with_id_and_name(self):
         spacecraft = list_spacecraft()
@@ -80,6 +84,15 @@ class TestMatchSpacecraft:
         ("ace", "ACE"),
         ("ACE", "ACE"),
         ("omni", "OMNI"),
+        ("wind", "WIND"),
+        ("WIND", "WIND"),
+        ("dscovr", "DSCOVR"),
+        ("mms", "MMS"),
+        ("MMS", "MMS"),
+        ("magnetospheric multiscale", "MMS"),
+        ("stereo", "STEREO_A"),
+        ("stereo-a", "STEREO_A"),
+        ("stereo a", "STEREO_A"),
         ("unknown", None),
         ("xyz123", None),
     ])
@@ -142,3 +155,27 @@ class TestSearchByKeywords:
         assert result["spacecraft"] == "OMNI"
         assert result["instrument"] == "Combined"
         assert "OMNI_HRO_1MIN" in result["datasets"]
+
+    def test_wind_magnetic(self):
+        result = search_by_keywords("wind magnetic")
+        assert result is not None
+        assert result["spacecraft"] == "WIND"
+        assert "WI_H2_MFI" in result["datasets"]
+
+    def test_dscovr_plasma(self):
+        result = search_by_keywords("dscovr plasma")
+        assert result is not None
+        assert result["spacecraft"] == "DSCOVR"
+        assert result["instrument"] == "FC"
+
+    def test_mms_magnetic(self):
+        result = search_by_keywords("mms magnetic")
+        assert result is not None
+        assert result["spacecraft"] == "MMS"
+        assert "MMS1_FGM_SRVY_L2" in result["datasets"]
+
+    def test_stereo_magnetic(self):
+        result = search_by_keywords("stereo magnetic")
+        assert result is not None
+        assert result["spacecraft"] == "STEREO_A"
+        assert "STA_L2_MAG_RTN" in result["datasets"]
