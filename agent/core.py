@@ -60,12 +60,34 @@ class AutoplotAgent:
         # Autoplot commands (lazy-initialized on first plot)
         self._autoplot = None
 
+        # Token usage tracking
+        self._total_input_tokens = 0
+        self._total_output_tokens = 0
+        self._api_calls = 0
+
     @property
     def autoplot(self):
         """Lazy initialization of Autoplot commands."""
         if self._autoplot is None:
             self._autoplot = get_commands(verbose=self.verbose)
         return self._autoplot
+
+    def _track_usage(self, response):
+        """Accumulate token usage from a Gemini response."""
+        meta = getattr(response, "usage_metadata", None)
+        if meta:
+            self._total_input_tokens += getattr(meta, "prompt_token_count", 0) or 0
+            self._total_output_tokens += getattr(meta, "candidates_token_count", 0) or 0
+        self._api_calls += 1
+
+    def get_token_usage(self) -> dict:
+        """Return cumulative token usage for this session."""
+        return {
+            "input_tokens": self._total_input_tokens,
+            "output_tokens": self._total_output_tokens,
+            "total_tokens": self._total_input_tokens + self._total_output_tokens,
+            "api_calls": self._api_calls,
+        }
 
     def _execute_tool(self, tool_name: str, tool_args: dict) -> dict:
         """Execute a tool and return the result.
@@ -325,6 +347,7 @@ class AutoplotAgent:
         if self.verbose:
             print(f"  [Gemini] Sending message to model...")
         response = self.chat.send_message(message=user_message)
+        self._track_usage(response)
         if self.verbose:
             print(f"  [Gemini] Response received.")
 
@@ -383,6 +406,7 @@ class AutoplotAgent:
             if self.verbose:
                 print(f"  [Gemini] Sending {len(function_responses)} tool result(s) back to model...")
             response = self.chat.send_message(message=function_responses)
+            self._track_usage(response)
             if self.verbose:
                 print(f"  [Gemini] Response received.")
 

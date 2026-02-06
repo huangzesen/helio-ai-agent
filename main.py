@@ -114,11 +114,22 @@ def main():
 
         except KeyboardInterrupt:
             print("\n\nGoodbye!")
-            readline.write_history_file(HISTORY_FILE)
             break
         except Exception as e:
             print(f"\nError: {e}")
             print("You can continue the conversation or type 'reset' to start fresh.\n")
+
+    # Print token usage summary
+    usage = agent.get_token_usage()
+    if usage["api_calls"] > 0:
+        print()
+        print("-" * 60)
+        print(f"  Session token usage:")
+        print(f"    Input tokens:  {usage['input_tokens']:,}")
+        print(f"    Output tokens: {usage['output_tokens']:,}")
+        print(f"    Total tokens:  {usage['total_tokens']:,}")
+        print(f"    API calls:     {usage['api_calls']}")
+        print("-" * 60)
 
     # Clean shutdown
     readline.write_history_file(HISTORY_FILE)
