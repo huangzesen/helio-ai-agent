@@ -1,14 +1,14 @@
 # Feature Plans for `explore/new-features` Branch
 
-Ten self-contained feature specs, ordered roughly by impact. Each file contains everything needed for implementation: motivation, file changes, code snippets, and testing notes.
+Remaining unimplemented feature specs. Each file contains everything needed for implementation: motivation, file changes, code snippets, and testing notes.
 
-## High Impact, Low Effort
-| # | Feature | File | Est. Lines |
-|---|---------|------|-----------|
-| 1 | [Describe Data Tool](01-describe-data.md) | tools/core/prompts | ~60 |
-| 2 | [Export Data to CSV](02-export-csv.md) | tools/core | ~50 |
-| 3 | [Auto-Open Exported PNG](03-auto-open-png.md) | core.py | ~10 |
-| 4 | [More Spacecraft](04-more-spacecraft.md) | catalog.py | ~80 |
+## Completed (removed from this directory)
+
+Features 01-04 were implemented in commit `c416dce`:
+- ~~01: Describe Data Tool~~ — now `describe_data` tool
+- ~~02: Export Data to CSV~~ — now `save_data` tool
+- ~~03: Auto-Open Exported PNG~~ — integrated into `export_plot`
+- ~~04: More Spacecraft~~ — Wind, DSCOVR, MMS, STEREO-A added to catalog
 
 ## Medium Impact, Low Effort
 | # | Feature | File | Est. Lines |
@@ -26,6 +26,6 @@ Ten self-contained feature specs, ordered roughly by impact. Each file contains 
 
 ## Implementation Order Recommendation
 
-Start with **1-4** (quick wins, independent of each other). Then **5-6** (build on existing Autoplot bridge). Then **7-8** (UX polish). Features **9-10** are prompt-only and can be done anytime.
+Start with **5-6** (build on existing Autoplot bridge). Then **7-8** (UX polish). Features **9-10** are prompt-only and can be done anytime.
 
 All features are independent — they can be implemented in any order or in parallel.

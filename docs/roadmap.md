@@ -8,43 +8,54 @@ Future development plan for the helio-ai-agent project.
 
 ## Current Status
 
-### Implemented (Phase 1 Complete)
+### Implemented
 
 | Component | Status | Details |
 |-----------|--------|---------|
-| Agent Core | ✅ | Gemini 2.5-Flash with 15 function-calling tools |
-| Autoplot Bridge | ✅ | JPype connection, headless mode, plot/export/time-range |
-| Dataset Catalog | ✅ | PSP, Solar Orbiter, ACE, OMNI with keyword search |
-| HAPI Client | ✅ | CDAWeb parameter metadata fetching |
-| Data Pipeline | ✅ | fetch → store → compute → plot |
-| Operations | ✅ | magnitude, arithmetic, running average, resample, delta |
-| Time Parsing | ✅ | Relative, absolute, date ranges, sub-day precision |
-| Cross-platform | ✅ | Windows + macOS (Python 3.11 required on Mac) |
-| Token Tracking | ✅ | Per-session usage statistics |
+| Agent Core | Done | Gemini 2.5-Flash with function calling |
+| Autoplot Bridge | Done | JPype connection, plot/export/time-range, overplot with color mgmt |
+| Dataset Catalog | Done | 8 spacecraft with keyword search |
+| HAPI Client | Done | CDAWeb parameter metadata fetching (cached) |
+| Data Pipeline | Done | fetch -> store -> custom_operation -> plot (pandas-backed) |
+| Custom Operations | Done | LLM-generated pandas/numpy code, AST-validated sandbox |
+| Time Parsing | Done | Relative, absolute, date ranges, sub-day precision |
+| Multi-step Planning | Done | Regex complexity detection + Gemini task decomposition |
+| Logging | Done | Daily rotation to `~/.helio-agent/logs/` |
+| Cross-platform | Done | Windows + macOS |
+| Token Tracking | Done | Per-session usage statistics |
 
-### Tools (12 Total)
+### Tools (14 Total)
 
 **Dataset Discovery**: `search_datasets`, `list_parameters`, `get_data_availability`
 
 **Visualization**: `plot_data`, `change_time_range`, `export_plot`, `get_plot_info`
 
-**Data Operations**: `fetch_data`, `list_fetched_data`, `custom_operation`, `plot_computed_data`
+**Data Operations**: `fetch_data`, `list_fetched_data`, `custom_operation`, `plot_computed_data`, `describe_data`, `save_data`
 
 **Conversation**: `ask_clarification`
 
+### Supported Spacecraft (8)
+
+PSP, Solar Orbiter, ACE, OMNI, Wind, DSCOVR, MMS, STEREO-A
+
 ---
 
-## Phase 2: Data Source Expansion
+## Next: Mission-Specific Agent Architecture
 
-**Goal**: Support more spacecraft and data sources.
+See `docs/mission-agent-architecture.md` for the full 3-phase plan.
+
+- **Phase 1** (foundation): Rich mission profiles in catalog, dynamic prompt generation from catalog, eliminate hardcoded prompt duplication
+- **Phase 2**: Mission sub-agents with specialized prompts, task dispatch by mission
+- **Phase 3**: Parallel execution with dependency tracking
+
+---
+
+## Data Source Expansion
 
 ### New Spacecraft
-- [ ] WIND — Solar wind monitor at L1
-- [ ] DSCOVR — Real-time solar wind
 - [ ] Cluster — Multi-spacecraft magnetospheric mission
-- [ ] MMS — Magnetospheric Multiscale
 - [ ] Voyager 1/2 — Heliospheric boundary
-- [ ] STEREO A/B — Solar imaging and in-situ
+- [ ] STEREO-B — Off-Sun-Earth-line (if data available)
 - [ ] Ulysses — High-latitude heliosphere
 
 ### New Data Sources
@@ -60,9 +71,7 @@ Future development plan for the helio-ai-agent project.
 
 ---
 
-## Phase 3: Visualization Enhancements
-
-**Goal**: Rich scientific visualizations matching Autoplot's full capabilities.
+## Visualization Enhancements
 
 ### Layout
 - [ ] Multi-panel stack plots
@@ -89,9 +98,7 @@ Future development plan for the helio-ai-agent project.
 
 ---
 
-## Phase 4: Advanced Analysis
-
-**Goal**: In-memory Python-side analysis for derived science products.
+## Advanced Analysis
 
 ### Spectral Analysis
 - [ ] FFT / Power spectral density
@@ -100,8 +107,8 @@ Future development plan for the helio-ai-agent project.
 - [ ] Coherence between signals
 
 ### Statistical Operations
-- [ ] Min/max/mean/std over intervals
-- [ ] Percentiles and distributions
+- [x] Min/max/mean/std over intervals — via `describe_data`
+- [x] Percentiles and distributions — via `describe_data`
 - [ ] Correlation coefficients
 - [ ] Trend fitting (linear, polynomial)
 
@@ -118,9 +125,7 @@ Future development plan for the helio-ai-agent project.
 
 ---
 
-## Phase 5: Production Readiness
-
-**Goal**: Reliable, maintainable, deployable system.
+## Production Readiness
 
 ### Testing & CI
 - [ ] GitHub Actions CI/CD pipeline
@@ -137,7 +142,7 @@ Future development plan for the helio-ai-agent project.
 ### Reliability
 - [ ] Retry logic for network failures
 - [ ] Graceful degradation when services unavailable
-- [ ] Session recovery after crashes
+- [x] Session recovery after crashes — via TaskStore persistence
 - [ ] Input validation and sanitization
 
 ### Cost Optimization
@@ -148,9 +153,7 @@ Future development plan for the helio-ai-agent project.
 
 ---
 
-## Phase 6: User Experience
-
-**Goal**: Make the tool accessible to more users.
+## User Experience
 
 ### Interfaces
 - [ ] Web UI (Streamlit or Gradio)
@@ -165,14 +168,14 @@ Future development plan for the helio-ai-agent project.
 - [ ] Replay previous analyses
 
 ### Batch Processing
-- [ ] Script mode (non-interactive)
+- [x] Script mode (non-interactive) — `python main.py "request"`
 - [ ] Batch job files (YAML/JSON)
 - [ ] Parallel execution for multiple time ranges
 - [ ] Scheduled recurring analyses
 
 ### Export Formats
 - [ ] PDF reports with plots and metadata
-- [ ] CSV/ASCII data export
+- [x] CSV/ASCII data export — via `save_data`
 - [ ] NetCDF/CDF output
 - [ ] Shareable plot URLs
 
@@ -185,7 +188,7 @@ Future development plan for the helio-ai-agent project.
 1. Add entry to `knowledge/catalog.py`
 2. Add test case in `tests/test_catalog.py`
 3. Verify HAPI parameters load correctly
-4. Update system prompt if needed
+4. Update system prompt in `agent/prompts.py`
 
 ### Adding New Tools
 
@@ -195,18 +198,13 @@ Future development plan for the helio-ai-agent project.
 4. Update `docs/capability-summary.md`
 5. Add tests
 
-### Adding New Operations
-
-1. Add pure function to `data_ops/operations.py`
-2. Add tool schema and handler
-3. Add tests to `tests/test_operations.py`
-
 ---
 
 ## Related Documentation
 
 - `docs/capability-summary.md` — Current feature summary
-- `docs/autoplot-agent-spec.md` — Original Phase 1 specification
+- `docs/mission-agent-architecture.md` — Multi-agent architecture plan
 - `docs/autoplot-scripting-guide.md` — Autoplot ScriptContext API
 - `docs/jpype-autoplot-bridge.md` — JPype integration details
-- `spikes/mac_compatibility/SESSION_SUMMARY.md` — macOS setup guide
+- `docs/known-issues.md` — Bug tracker
+- `docs/feature-plans/` — Unimplemented feature specs (05-10)
