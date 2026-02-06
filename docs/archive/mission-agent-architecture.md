@@ -1,17 +1,16 @@
-# Mission-Specific Agent Architecture (Phased Plan)
+# Mission-Specific Agent Architecture
+
+**Status: COMPLETE** (Phase 1 + Phase 2 implemented)
 
 ## Context
 
-The current system has a monolithic prompt with spacecraft knowledge hardcoded in 3 places. The vision is a multi-agent architecture where:
+The original system had a monolithic prompt with spacecraft knowledge hardcoded in 3 places. This plan implemented a multi-agent architecture where:
 
 1. **Main agent** (orchestrator) understands user intent and decomposes into tasks
-2. **Mission sub-agents** (PSP, ACE, etc.) each have deep knowledge of one mission's 100+ data products
-3. **Parallel execution** for independent tasks across different missions
-4. **Report-back protocol** where sub-agents return results to the main agent
+2. **Mission sub-agents** (PSP, ACE, etc.) each have deep knowledge of one mission's data products
+3. **Report-back protocol** where sub-agents return results to the main agent
 
-The existing planner/task system (`planner.py`, `tasks.py`, `core.py:_execute_task()`) already handles decomposition and sequential execution. The evolution is to: tag tasks with missions, dispatch to mission-specific agent sessions, and run independent tasks in parallel.
-
-**This is implemented in 3 phases — Phase 1 is the foundation.**
+The existing planner/task system (`planner.py`, `tasks.py`, `core.py:_execute_task()`) handles decomposition and sequential execution. Tasks are tagged with missions and dispatched to mission-specific agent sessions.
 
 ---
 
@@ -175,7 +174,7 @@ fields. Dependency indices are resolved to task UUIDs in `create_plan_from_reque
 4. Checks dependencies before each task — skips tasks whose dependencies failed
 5. Aggregates token usage from all mission agents into the main agent's totals
 
-Execution is still sequential (Phase 3 adds parallelism).
+Execution is sequential.
 
 ### Phase 2 File Summary
 
@@ -191,44 +190,3 @@ Execution is still sequential (Phase 3 adds parallelism).
 | `tests/test_planner.py` | Modify | +1 test for mission-tagged display |
 | `tests/test_prompt_builder.py` | Modify | +2 tests for mission tagging in planner prompt |
 
----
-
-## Phase 3: Parallel Execution (LATER)
-
-**Status: NOT STARTED — depends on Phase 2**
-
-### 3a. Dependency-aware parallel dispatch
-
-```python
-import concurrent.futures
-
-def _process_complex_request(self, user_message):
-    plan = create_plan_from_request(...)
-    completed_tasks = {}
-
-    while not plan.is_complete():
-        # Find tasks whose dependencies are all completed
-        ready = [t for t in plan.tasks
-                 if t.status == TaskStatus.PENDING
-                 and all(dep in completed_tasks for dep in t.depends_on)]
-
-        if not ready:
-            break  # deadlock or done
-
-        # Execute ready tasks in parallel
-        with concurrent.futures.ThreadPoolExecutor() as executor:
-            futures = {}
-            for task in ready:
-                agent = mission_agents.get(task.mission, self)
-                futures[executor.submit(agent.execute_task, task)] = task
-
-            for future in concurrent.futures.as_completed(futures):
-                task = futures[future]
-                completed_tasks[task.id] = future.result()
-```
-
-### 3b. Progress reporting
-
-Main agent reports: "PSP agent working... ACE agent completed... Waiting for both to finish..."
-
-**Files:** `agent/core.py` (parallel execution logic)
