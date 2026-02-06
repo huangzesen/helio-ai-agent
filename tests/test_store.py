@@ -5,6 +5,7 @@ Run with: python -m pytest tests/test_store.py
 """
 
 import numpy as np
+import pandas as pd
 import pytest
 
 from data_ops.store import DataEntry, DataStore, get_store, reset_store
@@ -20,16 +21,14 @@ def clean_store():
 
 def _make_entry(label="test", n=10, vector=False):
     """Helper to create a DataEntry for testing."""
-    t0 = np.datetime64("2024-01-01", "ns")
-    time = t0 + np.arange(n) * np.timedelta64(1, "s")
+    idx = pd.date_range("2024-01-01", periods=n, freq="1s")
     if vector:
-        values = np.random.randn(n, 3)
+        data = pd.DataFrame(np.random.randn(n, 3), index=idx, columns=["x", "y", "z"])
     else:
-        values = np.random.randn(n)
+        data = pd.DataFrame(np.random.randn(n), index=idx, columns=["value"])
     return DataEntry(
         label=label,
-        time=time,
-        values=values,
+        data=data,
         units="nT",
         description="test entry",
         source="computed",
@@ -55,15 +54,34 @@ class TestDataEntry:
         assert s["num_points"] == 50
 
     def test_summary_empty(self):
-        entry = DataEntry(
-            label="empty",
-            time=np.array([], dtype="datetime64[ns]"),
-            values=np.array([], dtype=np.float64),
-        )
+        empty_df = pd.DataFrame(dtype=np.float64)
+        empty_df.index = pd.DatetimeIndex([], name="time")
+        entry = DataEntry(label="empty", data=empty_df)
         s = entry.summary()
         assert s["num_points"] == 0
         assert s["time_min"] is None
         assert s["time_max"] is None
+
+    def test_backward_compat_time(self):
+        entry = _make_entry("A", n=5)
+        t = entry.time
+        assert isinstance(t, np.ndarray)
+        assert np.issubdtype(t.dtype, np.datetime64)
+        assert len(t) == 5
+
+    def test_backward_compat_values_scalar(self):
+        entry = _make_entry("A", n=5, vector=False)
+        v = entry.values
+        assert isinstance(v, np.ndarray)
+        assert v.ndim == 1
+        assert len(v) == 5
+
+    def test_backward_compat_values_vector(self):
+        entry = _make_entry("A", n=5, vector=True)
+        v = entry.values
+        assert isinstance(v, np.ndarray)
+        assert v.ndim == 2
+        assert v.shape == (5, 3)
 
 
 class TestDataStore:
@@ -84,7 +102,7 @@ class TestDataStore:
         store = DataStore()
         store.put(_make_entry("A", n=10))
         store.put(_make_entry("A", n=20))
-        assert len(store.get("A").time) == 20
+        assert len(store.get("A").data) == 20
 
     def test_remove(self):
         store = DataStore()

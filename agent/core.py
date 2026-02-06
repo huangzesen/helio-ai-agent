@@ -283,8 +283,7 @@ class AutoplotAgent:
             label = f"{tool_args['dataset_id']}.{tool_args['parameter_id']}"
             entry = DataEntry(
                 label=label,
-                time=result["time"],
-                values=result["values"],
+                data=result["data"],
                 units=result["units"],
                 description=result["description"],
                 source="hapi",
@@ -330,13 +329,12 @@ class AutoplotAgent:
             if source is None:
                 return {"status": "error", "message": f"Label '{tool_args['source_label']}' not found"}
             try:
-                mag = ops.compute_magnitude(source.values)
+                result_df = ops.compute_magnitude(source.data)
             except ValueError as e:
                 return {"status": "error", "message": str(e)}
             entry = DataEntry(
                 label=tool_args["output_label"],
-                time=source.time.copy(),
-                values=mag,
+                data=result_df,
                 units=source.units,
                 description=f"Magnitude of {source.label}",
                 source="computed",
@@ -353,13 +351,12 @@ class AutoplotAgent:
             if b is None:
                 return {"status": "error", "message": f"Label '{tool_args['label_b']}' not found"}
             try:
-                result = ops.compute_arithmetic(a.values, b.values, tool_args["operation"])
+                result_df = ops.compute_arithmetic(a.data, b.data, tool_args["operation"])
             except ValueError as e:
                 return {"status": "error", "message": str(e)}
             entry = DataEntry(
                 label=tool_args["output_label"],
-                time=a.time.copy(),
-                values=result,
+                data=result_df,
                 units=f"{a.units} {tool_args['operation']} {b.units}" if a.units or b.units else "",
                 description=f"{a.label} {tool_args['operation']} {b.label}",
                 source="computed",
@@ -373,15 +370,14 @@ class AutoplotAgent:
             if source is None:
                 return {"status": "error", "message": f"Label '{tool_args['source_label']}' not found"}
             try:
-                new_time, smoothed = ops.compute_running_average(
-                    source.time, source.values, int(tool_args["window_size"])
+                result_df = ops.compute_running_average(
+                    source.data, int(tool_args["window_size"])
                 )
             except ValueError as e:
                 return {"status": "error", "message": str(e)}
             entry = DataEntry(
                 label=tool_args["output_label"],
-                time=new_time,
-                values=smoothed,
+                data=result_df,
                 units=source.units,
                 description=f"Running average (window={tool_args['window_size']}) of {source.label}",
                 source="computed",
@@ -395,15 +391,14 @@ class AutoplotAgent:
             if source is None:
                 return {"status": "error", "message": f"Label '{tool_args['source_label']}' not found"}
             try:
-                new_time, resampled = ops.compute_resample(
-                    source.time, source.values, float(tool_args["cadence_seconds"])
+                result_df = ops.compute_resample(
+                    source.data, float(tool_args["cadence_seconds"])
                 )
             except ValueError as e:
                 return {"status": "error", "message": str(e)}
             entry = DataEntry(
                 label=tool_args["output_label"],
-                time=new_time,
-                values=resampled,
+                data=result_df,
                 units=source.units,
                 description=f"Resampled ({tool_args['cadence_seconds']}s) {source.label}",
                 source="computed",
@@ -418,7 +413,7 @@ class AutoplotAgent:
                 return {"status": "error", "message": f"Label '{tool_args['source_label']}' not found"}
             mode = tool_args.get("mode", "difference")
             try:
-                new_time, delta = ops.compute_delta(source.time, source.values, mode)
+                result_df = ops.compute_delta(source.data, mode)
             except ValueError as e:
                 return {"status": "error", "message": str(e)}
             if mode == "derivative":
@@ -427,8 +422,7 @@ class AutoplotAgent:
                 units = source.units
             entry = DataEntry(
                 label=tool_args["output_label"],
-                time=new_time,
-                values=delta,
+                data=result_df,
                 units=units,
                 description=f"{mode.capitalize()} of {source.label}",
                 source="computed",

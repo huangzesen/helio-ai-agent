@@ -1,5 +1,5 @@
 """
-HAPI data fetcher — pulls timeseries from CDAWeb into numpy arrays.
+HAPI data fetcher — pulls timeseries from CDAWeb into pandas DataFrames.
 
 Reuses HAPI_BASE and get_dataset_info() from knowledge/hapi_client.py
 for metadata (units, size, fill value). Fetches actual data via the
@@ -9,6 +9,7 @@ HAPI /data endpoint in CSV format.
 import io
 
 import numpy as np
+import pandas as pd
 import requests
 
 from knowledge.hapi_client import HAPI_BASE, get_dataset_info
@@ -30,8 +31,7 @@ def fetch_hapi_data(
 
     Returns:
         Dict with keys:
-            time: np.ndarray of datetime64[ns]
-            values: np.ndarray — (n,) for scalars, (n,k) for vectors
+            data: pd.DataFrame with DatetimeIndex and float64 columns
             units: str
             description: str
             fill_value: original fill value (for reference)
@@ -47,12 +47,6 @@ def fetch_hapi_data(
     units = param_meta.get("units", "")
     description = param_meta.get("description", "")
     fill_value = param_meta.get("fill", None)
-    size = param_meta.get("size", None)
-    if size is None:
-        size = [1]
-    elif isinstance(size, int):
-        size = [size]
-    num_columns = size[0]
 
     # Fetch CSV data
     resp = requests.get(
@@ -75,43 +69,34 @@ def fetch_hapi_data(
             f"in range {time_min} to {time_max}"
         )
 
-    # Parse CSV: column 0 = ISO timestamp, columns 1+ = data
-    times = []
-    data_rows = []
+    # Parse CSV with pandas: column 0 = ISO timestamp, columns 1+ = data
+    df = pd.read_csv(
+        io.StringIO(text),
+        header=None,
+        index_col=0,
+        parse_dates=[0],
+    )
+    df.index.name = "time"
 
-    for line in text.split("\n"):
-        line = line.strip()
-        if not line:
-            continue
-        parts = line.split(",")
-        times.append(parts[0].strip())
-        row = [float(v.strip().strip('"')) for v in parts[1:]]
-        data_rows.append(row)
-
-    if not times:
+    if len(df) == 0:
         raise ValueError(
             f"No data rows parsed for {dataset_id}/{parameter_id} "
             f"in range {time_min} to {time_max}"
         )
 
-    time_arr = np.array(times, dtype="datetime64[ns]")
-    values_arr = np.array(data_rows, dtype=np.float64)
+    # Ensure float64 dtype
+    df = df.apply(pd.to_numeric, errors="coerce")
 
     # Replace fill values with NaN
     if fill_value is not None:
         try:
             fill_f = float(fill_value)
-            values_arr[values_arr == fill_f] = np.nan
+            df = df.replace(fill_f, np.nan)
         except (ValueError, TypeError):
             pass
 
-    # Squeeze scalar params from (n, 1) to (n,)
-    if num_columns == 1 and values_arr.ndim == 2 and values_arr.shape[1] == 1:
-        values_arr = values_arr.squeeze(axis=1)
-
     return {
-        "time": time_arr,
-        "values": values_arr,
+        "data": df,
         "units": units,
         "description": description,
         "fill_value": fill_value,

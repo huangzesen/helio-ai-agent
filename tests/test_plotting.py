@@ -6,6 +6,7 @@ Run with: python -m pytest tests/test_plotting.py
 
 import os
 import numpy as np
+import pandas as pd
 import pytest
 
 from data_ops.store import DataEntry
@@ -14,14 +15,13 @@ from data_ops.plotting import plot_timeseries
 
 def _make_entry(label="test", n=100, vector=False, units="nT"):
     """Helper to create a DataEntry for testing."""
-    t0 = np.datetime64("2024-01-01", "ns")
-    time = t0 + np.arange(n) * np.timedelta64(1, "s")
+    idx = pd.date_range("2024-01-01", periods=n, freq="1s")
     if vector:
-        values = np.random.randn(n, 3)
+        data = pd.DataFrame(np.random.randn(n, 3), index=idx, columns=["x", "y", "z"])
     else:
-        values = np.random.randn(n)
+        data = pd.DataFrame(np.random.randn(n), index=idx, columns=["value"])
     return DataEntry(
-        label=label, time=time, values=values,
+        label=label, data=data,
         units=units, description="test", source="computed",
     )
 

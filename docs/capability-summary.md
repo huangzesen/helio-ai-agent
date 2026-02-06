@@ -35,10 +35,10 @@ agent/core.py  AutoplotAgent
   |       catalog.py         Static spacecraft/instrument catalog (keyword search)
   |       hapi_client.py     CDAWeb HAPI /info endpoint (parameter metadata, cached)
   |
-  +---> data_ops/           Python-side data pipeline
-  |       fetch.py            HAPI /data endpoint -> numpy arrays
-  |       store.py            In-memory DataStore singleton (label -> DataEntry)
-  |       operations.py       Pure numpy: magnitude, arithmetic, smoothing, resample, delta
+  +---> data_ops/           Python-side data pipeline (pandas-backed)
+  |       fetch.py            HAPI /data endpoint -> pandas DataFrames (pd.read_csv)
+  |       store.py            In-memory DataStore singleton (label -> DataEntry w/ DataFrame)
+  |       operations.py       Pandas operations: magnitude, arithmetic, smoothing, resample, delta
   |       plotting.py         Matplotlib fallback (DEPRECATED — plotting goes through Autoplot)
   |
   +---> autoplot_bridge/    Java visualization via JPype
@@ -71,8 +71,8 @@ agent/core.py  AutoplotAgent
 | `list_fetched_data` | Show all in-memory timeseries |
 | `compute_magnitude` | Vector magnitude: sqrt(x^2+y^2+z^2) |
 | `compute_arithmetic` | Element-wise +, -, *, / between two series |
-| `compute_running_average` | Centered moving average (np.nanmean) |
-| `compute_resample` | Bin-average at fixed cadence (aligns time grids) |
+| `compute_running_average` | Centered moving average (pandas rolling) |
+| `compute_resample` | Bin-average at fixed cadence (pandas resample) |
 | `compute_delta` | Differences or time derivatives (dv/dt) |
 | `plot_computed_data` | Display in-memory data in Autoplot canvas (overplot support) |
 
@@ -110,10 +110,10 @@ All times are UTC. Outputs `TimeRange` objects with `start`/`end` datetimes. Con
 - **Color management**: Golden ratio HSB color generation on first plot, cached per label. New additions to existing plots default to black. Colors persist across `plot_dataset` calls via `_label_colors` dict.
 
 ### Data Pipeline (`data_ops/`)
-- `DataEntry` holds label, time (datetime64[ns]), values (float64), units, description, source.
+- `DataEntry` wraps a `pd.DataFrame` (DatetimeIndex + float64 columns) with backward-compat `.time` and `.values` properties for the Autoplot bridge.
 - `DataStore` is a singleton dict keyed by label. The LLM chains tools automatically: fetch -> compute -> plot.
-- Operations are pure numpy functions — no DataStore dependency, easy to test.
-- HAPI CSV parser handles quoted `"NaN"` values from CDAWeb.
+- Operations are pandas one-liners (rolling, resample, diff) — no DataStore dependency, easy to test.
+- HAPI CSV parsing uses `pd.read_csv()` with `pd.to_numeric(errors="coerce")` for robust handling.
 
 ### Agent Loop (`agent/core.py`)
 - Gemini decides which tools to call via function calling.
@@ -168,7 +168,7 @@ python main.py --verbose  # Show tool calls, timing, errors
 ## Tests
 
 ```bash
-python -m pytest tests/test_store.py tests/test_operations.py   # 41 tests, data ops
+python -m pytest tests/test_store.py tests/test_operations.py   # 43 tests, data ops
 python -m pytest tests/                                          # All tests
 ```
 
@@ -182,5 +182,6 @@ jpype1==1.5.0           # Java-Python bridge
 python-dotenv>=1.0.0    # .env loading
 requests>=2.28.0        # HAPI HTTP calls
 numpy>=1.24.0           # Array operations
+pandas>=2.0.0           # DataFrame-based data pipeline
 matplotlib>=3.7.0       # Fallback plotting (deprecated path)
 ```

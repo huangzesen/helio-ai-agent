@@ -1,226 +1,145 @@
 """
-Pure numpy timeseries operations.
+Pandas-based timeseries operations.
 
-All functions take numpy arrays as input and return numpy arrays.
+All functions take and return pd.DataFrame with DatetimeIndex.
 No dependency on DataStore — the agent/core.py layer handles storage.
 """
 
 import numpy as np
+import pandas as pd
 
 
-def compute_magnitude(values: np.ndarray) -> np.ndarray:
+def compute_magnitude(df: pd.DataFrame) -> pd.DataFrame:
     """Compute vector magnitude: sqrt(x² + y² + z²).
 
-    Uses np.sum (not np.nansum) so NaN in any component propagates to the result.
+    NaN in any component propagates to the result.
 
     Args:
-        values: Array of shape (n, 3) — vector components.
+        df: DataFrame with exactly 3 columns (vector components).
 
     Returns:
-        1D array of shape (n,) — magnitudes.
+        Single-column DataFrame with magnitudes.
 
     Raises:
-        ValueError: If input is not a 2D array with 3 columns.
+        ValueError: If input does not have 3 columns.
     """
-    if values.ndim != 2 or values.shape[1] != 3:
+    if len(df.columns) != 3:
         raise ValueError(
-            f"compute_magnitude requires (n, 3) array, got shape {values.shape}"
+            f"compute_magnitude requires 3 columns, got {len(df.columns)}"
         )
-    return np.sqrt(np.sum(values ** 2, axis=1))
+    mag = df.pow(2).sum(axis=1, skipna=False).pow(0.5)
+    return mag.to_frame(name="magnitude")
 
 
 def compute_arithmetic(
-    values_a: np.ndarray,
-    values_b: np.ndarray,
+    df_a: pd.DataFrame,
+    df_b: pd.DataFrame,
     operation: str,
-) -> np.ndarray:
-    """Element-wise arithmetic between two same-shape arrays.
+) -> pd.DataFrame:
+    """Element-wise arithmetic between two DataFrames.
 
-    For division, inf values (from divide-by-zero) are replaced with np.nan.
+    For division, inf values (from divide-by-zero) are replaced with NaN.
+    DataFrames are aligned on their index.
 
     Args:
-        values_a: First operand array.
-        values_b: Second operand array (must match shape of values_a).
+        df_a: First operand DataFrame.
+        df_b: Second operand DataFrame.
         operation: One of "+", "-", "*", "/".
 
     Returns:
-        Result array with same shape as inputs.
+        Result DataFrame with same shape.
 
     Raises:
-        ValueError: If shapes don't match or operation is unknown.
+        ValueError: If operation is unknown.
     """
-    if values_a.shape != values_b.shape:
-        raise ValueError(
-            f"Shape mismatch: {values_a.shape} vs {values_b.shape}. "
-            "Use compute_resample to align time series first."
-        )
-
-    if operation == "+":
-        return values_a + values_b
-    elif operation == "-":
-        return values_a - values_b
-    elif operation == "*":
-        return values_a * values_b
-    elif operation == "/":
-        with np.errstate(divide="ignore", invalid="ignore"):
-            result = values_a / values_b
-        result[~np.isfinite(result)] = np.nan
-        return result
-    else:
+    ops = {
+        "+": pd.DataFrame.add,
+        "-": pd.DataFrame.sub,
+        "*": pd.DataFrame.mul,
+        "/": pd.DataFrame.div,
+    }
+    if operation not in ops:
         raise ValueError(f"Unknown operation '{operation}'. Use +, -, *, or /.")
+    result = ops[operation](df_a, df_b)
+    if operation == "/":
+        result = result.replace([np.inf, -np.inf], np.nan)
+    return result
 
 
 def compute_running_average(
-    time: np.ndarray,
-    values: np.ndarray,
+    df: pd.DataFrame,
     window_size: int,
-) -> tuple[np.ndarray, np.ndarray]:
-    """Centered moving average using np.nanmean to skip gaps.
+) -> pd.DataFrame:
+    """Centered moving average using rolling mean (skips NaN).
 
     Window size is forced to be odd so the result is centered. Partial windows
-    at the edges use whatever points are available.
+    at the edges use whatever points are available (min_periods=1).
 
     Args:
-        time: 1D datetime64 array of shape (n,).
-        values: 1D scalar array of shape (n,).
+        df: DataFrame with DatetimeIndex and one or more columns.
         window_size: Number of points in the averaging window (forced odd).
 
     Returns:
-        Tuple of (time, smoothed_values) with same length as input.
+        DataFrame with same shape, smoothed values.
 
     Raises:
-        ValueError: If values is not 1D or window_size < 1.
+        ValueError: If window_size < 1.
     """
-    if values.ndim != 1:
-        raise ValueError(
-            f"compute_running_average requires 1D (scalar) array, got shape {values.shape}"
-        )
     if window_size < 1:
         raise ValueError(f"window_size must be >= 1, got {window_size}")
-
-    # Force odd window
     if window_size % 2 == 0:
         window_size += 1
-
-    n = len(values)
-    half = window_size // 2
-    result = np.empty(n, dtype=np.float64)
-
-    for i in range(n):
-        lo = max(0, i - half)
-        hi = min(n, i + half + 1)
-        result[i] = np.nanmean(values[lo:hi])
-
-    return time.copy(), result
+    return df.rolling(window_size, center=True, min_periods=1).mean()
 
 
 def compute_resample(
-    time: np.ndarray,
-    values: np.ndarray,
+    df: pd.DataFrame,
     cadence_seconds: float,
-) -> tuple[np.ndarray, np.ndarray]:
+) -> pd.DataFrame:
     """Downsample by bin-averaging at fixed cadence.
 
-    Bins are aligned to the start of the data. Bin-center timestamps are used.
-    Empty bins (no data points) are skipped in the output.
-
-    Works on both scalar (n,) and vector (n,k) data.
+    Uses pandas resample with the given cadence. Empty bins are dropped.
 
     Args:
-        time: 1D datetime64[ns] array.
-        values: Scalar (n,) or vector (n, k) array.
+        df: DataFrame with DatetimeIndex.
         cadence_seconds: Bin width in seconds.
 
     Returns:
-        Tuple of (new_time, new_values) with one entry per non-empty bin.
+        Resampled DataFrame with one entry per non-empty bin.
 
     Raises:
         ValueError: If cadence_seconds <= 0.
     """
     if cadence_seconds <= 0:
         raise ValueError(f"cadence_seconds must be > 0, got {cadence_seconds}")
-
-    # Convert time to float seconds from epoch for binning
-    t0 = time[0]
-    dt_ns = (time - t0).astype(np.float64)  # nanoseconds
-    dt_s = dt_ns / 1e9  # seconds
-
-    cadence_ns = np.timedelta64(int(cadence_seconds * 1e9), "ns")
-
-    # Compute bin indices
-    bin_indices = (dt_s / cadence_seconds).astype(np.int64)
-    unique_bins = np.unique(bin_indices)
-
-    is_vector = values.ndim == 2
-
-    new_times = []
-    new_values = []
-
-    for b in unique_bins:
-        mask = bin_indices == b
-        count = np.sum(mask)
-        if count == 0:
-            continue
-
-        # Bin-center timestamp
-        bin_start = t0 + np.timedelta64(int(b * cadence_seconds * 1e9), "ns")
-        bin_center = bin_start + cadence_ns // 2
-        new_times.append(bin_center)
-
-        if is_vector:
-            new_values.append(np.nanmean(values[mask], axis=0))
-        else:
-            new_values.append(np.nanmean(values[mask]))
-
-    new_time = np.array(new_times, dtype="datetime64[ns]")
-    if is_vector:
-        new_vals = np.array(new_values, dtype=np.float64)
-    else:
-        new_vals = np.array(new_values, dtype=np.float64)
-
-    return new_time, new_vals
+    return df.resample(f"{cadence_seconds}s").mean().dropna(how="all")
 
 
 def compute_delta(
-    time: np.ndarray,
-    values: np.ndarray,
+    df: pd.DataFrame,
     mode: str = "difference",
-) -> tuple[np.ndarray, np.ndarray]:
+) -> pd.DataFrame:
     """Compute differences or time derivatives.
 
-    Output has n-1 points. Timestamps are placed at midpoints between
-    consecutive original timestamps.
+    Output has n-1 points. Timestamps use the later point of each pair.
 
     Args:
-        time: 1D datetime64[ns] array.
-        values: Scalar (n,) or vector (n, k) array.
+        df: DataFrame with DatetimeIndex.
         mode: "difference" for Δv, "derivative" for Δv/Δt (units/second).
 
     Returns:
-        Tuple of (mid_time, delta_values) with n-1 points.
+        DataFrame with n-1 points.
 
     Raises:
-        ValueError: If mode is unknown or array has fewer than 2 points.
+        ValueError: If mode is unknown or DataFrame has fewer than 2 rows.
     """
     if mode not in ("difference", "derivative"):
         raise ValueError(f"mode must be 'difference' or 'derivative', got '{mode}'")
-    if len(time) < 2:
+    if len(df) < 2:
         raise ValueError("Need at least 2 points to compute delta")
 
-    # Midpoint timestamps
-    half_dt = (time[1:] - time[:-1]) // 2
-    mid_time = time[:-1] + half_dt
-
-    # Value differences
-    dv = np.diff(values, axis=0).astype(np.float64)
-
+    result = df.diff().iloc[1:]
     if mode == "derivative":
-        dt_seconds = (time[1:] - time[:-1]).astype(np.float64) / 1e9
-        # Guard against zero dt
-        dt_seconds[dt_seconds == 0] = np.nan
-        if dv.ndim == 2:
-            dv = dv / dt_seconds[:, np.newaxis]
-        else:
-            dv = dv / dt_seconds
-
-    return mid_time, dv
+        dt_s = df.index.to_series().diff().dt.total_seconds().iloc[1:]
+        result = result.div(dt_s, axis=0)
+    return result

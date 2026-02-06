@@ -1,14 +1,15 @@
 """
 In-memory timeseries store.
 
-DataEntry holds a single timeseries (time + values + metadata).
+DataEntry holds a single timeseries as a pandas DataFrame (DatetimeIndex + value columns).
 DataStore is a singleton dict-like container keyed by label strings.
 """
 
-from dataclasses import dataclass, field
+from dataclasses import dataclass
 from typing import Optional
 
 import numpy as np
+import pandas as pd
 
 
 @dataclass
@@ -17,30 +18,43 @@ class DataEntry:
 
     Attributes:
         label: Unique identifier (e.g., "AC_H2_MFI.BGSEc" or "Bmag").
-        time: 1D array of datetime64[ns] timestamps.
-        values: Data array — (n,) for scalars, (n,3) for vectors.
+        data: DataFrame with DatetimeIndex and one or more float64 columns.
         units: Physical units string (e.g., "nT").
         description: Human-readable description.
         source: Origin — "hapi" for fetched data, "computed" for derived data.
     """
 
     label: str
-    time: np.ndarray
-    values: np.ndarray
+    data: pd.DataFrame
     units: str = ""
     description: str = ""
     source: str = "computed"
 
+    @property
+    def time(self) -> np.ndarray:
+        """Backward compat: numpy datetime64[ns] array."""
+        return self.data.index.values
+
+    @property
+    def values(self) -> np.ndarray:
+        """Backward compat: numpy float64 array — (n,) for scalar, (n,k) for vector."""
+        v = self.data.values
+        if v.shape[1] == 1:
+            return v.squeeze(axis=1)
+        return v
+
     def summary(self) -> dict:
         """Return a compact summary dict suitable for LLM responses."""
-        shape_desc = "scalar" if self.values.ndim == 1 else f"vector[{self.values.shape[1]}]"
+        n = len(self.data)
+        ncols = len(self.data.columns)
+        shape_desc = "scalar" if ncols == 1 else f"vector[{ncols}]"
         return {
             "label": self.label,
-            "num_points": len(self.time),
+            "num_points": n,
             "shape": shape_desc,
             "units": self.units,
-            "time_min": str(self.time[0]) if len(self.time) > 0 else None,
-            "time_max": str(self.time[-1]) if len(self.time) > 0 else None,
+            "time_min": str(self.data.index[0]) if n > 0 else None,
+            "time_max": str(self.data.index[-1]) if n > 0 else None,
             "description": self.description,
             "source": self.source,
         }
