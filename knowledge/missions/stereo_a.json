@@ -1,0 +1,43 @@
+{
+  "id": "STEREO_A",
+  "name": "STEREO-A",
+  "keywords": ["stereo", "stereo-a", "stereo a", "ahead"],
+  "profile": {
+    "description": "Off-Sun-Earth-line observatory in heliocentric orbit ahead of Earth",
+    "coordinate_systems": ["RTN"],
+    "typical_cadence": "1-minute",
+    "data_caveats": ["Off-Sun-Earth line; longitude separation from Earth varies over time"],
+    "analysis_patterns": [
+      "Multi-point solar wind: compare with L1 monitors for same CME/CIR",
+      "Longitude-separated observations for heliospheric structure"
+    ]
+  },
+  "instruments": {
+    "MAG": {
+      "name": "IMPACT Magnetometer",
+      "keywords": ["magnetic", "field", "mag", "b-field", "impact"],
+      "datasets": {
+        "STA_L2_MAG_RTN": {
+          "tier": "primary",
+          "description": "1-minute magnetic field in RTN coordinates",
+          "parameters": []
+        }
+      }
+    },
+    "PLASTIC": {
+      "name": "Plasma and Suprathermal",
+      "keywords": ["plasma", "solar wind", "proton", "density", "velocity", "plastic"],
+      "datasets": {
+        "STA_L2_PLA_1DMAX_1MIN": {
+          "tier": "primary",
+          "description": "1-minute proton bulk parameters",
+          "parameters": []
+        }
+      }
+    }
+  },
+  "_meta": {
+    "generated_at": "2026-02-06T00:00:00Z",
+    "hapi_server": "https://cdaweb.gsfc.nasa.gov/hapi"
+  }
+}

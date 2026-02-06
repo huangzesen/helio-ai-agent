@@ -2,23 +2,24 @@
 Dynamic prompt generation from the spacecraft catalog.
 
 Generates prompt sections for the agent system prompt and planner prompt
-from the single source of truth in catalog.py. This eliminates hardcoded
-duplication of spacecraft/dataset information across multiple files.
+from the single source of truth in catalog.py and per-mission JSON files.
 
-Phase 1 of the mission-agent architecture (see docs/mission-agent-architecture.md).
+The main agent gets a slim routing table (no dataset IDs or analysis tips).
+Mission sub-agents get rich, focused prompts with full domain knowledge.
 """
 
 from .catalog import SPACECRAFT
+from .mission_loader import load_mission, load_all_missions, get_routing_table, get_mission_datasets
 
 
 # ---------------------------------------------------------------------------
-# Section generators — each produces a markdown string from the catalog
+# Section generators — each produces a markdown string
 # ---------------------------------------------------------------------------
 
 def generate_spacecraft_overview() -> str:
     """Generate the spacecraft/instruments/example-data table for the system prompt.
 
-    Replaces the hardcoded table that was in agent/prompts.py.
+    Kept for backward compatibility but now only used in the slim system prompt.
     """
     lines = [
         "| Spacecraft | Instruments | Example Data |",
@@ -74,23 +75,24 @@ def generate_dataset_quick_reference() -> str:
 def generate_planner_dataset_reference() -> str:
     """Generate the dataset reference block for the planner prompt.
 
-    Lists dataset IDs and types. Parameter details come from HAPI via
-    list_parameters at runtime — not hardcoded here.
+    Only includes primary-tier datasets from JSON files.
     """
+    missions = load_all_missions()
     lines = []
-    for sc_id, sc in SPACECRAFT.items():
+    for mission_id, mission in missions.items():
         parts = []
-        for inst_id, inst in sc["instruments"].items():
-            kws = inst["keywords"]
+        for inst_id, inst in mission.get("instruments", {}).items():
+            kws = inst.get("keywords", [])
             if any(k in kws for k in ("magnetic", "mag")):
                 kind = "magnetic"
             elif any(k in kws for k in ("plasma", "solar wind", "ion")):
                 kind = "plasma"
             else:
                 kind = "combined"
-            for ds in inst["datasets"]:
-                parts.append(f"dataset={ds} ({kind})")
-        lines.append(f"- {sc['name']}: {'; '.join(parts)}")
+            for ds_id, ds_info in inst.get("datasets", {}).items():
+                if ds_info.get("tier") == "primary":
+                    parts.append(f"dataset={ds_id} ({kind})")
+        lines.append(f"- {mission['name']}: {'; '.join(parts)}")
     return "\n".join(lines)
 
 
@@ -124,17 +126,34 @@ def generate_mission_profiles() -> str:
     return "\n\n".join(sections)
 
 
+def generate_routing_table_text() -> str:
+    """Generate a slim routing table for the main agent's system prompt.
+
+    Shows mission name and capabilities only — no dataset IDs.
+    """
+    routing = get_routing_table()
+    lines = [
+        "| Mission | Capabilities |",
+        "|---------|-------------|",
+    ]
+    for entry in routing:
+        caps = ", ".join(entry["capabilities"]) if entry["capabilities"] else "various"
+        lines.append(f"| {entry['name']} ({entry['id']}) | {caps} |")
+    return "\n".join(lines)
+
+
 # ---------------------------------------------------------------------------
-# Mission-specific prompt builder (foundation for Phase 2 sub-agents)
+# Mission-specific prompt builder (for mission sub-agents)
 # ---------------------------------------------------------------------------
 
 def build_mission_prompt(mission_id: str) -> str:
-    """Generate a focused prompt for a single mission.
+    """Generate a rich prompt for a single mission's sub-agent.
 
-    This is the key function that Phase 2's MissionAgent.__init__() will call.
+    Includes mission overview, analysis patterns, tiered datasets,
+    data operations documentation, and workflow instructions.
 
     Args:
-        mission_id: Spacecraft key in the catalog (e.g., "PSP", "ACE")
+        mission_id: Spacecraft key (e.g., "PSP", "ACE")
 
     Returns:
         A system prompt focused on one mission's data products and analysis patterns.
@@ -142,16 +161,21 @@ def build_mission_prompt(mission_id: str) -> str:
     Raises:
         KeyError: If mission_id is not in the catalog.
     """
-    sc = SPACECRAFT[mission_id]
-    profile = sc.get("profile", {})
+    # Validate mission exists in catalog (backward compat for KeyError)
+    if mission_id not in SPACECRAFT:
+        raise KeyError(mission_id)
+
+    mission = load_mission(mission_id)
+    profile = mission.get("profile", {})
 
     lines = [
-        f"You are a specialist agent for {sc['name']} ({mission_id}) data.",
+        f"You are a specialist agent for {mission['name']} ({mission_id}) data.",
         "",
     ]
 
+    # --- Mission Overview ---
     if profile:
-        lines.append(f"## Mission Overview")
+        lines.append("## Mission Overview")
         lines.append(profile.get("description", ""))
         lines.append(f"- Coordinate system(s): {', '.join(profile.get('coordinate_systems', []))}")
         lines.append(f"- Typical cadence: {profile.get('typical_cadence', 'varies')}")
@@ -163,14 +187,59 @@ def build_mission_prompt(mission_id: str) -> str:
                 lines.append(f"- {tip}")
         lines.append("")
 
-    lines.append("## Available Instruments and Datasets")
+    # --- Primary Datasets ---
+    lines.append("## Primary Datasets")
     lines.append("")
-    lines.append("Use `list_parameters` to discover available parameters, units, and descriptions for each dataset.")
+    lines.append("Use these datasets by default. Use `list_parameters` to discover parameter names, units, and descriptions.")
     lines.append("")
-    for inst_id, inst in sc["instruments"].items():
+    for inst_id, inst in mission.get("instruments", {}).items():
         lines.append(f"### {inst['name']} ({inst_id})")
-        lines.append(f"- Datasets: {', '.join(inst['datasets'])}")
+        for ds_id, ds_info in inst.get("datasets", {}).items():
+            if ds_info.get("tier") == "primary":
+                desc = ds_info.get("description", "")
+                lines.append(f"- **{ds_id}**: {desc}" if desc else f"- **{ds_id}**")
         lines.append("")
+
+    # --- Advanced Datasets (if any) ---
+    advanced = []
+    for inst_id, inst in mission.get("instruments", {}).items():
+        for ds_id, ds_info in inst.get("datasets", {}).items():
+            if ds_info.get("tier") == "advanced":
+                desc = ds_info.get("description", "")
+                advanced.append((inst["name"], ds_id, desc))
+    if advanced:
+        lines.append("## Advanced Datasets")
+        lines.append("")
+        lines.append("Higher-resolution or specialized data. Use when the user requests specific cadences or advanced analysis.")
+        lines.append("")
+        for inst_name, ds_id, desc in advanced:
+            lines.append(f"- **{ds_id}** ({inst_name}): {desc}" if desc else f"- **{ds_id}** ({inst_name})")
+        lines.append("")
+
+    # --- Data Operations Documentation ---
+    lines.append("## Data Operations Workflow")
+    lines.append("")
+    lines.append("1. **`list_parameters`** — Discover available parameters for a dataset")
+    lines.append("2. **`fetch_data`** — Pull data from CDAWeb HAPI into memory. Label: `DATASET.PARAM`")
+    lines.append("3. **`custom_operation`** — Transform data using pandas/numpy code on `df`, assign to `result`")
+    lines.append("4. **`plot_computed_data`** — Display labeled timeseries in the Autoplot canvas")
+    lines.append("5. **`describe_data`** — Get statistics (min, max, mean, std, percentiles, NaN count)")
+    lines.append("6. **`save_data`** — Export to CSV with ISO 8601 timestamps")
+    lines.append("")
+    lines.append("### Common Computation Patterns")
+    lines.append("")
+    lines.append("- **Magnitude**: `result = df.pow(2).sum(axis=1, skipna=False).pow(0.5).to_frame('magnitude')`")
+    lines.append("- **Smoothing**: `result = df.rolling(60, center=True, min_periods=1).mean()`")
+    lines.append("- **Resample**: `result = df.resample('60s').mean().dropna(how='all')`")
+    lines.append("- **Rate of change**: `dv = df.diff().iloc[1:]; dt_s = df.index.to_series().diff().dt.total_seconds().iloc[1:]; result = dv.div(dt_s, axis=0)`")
+    lines.append("- **Normalize**: `result = (df - df.mean()) / df.std()`")
+    lines.append("")
+    lines.append("### Code Guidelines")
+    lines.append("")
+    lines.append("- Always assign to `result` — must be DataFrame/Series with DatetimeIndex")
+    lines.append("- Use `df`, `pd`, `np` only — no imports, no file I/O")
+    lines.append("- Handle NaN with `skipna=True`, `.dropna()`, or `.fillna()`")
+    lines.append("")
 
     return "\n".join(lines)
 
@@ -180,31 +249,32 @@ def build_mission_prompt(mission_id: str) -> str:
 # ---------------------------------------------------------------------------
 
 def build_system_prompt() -> str:
-    """Assemble the complete system prompt with all missions.
+    """Assemble the complete system prompt — slim orchestrator version.
+
+    The main agent routes requests to mission sub-agents. It does NOT need
+    dataset IDs, analysis tips, or detailed mission profiles.
 
     Returns a template string with a {today} placeholder for the date.
-    Replaces the hardcoded SYSTEM_PROMPT in agent/prompts.py.
     """
-    spacecraft_table = generate_spacecraft_overview()
-    dataset_table = generate_dataset_quick_reference()
-    mission_profiles = generate_mission_profiles()
+    routing_table = generate_routing_table_text()
 
     return f"""You are an intelligent assistant for Autoplot, a scientific data visualization tool for spacecraft and heliophysics data.
 
 ## Your Role
-Help users visualize spacecraft data by translating natural language requests into Autoplot operations. You can search for datasets, list parameters, plot data, change time ranges, and export plots.
+Help users visualize spacecraft data by translating natural language requests into Autoplot operations. You orchestrate work by delegating mission-specific requests to specialist sub-agents.
 
-## Available Spacecraft and Data
+## Supported Missions
 
-{spacecraft_table}
+{routing_table}
+
+When a request involves a specific spacecraft's data, delegate to the appropriate mission specialist. The specialist has detailed knowledge of that mission's datasets, parameters, and analysis techniques.
 
 ## Workflow
 
-1. **Search first**: When user mentions spacecraft or data type, use `search_datasets` to find matching datasets
-2. **List parameters**: Use `list_parameters` to see what can be plotted for a dataset
-3. **Check availability**: If unsure about time coverage, use `get_data_availability` to verify the dataset covers the requested period
-4. **Plot data**: Once you have dataset_id, parameter_id, and time_range, use `plot_data`
-5. **Follow-up actions**: Use `change_time_range`, `export_plot`, or `get_plot_info` as needed
+1. **Identify the mission**: Match the user's request to a spacecraft from the table above
+2. **Delegate**: The mission specialist will search for datasets, list parameters, fetch data, and plot
+3. **Follow-up actions**: Use `change_time_range`, `export_plot`, or `get_plot_info` as needed
+4. **Multi-mission comparisons**: The planner decomposes these into per-mission tasks
 
 ## Time Range Handling
 
@@ -257,79 +327,20 @@ and return helpful error messages including the actual available range.
 ## Example Interactions
 
 User: "show me parker magnetic field data"
-→ Search for "parker magnetic", then ask about time range or use a sensible default
+-> Delegate to PSP specialist, which searches and plots
 
 User: "zoom in to last 2 days"
-→ Use change_time_range with calculated dates (requires active plot)
+-> Use change_time_range with calculated dates (requires active plot)
 
 User: "export this as psp_mag.png"
-→ Use export_plot with the filename
+-> Use export_plot with the filename
 
 User: "what data is available for Solar Orbiter?"
-→ Search for "solar orbiter" to show available instruments
-
-## Known Dataset IDs
-
-These datasets are available on CDAWeb HAPI. Always use `list_parameters` to discover the
-exact parameter names, units, and descriptions before fetching or plotting.
-
-{dataset_table}
-
-## Data Operations (Python-side)
-
-In addition to Autoplot visualization, you can fetch data into memory and perform computations using Python/numpy. Use this when the user wants to:
-- Calculate derived quantities (magnitude, differences, derivatives)
-- Smooth or resample data
-- Combine two timeseries with arithmetic
-- Compare data from different sources at the same cadence
-
-### Workflow: fetch → custom_operation → plot
-
-1. **`fetch_data`** — Pull data from CDAWeb HAPI into memory. Data gets a label like `AC_H2_MFI.BGSEc`.
-2. **`custom_operation`** — Transform the data using pandas/numpy code. Write code that operates on `df` (a DataFrame with DatetimeIndex) and assigns to `result`.
-   - Computed results get descriptive labels chosen by you (e.g., `"Bmag"`, `"B_smooth"`).
-3. **`plot_computed_data`** — Display one or more labeled timeseries in the Autoplot canvas.
-4. **`list_fetched_data`** — Check what's currently in memory.
-5. **`describe_data`** — Get statistical summary (min, max, mean, std, percentiles, NaN count, cadence) of a stored timeseries. Use this to understand data before computing or to answer user questions about data characteristics.
-6. **`save_data`** — Export any in-memory timeseries to CSV. The file includes ISO 8601 timestamps and all data columns.
-
-### When to use data ops vs direct plot
-
-- **`plot_data`**: Quick visualization of raw CDAWeb data directly from CDAWeb URI. No computation needed.
-- **`fetch_data` → `custom_operation` → `plot_computed_data`**: When the user wants derived quantities, smoothing, resampling, or multi-dataset comparisons. The result is rendered in the same Autoplot canvas — you can then use `change_time_range` or `export_plot` on it.
-
-### Label Naming Convention
-
-- Fetched data: `{{dataset_id}}.{{parameter_id}}` (e.g., `AC_H2_MFI.BGSEc`)
-- Computed data: short descriptive names (e.g., `Bmag`, `Bx_smooth`, `dBdt`, `B_minus_Bomni`)
-
-### Common Patterns
-
-All computations use `custom_operation`. The `pandas_code` operates on `df` and assigns to `result`:
-
-- **Magnetic field magnitude**: `result = df.pow(2).sum(axis=1, skipna=False).pow(0.5).to_frame('magnitude')`
-- **Smoothing**: `result = df.rolling(60, center=True, min_periods=1).mean()`
-- **Resample to fixed cadence**: `result = df.resample('60s').mean().dropna(how='all')`
-- **Arithmetic between series**: fetch both, then use `pd.DataFrame(...)` to embed second operand
-- **Rate of change**: `dv = df.diff().iloc[1:]; dt_s = df.index.to_series().diff().dt.total_seconds().iloc[1:]; result = dv.div(dt_s, axis=0)`
-- **Normalize**: `result = (df - df.mean()) / df.std()`
-- **Clip values**: `result = df.clip(lower=-50, upper=50)`
-
-### custom_operation Code Guidelines
-
-- Always assign to `result` — it must be a DataFrame or Series with DatetimeIndex preserved
-- Use `df`, `pd`, `np` only — no imports, no file I/O, no exec/eval
-- Handle NaN appropriately (use `skipna=True`, `.dropna()`, or `.fillna()` as needed)
-- For multiline code, use intermediate variables (not `result` until the final assignment)
-- Do NOT call `custom_operation` if the request can't be expressed as a data transformation (file I/O, network, email) — explain to the user instead
-
-## Mission-Specific Knowledge
-
-{mission_profiles}
+-> Delegate to SolO specialist to show available instruments
 
 ## Multi-Step Task Execution
 
-For complex requests involving multiple operations (like "compare PSP and ACE magnetic fields" or "fetch data, compute average, and plot"), the system may break down your request into discrete tasks and execute them sequentially.
+For complex requests involving multiple operations (like "compare PSP and ACE magnetic fields" or "fetch data, compute average, and plot"), the system breaks down your request into discrete tasks and executes them sequentially.
 
 During multi-step execution:
 - Each task is executed one at a time
@@ -345,7 +356,6 @@ def build_planning_prompt() -> str:
     """Assemble the planning prompt with dataset references from catalog.
 
     Returns a template string with a {user_request} placeholder.
-    Replaces the hardcoded PLANNING_PROMPT in agent/planner.py.
     """
     dataset_ref = generate_planner_dataset_reference()
 
@@ -380,8 +390,8 @@ to discover exact parameter names before fetching. Do NOT guess parameter names.
 ## Planning Guidelines
 1. Each task should be a single, atomic operation — do ONLY what the instruction says
 2. Tasks execute sequentially - later tasks can reference results from earlier tasks
-3. For comparisons: fetch both datasets → optional computation → plot together
-4. For derived quantities: fetch raw data → compute derived value → plot
+3. For comparisons: fetch both datasets -> optional computation -> plot together
+4. For derived quantities: fetch raw data -> compute derived value -> plot
 5. Keep task count minimal - don't split unnecessarily
 6. Do NOT include plotting steps unless the user explicitly asked to plot
 7. A "fetch" task should ONLY fetch data, not also plot or describe it

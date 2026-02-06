@@ -1,0 +1,43 @@
+{
+  "id": "SolO",
+  "name": "Solar Orbiter",
+  "keywords": ["solar orbiter", "solo", "orbiter"],
+  "profile": {
+    "description": "ESA/NASA mission studying the Sun from close range with in-situ and remote sensing",
+    "coordinate_systems": ["RTN"],
+    "typical_cadence": "1-minute",
+    "data_caveats": ["RTN frame; some data gaps during commissioning periods"],
+    "analysis_patterns": [
+      "Compare with PSP for radial evolution of solar wind",
+      "Check B magnitude at varying heliocentric distances"
+    ]
+  },
+  "instruments": {
+    "MAG": {
+      "name": "Magnetometer",
+      "keywords": ["magnetic", "field", "mag", "b-field"],
+      "datasets": {
+        "SOLO_L2_MAG-RTN-NORMAL-1-MINUTE": {
+          "tier": "primary",
+          "description": "1-minute normal mode magnetic field in RTN coordinates",
+          "parameters": []
+        }
+      }
+    },
+    "SWA-PAS": {
+      "name": "Proton-Alpha Sensor",
+      "keywords": ["plasma", "proton", "density", "velocity", "temperature", "swa"],
+      "datasets": {
+        "SOLO_L2_SWA-PAS-GRND-MOM": {
+          "tier": "primary",
+          "description": "Ground-computed proton moments (density, velocity, temperature)",
+          "parameters": []
+        }
+      }
+    }
+  },
+  "_meta": {
+    "generated_at": "2026-02-06T00:00:00Z",
+    "hapi_server": "https://cdaweb.gsfc.nasa.gov/hapi"
+  }
+}

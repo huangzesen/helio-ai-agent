@@ -1,0 +1,43 @@
+{
+  "id": "WIND",
+  "name": "Wind",
+  "keywords": ["wind"],
+  "profile": {
+    "description": "L1 solar wind monitor operating since 1994; complements ACE",
+    "coordinate_systems": ["GSE"],
+    "typical_cadence": "1-minute (3-second burst available)",
+    "data_caveats": ["GSE coordinates; longest continuous L1 dataset"],
+    "analysis_patterns": [
+      "Cross-calibrate with ACE MAG for same events",
+      "Long-term solar cycle trends"
+    ]
+  },
+  "instruments": {
+    "MFI": {
+      "name": "Magnetic Fields Investigation",
+      "keywords": ["magnetic", "field", "mag", "b-field", "mfi", "imf"],
+      "datasets": {
+        "WI_H2_MFI": {
+          "tier": "primary",
+          "description": "3-second magnetic field in GSE coordinates",
+          "parameters": []
+        }
+      }
+    },
+    "SWE": {
+      "name": "Solar Wind Experiment",
+      "keywords": ["plasma", "solar wind", "proton", "density", "velocity", "electron", "swe"],
+      "datasets": {
+        "WI_H1_SWE": {
+          "tier": "primary",
+          "description": "92-second solar wind electron moments",
+          "parameters": []
+        }
+      }
+    }
+  },
+  "_meta": {
+    "generated_at": "2026-02-06T00:00:00Z",
+    "hapi_server": "https://cdaweb.gsfc.nasa.gov/hapi"
+  }
+}

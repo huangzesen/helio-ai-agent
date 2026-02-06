@@ -1,0 +1,36 @@
+{
+  "id": "OMNI",
+  "name": "OMNI Combined Data",
+  "keywords": ["omni", "combined", "propagated", "bow shock"],
+  "profile": {
+    "description": "Multi-spacecraft time-shifted solar wind data propagated to the bow shock nose",
+    "coordinate_systems": ["GSE", "GSM"],
+    "typical_cadence": "1-minute (5-minute also available)",
+    "data_caveats": [
+      "Combined from multiple L1 monitors; source spacecraft varies",
+      "Some empty-string fill values in CSV; use coerce parsing"
+    ],
+    "analysis_patterns": [
+      "Geomagnetic coupling: correlate Bz with SYM-H",
+      "Solar wind driver identification: speed + density + B for CME/CIR",
+      "Reference dataset for multi-spacecraft comparisons"
+    ]
+  },
+  "instruments": {
+    "Combined": {
+      "name": "Multi-spacecraft Combined",
+      "keywords": ["solar wind", "imf", "magnetic", "density", "velocity", "sym-h", "geomagnetic"],
+      "datasets": {
+        "OMNI_HRO_1MIN": {
+          "tier": "primary",
+          "description": "1-minute high-resolution OMNI solar wind and IMF data",
+          "parameters": []
+        }
+      }
+    }
+  },
+  "_meta": {
+    "generated_at": "2026-02-06T00:00:00Z",
+    "hapi_server": "https://cdaweb.gsfc.nasa.gov/hapi"
+  }
+}

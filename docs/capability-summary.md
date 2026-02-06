@@ -17,11 +17,13 @@ main.py  (readline CLI, --verbose flag, token usage on exit)
   |  - Checks for incomplete plans on startup
   |
   v
-agent/core.py  AutoplotAgent
-  |  - Gemini 2.5-Flash with function calling
-  |  - Tool execution loop (up to 10 iterations)
-  |  - Token usage tracking (input/output/api_calls)
-  |  - Multi-step task planning for complex requests
+agent/core.py  AutoplotAgent  (always-delegate orchestrator)
+  |  - Routes: general requests -> main agent
+  |            single-mission -> mission sub-agent
+  |            complex multi-mission -> planner -> sub-agents
+  |  - _is_general_request() regex heuristics for meta/followup detection
+  |  - Mission agent cache (reused across session)
+  |  - Token usage tracking (input/output/api_calls, includes sub-agents)
   |
   +---> agent/planner.py    Task planning
   |       is_complex_request()    Regex heuristics for complexity detection
@@ -34,11 +36,15 @@ agent/core.py  AutoplotAgent
   |
   +---> agent/mission_agent.py  Mission sub-agents
   |       MissionAgent           Focused Gemini session per spacecraft mission
-  |                              Uses build_mission_prompt() for specialized context
+  |       execute_task()         Forced function calling for plan tasks (max 3 iter)
+  |       process_request()      Full conversational mode for delegated requests (max 10 iter)
+  |                              Rich system prompt with data ops docs + tiered datasets
   |
   +---> knowledge/         Dataset discovery + prompt generation
-  |       catalog.py         Spacecraft/instrument catalog with mission profiles (keyword search)
-  |       prompt_builder.py  Dynamic prompt generation from catalog (single source of truth)
+  |       missions/*.json    Per-mission JSON files (8 files, HAPI-derived + hand-curated)
+  |       mission_loader.py  Lazy-loading cache, routing table, tier-filtered dataset access
+  |       catalog.py         Thin routing layer (loads from JSON, backward-compat SPACECRAFT dict)
+  |       prompt_builder.py  Slim system prompt (routing table only) + rich mission prompts
   |       hapi_client.py     CDAWeb HAPI /info endpoint (parameter metadata, cached)
   |
   +---> data_ops/           Python-side data pipeline (pandas-backed)
@@ -48,9 +54,12 @@ agent/core.py  AutoplotAgent
   |       plotting.py         Matplotlib fallback (DEPRECATED — plotting goes through Autoplot)
   |
   +---> autoplot_bridge/    Java visualization via JPype
-          connection.py       JVM startup, ScriptContext singleton
-          commands.py          plot_cdaweb, set_time_range, export_png, plot_dataset
-                               numpy->QDataSet conversion, overplot with color management
+  |       connection.py       JVM startup, ScriptContext singleton
+  |       commands.py          plot_cdaweb, set_time_range, export_png, plot_dataset
+  |                            numpy->QDataSet conversion, overplot with color management
+  |
+  +---> scripts/            Tooling
+          generate_mission_data.py  Auto-populate JSON from CDAWeb HAPI catalog
 ```
 
 ## Tools (14 total)
@@ -129,15 +138,26 @@ All times are UTC. Outputs `TimeRange` objects with `start`/`end` datetimes. Con
 - Loop continues until Gemini produces a text response (or 10 iterations).
 - Token usage accumulated from `response.usage_metadata` (prompt_token_count, candidates_token_count).
 
-### Multi-Step Task Handling (`agent/planner.py`, `agent/tasks.py`, `agent/mission_agent.py`)
+### Always-Delegate Architecture (`agent/core.py`, `agent/mission_agent.py`)
+- **Routing**: `_is_general_request()` detects meta questions and plot follow-ups. Single-mission requests are delegated to `MissionAgent.process_request()`. Complex multi-mission requests go through the planner.
+- **Mission sub-agents**: Each spacecraft has a specialist with rich system prompt (tiered datasets, data ops docs, analysis patterns). Agents are cached per session.
+- **Slim main agent**: System prompt contains only a routing table (mission names + capabilities). No dataset IDs or analysis tips — those live in mission sub-agents.
+
+### Multi-Step Task Handling (`agent/planner.py`, `agent/tasks.py`)
 - **Complexity detection**: Regex patterns identify requests needing decomposition (multiple "and"s, "compare", "then", multiple spacecraft mentions).
 - **Planning**: Complex requests are sent to Gemini with JSON schema output to generate a task list. Tasks are tagged with mission IDs and inter-task dependencies.
-- **Mission dispatch**: Mission-tagged tasks are executed by specialized `MissionAgent` instances with focused system prompts. Cross-mission tasks use the main agent.
+- **Mission dispatch**: Mission-tagged tasks are executed by cached `MissionAgent` instances. Cross-mission tasks use the main agent.
 - **Dependencies**: Tasks declare which other tasks they depend on. Tasks with failed dependencies are skipped.
-- **Execution**: Tasks execute sequentially (parallel dispatch planned for Phase 3); each task gets its own Gemini chat session.
+- **Execution**: Tasks execute sequentially; each task gets its own Gemini chat session.
 - **Persistence**: Plans are saved to `~/.helio-agent/tasks/*.json` for crash recovery.
 - **Error handling**: Failed tasks are recorded but don't stop subsequent tasks. Summary explains what succeeded/failed.
 - **CLI commands**: `status` (show progress), `retry` (retry failed task), `cancel` (skip remaining tasks).
+
+### Per-Mission JSON Knowledge (`knowledge/missions/*.json`)
+- **8 JSON files**: One per mission (psp.json, ace.json, etc.) with HAPI-derived metadata + hand-curated profiles.
+- **Tiered datasets**: `primary` (default, shown prominently) and `advanced` (higher-res, specialized). Tier is hand-curated, preserved on auto-generation.
+- **Auto-generation**: `scripts/generate_mission_data.py` queries CDAWeb HAPI to populate parameters, dates, descriptions. Preserves profile and tier values.
+- **Loader**: `knowledge/mission_loader.py` provides lazy-loading cache, routing table, and tier-filtered dataset access.
 
 ## Configuration
 

@@ -13,3 +13,10 @@ from .hapi_client import (
     get_dataset_info,
     list_parameters,
 )
+from .mission_loader import (
+    load_mission,
+    load_all_missions,
+    get_routing_table,
+    get_mission_datasets,
+    get_mission_ids,
+)

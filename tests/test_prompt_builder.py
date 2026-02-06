@@ -109,6 +109,21 @@ class TestBuildMissionPrompt:
         prompt = build_mission_prompt("PSP")
         assert "list_parameters" in prompt
 
+    def test_mission_prompt_has_data_ops_docs(self):
+        prompt = build_mission_prompt("PSP")
+        assert "## Data Operations Workflow" in prompt
+        assert "custom_operation" in prompt
+        assert "Magnitude" in prompt
+
+    def test_mission_prompt_has_tiered_datasets(self):
+        prompt = build_mission_prompt("PSP")
+        assert "## Primary Datasets" in prompt
+
+    def test_mission_prompt_has_analysis_patterns(self):
+        prompt = build_mission_prompt("PSP")
+        assert "## Analysis Patterns" in prompt
+        assert "Switchback" in prompt
+
 
 class TestBuildSystemPrompt:
     def test_contains_today_placeholder(self):
@@ -124,11 +139,23 @@ class TestBuildSystemPrompt:
         prompt = build_system_prompt()
         assert "## Workflow" in prompt
         assert "## Time Range Handling" in prompt
-        assert "## Data Operations" in prompt
 
-    def test_contains_mission_profiles(self):
+    def test_contains_routing_table(self):
         prompt = build_system_prompt()
-        assert "## Mission-Specific Knowledge" in prompt
+        assert "## Supported Missions" in prompt
+        assert "Capabilities" in prompt
+
+    def test_slim_prompt_has_no_dataset_ids(self):
+        prompt = build_system_prompt()
+        # Dataset IDs should NOT be in the main agent prompt
+        assert "PSP_FLD_L2_MAG_RTN_1MIN" not in prompt
+        assert "AC_H2_MFI" not in prompt
+
+    def test_slim_prompt_has_no_mission_profiles(self):
+        prompt = build_system_prompt()
+        # Analysis tips and mission-specific knowledge moved to sub-agents
+        assert "## Mission-Specific Knowledge" not in prompt
+        assert "Switchback detection" not in prompt
 
 
 class TestBuildPlanningPrompt:

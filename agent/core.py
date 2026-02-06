@@ -21,7 +21,7 @@ from .logging import (
     setup_logging, get_logger, log_error, log_tool_call,
     log_tool_result, log_plan_event, log_session_end,
 )
-from knowledge.catalog import search_by_keywords
+from knowledge.catalog import search_by_keywords, match_spacecraft
 from knowledge.hapi_client import list_parameters as hapi_list_parameters, get_dataset_time_range
 from autoplot_bridge.commands import get_commands
 from data_ops.store import get_store, DataEntry
@@ -84,6 +84,9 @@ class AutoplotAgent:
         # Current plan being executed (if any)
         self._current_plan: Optional[TaskPlan] = None
 
+        # Cache of mission sub-agents, reused across requests in the session
+        self._mission_agents: dict[str, MissionAgent] = {}
+
     @property
     def autoplot(self):
         """Lazy initialization of Autoplot commands."""
@@ -100,12 +103,23 @@ class AutoplotAgent:
         self._api_calls += 1
 
     def get_token_usage(self) -> dict:
-        """Return cumulative token usage for this session."""
+        """Return cumulative token usage for this session (including sub-agents)."""
+        input_tokens = self._total_input_tokens
+        output_tokens = self._total_output_tokens
+        api_calls = self._api_calls
+
+        # Include usage from cached mission agents
+        for agent in self._mission_agents.values():
+            usage = agent.get_token_usage()
+            input_tokens += usage["input_tokens"]
+            output_tokens += usage["output_tokens"]
+            api_calls += usage["api_calls"]
+
         return {
-            "input_tokens": self._total_input_tokens,
-            "output_tokens": self._total_output_tokens,
-            "total_tokens": self._total_input_tokens + self._total_output_tokens,
-            "api_calls": self._api_calls,
+            "input_tokens": input_tokens,
+            "output_tokens": output_tokens,
+            "total_tokens": input_tokens + output_tokens,
+            "api_calls": api_calls,
         }
 
     def _validate_time_range(self, dataset_id: str, start, end) -> str | None:
@@ -747,21 +761,13 @@ class AutoplotAgent:
         if self.verbose:
             print(format_plan_for_display(plan))
 
-        # Create mission agents for each unique mission in the plan
+        # Get or create mission agents for each unique mission in the plan
         mission_agents = {}
         for task in plan.tasks:
             if task.mission and task.mission not in mission_agents:
                 try:
-                    mission_agents[task.mission] = MissionAgent(
-                        mission_id=task.mission,
-                        client=self.client,
-                        model_name=self.model_name,
-                        tool_executor=self._execute_tool_safe,
-                        verbose=self.verbose,
-                    )
-                    if self.verbose:
-                        print(f"  [Plan] Created {task.mission} mission agent")
-                except KeyError:
+                    mission_agents[task.mission] = self._get_or_create_mission_agent(task.mission)
+                except (KeyError, FileNotFoundError):
                     if self.verbose:
                         print(f"  [Plan] Unknown mission '{task.mission}', will use main agent")
 
@@ -802,12 +808,8 @@ class AutoplotAgent:
 
             store.save(plan)
 
-        # Aggregate token usage from mission agents
-        for mission_id, agent in mission_agents.items():
-            usage = agent.get_token_usage()
-            self._total_input_tokens += usage["input_tokens"]
-            self._total_output_tokens += usage["output_tokens"]
-            self._api_calls += usage["api_calls"]
+        # Token usage from cached mission agents is aggregated at session end
+        # via get_token_usage() which sums across all agents
 
         # Mark plan as complete
         if plan.get_failed_tasks():
@@ -911,11 +913,107 @@ class AutoplotAgent:
 
         return "\n".join(text_parts) if text_parts else "Done."
 
+    @staticmethod
+    def _is_general_request(text: str) -> bool:
+        """Check if a request should be handled by the main agent directly.
+
+        General requests include meta questions, plot follow-ups, and
+        capability inquiries that don't target a specific mission.
+
+        Args:
+            text: The user's input
+
+        Returns:
+            True if the request is general (no delegation needed).
+        """
+        import re
+        text_lower = text.lower().strip()
+
+        # Meta questions about capabilities
+        meta_patterns = [
+            r"\b(help|what can you do|what missions|capabilities)\b",
+            r"\b(how do|how does|how to)\b",
+            r"\bhello\b",
+            r"\bhi\b",
+            r"\bthanks?\b",
+        ]
+        for pattern in meta_patterns:
+            if re.search(pattern, text_lower):
+                return True
+
+        # Plot follow-ups that operate on the current shared Autoplot state
+        followup_patterns = [
+            r"\bzoom\b",
+            r"\bexport\b",
+            r"\bsave.*(plot|png|image)\b",
+            r"\bchange.*(time|range)\b",
+            r"\bwhat.*(plot|showing|displayed)",
+            r"\bget.*(plot|info)\b",
+        ]
+        for pattern in followup_patterns:
+            if re.search(pattern, text_lower):
+                return True
+
+        return False
+
+    def _get_or_create_mission_agent(self, mission_id: str) -> MissionAgent:
+        """Get a cached mission agent or create a new one.
+
+        Args:
+            mission_id: Spacecraft ID (e.g., "PSP", "ACE")
+
+        Returns:
+            MissionAgent instance for the given mission.
+        """
+        if mission_id not in self._mission_agents:
+            self._mission_agents[mission_id] = MissionAgent(
+                mission_id=mission_id,
+                client=self.client,
+                model_name=self.model_name,
+                tool_executor=self._execute_tool_safe,
+                verbose=self.verbose,
+            )
+            if self.verbose:
+                print(f"  [Router] Created {mission_id} mission agent")
+        return self._mission_agents[mission_id]
+
+    def _process_mission_request(self, user_message: str, mission_id: str) -> str:
+        """Delegate a request to a mission-specific sub-agent.
+
+        Args:
+            user_message: The user's input
+            mission_id: Spacecraft ID to delegate to
+
+        Returns:
+            The mission agent's text response
+        """
+        if self.verbose:
+            print(f"  [Router] Delegating to {mission_id} specialist")
+
+        try:
+            agent = self._get_or_create_mission_agent(mission_id)
+            result = agent.process_request(user_message)
+
+            # Aggregate token usage
+            usage = agent.get_token_usage()
+            # Usage is cumulative on the agent, so we just track API calls
+            # (total tokens are aggregated at session end)
+
+            return result
+
+        except KeyError:
+            if self.verbose:
+                print(f"  [Router] Unknown mission '{mission_id}', falling back to main agent")
+            return self._process_single_message(user_message)
+
     def process_message(self, user_message: str) -> str:
         """Process a user message and return the agent's response.
 
-        Routes complex multi-step requests through the planning system,
-        and handles simple requests directly.
+        Routing order:
+        1. General requests (help, plot follow-ups) -> main agent
+        2. Complex multi-mission requests -> planner -> mission sub-agents
+        3. Single-mission requests -> mission sub-agent
+        4. No mission detected -> main agent (may ask for clarification)
 
         Args:
             user_message: The user's input
@@ -923,20 +1021,32 @@ class AutoplotAgent:
         Returns:
             The agent's text response
         """
-        # Check if this is a complex request that needs planning
+        # 1. General requests -> main agent directly
+        if self._is_general_request(user_message):
+            if self.verbose:
+                print(f"  [Router] General request -> main agent")
+            return self._process_single_message(user_message)
+
+        # 2. Complex multi-mission requests -> planner
         if is_complex_request(user_message):
             return self._process_complex_request(user_message)
 
-        # Simple request - process directly
+        # 3. Detect mission from keywords -> delegate to sub-agent
+        mission_id = match_spacecraft(user_message)
+        if mission_id:
+            return self._process_mission_request(user_message, mission_id)
+
+        # 4. No mission detected -> main agent handles
         return self._process_single_message(user_message)
 
     def reset(self):
-        """Reset conversation history."""
+        """Reset conversation history and mission agent cache."""
         self.chat = self.client.chats.create(
             model=self.model_name,
             config=self.config
         )
         self._current_plan = None
+        self._mission_agents.clear()
 
     def get_current_plan(self) -> Optional[TaskPlan]:
         """Get the currently executing plan, if any."""

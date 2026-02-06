@@ -58,7 +58,7 @@ Requires a `.env` file at project root with:
 
 ## Supported Spacecraft
 
-PSP (Parker Solar Probe), Solar Orbiter, ACE, OMNI, Wind, DSCOVR, MMS, and STEREO-A. The catalog in `knowledge/catalog.py` maps keywords to CDAWeb dataset IDs. New spacecraft/instruments can be added there — prompts are auto-generated from the catalog.
+PSP (Parker Solar Probe), Solar Orbiter, ACE, OMNI, Wind, DSCOVR, MMS, and STEREO-A. Each mission has a JSON file in `knowledge/missions/` with keywords, profile, and datasets. The catalog in `knowledge/catalog.py` loads from these JSON files. Prompts are auto-generated from the JSON data.
 
 ## Autoplot URI Format
 
@@ -71,7 +71,7 @@ Time ranges use `YYYY-MM-DD to YYYY-MM-DD` format. The agent accepts flexible in
 - Read `docs/capability-summary.md` first to understand what has been implemented.
 - Read `docs/roadmap.md` for planned future development.
 - When adding new tools: add schema in `agent/tools.py`, handler in `agent/core.py`, and update `docs/capability-summary.md`. The system prompt is auto-generated from the catalog.
-- When adding new spacecraft: update the catalog in `knowledge/catalog.py` (include a `profile` dict). The system prompt and planner prompt are auto-generated via `knowledge/prompt_builder.py`.
+- When adding new spacecraft: create a JSON file in `knowledge/missions/` (copy an existing one as template). Include `id`, `name`, `keywords`, `profile`, and `instruments` with `datasets` dict. Then run `python scripts/generate_mission_data.py --mission <id>` to populate HAPI metadata. The catalog, prompts, and routing table are all auto-generated from the JSON files.
 - Data operations (`data_ops/operations.py`) are pure numpy functions with no side effects — easy to test.
 - Plotting always goes through Autoplot (`autoplot_bridge/commands.py`), not matplotlib.
 - **Ignore `docs/archive/`** — contains outdated historical documents that are no longer relevant.

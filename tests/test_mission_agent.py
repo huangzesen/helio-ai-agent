@@ -62,3 +62,7 @@ class TestMissionAgentImport:
     def test_class_has_get_token_usage(self):
         from agent.mission_agent import MissionAgent
         assert hasattr(MissionAgent, "get_token_usage")
+
+    def test_class_has_process_request(self):
+        from agent.mission_agent import MissionAgent
+        assert hasattr(MissionAgent, "process_request")

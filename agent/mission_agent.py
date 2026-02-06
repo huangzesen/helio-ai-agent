@@ -95,6 +95,116 @@ class MissionAgent:
             "api_calls": self._api_calls,
         }
 
+    def process_request(self, user_message: str) -> str:
+        """Process a user request in this mission's context.
+
+        Unlike execute_task() (forced function calling, max 3 iterations),
+        this is a full conversational method that allows the agent to respond
+        with text or call tools as needed.
+
+        Creates a fresh chat per request to avoid cross-request context pollution.
+
+        Args:
+            user_message: The user's natural language request.
+
+        Returns:
+            The text response from Gemini after processing.
+        """
+        if self.verbose:
+            print(f"  [{self.mission_id} Agent] Processing request: {user_message[:80]}...")
+
+        try:
+            # Conversational config: no forced function calling
+            conv_config = types.GenerateContentConfig(
+                system_instruction=self.system_prompt,
+                tools=[types.Tool(function_declarations=[
+                    types.FunctionDeclaration(
+                        name=t["name"],
+                        description=t["description"],
+                        parameters=t["parameters"],
+                    ) for t in get_tool_schemas()
+                ])],
+            )
+            chat = self.client.chats.create(
+                model=self.model_name,
+                config=conv_config,
+            )
+            response = chat.send_message(user_message)
+            self._track_usage(response)
+
+            # Process tool calls in a loop (up to 10 iterations)
+            max_iterations = 10
+            iteration = 0
+
+            while iteration < max_iterations:
+                iteration += 1
+
+                if not response.candidates or not response.candidates[0].content.parts:
+                    break
+
+                function_calls = []
+                for part in response.candidates[0].content.parts:
+                    if hasattr(part, "function_call") and part.function_call and part.function_call.name:
+                        function_calls.append(part.function_call)
+
+                if not function_calls:
+                    break
+
+                # Execute tools via the shared executor
+                function_responses = []
+                for fc in function_calls:
+                    tool_name = fc.name
+                    tool_args = dict(fc.args) if fc.args else {}
+
+                    if self.verbose:
+                        print(f"  [{self.mission_id} Agent] Tool: {tool_name}({tool_args})")
+
+                    result = self.tool_executor(tool_name, tool_args)
+
+                    # Handle clarification — return immediately
+                    if result.get("status") == "clarification_needed":
+                        question = result["question"]
+                        if result.get("context"):
+                            question = f"{result['context']}\n\n{question}"
+                        if result.get("options"):
+                            question += "\n\nOptions:\n" + "\n".join(
+                                f"  {i+1}. {opt}" for i, opt in enumerate(result["options"])
+                            )
+                        return question
+
+                    if self.verbose and result.get("status") == "error":
+                        print(f"  [{self.mission_id} Agent] Tool error: {result.get('message', '')}")
+
+                    function_responses.append(
+                        types.Part.from_function_response(
+                            name=tool_name,
+                            response={"result": result}
+                        )
+                    )
+
+                if self.verbose:
+                    print(f"  [{self.mission_id} Agent] Sending {len(function_responses)} tool result(s) back...")
+                response = chat.send_message(message=function_responses)
+                self._track_usage(response)
+
+            # Extract text response
+            text_parts = []
+            for part in response.candidates[0].content.parts:
+                if hasattr(part, "text") and part.text:
+                    text_parts.append(part.text)
+
+            return "\n".join(text_parts) if text_parts else "Done."
+
+        except Exception as e:
+            log_error(
+                f"Mission agent request failed",
+                exc=e,
+                context={"mission": self.mission_id, "request": user_message[:200]}
+            )
+            if self.verbose:
+                print(f"  [{self.mission_id} Agent] Failed: {e}")
+            return f"Error processing request: {e}"
+
     def execute_task(self, task: Task) -> str:
         """Execute a single task in this mission's context.
 

@@ -1,0 +1,44 @@
+{
+  "id": "PSP",
+  "name": "Parker Solar Probe",
+  "keywords": ["parker", "psp", "probe", "solar probe"],
+  "profile": {
+    "description": "Inner heliosphere probe studying the solar corona and young solar wind",
+    "coordinate_systems": ["RTN"],
+    "typical_cadence": "1-minute",
+    "data_caveats": ["RTN frame rotates with spacecraft orbital position"],
+    "analysis_patterns": [
+      "Switchback detection: compute radial component sign changes in Br",
+      "Parker spiral angle: atan2(Bt, Br) compared to expected spiral",
+      "Perihelion passes: check distance and compare field magnitude"
+    ]
+  },
+  "instruments": {
+    "FIELDS/MAG": {
+      "name": "FIELDS Magnetometer",
+      "keywords": ["magnetic", "field", "mag", "b-field", "bfield"],
+      "datasets": {
+        "PSP_FLD_L2_MAG_RTN_1MIN": {
+          "tier": "primary",
+          "description": "1-minute averaged magnetic field in RTN coordinates",
+          "parameters": []
+        }
+      }
+    },
+    "SWEAP": {
+      "name": "Solar Wind Plasma",
+      "keywords": ["plasma", "solar wind", "proton", "density", "velocity", "sweap"],
+      "datasets": {
+        "PSP_SWP_SPC_L3I": {
+          "tier": "primary",
+          "description": "Solar wind proton moments (density, velocity, temperature)",
+          "parameters": []
+        }
+      }
+    }
+  },
+  "_meta": {
+    "generated_at": "2026-02-06T00:00:00Z",
+    "hapi_server": "https://cdaweb.gsfc.nasa.gov/hapi"
+  }
+}
