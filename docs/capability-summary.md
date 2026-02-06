@@ -31,8 +31,9 @@ agent/core.py  AutoplotAgent
   |       Task, TaskPlan         Data structures for multi-step execution
   |       TaskStore              JSON persistence to ~/.helio-agent/tasks/
   |
-  +---> knowledge/         Dataset discovery
-  |       catalog.py         Static spacecraft/instrument catalog (keyword search)
+  +---> knowledge/         Dataset discovery + prompt generation
+  |       catalog.py         Spacecraft/instrument catalog with mission profiles (keyword search)
+  |       prompt_builder.py  Dynamic prompt generation from catalog (single source of truth)
   |       hapi_client.py     CDAWeb HAPI /info endpoint (parameter metadata, cached)
   |
   +---> data_ops/           Python-side data pipeline (pandas-backed)

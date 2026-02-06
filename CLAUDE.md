@@ -16,7 +16,7 @@ The system has four layers:
 
 2. **Autoplot bridge** (`autoplot_bridge/`) — Python-to-Java bridge via JPype. `connection.py` starts the JVM with the Autoplot JAR on the classpath. `commands.py` wraps Autoplot's `ScriptContext` API (plot, set time range, export PNG, plot computed data as QDataSets). Uses a singleton pattern to maintain plot state and color assignments across the session.
 
-3. **Knowledge base** (`knowledge/`) — Static dataset catalog (`catalog.py`) for keyword-based spacecraft/instrument search. HAPI client (`hapi_client.py`) for fetching parameter metadata from CDAWeb.
+3. **Knowledge base** (`knowledge/`) — Static dataset catalog (`catalog.py`) with mission profiles for keyword-based spacecraft/instrument search. Prompt builder (`prompt_builder.py`) generates system and planner prompts dynamically from the catalog — single source of truth. HAPI client (`hapi_client.py`) for fetching parameter metadata from CDAWeb.
 
 4. **Data operations** (`data_ops/`) — Python-side data pipeline. Fetches HAPI data into numpy arrays (`fetch.py`), stores them in an in-memory singleton (`store.py`), and provides pure numpy operations (`operations.py`): magnitude, arithmetic, running average, resample, delta/derivative.
 
@@ -58,7 +58,7 @@ Requires a `.env` file at project root with:
 
 ## Supported Spacecraft
 
-PSP (Parker Solar Probe), Solar Orbiter, ACE, and OMNI. The catalog in `knowledge/catalog.py` maps keywords to CDAWeb dataset IDs. New spacecraft/instruments can be added there.
+PSP (Parker Solar Probe), Solar Orbiter, ACE, OMNI, Wind, DSCOVR, MMS, and STEREO-A. The catalog in `knowledge/catalog.py` maps keywords to CDAWeb dataset IDs. New spacecraft/instruments can be added there — prompts are auto-generated from the catalog.
 
 ## Autoplot URI Format
 
@@ -70,8 +70,8 @@ Time ranges use `YYYY-MM-DD to YYYY-MM-DD` format. The agent accepts flexible in
 
 - Read `docs/capability-summary.md` first to understand what has been implemented.
 - Read `docs/roadmap.md` for planned future development.
-- When adding new tools: add schema in `agent/tools.py`, handler in `agent/core.py`, update the system prompt in `agent/prompts.py`, and update `docs/capability-summary.md`.
-- When adding new spacecraft: update the catalog in `knowledge/catalog.py`.
+- When adding new tools: add schema in `agent/tools.py`, handler in `agent/core.py`, and update `docs/capability-summary.md`. The system prompt is auto-generated from the catalog.
+- When adding new spacecraft: update the catalog in `knowledge/catalog.py` (include a `profile` dict). The system prompt and planner prompt are auto-generated via `knowledge/prompt_builder.py`.
 - Data operations (`data_ops/operations.py`) are pure numpy functions with no side effects — easy to test.
 - Plotting always goes through Autoplot (`autoplot_bridge/commands.py`), not matplotlib.
 - **Ignore `docs/archive/`** — contains outdated historical documents that are no longer relevant.

@@ -12,6 +12,17 @@ SPACECRAFT = {
     "PSP": {
         "name": "Parker Solar Probe",
         "keywords": ["parker", "psp", "probe", "solar probe"],
+        "profile": {
+            "description": "Inner heliosphere probe studying the solar corona and young solar wind",
+            "coordinate_systems": ["RTN"],
+            "typical_cadence": "1-minute",
+            "data_caveats": ["RTN frame rotates with spacecraft orbital position"],
+            "analysis_patterns": [
+                "Switchback detection: compute radial component sign changes in Br",
+                "Parker spiral angle: atan2(Bt, Br) compared to expected spiral",
+                "Perihelion passes: check distance and compare field magnitude",
+            ],
+        },
         "instruments": {
             "FIELDS/MAG": {
                 "name": "FIELDS Magnetometer",
@@ -28,6 +39,16 @@ SPACECRAFT = {
     "SolO": {
         "name": "Solar Orbiter",
         "keywords": ["solar orbiter", "solo", "orbiter"],
+        "profile": {
+            "description": "ESA/NASA mission studying the Sun from close range with in-situ and remote sensing",
+            "coordinate_systems": ["RTN"],
+            "typical_cadence": "1-minute",
+            "data_caveats": ["RTN frame; some data gaps during commissioning periods"],
+            "analysis_patterns": [
+                "Compare with PSP for radial evolution of solar wind",
+                "Check B magnitude at varying heliocentric distances",
+            ],
+        },
         "instruments": {
             "MAG": {
                 "name": "Magnetometer",
@@ -44,6 +65,17 @@ SPACECRAFT = {
     "ACE": {
         "name": "Advanced Composition Explorer",
         "keywords": ["ace", "advanced composition"],
+        "profile": {
+            "description": "L1 monitor for solar wind and interplanetary magnetic field since 1997",
+            "coordinate_systems": ["GSE"],
+            "typical_cadence": "1-minute (16-second available)",
+            "data_caveats": ["GSE coordinates; long baseline ideal for solar cycle studies"],
+            "analysis_patterns": [
+                "IMF sector structure: check Bx sign for toward/away",
+                "Solar wind speed categorization: slow (<400) vs fast (>600) km/s",
+                "Upstream monitor: compare with OMNI propagated data",
+            ],
+        },
         "instruments": {
             "MAG": {
                 "name": "Magnetometer",
@@ -60,6 +92,20 @@ SPACECRAFT = {
     "OMNI": {
         "name": "OMNI Combined Data",
         "keywords": ["omni", "combined", "propagated", "bow shock"],
+        "profile": {
+            "description": "Multi-spacecraft time-shifted solar wind data propagated to the bow shock nose",
+            "coordinate_systems": ["GSE", "GSM"],
+            "typical_cadence": "1-minute (5-minute also available)",
+            "data_caveats": [
+                "Combined from multiple L1 monitors; source spacecraft varies",
+                "Some empty-string fill values in CSV; use coerce parsing",
+            ],
+            "analysis_patterns": [
+                "Geomagnetic coupling: correlate Bz with SYM-H",
+                "Solar wind driver identification: speed + density + B for CME/CIR",
+                "Reference dataset for multi-spacecraft comparisons",
+            ],
+        },
         "instruments": {
             "Combined": {
                 "name": "Multi-spacecraft Combined",
@@ -71,6 +117,16 @@ SPACECRAFT = {
     "WIND": {
         "name": "Wind",
         "keywords": ["wind"],
+        "profile": {
+            "description": "L1 solar wind monitor operating since 1994; complements ACE",
+            "coordinate_systems": ["GSE"],
+            "typical_cadence": "1-minute (3-second burst available)",
+            "data_caveats": ["GSE coordinates; longest continuous L1 dataset"],
+            "analysis_patterns": [
+                "Cross-calibrate with ACE MAG for same events",
+                "Long-term solar cycle trends",
+            ],
+        },
         "instruments": {
             "MFI": {
                 "name": "Magnetic Fields Investigation",
@@ -87,6 +143,16 @@ SPACECRAFT = {
     "DSCOVR": {
         "name": "Deep Space Climate Observatory",
         "keywords": ["dscovr", "deep space", "climate observatory"],
+        "profile": {
+            "description": "NOAA L1 real-time solar wind monitor (successor to ACE for space weather)",
+            "coordinate_systems": ["GSE"],
+            "typical_cadence": "1-minute",
+            "data_caveats": ["Real-time data may have quality flags; check for fill values"],
+            "analysis_patterns": [
+                "Real-time space weather monitoring",
+                "Compare with ACE for cross-validation at L1",
+            ],
+        },
         "instruments": {
             "MAG": {
                 "name": "Fluxgate Magnetometer",
@@ -103,6 +169,20 @@ SPACECRAFT = {
     "MMS": {
         "name": "Magnetospheric Multiscale",
         "keywords": ["mms", "magnetospheric multiscale"],
+        "profile": {
+            "description": "Four-spacecraft constellation studying magnetic reconnection in Earth's magnetosphere",
+            "coordinate_systems": ["GSE", "GSM"],
+            "typical_cadence": "Survey: 4.5s (FGM), Fast: 30ms (burst)",
+            "data_caveats": [
+                "Magnetospheric orbit — not solar wind data",
+                "Very high cadence burst data available for reconnection events",
+            ],
+            "analysis_patterns": [
+                "Reconnection signatures: look for B reversal + jet in V",
+                "Magnetopause crossings: rapid B direction changes",
+                "Multi-spacecraft timing using MMS1-4",
+            ],
+        },
         "instruments": {
             "FGM": {
                 "name": "Fluxgate Magnetometer",
@@ -119,6 +199,16 @@ SPACECRAFT = {
     "STEREO_A": {
         "name": "STEREO-A",
         "keywords": ["stereo", "stereo-a", "stereo a", "ahead"],
+        "profile": {
+            "description": "Off-Sun-Earth-line observatory in heliocentric orbit ahead of Earth",
+            "coordinate_systems": ["RTN"],
+            "typical_cadence": "1-minute",
+            "data_caveats": ["Off-Sun-Earth line; longitude separation from Earth varies over time"],
+            "analysis_patterns": [
+                "Multi-point solar wind: compare with L1 monitors for same CME/CIR",
+                "Longitude-separated observations for heliospheric structure",
+            ],
+        },
         "instruments": {
             "MAG": {
                 "name": "IMPACT Magnetometer",

@@ -4,6 +4,9 @@ Planning logic for multi-step task handling.
 This module provides:
 - is_complex_request(): Heuristics to detect when a request needs decomposition
 - create_plan(): Uses Gemini to decompose a complex request into tasks
+
+The planning prompt is dynamically generated from the spacecraft catalog
+via knowledge/prompt_builder.py — no hardcoded dataset references.
 """
 
 import re
@@ -13,6 +16,7 @@ from google import genai
 from google.genai import types
 
 from .tasks import Task, TaskPlan, create_task, create_plan
+from knowledge.prompt_builder import build_planning_prompt
 
 
 # Regex patterns that indicate a complex, multi-step request
@@ -109,69 +113,9 @@ PLAN_SCHEMA = {
 }
 
 
-PLANNING_PROMPT = """You are a planning assistant for Autoplot, a scientific data visualization tool.
-Your job is to decompose complex user requests into a sequence of discrete tasks.
-
-## Available Tools (with required parameters)
-
-- search_datasets(query): Find spacecraft/instrument datasets by keyword
-- list_parameters(dataset_id): Get available parameters for a dataset
-- fetch_data(dataset_id, parameter_id, time_range): Pull data into memory. Result stored with label "DATASET.PARAM" format. Time range can be "last week", "last 3 days", or "2024-01-15 to 2024-01-20".
-- custom_operation(source_label, pandas_code, output_label, description): Apply any pandas/numpy operation. Code operates on `df` (DataFrame) and assigns to `result`. Examples: magnitude, smoothing, resampling, arithmetic, derivatives, normalization, clipping.
-- describe_data(label): Get statistical summary (min, max, mean, std, percentiles, NaN count, cadence) of an in-memory timeseries. Use when user says "describe", "summarize", or asks about data characteristics.
-- plot_data(dataset_id, parameter_id, time_range): Plot CDAWeb data directly
-- plot_computed_data(labels): Plot data from memory. Labels is comma-separated, e.g., "AC_H2_MFI.BGSEc,Bmag_smooth"
-- export_plot(filepath): Save current plot to PNG
-- save_data(label, filename): Export in-memory timeseries to CSV file. Use when user says "save to file" or "export data".
-
-## Known Dataset IDs and Parameters (use these exact values with fetch_data)
-- PSP: dataset=PSP_FLD_L2_MAG_RTN_1MIN, param=psp_fld_l2_mag_RTN_1min (magnetic)
-- Solar Orbiter: dataset=SOLO_L2_MAG-RTN-NORMAL-1-MINUTE, param=B_RTN (magnetic)
-- ACE: dataset=AC_H2_MFI, param=BGSEc (magnetic vector GSE); dataset=AC_H0_SWE, param=Vp (plasma)
-- OMNI: dataset=OMNI_HRO_1MIN (combined, use list_parameters to find params)
-- Wind: dataset=WI_H2_MFI, param=BGSE (magnetic vector GSE); dataset=WI_H1_SWE (plasma)
-- DSCOVR: dataset=DSCOVR_H0_MAG, param=B1GSE (magnetic vector GSE); dataset=DSCOVR_H1_FC (plasma)
-- MMS: dataset=MMS1_FGM_SRVY_L2 (magnetic, use list_parameters); dataset=MMS1_FPI_FAST_L2_DIS-MOMS (plasma)
-- STEREO-A: dataset=STA_L2_MAG_RTN (magnetic, use list_parameters); dataset=STA_L2_PLA_1DMAX_1MIN (plasma)
-
-IMPORTANT: Different spacecraft have DIFFERENT parameter names. Do NOT assume one spacecraft's
-parameter name works for another (e.g., ACE uses "BGSEc" but Wind uses "BGSE"). When unsure,
-include a list_parameters step before fetching.
-
-## Important Notes
-- When user doesn't specify a time range, use "last week" as default
-- Labels for fetched data follow the pattern "DATASET.PARAM" (e.g., "AC_H2_MFI.BGSEc")
-- For compute operations, use descriptive output_label names (e.g., "Bmag", "velocity_smooth")
-- For running averages, a window_size of 60 points is a reasonable default
-- If you're not sure which parameter to use for a dataset, include a search_datasets step first
-
-## Planning Guidelines
-1. Each task should be a single, atomic operation — do ONLY what the instruction says
-2. Tasks execute sequentially - later tasks can reference results from earlier tasks
-3. For comparisons: fetch both datasets → optional computation → plot together
-4. For derived quantities: fetch raw data → compute derived value → plot
-5. Keep task count minimal - don't split unnecessarily
-6. Do NOT include plotting steps unless the user explicitly asked to plot
-7. A "fetch" task should ONLY fetch data, not also plot or describe it
-
-## Task Instruction Format
-CRITICAL: Every fetch_data instruction MUST include the exact dataset_id AND parameter_id from the
-Known Dataset IDs section above. Never use vague descriptions like "fetch Wind magnetic field" — always
-specify "fetch_data with dataset_id=WI_H2_MFI, parameter_id=BGSE".
-
-Every custom_operation instruction MUST include the exact source_label (e.g., "WI_H2_MFI.BGSE").
-
-Example instructions:
-- "Fetch data from dataset AC_H2_MFI, parameter BGSEc, for last week"
-- "Fetch data from dataset WI_H2_MFI, parameter BGSE, for last week"
-- "Compute the magnitude of AC_H2_MFI.BGSEc, save as ACE_Bmag"
-- "Describe the data labeled ACE_Bmag"
-- "Plot ACE_Bmag and Wind_Bmag together"
-- "Export the plot to output.png"
-
-Analyze the request and return a JSON plan. If the request is actually simple (single step), set is_complex=false and provide a single task.
-
-User request: {user_request}"""
+# Generate the planning prompt template once at import time.
+# Contains a {user_request} placeholder filled in by create_plan_from_request().
+PLANNING_PROMPT = build_planning_prompt()
 
 
 def create_plan_from_request(
