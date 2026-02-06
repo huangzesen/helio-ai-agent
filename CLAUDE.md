@@ -4,46 +4,50 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project Overview
 
-ai-autoplot is an AI-powered natural language interface for [Autoplot](https://autoplot.org/), a Java-based scientific data visualization tool for spacecraft/heliophysics data. Users type conversational commands (e.g., "Show me ACE magnetic field data for last week") and the agent translates them into Autoplot operations.
+helio-ai-agent is an AI-powered natural language interface for [Autoplot](https://autoplot.org/), a Java-based scientific data visualization tool for spacecraft/heliophysics data. Users type conversational commands (e.g., "Show me ACE magnetic field data for last week") and the agent translates them into Autoplot operations and Python-side data computations.
 
-**Current status:** Specification phase. The full spec lives in `docs/autoplot-agent-spec.md` — no source code has been implemented yet.
+**Current status:** Fully functional. See `docs/capability-summary.md` for a detailed breakdown of all implemented features, tools, and architecture. Keep that file updated when adding new capabilities.
 
 ## Architecture
 
-The system has three layers:
+The system has four layers:
 
-1. **Agent layer** (`agent/`) — Gemini LLM with function calling decides which tools to invoke based on user input. `core.py` orchestrates the conversation loop and tool execution. Tools are defined declaratively in `tools.py` as JSON schemas.
+1. **Agent layer** (`agent/`) — Gemini 2.5-Flash with function calling decides which tools to invoke based on user input. `core.py` orchestrates the conversation loop and tool execution. Tools are defined declaratively in `tools.py` as JSON schemas (15 tools total). Token usage is tracked per session.
 
-2. **Autoplot bridge** (`autoplot_bridge/`) — Python-to-Java bridge via JPype. `connection.py` starts the JVM with the Autoplot JAR on the classpath. `commands.py` wraps Autoplot's `ScriptContext` API (plot, set time range, export PNG). Uses a singleton pattern to maintain plot state across the session.
+2. **Autoplot bridge** (`autoplot_bridge/`) — Python-to-Java bridge via JPype. `connection.py` starts the JVM with the Autoplot JAR on the classpath. `commands.py` wraps Autoplot's `ScriptContext` API (plot, set time range, export PNG, plot computed data as QDataSets). Uses a singleton pattern to maintain plot state and color assignments across the session.
 
-3. **Knowledge base** (`knowledge/`) — Static dataset catalog (CDAWeb dataset IDs, parameters, keywords). The agent searches this to resolve natural language references like "magnetic field" to specific dataset IDs like `AC_H2_MFI`.
+3. **Knowledge base** (`knowledge/`) — Static dataset catalog (`catalog.py`) for keyword-based spacecraft/instrument search. HAPI client (`hapi_client.py`) for fetching parameter metadata from CDAWeb.
 
-Data flows: User input → Gemini function calling → tool execution (dataset search or Autoplot command) → result fed back to Gemini → natural language response.
+4. **Data operations** (`data_ops/`) — Python-side data pipeline. Fetches HAPI data into numpy arrays (`fetch.py`), stores them in an in-memory singleton (`store.py`), and provides pure numpy operations (`operations.py`): magnitude, arithmetic, running average, resample, delta/derivative.
+
+Data flows: User input → Gemini function calling → tool execution → result fed back to Gemini → natural language response. For computed data: fetch → compute → plot through Autoplot canvas.
 
 ## Key Technologies
 
 - **Python 3** with virtualenv
-- **Google Gemini** (`google-generativeai`) — LLM with function calling for tool routing
+- **Google Gemini** (`google-genai`) — LLM with function calling for tool routing
 - **JPype** (`jpype1`) — Java-Python bridge to control Autoplot
 - **Autoplot** — Java JAR, requires Java runtime and a display (or Xvfb for headless)
+- **NumPy** — Array operations for data pipeline
 
 ## Commands
 
 ```bash
 # Setup
 python -m venv venv
-venv\Scripts\activate          # Windows
+source venv/bin/activate       # macOS/Linux
 pip install -r requirements.txt
 
 # Run the agent
-python main.py
+python main.py                 # Normal mode
+python main.py --verbose       # Show tool calls, timing, errors
 
 # Test Autoplot connection
 python -m autoplot_bridge.connection
 
 # Run tests
-python -m pytest tests/
-python -m pytest tests/test_agent.py::test_search_datasets_ace  # single test
+python -m pytest tests/test_store.py tests/test_operations.py  # Data ops tests (41 tests)
+python -m pytest tests/                                         # All tests
 ```
 
 ## Configuration
@@ -52,12 +56,20 @@ Requires a `.env` file at project root with:
 - `GOOGLE_API_KEY` — Gemini API key
 - `AUTOPLOT_JAR` — path to the Autoplot single-JAR (download from https://autoplot.org/latest/)
 
-## Phase 1 Scope
+## Supported Spacecraft
 
-Limited to 3 CDAWeb datasets (`AC_H2_MFI`, `AC_H0_SWE`, `OMNI_HRO_1MIN`) and 5 operations: search datasets, plot data, change time range, export PNG, get plot info. The `ask_clarification` tool lets the agent ask the user follow-up questions instead of guessing.
+PSP (Parker Solar Probe), Solar Orbiter, ACE, and OMNI. The catalog in `knowledge/catalog.py` maps keywords to CDAWeb dataset IDs. New spacecraft/instruments can be added there.
 
 ## Autoplot URI Format
 
 CDAWeb URIs follow the pattern: `vap+cdaweb:ds={DATASET_ID}&id={PARAMETER}&timerange={TIME_RANGE}`
 
-Time ranges use `YYYY-MM-DD to YYYY-MM-DD` format. The agent should accept flexible input ("last week", "January 2024") and convert to this format.
+Time ranges use `YYYY-MM-DD to YYYY-MM-DD` format. The agent accepts flexible input ("last week", "January 2024", "2024-01-15T06:00 to 2024-01-15T18:00") and converts to this format via `agent/time_utils.py`.
+
+## For Future Sessions
+
+- Read `docs/capability-summary.md` first to understand what has been implemented.
+- When adding new tools: add schema in `agent/tools.py`, handler in `agent/core.py`, update the system prompt in `agent/prompts.py`, and update `docs/capability-summary.md`.
+- When adding new spacecraft: update the catalog in `knowledge/catalog.py`.
+- Data operations (`data_ops/operations.py`) are pure numpy functions with no side effects — easy to test.
+- Plotting always goes through Autoplot (`autoplot_bridge/commands.py`), not matplotlib.
