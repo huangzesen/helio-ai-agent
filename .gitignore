@@ -58,3 +58,4 @@ replay_pid*.log
 # Autoplot downloaded JAR (user-specific path)
 autoplot.jar
 ~/autoplot.jar
+test111.png
