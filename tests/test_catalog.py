@@ -183,10 +183,10 @@ class TestSearchByKeywords:
         result = search_by_keywords("mms magnetic")
         assert result is not None
         assert result["spacecraft"] == "MMS"
-        assert "MMS1_FGM_SRVY_L2" in result["datasets"]
+        assert "MMS1_FGM_SRVY_L2@0" in result["datasets"]
 
     def test_stereo_magnetic(self):
         result = search_by_keywords("stereo magnetic")
         assert result is not None
         assert result["spacecraft"] == "STEREO_A"
-        assert "STA_L2_MAG_RTN" in result["datasets"]
+        assert "STA_L1_MAG_RTN" in result["datasets"]

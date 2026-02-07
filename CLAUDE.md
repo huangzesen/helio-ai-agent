@@ -102,6 +102,7 @@ Time ranges use `YYYY-MM-DD to YYYY-MM-DD` format. The agent accepts flexible in
 
 - Read `docs/capability-summary.md` first to understand what has been implemented.
 - Read `docs/roadmap.md` for planned future development.
+- Read `tests/issue-log-20260207/ISSUE_SUMMARY.md` for known bugs from the latest test session (15 issues, 2 critical JVM crashes). Priority fixes: relative path resolution, rolling window DatetimeIndex, CDAWeb parameter validation, 4-panel plot guard.
 - When adding new Autoplot capabilities: add entry to `autoplot_bridge/registry.py`, implement bridge method in `commands.py`, add handler in `core.py:_dispatch_autoplot_method()`. No tool schema changes needed. For non-Autoplot tools: add schema in `tools.py`, handler in `core.py:_execute_tool()`. Update `docs/capability-summary.md` either way.
 - When adding new spacecraft: create a JSON file in `knowledge/missions/` (copy an existing one as template). Include `id`, `name`, `keywords`, `profile`, and `instruments` with `datasets` dict. Then run `python scripts/generate_mission_data.py --mission <id>` to populate HAPI metadata. The catalog, prompts, and routing table are all auto-generated from the JSON files.
 - Data operations (`data_ops/custom_ops.py`) use an AST-validated sandbox for LLM-generated pandas/numpy code — easy to test.

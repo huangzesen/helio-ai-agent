@@ -99,9 +99,15 @@ class AutoplotCommands:
 
         self._log(f"Plotting URI: {uri}")
         self._log("Downloading data and rendering plot...")
-        self._run_with_elapsed("Plotting", self.ctx.plot, uri)
-        self._log("Waiting for render to complete...")
-        self._run_with_elapsed("Rendering", self.ctx.waitUntilIdle)
+        try:
+            self._run_with_elapsed("Plotting", self.ctx.plot, uri)
+            self._log("Waiting for render to complete...")
+            self._run_with_elapsed("Rendering", self.ctx.waitUntilIdle)
+        except jpype.JException as e:
+            msg = str(e.getMessage()) if hasattr(e, 'getMessage') else str(e)
+            return {"status": "error", "message": f"Autoplot error: {msg}"}
+        except Exception as e:
+            return {"status": "error", "message": f"Plot error: {e}"}
 
         self._current_uri = uri
         self._current_time_range = time_range
@@ -150,6 +156,8 @@ class AutoplotCommands:
         Returns:
             dict with status and file path
         """
+        # Resolve relative paths to absolute (Autoplot requires absolute paths)
+        filepath = str(Path(filepath).resolve())
         # writeToPng needs forward slashes on Windows
         filepath_normalized = filepath.replace("\\", "/")
 
@@ -290,15 +298,18 @@ class AutoplotCommands:
 
         if index >= 0:
             # --- Panel-targeted mode: add new panel(s) after existing content ---
-            # In Autoplot, sc.plot(chNum, ds) uses *channel* indices, not panel
-            # indices.  After setLayoutOverplot(N), channels 0..N-1 share one
-            # panel.  To create a genuinely new panel we must plot at a channel
-            # beyond all existing plot elements.
             try:
                 dom = self.ctx.getDocumentModel()
                 n_existing = int(dom.getPlotElements().length)
             except Exception:
                 n_existing = 0
+
+            # Guard: max 3 panels to prevent JVM crashes (ISSUE-01)
+            if n_existing + n_series > 3:
+                return {"status": "error",
+                        "message": f"Maximum 3 panels supported. Currently {n_existing} panel(s), "
+                                   f"requested {n_series} more. Use overlays or reset() first."}
+
             self._log(f"Plotting {n_series} series into new panel(s) "
                        f"(existing channels: {n_existing}, target panel: {index})...")
             for i, (label, ds) in enumerate(datasets):
@@ -492,7 +503,15 @@ class AutoplotCommands:
         """
         if not filepath.endswith(".vap"):
             filepath += ".vap"
+        # Resolve relative paths to absolute (Autoplot requires absolute paths)
+        filepath = str(Path(filepath).resolve())
         filepath_normalized = filepath.replace("\\", "/")
+
+        # Ensure parent directory exists
+        parent = Path(filepath).parent
+        if parent and not parent.exists():
+            parent.mkdir(parents=True, exist_ok=True)
+
         self._log(f"Saving session to {filepath_normalized}...")
         self.ctx.save(filepath_normalized)
         return {"status": "success", "filepath": filepath}
@@ -526,12 +545,22 @@ class AutoplotCommands:
         Returns:
             dict with status.
         """
-        self._log(f"Setting render type to '{render_type}' for plot element {index}")
+        # Map snake_case names from the prompt to Java camelCase enum values
+        RENDER_TYPE_MAP = {
+            "fill_to_zero": "fillToZero",
+            "staircase": "stairstep",
+            "color_scatter": "colorScatter",
+            "events_bar": "eventsBar",
+            "pitch_angle_distribution": "pitchAngleDistribution",
+        }
+        java_name = RENDER_TYPE_MAP.get(render_type, render_type)
+
+        self._log(f"Setting render type to '{java_name}' for plot element {index}")
         try:
             dom = self.ctx.getDocumentModel()
             pele = dom.getPlotElements(index)
             RenderType = jpype.JClass("org.autoplot.RenderType")
-            rt = RenderType.valueOf(render_type)
+            rt = RenderType.valueOf(java_name)
             pele.setRenderType(rt)
             self.ctx.waitUntilIdle()
             return {"status": "success", "render_type": render_type, "index": index}
@@ -550,6 +579,17 @@ class AutoplotCommands:
         self._log(f"Setting color table to '{name}'")
         try:
             dom = self.ctx.getDocumentModel()
+            # Guard: color tables only apply to spectrograms/color scatter
+            try:
+                pele = dom.getPlotElements(0)
+                current_rt = str(pele.getRenderType())
+                non_colormap_types = ("series", "scatter", "hugeScatter", "stairstep", "fillToZero")
+                if current_rt in non_colormap_types:
+                    return {"status": "error",
+                            "message": f"Color tables only apply to spectrograms or color scatter plots, not '{current_rt}'. "
+                                       f"Change the render type first with set_render_type."}
+            except Exception:
+                pass  # fail-open if we can't check render type
             DasColorBar = jpype.JClass("org.das2.graph.DasColorBar")
             Type = DasColorBar.Type
             ct = Type.parse(name)
@@ -588,6 +628,8 @@ class AutoplotCommands:
         """
         if not filepath.endswith(".pdf"):
             filepath += ".pdf"
+        # Resolve relative paths to absolute (Autoplot requires absolute paths)
+        filepath = str(Path(filepath).resolve())
         filepath_normalized = filepath.replace("\\", "/")
 
         # Ensure parent directory exists

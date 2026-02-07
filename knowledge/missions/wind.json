@@ -31,7 +31,11 @@
       ],
       "datasets": {
         "WI_H2_MFI": {
-          "description": "3-second magnetic field in GSE coordinates",
+          "description": "3-second cadence magnetic field in GSE (~29K pts/day). For multi-day requests, prefer WI_H0_MFI (1-min cadence) to avoid slow fetches.",
+          "parameters": []
+        },
+        "WI_H0_MFI": {
+          "description": "1-minute cadence magnetic field in GSE coordinates. Preferred for multi-day time ranges.",
           "parameters": []
         }
       }

@@ -32,8 +32,12 @@
         "impact"
       ],
       "datasets": {
-        "STA_L2_MAG_RTN": {
-          "description": "1-minute magnetic field in RTN coordinates",
+        "STA_L1_MAG_RTN": {
+          "description": "Magnetic field in RTN coordinates (Level 1, 1-second cadence)",
+          "parameters": []
+        },
+        "STA_L2_MAGPLASMA_1M": {
+          "description": "1-minute combined magnetic field and plasma data (Level 2)",
           "parameters": []
         }
       }

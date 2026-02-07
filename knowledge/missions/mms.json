@@ -14,7 +14,8 @@
     "typical_cadence": "Survey: 4.5s (FGM), Fast: 30ms (burst)",
     "data_caveats": [
       "Magnetospheric orbit — not solar wind data",
-      "Very high cadence burst data available for reconnection events"
+      "Very high cadence burst data available for reconnection events",
+      "HAPI dataset IDs use @0/@1 suffixes: @0 = field/moment data, @1 = position/support data. Always use the @0 suffix for science data (e.g., MMS1_FGM_SRVY_L2@0)"
     ],
     "analysis_patterns": [
       "Reconnection signatures: look for B reversal + jet in V",
@@ -33,8 +34,8 @@
         "fgm"
       ],
       "datasets": {
-        "MMS1_FGM_SRVY_L2": {
-          "description": "Survey-mode magnetic field from MMS1",
+        "MMS1_FGM_SRVY_L2@0": {
+          "description": "Survey-mode magnetic field (vector + magnitude) from MMS1. Use @0 suffix for field data.",
           "parameters": []
         }
       }
@@ -49,8 +50,8 @@
         "fpi"
       ],
       "datasets": {
-        "MMS1_FPI_FAST_L2_DIS-MOMS": {
-          "description": "Fast survey ion distribution moments from MMS1",
+        "MMS1_FPI_FAST_L2_DIS-MOMS@0": {
+          "description": "Fast survey ion distribution moments (density, velocity, temperature) from MMS1. Use @0 suffix for moment data.",
           "parameters": []
         }
       }

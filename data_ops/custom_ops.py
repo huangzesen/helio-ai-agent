@@ -101,8 +101,13 @@ def execute_custom_operation(df: pd.DataFrame, code: str) -> pd.DataFrame:
         RuntimeError: If code execution fails.
         ValueError: If result is not a DataFrame/Series or loses DatetimeIndex.
     """
+    df = df.copy()
+    # Ensure DatetimeIndex so time-based rolling windows (e.g., '2H') work
+    if not isinstance(df.index, pd.DatetimeIndex):
+        df.index = pd.to_datetime(df.index)
+
     namespace = {
-        "df": df.copy(),
+        "df": df,
         "pd": pd,
         "np": np,
         "result": None,

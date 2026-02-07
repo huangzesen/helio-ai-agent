@@ -86,7 +86,45 @@ The task instruction includes the expected labels (e.g., "compute running averag
 
 ---
 
+### 5. Autoplot `waitUntilIdle` race condition in headless mode
+
+**Status**: Open (upstream)
+**Severity**: Low
+**Component**: Autoplot (upstream) — `DasCanvas.waitUntilIdle()`
+
+**Description**: Autoplot intermittently logs:
+```
+INFO: strange bug where update event didn't clear dirty flags, reposting.
+```
+This occurs during multi-panel or overlay plots in headless mode. The race condition is in Autoplot's internal rendering thread synchronization (`DasCanvas.waitUntilIdle()`), not in our bridge code.
+
+**Impact**: Usually self-recovers, but may contribute to JVM crashes when creating 4+ panels rapidly (see ISSUE-01 in test log).
+
+**Workaround**: None (upstream issue). Our 3-panel maximum guard mitigates the worst case.
+
+**Fix needed**: Upstream Autoplot fix. Monitor for Autoplot updates.
+
+---
+
 ## Resolved Issues
+
+### Fixed in 2026-02-07 bug fix batch
+
+| Issue | Description | Fix |
+|-------|-------------|-----|
+| Relative paths rejected | `export_png/pdf`, `save_session` with relative paths failed | Resolve to absolute with `Path.resolve()` |
+| Render type mapping | `fill_to_zero`, `staircase`, etc. rejected by Java | Map snake_case to camelCase enum values |
+| DOM title API | Agent used non-existent `dom.setTitle()` | Updated prompt: title is on `dom.getPlots(i)` |
+| Color table on line plots | Setting color table on non-spectrogram silently failed | Guard checks render type first |
+| DatetimeIndex for rolling | Time-based rolling windows (`'2H'`) failed | Ensure DatetimeIndex before executing code |
+| CDAWeb param crash | Invalid parameter crashed JVM | Validate via HAPI before calling Autoplot |
+| to_qdataset vectors | Vector data failed with unhelpful error | Improved error with component examples |
+| 4-panel JVM crash | 4+ panels crashed JVM | 3-panel max guard in commands + script_runner |
+| MMS @0/@1 naming | MMS datasets not found | Updated JSON with @0 suffixed IDs |
+| Unnecessary clarification | Agent asked when dataset+param provided | Strengthened "Do NOT ask" prompt rules |
+| Stored labels unclear | Downstream agents couldn't find labels | Mission agent now reports exact stored labels |
+| STEREO-A dataset | STA_L2_MAG_RTN not in HAPI | Updated to STA_L1_MAG_RTN + STA_L2_MAGPLASMA_1M |
+| Wind high-cadence | WI_H2_MFI fetches too slow for multi-day | Added WI_H0_MFI (1-min) with guidance |
 
 ### Fixed in commit e58be47 (2026-02-05)
 

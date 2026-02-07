@@ -166,8 +166,10 @@ def _build_namespace(ctx):
             if component is None:
                 cols = list(entry.data.columns)
                 raise ValueError(
-                    f"'{entry.label}' has {values.shape[1]} columns {cols}. "
-                    f"Specify component=0/1/2 or column name."
+                    f"'{entry.label}' is vector data ({values.shape[1]} columns: {cols}). "
+                    f"Specify a component index or name. Examples:\n"
+                    f"  to_qdataset('{entry.label}', component=0)  # first component\n"
+                    f"  to_qdataset('{entry.label}', component=2)  # third component"
                 )
             if isinstance(component, str):
                 if component not in entry.data.columns:
@@ -211,6 +213,30 @@ def _build_namespace(ctx):
         return val_ds
 
     namespace["to_qdataset"] = to_qdataset
+
+    # Wrap sc.plot to enforce 3-panel maximum (ISSUE-01)
+    _original_sc_plot = ctx.plot
+
+    def _guarded_plot(*args, **kwargs):
+        if len(args) >= 2 and isinstance(args[0], (int, float)) and int(args[0]) > 2:
+            raise ValueError(
+                f"Panel index {int(args[0])} exceeds maximum (0-2). "
+                f"Maximum 3 panels supported. Use overlays instead of additional panels."
+            )
+        return _original_sc_plot(*args, **kwargs)
+
+    # Monkey-patch the guarded plot onto a thin proxy so sc.plot is guarded
+    # but all other sc methods (reset, waitUntilIdle, etc.) still work
+    class _ScProxy:
+        def __init__(self, ctx, guarded_plot):
+            object.__setattr__(self, '_ctx', ctx)
+            object.__setattr__(self, '_plot', guarded_plot)
+        def plot(self, *args, **kwargs):
+            return object.__getattribute__(self, '_plot')(*args, **kwargs)
+        def __getattr__(self, name):
+            return getattr(object.__getattribute__(self, '_ctx'), name)
+
+    namespace["sc"] = _ScProxy(ctx, _guarded_plot)
 
     return namespace
 

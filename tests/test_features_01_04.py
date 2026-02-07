@@ -534,13 +534,13 @@ class TestFeature04MoreSpacecraft:
         assert result is not None
         assert result["spacecraft"] == "MMS"
         assert result["instrument"] == "FGM"
-        assert "MMS1_FGM_SRVY_L2" in result["datasets"]
+        assert "MMS1_FGM_SRVY_L2@0" in result["datasets"]
 
     def test_mms_plasma_search(self):
         result = search_by_keywords("mms ion density")
         assert result is not None
         assert result["instrument"] == "FPI-DIS"
-        assert "MMS1_FPI_FAST_L2_DIS-MOMS" in result["datasets"]
+        assert "MMS1_FPI_FAST_L2_DIS-MOMS@0" in result["datasets"]
 
     # --- STEREO-A ---
 
@@ -562,7 +562,7 @@ class TestFeature04MoreSpacecraft:
         assert result is not None
         assert result["spacecraft"] == "STEREO_A"
         assert result["instrument"] == "MAG"
-        assert "STA_L2_MAG_RTN" in result["datasets"]
+        assert "STA_L1_MAG_RTN" in result["datasets"]
 
     def test_stereo_plasma_search(self):
         result = search_by_keywords("stereo-a plasma")
@@ -621,10 +621,10 @@ class TestFeature04MoreSpacecraft:
     def test_new_spacecraft_dataset_ids_look_valid(self):
         """New dataset IDs follow expected CDAWeb naming patterns."""
         expected_datasets = {
-            "WIND": ["WI_H2_MFI", "WI_H1_SWE"],
+            "WIND": ["WI_H2_MFI", "WI_H0_MFI", "WI_H1_SWE"],
             "DSCOVR": ["DSCOVR_H0_MAG", "DSCOVR_H1_FC"],
-            "MMS": ["MMS1_FGM_SRVY_L2", "MMS1_FPI_FAST_L2_DIS-MOMS"],
-            "STEREO_A": ["STA_L2_MAG_RTN", "STA_L2_PLA_1DMAX_1MIN"],
+            "MMS": ["MMS1_FGM_SRVY_L2@0", "MMS1_FPI_FAST_L2_DIS-MOMS@0"],
+            "STEREO_A": ["STA_L1_MAG_RTN", "STA_L2_MAGPLASMA_1M", "STA_L2_PLA_1DMAX_1MIN"],
         }
         for sc_id, expected in expected_datasets.items():
             all_datasets = []

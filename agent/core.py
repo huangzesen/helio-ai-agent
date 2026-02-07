@@ -269,6 +269,20 @@ class OrchestratorAgent:
                 time_range = parse_time_range(args["time_range"])
             except TimeRangeError as e:
                 return {"status": "error", "message": str(e)}
+            # Validate parameter exists via HAPI before calling Autoplot
+            # (invalid parameters cause JVM crashes — ISSUE-02)
+            try:
+                params = hapi_list_parameters(args["dataset_id"])
+                param_names = [p["name"] for p in params]
+                if args["parameter_id"] not in param_names:
+                    suggestions = ", ".join(param_names[:10])
+                    if len(param_names) > 10:
+                        suggestions += f" ({len(param_names)} total)"
+                    return {"status": "error",
+                            "message": f"Parameter '{args['parameter_id']}' not found in dataset '{args['dataset_id']}'. "
+                                       f"Available: {suggestions}"}
+            except Exception:
+                pass  # fail-open if HAPI unavailable
             validation = self._validate_time_range(
                 args["dataset_id"], time_range.start, time_range.end
             )

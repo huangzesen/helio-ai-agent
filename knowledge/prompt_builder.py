@@ -266,9 +266,12 @@ def build_mission_prompt(mission_id: str) -> str:
     lines.append("## Reporting Results")
     lines.append("")
     lines.append("After completing data operations, report back with:")
-    lines.append("- What data was fetched (labels, time range, number of points)")
+    lines.append("- The **exact stored label(s)** for fetched data, e.g., 'Stored labels: DATASET.Param1, DATASET.Param2'")
+    lines.append("- What time range was fetched and how many data points")
     lines.append("- What computations were performed (output labels)")
     lines.append("- A suggestion of what to plot (e.g., \"The data is ready to plot: labels 'ACE_Bmag' and 'ACE_smooth'\")")
+    lines.append("")
+    lines.append("IMPORTANT: Always state the exact stored label(s) so downstream agents can reference them correctly.")
     lines.append("")
     lines.append("Do NOT attempt to plot data — plotting is handled by the orchestrator.")
     lines.append("")
@@ -388,6 +391,7 @@ def build_autoplot_prompt(gui_mode: bool = False) -> str:
         "```",
         "dom (Application)",
         "  +-- dom.getPlots(i)           -> Plot panel (title, axes)",
+        "  |     +-- .setTitle(str)        -> set panel title",
         "  |     +-- .getXaxis()          -> time axis",
         "  |     +-- .getYaxis()          -> y-axis (label, range, log)",
         "  |     +-- .getZaxis()          -> z-axis (color table, log)",
@@ -397,6 +401,10 @@ def build_autoplot_prompt(gui_mode: bool = False) -> str:
         "  |     +-- .setComponent('')    -> filter component",
         "  +-- dom.setTimeRange(tr)       -> global time range",
         "```",
+        "",
+        "IMPORTANT: Title is a Plot-level property, NOT an Application-level property.",
+        "- CORRECT: `dom.getPlots(0).setTitle('My Title')`",
+        "- WRONG: `dom.setTitle('My Title')` -- this does NOT exist and will error",
         "",
         "## autoplot_script -- Examples",
         "",
@@ -442,11 +450,34 @@ def build_autoplot_prompt(gui_mode: bool = False) -> str:
         "sc.waitUntilIdle()",
         "```",
         "",
+        "### Plot vector component in separate panels",
+        "```python",
+        "bx = to_qdataset('AC_H2_MFI.BGSEc', component=0)",
+        "by = to_qdataset('AC_H2_MFI.BGSEc', component=1)",
+        "bz = to_qdataset('AC_H2_MFI.BGSEc', component=2)",
+        "sc.plot(0, bx)",
+        "sc.plot(1, by)",
+        "sc.plot(2, bz)",
+        "sc.waitUntilIdle()",
+        "```",
+        "",
         "### State inspection",
         "```python",
         "n = dom.getPlots().length",
         "result = f'{n} panels currently showing'",
         "```",
+        "",
+        "## Vector Data Handling",
+        "",
+        "Many spacecraft datasets are vectors (e.g., magnetic field Bx/By/Bz). `to_qdataset()` requires",
+        "a `component=` argument for multi-column data:",
+        "- `to_qdataset('label', component=0)` -- first component (e.g., Bx)",
+        "- `to_qdataset('label', component=1)` -- second component (e.g., By)",
+        "- `to_qdataset('label', component=2)` -- third component (e.g., Bz)",
+        "",
+        "For scalar data (single column), no `component` argument is needed.",
+        "",
+        "CRITICAL: Maximum 3 panels (indices 0, 1, 2). For more data, use overlays instead of new panels.",
         "",
         "## Workflow",
         "",
@@ -547,6 +578,8 @@ Use `ask_clarification` when:
 Do NOT ask when:
 - You can make a reasonable default choice
 - The user gives clear, specific instructions
+- The user provides a specific dataset_id AND parameter_id — use them directly without asking
+- The user names a spacecraft + data type (e.g., "ACE magnetic field") — delegate to the mission agent immediately
 - It's a follow-up action on current plot
 
 ## Data Availability
