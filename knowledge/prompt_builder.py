@@ -10,6 +10,7 @@ Mission sub-agents get rich, focused prompts with full domain knowledge.
 
 from .catalog import SPACECRAFT
 from .mission_loader import load_mission, load_all_missions, get_routing_table, get_mission_datasets
+from .hapi_client import list_parameters as _list_parameters
 from autoplot_bridge.registry import render_method_catalog
 
 
@@ -147,6 +148,51 @@ def generate_routing_table_text() -> str:
 # Mission-specific prompt builder (for mission sub-agents)
 # ---------------------------------------------------------------------------
 
+def _format_parameter_summary(dataset_id: str, max_params: int = 8) -> str:
+    """Generate a compact one-liner of parameter names for a dataset.
+
+    Reads from local cache (instant). Returns empty string if no cache.
+
+    Args:
+        dataset_id: CDAWeb dataset ID
+        max_params: Maximum number of parameters to show
+
+    Returns:
+        Formatted string like "  Parameters: name1 (nT, vector[3]), name2 (km/s)"
+        or empty string if parameters can't be loaded.
+    """
+    try:
+        params = _list_parameters(dataset_id)
+    except Exception:
+        return ""
+
+    if not params:
+        return ""
+
+    parts = []
+    for p in params[:max_params]:
+        name = p["name"]
+        units = p.get("units", "")
+        size = p.get("size", [1])
+        # Build compact descriptor
+        desc_parts = []
+        if units and units.lower() not in ("null", "none", ""):
+            desc_parts.append(units)
+        if size and size[0] > 1:
+            desc_parts.append(f"vector[{size[0]}]")
+        if desc_parts:
+            parts.append(f"{name} ({', '.join(desc_parts)})")
+        else:
+            parts.append(name)
+
+    total = len(params)
+    summary = ", ".join(parts)
+    if total > max_params:
+        summary += f" ({total} total)"
+
+    return f"  Parameters: {summary}"
+
+
 def build_mission_prompt(mission_id: str) -> str:
     """Generate a rich prompt for a single mission's sub-agent.
 
@@ -191,7 +237,7 @@ def build_mission_prompt(mission_id: str) -> str:
     # --- Primary Datasets ---
     lines.append("## Primary Datasets")
     lines.append("")
-    lines.append("Use these datasets by default. Use `list_parameters` to discover parameter names, units, and descriptions.")
+    lines.append("Use these datasets by default. Parameter names are listed below — use them directly with fetch_data.")
     lines.append("")
     for inst_id, inst in mission.get("instruments", {}).items():
         lines.append(f"### {inst['name']} ({inst_id})")
@@ -199,6 +245,10 @@ def build_mission_prompt(mission_id: str) -> str:
             if ds_info.get("tier") == "primary":
                 desc = ds_info.get("description", "")
                 lines.append(f"- **{ds_id}**: {desc}" if desc else f"- **{ds_id}**")
+                # Add parameter summary from local cache
+                param_summary = _format_parameter_summary(ds_id)
+                if param_summary:
+                    lines.append(param_summary)
         lines.append("")
 
     # --- Advanced Datasets (if any) ---
@@ -220,11 +270,16 @@ def build_mission_prompt(mission_id: str) -> str:
     # --- Data Operations Documentation ---
     lines.append("## Data Operations Workflow")
     lines.append("")
-    lines.append("1. **`list_parameters`** — Discover available parameters for a dataset")
-    lines.append("2. **`fetch_data`** — Pull data from CDAWeb HAPI into memory. Label: `DATASET.PARAM`. Time range format: `'2024-01-15 to 2024-01-20'` (use ` to ` separator, NOT `/`). Also accepts `'last week'`, `'January 2024'`, etc.")
-    lines.append("3. **`custom_operation`** — Transform data using pandas/numpy code on `df`, assign to `result`")
-    lines.append("4. **`describe_data`** — Get statistics (min, max, mean, std, percentiles, NaN count)")
-    lines.append("5. **`save_data`** — Export to CSV with ISO 8601 timestamps")
+    lines.append("1. **Identify the dataset**: Match the user's request to a dataset from the primary list above.")
+    lines.append("   Parameter names are listed — use them directly with fetch_data.")
+    lines.append("2. **Verify if unsure**: Call `list_parameters` to check parameters for any dataset (fast local lookup).")
+    lines.append("   If the parameters don't match the user's request, try another dataset.")
+    lines.append("3. **`fetch_data`** — Pull data into memory. Label: `DATASET.PARAM`.")
+    lines.append("   Time range: '2024-01-15 to 2024-01-20' (use ' to ' separator, NOT '/').")
+    lines.append("   Also accepts 'last week', 'January 2024', etc.")
+    lines.append("4. **`custom_operation`** — Transform data using pandas/numpy code on `df`, assign to `result`")
+    lines.append("5. **`describe_data`** — Get statistics (min, max, mean, std, percentiles, NaN count)")
+    lines.append("6. **`save_data`** — Export to CSV with ISO 8601 timestamps")
     lines.append("")
     lines.append("## Reporting Results")
     lines.append("")

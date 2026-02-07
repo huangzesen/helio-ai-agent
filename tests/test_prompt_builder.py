@@ -145,6 +145,59 @@ class TestBuildMissionPrompt:
         prompt = build_mission_prompt("PSP")
         assert "data specialist agent" in prompt.lower()
 
+    def test_mission_prompt_has_explore_before_fetch_workflow(self):
+        """Workflow now guides: identify dataset → verify → fetch."""
+        prompt = build_mission_prompt("PSP")
+        workflow_start = prompt.index("## Data Operations Workflow")
+        workflow_end = prompt.index("## Reporting Results")
+        workflow_section = prompt[workflow_start:workflow_end]
+        assert "Identify the dataset" in workflow_section
+        assert "Verify if unsure" in workflow_section
+        assert "fetch_data" in workflow_section
+
+    def test_mission_prompt_has_parameter_summaries_with_cache(self, tmp_path):
+        """When local HAPI cache exists, primary datasets show parameter names."""
+        import json
+        from unittest.mock import patch
+
+        # Create a fake cache for PSP_FLD_L2_MAG_RTN_1MIN
+        fake_missions = tmp_path / "missions"
+        psp_hapi = fake_missions / "psp" / "hapi"
+        psp_hapi.mkdir(parents=True)
+        sample_info = {
+            "parameters": [
+                {"name": "Time", "type": "isotime", "units": "UTC"},
+                {"name": "psp_fld_l2_mag_RTN_1min", "type": "double", "units": "nT", "size": [3]},
+                {"name": "psp_fld_l2_quality_flags", "type": "integer", "units": None},
+            ],
+        }
+        (psp_hapi / "PSP_FLD_L2_MAG_RTN_1MIN.json").write_text(
+            json.dumps(sample_info), encoding="utf-8"
+        )
+
+        with patch("knowledge.hapi_client._MISSIONS_DIR", fake_missions):
+            from knowledge.hapi_client import clear_cache
+            clear_cache()
+            prompt = build_mission_prompt("PSP")
+            assert "Parameters:" in prompt
+            assert "psp_fld_l2_mag_RTN_1min" in prompt
+
+    def test_mission_prompt_without_cache_still_works(self, tmp_path):
+        """When no local cache exists, prompt still generates without parameter lines."""
+        from unittest.mock import patch
+
+        # Point to empty directory — no cache files
+        fake_missions = tmp_path / "empty_missions"
+        fake_missions.mkdir()
+
+        with patch("knowledge.hapi_client._MISSIONS_DIR", fake_missions):
+            from knowledge.hapi_client import clear_cache
+            clear_cache()
+            prompt = build_mission_prompt("PSP")
+            # Prompt should still work, just without parameter summaries
+            assert "## Primary Datasets" in prompt
+            assert "PSP_FLD_L2_MAG_RTN_1MIN" in prompt
+
 
 class TestBuildSystemPrompt:
     def test_contains_today_placeholder(self):
@@ -257,3 +310,13 @@ class TestBuildAutoplotPrompt:
     def test_has_visualization_specialist_identity(self):
         prompt = build_autoplot_prompt()
         assert "visualization" in prompt.lower()
+
+    def test_has_time_format_guidance(self):
+        prompt = build_autoplot_prompt()
+        assert "## Time Range Format" in prompt
+        assert "NOT '/'" in prompt
+
+    def test_has_plot_method_decision_rule(self):
+        prompt = build_autoplot_prompt()
+        assert "plot_stored_data" in prompt
+        assert "Decision rule" in prompt

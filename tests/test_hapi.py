@@ -7,7 +7,10 @@ Note: These tests require network access to CDAWeb HAPI server.
 Some tests are marked slow and can be skipped with: pytest -m "not slow"
 """
 
+import json
 import pytest
+from unittest.mock import patch
+
 from knowledge.hapi_client import (
     get_dataset_info,
     list_parameters,
@@ -102,3 +105,32 @@ class TestGetDatasetTimeRange:
         """Test that invalid dataset returns None."""
         time_range = get_dataset_time_range("INVALID_XYZ")
         assert time_range is None
+
+
+class TestLocalFirstCacheBehavior:
+    """Test that get_dataset_info prefers local cache over network."""
+
+    def test_local_cache_avoids_network(self, tmp_path):
+        """When local cache exists, no network request is made."""
+        fake_missions = tmp_path / "missions"
+        psp_hapi = fake_missions / "psp" / "hapi"
+        psp_hapi.mkdir(parents=True)
+
+        sample_info = {
+            "startDate": "2018-10-06",
+            "stopDate": "2025-12-31",
+            "parameters": [
+                {"name": "Time", "type": "isotime"},
+                {"name": "test_param", "type": "double", "units": "nT"},
+            ],
+        }
+        (psp_hapi / "PSP_FLD_L2_MAG_RTN_1MIN.json").write_text(
+            json.dumps(sample_info), encoding="utf-8"
+        )
+
+        with patch("knowledge.hapi_client._MISSIONS_DIR", fake_missions), \
+             patch("knowledge.hapi_client.requests.get") as mock_get:
+            info = get_dataset_info("PSP_FLD_L2_MAG_RTN_1MIN")
+            assert info["startDate"] == "2018-10-06"
+            # Network should NOT have been called
+            mock_get.assert_not_called()
