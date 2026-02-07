@@ -12,7 +12,7 @@ An AI agent that lets users explore and visualize spacecraft/heliophysics data t
 User input
   |
   v
-main.py  (readline CLI, --verbose flag, token usage on exit)
+main.py  (readline CLI, --verbose/--gui flags, token usage on exit)
   |  - Commands: quit, reset, status, retry, cancel, help
   |  - Checks for incomplete plans on startup
   |
@@ -53,15 +53,17 @@ agent/core.py  AutoplotAgent  (LLM-driven orchestrator)
   |       plotting.py         Matplotlib fallback (DEPRECATED — plotting goes through Autoplot)
   |
   +---> autoplot_bridge/    Java visualization via JPype
-  |       connection.py       JVM startup, ScriptContext singleton
+  |       connection.py       JVM startup, ScriptContext singleton, conditional headless flag
   |       commands.py          plot_cdaweb, set_time_range, export_png, plot_dataset
   |                            numpy->QDataSet conversion, overplot with color management
+  |                            GUI mode: reset, title, axis labels, log scale, axis range,
+  |                            save/load session (.vap)
   |
   +---> scripts/            Tooling
           generate_mission_data.py  Auto-populate JSON from CDAWeb HAPI catalog
 ```
 
-## Tools (15 total)
+## Tools (22 total)
 
 ### Dataset Discovery
 | Tool | Purpose |
@@ -77,6 +79,17 @@ agent/core.py  AutoplotAgent  (LLM-driven orchestrator)
 | `change_time_range` | Zoom/pan the current plot |
 | `export_plot` | Export current plot to PNG (auto-opens in default viewer) |
 | `get_plot_info` | Get current URI and time range |
+
+### Interactive GUI (available with `--gui` flag)
+| Tool | Purpose |
+|------|---------|
+| `reset_plot` | Clear the Autoplot canvas (all plots and state) |
+| `set_plot_title` | Set or change the plot title |
+| `set_axis_label` | Set label on y or z axis |
+| `toggle_log_scale` | Switch axis between linear and log scale |
+| `set_axis_range` | Manually set min/max range on an axis |
+| `save_session` | Save current Autoplot session to .vap file |
+| `load_session` | Restore a previously saved .vap session |
 
 ### Data Operations (fetch -> custom_operation -> plot)
 | Tool | Purpose |
@@ -119,6 +132,7 @@ Handled by `agent/time_utils.py`. Accepts:
 - Single date: `"2024-01-15"` (full day)
 - Date range: `"2024-01-15 to 2024-01-20"`
 - Datetime range: `"2024-01-15T06:00 to 2024-01-15T18:00"`
+- Space-separated datetime: `"2024-01-15 12:00:00 to 2024-01-16"`
 
 All times are UTC. Outputs `TimeRange` objects with `start`/`end` datetimes. Converts to Autoplot format via `to_autoplot_string()`.
 
@@ -134,7 +148,7 @@ All times are UTC. Outputs `TimeRange` objects with `start`/`end` datetimes. Con
 - `DataEntry` wraps a `pd.DataFrame` (DatetimeIndex + float64 columns) with backward-compat `.time` and `.values` properties for the Autoplot bridge.
 - `DataStore` is a singleton dict keyed by label. The LLM chains tools automatically: fetch -> custom_operation -> plot.
 - `custom_ops.py`: AST-validated, sandboxed executor for LLM-generated pandas/numpy code. Replaces all hardcoded compute functions — the LLM writes the pandas code directly.
-- HAPI CSV parsing uses `pd.read_csv()` with `pd.to_numeric(errors="coerce")` for robust handling.
+- HAPI CSV parsing uses `pd.read_csv()` with `pd.to_numeric(errors="coerce")` for robust handling. Detects HAPI JSON error responses (e.g., code 1201 "no data for time range") before attempting CSV parsing.
 
 ### Agent Loop (`agent/core.py`)
 - Gemini decides which tools to call via function calling.
@@ -173,9 +187,15 @@ JAVA_HOME=<optional, auto-detected>
 ## Running
 
 ```bash
-python main.py            # Normal mode
+python main.py            # Normal mode (headless)
 python main.py --verbose  # Show tool calls, timing, errors
+python main.py --gui      # Interactive GUI mode (Autoplot window visible)
+python main.py --gui -v   # GUI mode with verbose logging
 ```
+
+### GUI Mode
+
+When launched with `--gui`, Autoplot starts with its native Swing window visible instead of headless mode. Plots appear instantly in the GUI — no need to export to PNG. The 7 GUI tools (reset, title, labels, log scale, axis range, save/load session) become available. The LLM's system prompt is adjusted to avoid suggesting PNG exports.
 
 ### CLI Commands
 

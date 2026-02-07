@@ -4,6 +4,10 @@ Each file contains everything needed for implementation: motivation, file change
 
 ## Planned
 
-| # | Feature | Est. Effort |
+_(none currently)_
+
+## Completed
+
+| # | Feature | Implemented |
 |---|---------|-------------|
-| 1 | [Autoplot Interactive GUI Mode](01-interactive-gui.md) | Medium |
+| 1 | [Autoplot Interactive GUI Mode](archive/01-interactive-gui.md) | Feb 2026 |
