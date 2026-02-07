@@ -4,7 +4,9 @@ Each file contains everything needed for implementation: motivation, file change
 
 ## Planned
 
-_(none currently)_
+| # | Feature | Summary |
+|---|---------|---------|
+| 2 | [Gemini Hackathon Readiness](02-hackathon-readiness.md) | Gradio UI, demo video, multimodal input, Google Search grounding, Devpost polish |
 
 ## Completed
 
