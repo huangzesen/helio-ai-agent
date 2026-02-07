@@ -408,6 +408,9 @@ class OrchestratorAgent:
             args = tool_args.get("args", {})
             return self._dispatch_autoplot_method(method, args)
 
+        elif tool_name == "autoplot_script":
+            return self.autoplot.execute_script(tool_args["code"])
+
         # --- Data Operations Tools ---
 
         elif tool_name == "fetch_data":

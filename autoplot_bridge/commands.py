@@ -593,6 +593,19 @@ class AutoplotCommands:
                 "message": f"PDF file not created or is empty: {filepath}",
             }
 
+    def execute_script(self, code: str) -> dict:
+        """Execute a validated Autoplot script in a restricted namespace.
+
+        Args:
+            code: Python code using sc, dom, Color, etc.
+
+        Returns:
+            dict with status, output, and optional result.
+        """
+        _ = self.ctx  # ensure JVM initialized
+        from autoplot_bridge.script_runner import run_autoplot_script
+        return run_autoplot_script(code, self.ctx)
+
     def get_current_state(self) -> dict:
         """
         Get the current plot state.

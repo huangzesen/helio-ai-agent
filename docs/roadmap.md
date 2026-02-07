@@ -24,11 +24,11 @@ Future development plan for the helio-ai-agent project.
 | Cross-platform | Done | Windows + macOS |
 | Token Tracking | Done | Per-session usage statistics |
 
-### Tools (12 Tool Schemas)
+### Tools (13 Tool Schemas)
 
 **Dataset Discovery**: `search_datasets`, `list_parameters`, `get_data_availability`
 
-**Autoplot Visualization**: `execute_autoplot` (dispatches to 16 registry methods)
+**Autoplot Visualization**: `execute_autoplot` (dispatches to 16 registry methods), `autoplot_script` (direct DOM/ScriptContext code)
 
 **Data Operations**: `fetch_data`, `list_fetched_data`, `custom_operation`, `describe_data`, `save_data`
 
@@ -79,7 +79,7 @@ PSP, Solar Orbiter, ACE, OMNI, Wind, DSCOVR, MMS, STEREO-A
 ## Visualization Enhancements
 
 ### Layout
-- [ ] Multi-panel stack plots
+- [x] Multi-panel stack plots — via `autoplot_script` (sc.plot(0, uri1); sc.plot(1, uri2))
 - [ ] Synchronized time axes
 - [ ] Panel add/remove/reorder
 
@@ -93,12 +93,11 @@ PSP, Solar Orbiter, ACE, OMNI, Wind, DSCOVR, MMS, STEREO-A
 - [x] Custom color scales (jet, viridis, plasma, etc.) — via `set_color_table`
 - [x] Configurable axis labels and titles — via `set_axis_label`, `set_title`
 - [x] Log/linear scale toggle — via `toggle_log_scale`
+- [x] Per-element line color/styling — via `autoplot_script` (dom.getPlotElements(i).getStyle().setColor(...))
 - [ ] Grid and tick customization
 
 ### Annotations
-- [ ] Event markers (vertical lines with labels)
-- [ ] Shaded regions (e.g., storm intervals)
-- [ ] Text annotations
+- [x] Event markers, shaded regions, text annotations — accessible via `autoplot_script` (direct DOM manipulation)
 - [ ] Legend customization
 
 ---
@@ -196,11 +195,14 @@ PSP, Solar Orbiter, ACE, OMNI, Wind, DSCOVR, MMS, STEREO-A
 
 ### Adding New Autoplot Capabilities
 
+For **common operations** (add to registry):
 1. Add entry to `autoplot_bridge/registry.py` (method definition)
 2. Implement bridge method in `autoplot_bridge/commands.py`
 3. Add dispatch handler in `agent/core.py:_dispatch_autoplot_method()`
 4. Update `docs/capability-summary.md`
 5. No tool schema changes needed — the registry is the single source of truth
+
+For **advanced/one-off operations**: No code changes needed — the AutoplotAgent can use `autoplot_script` to write ScriptContext/DOM code directly.
 
 ### Adding New Non-Autoplot Tools
 

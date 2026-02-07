@@ -24,10 +24,11 @@ agent/core.py  OrchestratorAgent  (LLM-driven orchestrator)
   |
   +---> agent/autoplot_agent.py   Autoplot sub-agent (visualization-only tools)
   |       AutoplotAgent           Focused Gemini session for all visualization
-  |       execute_autoplot()      Single tool dispatching to 16 registry methods
+  |       execute_autoplot()      Registry method dispatch (16 methods)
+  |       autoplot_script()       Direct ScriptContext/DOM code (AST-validated sandbox)
   |       process_request()       Full conversational mode (max 10 iter)
   |       execute_task()          Forced function calling for plan tasks (max 3 iter)
-  |                               System prompt includes rendered method catalog
+  |                               System prompt includes method catalog + DOM reference
   |
   +---> agent/mission_agent.py    Mission sub-agents (data-only tools)
   |       MissionAgent            Focused Gemini session per spacecraft mission
@@ -61,8 +62,10 @@ agent/core.py  OrchestratorAgent  (LLM-driven orchestrator)
   +---> autoplot_bridge/          Java visualization via JPype
   |       connection.py             JVM startup, ScriptContext singleton, conditional headless flag
   |       registry.py               Method registry (16 methods) — single source of truth for capabilities
+  |       script_runner.py          AST-validated sandbox for direct ScriptContext/DOM code
   |       commands.py               plot_cdaweb, set_time_range, export_png/pdf, plot_dataset
   |                                 set_render_type, set_color_table, set_canvas_size
+  |                                 execute_script (delegates to script_runner)
   |                                 numpy->QDataSet conversion, overplot with color management
   |                                 GUI mode: reset, title, axis labels, log scale, axis range,
   |                                 save/load session (.vap)
@@ -71,7 +74,7 @@ agent/core.py  OrchestratorAgent  (LLM-driven orchestrator)
           generate_mission_data.py  Auto-populate JSON from CDAWeb HAPI catalog
 ```
 
-## Tools (12 tool schemas)
+## Tools (13 tool schemas)
 
 ### Dataset Discovery
 | Tool | Purpose |
@@ -80,12 +83,15 @@ agent/core.py  OrchestratorAgent  (LLM-driven orchestrator)
 | `list_parameters` | List plottable parameters for a dataset (HAPI /info) |
 | `get_data_availability` | Check available time range for a dataset (HAPI /info) |
 
-### Autoplot Visualization (registry-driven)
+### Autoplot Visualization
 | Tool | Purpose |
 |------|---------|
 | `execute_autoplot` | Execute any of 16 Autoplot methods via the method registry |
+| `autoplot_script` | Execute custom ScriptContext/DOM code for advanced visualization (multi-panel, annotations, styling) |
 
 The `execute_autoplot` tool dispatches to the method registry (`autoplot_bridge/registry.py`), which describes 16 operations: `plot_cdaweb`, `plot_stored_data`, `set_time_range`, `export_png`, `export_pdf`, `get_plot_state`, `reset`, `set_title`, `set_axis_label`, `toggle_log_scale`, `set_axis_range`, `save_session`, `load_session`, `set_render_type`, `set_color_table`, `set_canvas_size`.
+
+The `autoplot_script` tool provides direct access to Autoplot's ScriptContext and DOM API via an AST-validated sandbox (`autoplot_bridge/script_runner.py`). Pre-imported namespace includes `sc` (ScriptContext), `dom` (Application), `Color`, `RenderType`, `DatumRangeUtil`, `DatumRange`, `Units`, `DDataSet`, `QDataSet`, and `store` (DataStore). Blocks imports, exec/eval, JClass/jpype, and dunder access.
 
 ### Data Operations (fetch -> custom_operation -> plot)
 | Tool | Purpose |
@@ -120,8 +126,10 @@ The `execute_autoplot` tool dispatches to the method registry (`autoplot_bridge/
 - Rich system prompt with tiered datasets, data ops docs, analysis patterns
 
 ### AutoplotAgent (agent/autoplot_agent.py)
-- Sees tools: `execute_autoplot` + `list_fetched_data` (2 tools total)
-- System prompt includes the full method catalog rendered from the registry
+- Sees tools: `execute_autoplot` + `autoplot_script` + `list_fetched_data` (3 tools total)
+- System prompt includes the method catalog, DOM hierarchy reference, and script examples
+- `execute_autoplot`: Registry-driven dispatch for standard operations (16 methods)
+- `autoplot_script`: Direct ScriptContext/DOM code for advanced visualization (multi-panel, styling, annotations)
 - Handles all visualization: plotting, customization, export, render type changes
 
 ## Supported Spacecraft
@@ -158,6 +166,14 @@ All times are UTC. Outputs `TimeRange` objects with `start`/`end` datetimes. Con
 - `get_method(name)` and `validate_args(name, args)` for dispatch and validation
 - Adding a new capability = add registry entry + implement bridge method. No tool schema changes needed.
 
+### Script Runner (`autoplot_bridge/script_runner.py`)
+- AST-validated sandbox for executing direct ScriptContext/DOM code (analogous to `data_ops/custom_ops.py` for pandas)
+- Pre-imported namespace: `sc` (ScriptContext), `dom` (Application), `Color`, `RenderType`, `DatumRangeUtil`, `DatumRange`, `Units`, `DDataSet`, `QDataSet`, `store` (DataStore)
+- Blocks: imports, exec/eval/compile/open, JClass/jpype (prevents arbitrary Java class construction), os/sys/subprocess/socket/shutil/pathlib, dunder access, global/nonlocal, async
+- `result` assignment is optional (most Autoplot ops are void side-effects); if assigned, string value is captured
+- `print()` output is captured and returned in the result dict
+- `_format_java_exception()` unwraps JPype Java exceptions for readable error messages
+
 ### Autoplot Bridge (`autoplot_bridge/commands.py`)
 - **numpy -> QDataSet conversion**: `_numpy_to_qdataset()` converts datetime64[ns] to Units.t2000 (seconds since 2000-01-01) and float64 values to DDataSet objects via JPype.
 - **Vector decomposition**: (n,3) arrays are split into 3 scalar series (`.x`, `.y`, `.z`) because rank-2 QDataSets render as spectrograms.
@@ -183,7 +199,7 @@ All times are UTC. Outputs `TimeRange` objects with `start`/`end` datetimes. Con
 ### LLM-Driven Routing (`agent/core.py`, `agent/mission_agent.py`, `agent/autoplot_agent.py`)
 - **Routing**: The OrchestratorAgent (LLM) decides whether to handle a request directly or delegate via `delegate_to_mission` (data) or `delegate_to_autoplot` (visualization) tools. No regex-based routing — the LLM uses conversation context and the routing table to decide.
 - **Mission sub-agents**: Each spacecraft has a data specialist with rich system prompt (tiered datasets, data ops docs, analysis patterns). Agents are cached per session. Sub-agents have **data-only tools** (discovery, data_ops, conversation) — no plotting or routing tools.
-- **Autoplot sub-agent**: Visualization specialist with `execute_autoplot` + `list_fetched_data` tools. System prompt includes the method catalog from the registry. Handles all plotting, customization, and export.
+- **Autoplot sub-agent**: Visualization specialist with `execute_autoplot` + `autoplot_script` + `list_fetched_data` tools. System prompt includes the method catalog, DOM hierarchy reference, and script examples. Handles all plotting, customization, and export.
 - **Tool separation**: Tools have a `category` field (`discovery`, `autoplot`, `data_ops`, `conversation`, `routing`). `get_tool_schemas(categories=..., extra_names=...)` filters tools by category. Orchestrator sees `["discovery", "data_ops", "conversation", "routing"]`. AutoplotAgent sees `["autoplot"]` + `list_fetched_data` extra.
 - **Post-delegation plotting**: After `delegate_to_mission` returns data, the orchestrator uses `delegate_to_autoplot` to visualize results.
 - **Slim orchestrator**: System prompt contains a routing table (mission names + capabilities) plus delegation instructions. No dataset IDs or analysis tips — those live in mission sub-agents.

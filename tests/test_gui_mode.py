@@ -102,10 +102,10 @@ class TestAutoplotPromptGUIMode:
 class TestToolSchemaCount:
     """Test that the correct number of tool schemas are registered."""
 
-    def test_total_tool_count_is_12(self):
+    def test_total_tool_count_is_13(self):
         from agent.tools import get_tool_schemas
         schemas = get_tool_schemas()
-        assert len(schemas) == 12
+        assert len(schemas) == 13
 
     def test_autoplot_tools_present(self):
         from agent.tools import get_tool_schemas
