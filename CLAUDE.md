@@ -32,15 +32,17 @@ Data flows: User input → Gemini function calling → tool execution → result
 
 ## Commands
 
+**Shell note:** On this Windows machine, the Bash tool runs Git Bash (`/usr/bin/bash`), so always use forward slashes for paths. Use `./venv/Scripts/python.exe` (not `venv\Scripts\python.exe`).
+
 ```bash
 # Setup
 python -m venv venv
 source venv/bin/activate       # macOS/Linux
 pip install -r requirements.txt
 
-# On Windows, use the venv Python directly:
-#   venv/Scripts/python.exe -m pytest tests/
-#   venv/Scripts/python.exe main.py
+# On Windows (Git Bash), use the venv Python with forward slashes:
+#   ./venv/Scripts/python.exe -m pytest tests/
+#   ./venv/Scripts/python.exe main.py
 
 # Run the agent
 python main.py                 # Normal mode
