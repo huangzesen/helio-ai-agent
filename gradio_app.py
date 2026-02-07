@@ -17,7 +17,6 @@ import hashlib
 import os
 import sys
 import tempfile
-from pathlib import Path
 
 import gradio as gr
 
@@ -137,7 +136,7 @@ def respond(message: str, history: list[dict]) -> tuple:
     # If the plot changed, add the image inline in chat
     if plot_changed and plot_path:
         history = history + [
-            {"role": "assistant", "content": gr.Image(value=plot_path)}
+            {"role": "assistant", "content": gr.FileData(path=plot_path)}
         ]
 
     # Build sidebar state
@@ -185,13 +184,7 @@ EXAMPLES = [
 def create_app() -> gr.Blocks:
     """Build and return the Gradio Blocks application."""
 
-    with gr.Blocks(
-        title="Helio AI Agent",
-        css="""
-        .plot-sidebar img { max-height: 400px; object-fit: contain; }
-        footer { display: none !important; }
-        """,
-    ) as app:
+    with gr.Blocks(title="Helio AI Agent") as app:
         # ---- Header ----
         gr.Markdown(
             "# Helio AI Agent\n"
@@ -203,10 +196,8 @@ def create_app() -> gr.Blocks:
             # ---- Main column: Chat ----
             with gr.Column(scale=3):
                 chatbot = gr.Chatbot(
-                    type="messages",
                     height=500,
                     label="Chat",
-                    show_copy_button=True,
                     placeholder=(
                         "Ask me about spacecraft data! Try:\n"
                         "\"Show me ACE magnetic field data for last week\""
@@ -307,6 +298,10 @@ def main():
             share=args.share,
             show_error=True,
             theme=gr.themes.Soft(),
+            css="""
+            .plot-sidebar img { max-height: 400px; object-fit: contain; }
+            footer { display: none !important; }
+            """,
         )
     except KeyboardInterrupt:
         print("\nShutting down...")
