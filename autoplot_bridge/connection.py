@@ -67,13 +67,16 @@ def init_autoplot(verbose: bool = False, headless: bool = True):
         print("  [Autoplot] Loading ScriptContext class...")
     ScriptContext = jpype.JClass("org.autoplot.ScriptContext")
 
-    # Create the application model. In headless mode this avoids GUI creation;
-    # in GUI mode this creates the visible Swing window.
+    # Create the application model. In headless mode, createApplicationModel('')
+    # is sufficient. In GUI mode, we also need createGui() to spawn the visible
+    # Swing window — createApplicationModel alone creates zero AWT frames.
     if not ScriptContext.isModelInitialized():
         if verbose:
             mode_str = "headless" if headless else "GUI"
             print(f"  [Autoplot] Creating {mode_str} application model...")
         ScriptContext.createApplicationModel('')
+        if not headless:
+            ScriptContext.createGui()
         if verbose:
             print("  [Autoplot] Application model ready.")
 
