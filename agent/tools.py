@@ -279,6 +279,7 @@ Available objects in the script namespace:
 - Units: org.das2.datum — Units.dimensionless, Units.t2000, Units.lookupUnits("nT")
 - DDataSet, QDataSet: org.das2.qds — Dataset creation and property constants
 - store: DataStore — store.get("label") returns DataEntry with .time, .values, .data
+- to_qdataset: function — to_qdataset('label') -> QDataSet for sc.plot(); to_qdataset('label', component=0) for vectors
 
 Rules:
 - No imports, no exec/eval, no file I/O, no JClass/jpype (only pre-imported classes above)

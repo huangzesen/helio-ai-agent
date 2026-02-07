@@ -124,6 +124,10 @@ class TestMatchDatasetToMission:
     @pytest.mark.parametrize("dataset_id,expected_mission", [
         ("PSP_FLD_L2_MAG_RTN_1MIN", "psp"),
         ("PSP_SWP_SPC_L3I", "psp"),
+        ("PSP_SWP_SPI_SF00_L3_MOM", "psp"),
+        ("PSP_SWP_SPA_SF0_L3_PAD", "psp"),
+        ("PSP_SWP_SPB_SF0_L3_PAD", "psp"),
+        ("PSP_ISOIS-EPIHI_L2-HET-RATES60", "psp"),
         ("AC_H2_MFI", "ace"),
         ("SOLO_L2_MAG-RTN-NORMAL-1-MINUTE", "solo"),
         ("OMNI_HRO_1MIN", "omni"),
@@ -137,9 +141,14 @@ class TestMatchDatasetToMission:
         mission, _ = match_dataset_to_mission(dataset_id)
         assert mission == expected_mission
 
-    def test_instrument_suggestion(self):
-        _, instrument = match_dataset_to_mission("PSP_FLD_L2_MAG_RTN_1MIN")
-        assert instrument == "FIELDS/MAG"
-
-        _, instrument = match_dataset_to_mission("PSP_SWP_SPC_L3I")
-        assert instrument == "SWEAP"
+    @pytest.mark.parametrize("dataset_id,expected_instrument", [
+        ("PSP_FLD_L2_MAG_RTN_1MIN", "FIELDS/MAG"),
+        ("PSP_SWP_SPC_L3I", "SWEAP"),
+        ("PSP_SWP_SPI_SF00_L3_MOM", "SWEAP/SPAN-I"),
+        ("PSP_SWP_SPA_SF0_L3_PAD", "SWEAP/SPAN-E"),
+        ("PSP_SWP_SPB_SF0_L3_PAD", "SWEAP/SPAN-E"),
+        ("PSP_ISOIS-EPIHI_L2-HET-RATES60", "ISOIS"),
+    ])
+    def test_instrument_suggestion(self, dataset_id, expected_instrument):
+        _, instrument = match_dataset_to_mission(dataset_id)
+        assert instrument == expected_instrument

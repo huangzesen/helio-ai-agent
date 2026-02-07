@@ -18,6 +18,8 @@ import builtins
 import io
 import sys
 
+import numpy as np
+
 
 # Builtins that are safe to use in Autoplot scripts
 _SAFE_BUILTINS = frozenset({
@@ -123,8 +125,92 @@ def _build_namespace(ctx):
     namespace["QDataSet"] = jpype.JClass("org.das2.qds.QDataSet")
 
     # In-memory data store access
-    from data_ops.store import get_store
-    namespace["store"] = get_store()
+    from data_ops.store import get_store, DataEntry
+    store = get_store()
+    namespace["store"] = store
+
+    # --- to_qdataset helper ---
+    DDataSet = namespace["DDataSet"]
+    QDataSet = namespace["QDataSet"]
+    Units = namespace["Units"]
+
+    def to_qdataset(label_or_entry, component=None):
+        """Convert stored data to a QDataSet for use with sc.plot().
+
+        Args:
+            label_or_entry: A string label (looked up in store) or a DataEntry.
+            component: For vector data, specify an integer column index (0, 1, 2)
+                or a column name string. Required for multi-column data.
+
+        Returns:
+            A rank-1 QDataSet with DEPEND_0 (time), LABEL, and TITLE set.
+
+        Raises:
+            ValueError: If the label is not found, or component is needed but
+                not specified.
+        """
+        if isinstance(label_or_entry, str):
+            entry = store.get(label_or_entry)
+            if entry is None:
+                raise ValueError(f"Label '{label_or_entry}' not found in store")
+        elif isinstance(label_or_entry, DataEntry):
+            entry = label_or_entry
+        else:
+            raise ValueError("Expected a string label or DataEntry")
+
+        time_arr = entry.time
+        values = entry.values
+
+        # Handle vector / multi-column data
+        if values.ndim == 2 and values.shape[1] > 1:
+            if component is None:
+                cols = list(entry.data.columns)
+                raise ValueError(
+                    f"'{entry.label}' has {values.shape[1]} columns {cols}. "
+                    f"Specify component=0/1/2 or column name."
+                )
+            if isinstance(component, str):
+                if component not in entry.data.columns:
+                    raise ValueError(f"Column '{component}' not found in '{entry.label}'")
+                col_idx = list(entry.data.columns).index(component)
+            else:
+                col_idx = int(component)
+            values = values[:, col_idx]
+            label = f"{entry.label}.{component}"
+        else:
+            values = values.ravel() if values.ndim > 1 else values
+            label = entry.label
+
+        n = len(time_arr)
+
+        # Build time dataset (Units.t2000 = seconds since 2000-01-01)
+        epoch_2000 = np.datetime64("2000-01-01T00:00:00", "ns")
+        time_seconds = (time_arr.astype("datetime64[ns]") - epoch_2000).astype(np.float64) / 1e9
+
+        time_ds = DDataSet.createRank1(n)
+        for i in range(n):
+            time_ds.putValue(i, float(time_seconds[i]))
+        time_ds.putProperty(QDataSet.UNITS, Units.t2000)
+
+        # Build values dataset
+        val_ds = DDataSet.createRank1(n)
+        for i in range(n):
+            val_ds.putValue(i, float(values[i]))
+        val_ds.putProperty(QDataSet.DEPEND_0, time_ds)
+
+        # Units
+        if entry.units:
+            try:
+                val_ds.putProperty(QDataSet.UNITS, Units.lookupUnits(entry.units))
+            except Exception:
+                pass
+
+        val_ds.putProperty(QDataSet.LABEL, label)
+        val_ds.putProperty(QDataSet.TITLE, label)
+
+        return val_ds
+
+    namespace["to_qdataset"] = to_qdataset
 
     return namespace
 

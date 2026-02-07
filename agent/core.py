@@ -297,6 +297,7 @@ class OrchestratorAgent:
                     entries=entries,
                     title=args.get("title", ""),
                     filename=args.get("filename", ""),
+                    index=int(args.get("index", -1)),
                 )
             except Exception as e:
                 return {"status": "error", "message": str(e)}

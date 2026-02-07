@@ -134,11 +134,18 @@ def match_instrument(spacecraft: str, query: str) -> Optional[str]:
 
     query_lower = query.lower()
 
+    # First pass: exact keyword matches (prefer precise over substring)
     for inst_id, info in sc["instruments"].items():
         # Check exact match on ID
         if query_lower == inst_id.lower():
             return inst_id
-        # Check keywords
+        # Check exact keyword match
+        for kw in info["keywords"]:
+            if kw == query_lower:
+                return inst_id
+
+    # Second pass: substring keyword matches
+    for inst_id, info in sc["instruments"].items():
         for kw in info["keywords"]:
             if kw in query_lower:
                 return inst_id

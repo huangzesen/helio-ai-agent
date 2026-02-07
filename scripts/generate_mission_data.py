@@ -38,7 +38,12 @@ MISSIONS_DIR = Path(__file__).parent.parent / "knowledge" / "missions"
 # Order matters: longer prefixes checked first
 MISSION_PREFIX_MAP = {
     "PSP_FLD": ("psp", "FIELDS/MAG"),
+    "PSP_SWP_SPC": ("psp", "SWEAP"),
+    "PSP_SWP_SPI": ("psp", "SWEAP/SPAN-I"),
+    "PSP_SWP_SPA": ("psp", "SWEAP/SPAN-E"),
+    "PSP_SWP_SPB": ("psp", "SWEAP/SPAN-E"),
     "PSP_SWP": ("psp", "SWEAP"),
+    "PSP_ISOIS": ("psp", "ISOIS"),
     "PSP_": ("psp", None),
     "SOLO_L2_MAG": ("solo", "MAG"),
     "SOLO_L2_SWA": ("solo", "SWA-PAS"),

@@ -235,16 +235,21 @@ class AutoplotCommands:
         return val_ds
 
     def plot_dataset(self, entries: list[DataEntry],
-                     title: str = "", filename: str = "") -> dict:
+                     title: str = "", filename: str = "",
+                     index: int = -1) -> dict:
         """Plot one or more DataEntry timeseries in the Autoplot canvas.
 
         Vector entries (n, 3) are decomposed into scalar x/y/z components.
-        Multiple series are overlaid using setLayoutOverplot.
+        Multiple series are overlaid using setLayoutOverplot (default mode).
+
+        When ``index >= 0``, series are plotted into specific panel slots
+        without changing the overall layout — this preserves existing panels.
 
         Args:
             entries: DataEntry objects to plot.
             title: Optional plot title.
             filename: If provided, export to PNG after plotting.
+            index: Panel index (0-based). -1 (default) uses auto-layout.
 
         Returns:
             dict with status, labels, num_series, and optional filepath.
@@ -283,7 +288,24 @@ class AutoplotCommands:
 
         n_series = len(datasets)
 
-        if n_series == 1:
+        if index >= 0:
+            # --- Panel-targeted mode: add new panel(s) after existing content ---
+            # In Autoplot, sc.plot(chNum, ds) uses *channel* indices, not panel
+            # indices.  After setLayoutOverplot(N), channels 0..N-1 share one
+            # panel.  To create a genuinely new panel we must plot at a channel
+            # beyond all existing plot elements.
+            try:
+                dom = self.ctx.getDocumentModel()
+                n_existing = int(dom.getPlotElements().length)
+            except Exception:
+                n_existing = 0
+            self._log(f"Plotting {n_series} series into new panel(s) "
+                       f"(existing channels: {n_existing}, target panel: {index})...")
+            for i, (label, ds) in enumerate(datasets):
+                slot = n_existing + i
+                self._log(f"  Channel {slot}: '{label}'")
+                self._run_with_elapsed(f"Plotting channel {slot}", self.ctx.plot, slot, ds)
+        elif n_series == 1:
             label, ds = datasets[0]
             self._log(f"Plotting '{label}' in Autoplot...")
             self._run_with_elapsed("Plotting", self.ctx.plot, ds)
@@ -297,10 +319,10 @@ class AutoplotCommands:
         self._log("Waiting for render to complete...")
         self._run_with_elapsed("Rendering", self.ctx.waitUntilIdle)
 
-        # Color handling for overplotted series:
+        # Color handling for overplotted series (skip in panel-targeted mode):
         # - First plot (nothing cached): generate distinct colors via HSB
         # - Later plots: reuse cached colors, new additions get black
-        if n_series > 1:
+        if n_series > 1 and index < 0:
             try:
                 Color = jpype.JClass("java.awt.Color")
                 dom = self.ctx.getDocumentModel()
@@ -331,7 +353,11 @@ class AutoplotCommands:
         if title:
             try:
                 dom = self.ctx.getDocumentModel()
-                dom.getPlots(0).setTitle(title)
+                # In panel-targeted mode, title goes on the last panel created;
+                # otherwise on panel 0.
+                n_plots = int(dom.getPlots().length)
+                target_plot = max(0, n_plots - 1) if index >= 0 else 0
+                dom.getPlots(target_plot).setTitle(title)
             except Exception:
                 self._log("Could not set plot title via DOM")
 

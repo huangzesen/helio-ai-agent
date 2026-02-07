@@ -42,6 +42,17 @@ class TestRegistryStructure:
                 assert "description" in p, f"{m['name']}.{p['name']}: missing 'description'"
 
 
+    def test_plot_stored_data_has_index_param(self):
+        m = get_method("plot_stored_data")
+        assert m is not None
+        param_names = [p["name"] for p in m["parameters"]]
+        assert "index" in param_names
+        idx_param = next(p for p in m["parameters"] if p["name"] == "index")
+        assert idx_param["required"] is False
+        assert idx_param["default"] == -1
+        assert idx_param["type"] == "integer"
+
+
 class TestGetMethod:
     def test_known_method(self):
         m = get_method("plot_cdaweb")
@@ -89,6 +100,17 @@ class TestValidateArgs:
     def test_optional_params_not_required(self):
         errors = validate_args("set_render_type", {"render_type": "scatter"})
         assert errors == []  # index is optional
+
+    def test_plot_stored_data_with_index(self):
+        errors = validate_args("plot_stored_data", {
+            "labels": "ACE_Bmag",
+            "index": 1,
+        })
+        assert errors == []
+
+    def test_plot_stored_data_without_index(self):
+        errors = validate_args("plot_stored_data", {"labels": "ACE_Bmag"})
+        assert errors == []
 
     def test_axis_enum_validation(self):
         errors = validate_args("set_axis_label", {"axis": "x", "label": "test"})

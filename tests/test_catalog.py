@@ -40,10 +40,13 @@ class TestListSpacecraft:
 class TestListInstruments:
     def test_psp_instruments(self):
         instruments = list_instruments("PSP")
-        assert len(instruments) == 2
+        assert len(instruments) == 5
         ids = [i["id"] for i in instruments]
         assert "FIELDS/MAG" in ids
         assert "SWEAP" in ids
+        assert "SWEAP/SPAN-I" in ids
+        assert "SWEAP/SPAN-E" in ids
+        assert "ISOIS" in ids
 
     def test_ace_instruments(self):
         instruments = list_instruments("ACE")
@@ -107,6 +110,14 @@ class TestMatchInstrument:
         ("PSP", "plasma", "SWEAP"),
         ("PSP", "density", "SWEAP"),
         ("PSP", "velocity", "SWEAP"),
+        ("PSP", "span", "SWEAP/SPAN-I"),
+        ("PSP", "span-i", "SWEAP/SPAN-I"),
+        ("PSP", "ion spectrometer", "SWEAP/SPAN-I"),
+        ("PSP", "span-e", "SWEAP/SPAN-E"),
+        ("PSP", "electron", "SWEAP/SPAN-E"),
+        ("PSP", "isois", "ISOIS"),
+        ("PSP", "energetic particle", "ISOIS"),
+        ("PSP", "epi-hi", "ISOIS"),
         ("SolO", "magnetic", "MAG"),
         ("SolO", "proton", "SWA-PAS"),
         ("ACE", "magnetic", "MAG"),

@@ -320,3 +320,19 @@ class TestBuildAutoplotPrompt:
         prompt = build_autoplot_prompt()
         assert "plot_stored_data" in prompt
         assert "Decision rule" in prompt
+
+    def test_has_to_qdataset_in_namespace(self):
+        prompt = build_autoplot_prompt()
+        assert "to_qdataset" in prompt
+
+    def test_has_panel_index_example(self):
+        prompt = build_autoplot_prompt()
+        assert '"index": 1' in prompt or '"index": 1' in prompt
+
+    def test_has_to_qdataset_script_example(self):
+        prompt = build_autoplot_prompt()
+        assert "to_qdataset('ACE_Bmag')" in prompt
+
+    def test_has_panel_targeted_guidance(self):
+        prompt = build_autoplot_prompt()
+        assert "Panel-targeted" in prompt or "panel-targeted" in prompt or "specific panel" in prompt

@@ -14,19 +14,19 @@ Adding a new capability:
 METHODS = [
     {
         "name": "plot_cdaweb",
-        "description": "Plot CDAWeb data directly in Autoplot by dataset and parameter ID.",
+        "description": "Plot CDAWeb data directly in Autoplot by dataset and parameter ID. Use ONLY for raw CDAWeb data NOT already in memory. If data was fetched or computed, use plot_stored_data instead.",
         "parameters": [
             {"name": "dataset_id", "type": "string", "required": True,
              "description": "CDAWeb dataset ID (e.g., 'AC_H2_MFI')"},
             {"name": "parameter_id", "type": "string", "required": True,
              "description": "Parameter to plot (e.g., 'Magnitude')"},
             {"name": "time_range", "type": "string", "required": True,
-             "description": "Time range: 'last week', '2024-01-01 to 2024-01-07', etc."},
+             "description": "Time range (use ' to ' separator, NOT '/'): 'last week', '2024-01-01 to 2024-01-07', etc."},
         ],
     },
     {
         "name": "plot_stored_data",
-        "description": "Plot one or more in-memory timeseries in the Autoplot canvas. Use labels from list_fetched_data.",
+        "description": "Plot one or more in-memory timeseries in the Autoplot canvas. Preferred method when data has been fetched or computed. Use labels from list_fetched_data.",
         "parameters": [
             {"name": "labels", "type": "string", "required": True,
              "description": "Comma-separated labels of data to plot (e.g., 'Bmag' or 'ACE_Bmag,PSP_Bmag')"},
@@ -34,6 +34,8 @@ METHODS = [
              "description": "Optional plot title"},
             {"name": "filename", "type": "string", "required": False, "default": "",
              "description": "Optional output filename for auto-export to PNG"},
+            {"name": "index", "type": "integer", "required": False, "default": -1,
+             "description": "Panel index (0-based). Omit or -1 for default auto-layout. Use 0, 1, 2... to target a specific panel."},
         ],
     },
     {
@@ -41,7 +43,7 @@ METHODS = [
         "description": "Change the time range of the current plot. Use for zooming in/out or shifting to a different period.",
         "parameters": [
             {"name": "time_range", "type": "string", "required": True,
-             "description": "New time range: 'last week', '2024-01-15 to 2024-01-20', etc."},
+             "description": "New time range (use ' to ' separator, NOT '/'): 'last week', '2024-01-15 to 2024-01-20', etc."},
         ],
     },
     {

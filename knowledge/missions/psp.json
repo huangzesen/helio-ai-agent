@@ -1,7 +1,7 @@
 {
   "id": "PSP",
   "name": "Parker Solar Probe",
-  "keywords": ["parker", "psp", "probe", "solar probe"],
+  "keywords": ["parker", "psp", "probe", "solar probe", "span", "isois", "energetic"],
   "profile": {
     "description": "Inner heliosphere probe studying the solar corona and young solar wind",
     "coordinate_systems": ["RTN"],
@@ -27,11 +27,44 @@
     },
     "SWEAP": {
       "name": "Solar Wind Plasma",
-      "keywords": ["plasma", "solar wind", "proton", "density", "velocity", "sweap"],
+      "keywords": ["plasma", "solar wind", "proton", "density", "velocity", "sweap", "spc"],
       "datasets": {
         "PSP_SWP_SPC_L3I": {
           "tier": "primary",
           "description": "Solar wind proton moments (density, velocity, temperature)",
+          "parameters": []
+        }
+      }
+    },
+    "SWEAP/SPAN-I": {
+      "name": "SPAN Ion Spectrometer",
+      "keywords": ["span", "span-i", "spi", "ion spectrometer", "ion distribution"],
+      "datasets": {
+        "PSP_SWP_SPI_SF00_L3_MOM": {
+          "tier": "primary",
+          "description": "SPAN-I ion moments (density, velocity, temperature)",
+          "parameters": []
+        }
+      }
+    },
+    "SWEAP/SPAN-E": {
+      "name": "SPAN Electron Analyzers",
+      "keywords": ["span-e", "span-a", "span-b", "spa", "spb", "electron"],
+      "datasets": {
+        "PSP_SWP_SPA_SF0_L3_PAD": {
+          "tier": "primary",
+          "description": "SPAN-A electron pitch angle distribution",
+          "parameters": []
+        }
+      }
+    },
+    "ISOIS": {
+      "name": "Integrated Science Investigation of the Sun",
+      "keywords": ["isois", "energetic", "epi-lo", "epi-hi", "energetic particle", "sep"],
+      "datasets": {
+        "PSP_ISOIS-EPIHI_L2-HET-RATES60": {
+          "tier": "primary",
+          "description": "EPI-Hi HET 60-second energetic particle rates",
           "parameters": []
         }
       }
