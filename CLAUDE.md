@@ -49,10 +49,33 @@ python main.py --verbose       # Show tool calls, timing, errors
 # Test Autoplot connection
 python -m autoplot_bridge.connection
 
-# Run tests
+# Unit tests (fast, no API key or JVM needed)
 python -m pytest tests/test_store.py tests/test_operations.py  # Data ops tests (41 tests)
 python -m pytest tests/                                         # All tests
 ```
+
+## Interactive Agent Testing
+
+Use `scripts/agent_server.py` to drive multi-turn conversations with the agent programmatically. It keeps an `AutoplotAgent` alive in a background process and accepts commands over a TCP socket — this is the primary way to test interactive agent behavior without a human at the terminal.
+
+```bash
+# Start the server (initializes JVM + agent, listens on localhost)
+python scripts/agent_server.py serve           # headless mode
+python scripts/agent_server.py serve --verbose  # with tool call logging
+
+# Send messages from another terminal (or script)
+python scripts/agent_server.py send "Show me ACE magnetic field data for last week"
+python scripts/agent_server.py send "Zoom in to January 10-15"
+python scripts/agent_server.py reset   # clear conversation history
+python scripts/agent_server.py stop    # shut down server
+
+# Run the automated test suite (starts/stops server automatically)
+python scripts/run_agent_tests.py              # all 6 scenarios
+python scripts/run_agent_tests.py --test 4     # single scenario
+python scripts/run_agent_tests.py --no-server  # use already-running server
+```
+
+The server uses `agent.core.create_agent()` directly (same `AutoplotAgent` as `main.py`). Responses include the agent's text reply, tool calls made, timing, and token usage. Session logs are saved to `~/.helio-agent/sessions/`.
 
 ## Configuration
 
