@@ -12,8 +12,9 @@ An AI agent that lets users explore and visualize spacecraft/heliophysics data t
 User input
   |
   v
-main.py  (readline CLI, --verbose/--gui flags, token usage on exit)
-  |  - Commands: quit, reset, status, retry, cancel, help
+main.py  (readline CLI, --verbose/--gui/--model flags, token usage on exit)
+  |  - Commands: quit, reset, status, retry, cancel, errors, capabilities, help
+  |  - Single-command mode: python main.py "request"
   |  - Checks for incomplete plans on startup
   |
   v
@@ -36,6 +37,10 @@ agent/core.py  OrchestratorAgent  (LLM-driven orchestrator)
   |       process_request()       Full conversational mode (max 10 iter)
   |                               Rich system prompt with data ops docs + recommended datasets
   |                               No plotting tools — reports results to orchestrator
+  |
+  +---> agent/prompts.py           Prompt formatting + tool result formatters
+  |       get_system_prompt()      Dynamic system prompt with {today} date
+  |       format_tool_result()     Format tool outputs for Gemini conversation
   |
   +---> agent/planner.py          Task planning
   |       is_complex_request()    Regex heuristics for complexity detection
@@ -72,6 +77,10 @@ agent/core.py  OrchestratorAgent  (LLM-driven orchestrator)
   |
   +---> scripts/                  Tooling
           generate_mission_data.py  Auto-populate JSON from CDAWeb HAPI catalog
+          fetch_hapi_cache.py       Download HAPI /info metadata to local cache
+          agent_server.py           TCP socket server for multi-turn agent testing
+          run_agent_tests.py        Integration test suite (6 scenarios)
+          stress_test.py            Stress testing
 ```
 
 ## Tools (14 tool schemas)
@@ -92,7 +101,7 @@ agent/core.py  OrchestratorAgent  (LLM-driven orchestrator)
 
 The `execute_autoplot` tool dispatches to the method registry (`autoplot_bridge/registry.py`), which describes 16 operations: `plot_cdaweb`, `plot_stored_data`, `set_time_range`, `export_png`, `export_pdf`, `get_plot_state`, `reset`, `set_title`, `set_axis_label`, `toggle_log_scale`, `set_axis_range`, `save_session`, `load_session`, `set_render_type`, `set_color_table`, `set_canvas_size`.
 
-The `autoplot_script` tool provides direct access to Autoplot's ScriptContext and DOM API via an AST-validated sandbox (`autoplot_bridge/script_runner.py`). Pre-imported namespace includes `sc` (ScriptContext), `dom` (Application), `Color`, `RenderType`, `DatumRangeUtil`, `DatumRange`, `Units`, `DDataSet`, `QDataSet`, and `store` (DataStore). Blocks imports, exec/eval, JClass/jpype, and dunder access.
+The `autoplot_script` tool provides direct access to Autoplot's ScriptContext and DOM API via an AST-validated sandbox (`autoplot_bridge/script_runner.py`). Pre-imported namespace includes `sc` (ScriptContext), `dom` (Application), `Color`, `RenderType`, `DatumRangeUtil`, `DatumRange`, `Units`, `DDataSet`, `QDataSet`, `store` (DataStore), and `to_qdataset` (converts stored data labels to QDataSet). Blocks imports, exec/eval, JClass/jpype, and dunder access.
 
 ### Data Operations (fetch -> custom_operation -> plot)
 | Tool | Purpose |
@@ -169,8 +178,8 @@ All times are UTC. Outputs `TimeRange` objects with `start`/`end` datetimes. Con
 
 ### Script Runner (`autoplot_bridge/script_runner.py`)
 - AST-validated sandbox for executing direct ScriptContext/DOM code (analogous to `data_ops/custom_ops.py` for pandas)
-- Pre-imported namespace: `sc` (ScriptContext), `dom` (Application), `Color`, `RenderType`, `DatumRangeUtil`, `DatumRange`, `Units`, `DDataSet`, `QDataSet`, `store` (DataStore)
-- Blocks: imports, exec/eval/compile/open, JClass/jpype (prevents arbitrary Java class construction), os/sys/subprocess/socket/shutil/pathlib, dunder access, global/nonlocal, async
+- Pre-imported namespace: `sc` (ScriptContext), `dom` (Application), `Color`, `RenderType`, `DatumRangeUtil`, `DatumRange`, `Units`, `DDataSet`, `QDataSet`, `store` (DataStore), `to_qdataset` (converts stored data labels to QDataSet)
+- Blocks: imports, exec/eval/compile/open, JClass/jpype (prevents arbitrary Java class construction), os/sys/subprocess/socket/shutil/pathlib/importlib, dunder access, global/nonlocal, async
 - `result` assignment is optional (most Autoplot ops are void side-effects); if assigned, string value is captured
 - `print()` output is captured and returned in the result dict
 - `_format_java_exception()` unwraps JPype Java exceptions for readable error messages
@@ -199,7 +208,7 @@ All times are UTC. Outputs `TimeRange` objects with `start`/`end` datetimes. Con
 
 ### LLM-Driven Routing (`agent/core.py`, `agent/mission_agent.py`, `agent/autoplot_agent.py`)
 - **Routing**: The OrchestratorAgent (LLM) decides whether to handle a request directly or delegate via `delegate_to_mission` (data) or `delegate_to_autoplot` (visualization) tools. No regex-based routing — the LLM uses conversation context and the routing table to decide.
-- **Mission sub-agents**: Each spacecraft has a data specialist with rich system prompt (tiered datasets, data ops docs, analysis patterns). Agents are cached per session. Sub-agents have **data-only tools** (discovery, data_ops, conversation) — no plotting or routing tools.
+- **Mission sub-agents**: Each spacecraft has a data specialist with rich system prompt (recommended datasets, data ops docs, analysis patterns). Agents are cached per session. Sub-agents have **data-only tools** (discovery, data_ops, conversation) — no plotting or routing tools.
 - **Autoplot sub-agent**: Visualization specialist with `execute_autoplot` + `autoplot_script` + `list_fetched_data` tools. System prompt includes the method catalog, DOM hierarchy reference, and script examples. Handles all plotting, customization, and export.
 - **Tool separation**: Tools have a `category` field (`discovery`, `autoplot`, `data_ops`, `conversation`, `routing`). `get_tool_schemas(categories=..., extra_names=...)` filters tools by category. Orchestrator sees `["discovery", "data_ops", "conversation", "routing"]`. AutoplotAgent sees `["autoplot"]` + `list_fetched_data` extra.
 - **Post-delegation plotting**: After `delegate_to_mission` returns data, the orchestrator uses `delegate_to_autoplot` to visualize results.
@@ -230,10 +239,12 @@ JAVA_HOME=<optional, auto-detected>
 ## Running
 
 ```bash
-python main.py            # Normal mode (headless)
-python main.py --verbose  # Show tool calls, timing, errors
-python main.py --gui      # Interactive GUI mode (Autoplot window visible)
-python main.py --gui -v   # GUI mode with verbose logging
+python main.py              # Normal mode (headless)
+python main.py --verbose    # Show tool calls, timing, errors
+python main.py --gui        # Interactive GUI mode (Autoplot window visible)
+python main.py --gui -v     # GUI mode with verbose logging
+python main.py -m MODEL     # Specify Gemini model (default: gemini-2.5-flash)
+python main.py "request"    # Single-command mode (non-interactive, exits after response)
 ```
 
 ### GUI Mode
@@ -280,4 +291,5 @@ requests>=2.28.0        # HAPI HTTP calls
 numpy>=1.24.0           # Array operations
 pandas>=2.0.0           # DataFrame-based data pipeline
 matplotlib>=3.7.0       # Fallback plotting (deprecated path)
+pytest>=7.0.0           # Test framework
 ```

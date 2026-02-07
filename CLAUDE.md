@@ -13,7 +13,7 @@ helio-ai-agent is an AI-powered natural language interface for [Autoplot](https:
 The system has four layers:
 
 1. **Agent layer** (`agent/`) — Gemini 2.5-Flash with function calling. Three agent types:
-   - `core.py` **OrchestratorAgent** — routes to sub-agents, handles data ops directly. Tools defined in `tools.py` (12 tool schemas).
+   - `core.py` **OrchestratorAgent** — routes to sub-agents, handles data ops directly. Tools defined in `tools.py` (14 tool schemas).
    - `mission_agent.py` **MissionAgent** — per-spacecraft data specialists (discovery + data_ops tools only).
    - `autoplot_agent.py` **AutoplotAgent** — visualization specialist using registry-driven dispatch via a single `execute_autoplot` tool + method catalog in prompt.
 
@@ -21,7 +21,7 @@ The system has four layers:
 
 3. **Knowledge base** (`knowledge/`) — Static dataset catalog (`catalog.py`) with mission profiles for keyword-based spacecraft/instrument search. Prompt builder (`prompt_builder.py`) generates system and planner prompts dynamically from the catalog — single source of truth. HAPI client (`hapi_client.py`) for fetching parameter metadata from CDAWeb.
 
-4. **Data operations** (`data_ops/`) — Python-side data pipeline. Fetches HAPI data into numpy arrays (`fetch.py`), stores them in an in-memory singleton (`store.py`), and provides pure numpy operations (`operations.py`): magnitude, arithmetic, running average, resample, delta/derivative.
+4. **Data operations** (`data_ops/`) — Python-side data pipeline. Fetches HAPI data into pandas DataFrames (`fetch.py`), stores them in an in-memory singleton (`store.py`), and provides an AST-validated sandbox (`custom_ops.py`) for LLM-generated pandas/numpy code — handles magnitude, arithmetic, smoothing, resampling, derivatives, and any other transformation.
 
 Data flows: User input → Gemini function calling → tool execution → result fed back to Gemini → natural language response. For computed data: fetch → compute → plot through Autoplot canvas.
 
@@ -55,7 +55,7 @@ python main.py --verbose       # Show tool calls, timing, errors
 python -m autoplot_bridge.connection
 
 # Unit tests (fast, no API key or JVM needed)
-python -m pytest tests/test_store.py tests/test_operations.py  # Data ops tests (41 tests)
+python -m pytest tests/test_store.py tests/test_custom_ops.py  # Data ops tests
 python -m pytest tests/                                         # All tests
 ```
 
@@ -104,6 +104,6 @@ Time ranges use `YYYY-MM-DD to YYYY-MM-DD` format. The agent accepts flexible in
 - Read `docs/roadmap.md` for planned future development.
 - When adding new Autoplot capabilities: add entry to `autoplot_bridge/registry.py`, implement bridge method in `commands.py`, add handler in `core.py:_dispatch_autoplot_method()`. No tool schema changes needed. For non-Autoplot tools: add schema in `tools.py`, handler in `core.py:_execute_tool()`. Update `docs/capability-summary.md` either way.
 - When adding new spacecraft: create a JSON file in `knowledge/missions/` (copy an existing one as template). Include `id`, `name`, `keywords`, `profile`, and `instruments` with `datasets` dict. Then run `python scripts/generate_mission_data.py --mission <id>` to populate HAPI metadata. The catalog, prompts, and routing table are all auto-generated from the JSON files.
-- Data operations (`data_ops/operations.py`) are pure numpy functions with no side effects — easy to test.
+- Data operations (`data_ops/custom_ops.py`) use an AST-validated sandbox for LLM-generated pandas/numpy code — easy to test.
 - Plotting always goes through Autoplot (`autoplot_bridge/commands.py`), not matplotlib.
 - **Ignore `docs/archive/`** — contains outdated historical documents that are no longer relevant.

@@ -195,7 +195,7 @@ def _format_parameter_summary(dataset_id: str, max_params: int = 8) -> str:
 def build_mission_prompt(mission_id: str) -> str:
     """Generate a rich prompt for a single mission's sub-agent.
 
-    Includes mission overview, analysis patterns, tiered datasets,
+    Includes mission overview, analysis patterns, recommended datasets,
     data operations documentation, and workflow instructions.
 
     Args:
