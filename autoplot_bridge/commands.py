@@ -253,6 +253,9 @@ class AutoplotCommands:
                 return {"status": "error",
                         "message": f"Entry '{entry.label}' has no data points"}
 
+        # Ensure JVM is running before converting to QDataSet
+        _ = self.ctx
+
         # Decompose vectors into scalar components
         datasets = []  # list of (label, QDataSet)
         for entry in entries:
@@ -272,9 +275,6 @@ class AutoplotCommands:
                     units=entry.units, label=entry.label,
                 )
                 datasets.append((entry.label, ds))
-
-        # Ensure ScriptContext is initialized
-        _ = self.ctx
 
         n_series = len(datasets)
 

@@ -142,11 +142,16 @@ class MissionAgent:
             while iteration < max_iterations:
                 iteration += 1
 
-                if not response.candidates or not response.candidates[0].content.parts:
+                parts = (
+                    response.candidates[0].content.parts
+                    if response.candidates and response.candidates[0].content
+                    else None
+                )
+                if not parts:
                     break
 
                 function_calls = []
-                for part in response.candidates[0].content.parts:
+                for part in parts:
                     if hasattr(part, "function_call") and part.function_call and part.function_call.name:
                         function_calls.append(part.function_call)
 
@@ -192,9 +197,15 @@ class MissionAgent:
 
             # Extract text response
             text_parts = []
-            for part in response.candidates[0].content.parts:
-                if hasattr(part, "text") and part.text:
-                    text_parts.append(part.text)
+            final_parts = (
+                response.candidates[0].content.parts
+                if response.candidates and response.candidates[0].content
+                else None
+            )
+            if final_parts:
+                for part in final_parts:
+                    if hasattr(part, "text") and part.text:
+                        text_parts.append(part.text)
 
             return "\n".join(text_parts) if text_parts else "Done."
 
