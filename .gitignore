@@ -33,6 +33,7 @@ spikes/*/*.log
 
 # Test outputs
 test_output/
+tests/plots/
 test.png
 test_commands.py
 
