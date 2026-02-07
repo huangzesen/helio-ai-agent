@@ -61,7 +61,7 @@ class AutoplotAgent:
         tool = types.Tool(function_declarations=function_declarations)
 
         # Store model name and config
-        self.model_name = "gemini-2.5-flash"
+        self.model_name = "gemini-3-flash-preview"
         self.config = types.GenerateContentConfig(
             system_instruction=get_system_prompt(),
             tools=[tool],
