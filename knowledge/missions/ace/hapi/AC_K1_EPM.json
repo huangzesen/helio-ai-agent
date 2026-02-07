@@ -1,0 +1,69 @@
+{
+  "HAPI": "2.0",
+  "resourceURL": "https://cdaweb.gsfc.nasa.gov/misc/NotesA.html#AC_K1_EPM",
+  "contact": "R. Gold @ JHU Applied Physics Laboratory",
+  "parameters": [
+    {
+      "name": "Time",
+      "length": 24,
+      "units": "UTC",
+      "type": "isotime",
+      "fill": null
+    },
+    {
+      "name": "H_lo",
+      "description": "Proton Flux (0.48-0.97 MeV)",
+      "units": "1/(cm2 s ster MeV)",
+      "type": "double",
+      "fill": "-1.0E31"
+    },
+    {
+      "name": "Ion_very_lo",
+      "description": "Ion Flux (47-65 keV)",
+      "units": "1/(cm2 s ster MeV)",
+      "type": "double",
+      "fill": "-1.0E31"
+    },
+    {
+      "name": "Ion_lo",
+      "description": "Ion Flux (112-187 keV)",
+      "units": "1/(cm2 s ster MeV)",
+      "type": "double",
+      "fill": "-1.0E31"
+    },
+    {
+      "name": "Ion_mid",
+      "description": "Ion Flux (310-580 keV)",
+      "units": "1/(cm2 s ster MeV)",
+      "type": "double",
+      "fill": "-1.0E31"
+    },
+    {
+      "name": "Ion_hi",
+      "description": "Ion Flux (1060-1910 keV)",
+      "units": "1/(cm2 s ster MeV)",
+      "type": "double",
+      "fill": "-1.0E31"
+    },
+    {
+      "name": "Electron_lo",
+      "description": "Electron Flux (38-53 keV)",
+      "units": "1/(cm2 s ster MeV)",
+      "type": "double",
+      "fill": "-1.0E31"
+    },
+    {
+      "name": "Electron_hi",
+      "description": "Electron Flux (175-315 keV)",
+      "units": "1/(cm2 s ster MeV)",
+      "type": "double",
+      "fill": "-1.0E31"
+    }
+  ],
+  "startDate": "2017-07-01T00:00:00Z",
+  "stopDate": "2026-01-31T23:00:00Z",
+  "status": {
+    "code": 1200,
+    "message": "OK"
+  }
+}

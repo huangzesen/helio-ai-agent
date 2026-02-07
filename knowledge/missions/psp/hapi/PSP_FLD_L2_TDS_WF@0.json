@@ -1,0 +1,114 @@
+{
+  "HAPI": "2.0",
+  "resourceURL": "https://cdaweb.gsfc.nasa.gov/misc/NotesP.html#PSP_FLD_L2_TDS_WF",
+  "contact": "Stuart D. Bale (bale@berkeley.edu) @ UC Berkeley Space Sciences Laboratory",
+  "parameters": [
+    {
+      "name": "Time",
+      "length": 30,
+      "units": "UTC",
+      "type": "isotime",
+      "fill": null
+    },
+    {
+      "name": "PSP_FLD_L2_TDS_WF_Burst_Time_Series_V1_Engineering_mV_f",
+      "description": "TDS wave-form burst time series for the high-gain V1 sensor (Ch1) NOT corrected for frequency response (engineering mV)",
+      "units": "mV",
+      "type": "double",
+      "fill": "-1.0E31"
+    },
+    {
+      "name": "PSP_FLD_L2_TDS_WF_Burst_Time_Series_V2_Engineering_mV_f",
+      "description": "TDS wave-form burst time series for the high-gain V2 sensor (Ch2) NOT corrected for frequency response (engineering mV)",
+      "units": "mV",
+      "type": "double",
+      "fill": "-1.0E31"
+    },
+    {
+      "name": "PSP_FLD_L2_TDS_WF_Burst_Time_Series_V3_Engineering_mV_f",
+      "description": "TDS wave-form burst time series for the high-gain V3 sensor (Ch3) NOT corrected for frequency response (engineering mV)",
+      "units": "mV",
+      "type": "double",
+      "fill": "-1.0E31"
+    },
+    {
+      "name": "PSP_FLD_L2_TDS_WF_Burst_Time_Series_V4_Engineering_mV_f",
+      "description": "TDS wave-form burst time series for the high-gain V4 sensor (Ch4) NOT corrected for frequency response (engineering mV)",
+      "units": "mV",
+      "type": "double",
+      "fill": "-1.0E31"
+    },
+    {
+      "name": "PSP_FLD_L2_TDS_WF_Burst_Time_Series_V5_Engineering_mV_f",
+      "description": "TDS wave-form burst time series for the high-gain V5 sensor (Ch5) NOT corrected for frequency response (engineering mV)",
+      "units": "mV",
+      "type": "double",
+      "fill": "-1.0E31"
+    },
+    {
+      "name": "PSP_FLD_L2_TDS_WF_Burst_Time_Series_V1V2_Engineering_mV_f",
+      "description": "TDS wave-form burst time series for the high-gain difference of V1-V2 (Ch3) NOT corrected for frequency response (engineering mV)",
+      "units": "mV",
+      "type": "double",
+      "fill": "-1.0E31"
+    },
+    {
+      "name": "PSP_FLD_L2_TDS_WF_Burst_Time_Series_V3V4_Engineering_mV_f",
+      "description": "TDS wave-form burst time series for the high-gain difference of V3-V4 (Ch1) NOT corrected for frequency response (engineering mV)",
+      "units": "mV",
+      "type": "double",
+      "fill": "-1.0E31"
+    },
+    {
+      "size": [
+        262144
+      ],
+      "name": "PSP_FLD_L2_TDS_WF_Burst_Time_Series_V1234_Engineering_mV_f",
+      "description": "TDS wave-form burst time series for the high-gain sum of V1+V2+V3+V4 (Ch2) NOT corrected for frequency response (engineering mV)",
+      "units": "mV",
+      "type": "double",
+      "fill": "-1.0E31"
+    },
+    {
+      "name": "PSP_FLD_L2_TDS_WF_Burst_Time_Series_SCM4_Engineering_nT_f",
+      "description": "TDS wave-form burst time series for the high-gain SCM MF sensor (Ch4) NOT corrected for frequency response (engineering nT)",
+      "units": "nT",
+      "type": "double",
+      "fill": "-1.0E31"
+    },
+    {
+      "name": "PSP_FLD_L2_TDS_WF_Burst_Time_Series_SCM5_Engineering_nT_f",
+      "description": "TDS wave-form burst time series for the high-gain SCM MF sensor (Ch5) NOT corrected for frequency response (engineering nT)",
+      "units": "nT",
+      "type": "double",
+      "fill": "-1.0E31"
+    },
+    {
+      "name": "PSP_FLD_L2_TDS_WF_Burst_Time_Series_SCM4_Engineering_mV_f",
+      "description": "TDS wave-form burst time series for the high-gain SCM MF sensor (Ch4) NOT corrected for frequency response (engineering mV)",
+      "units": "mV",
+      "type": "double",
+      "fill": "-1.0E31"
+    },
+    {
+      "name": "PSP_FLD_L2_TDS_WF_Burst_Time_Series_SCM5_Engineering_mV_f",
+      "description": "TDS wave-form burst time series for the high-gain SCM MF sensor (Ch5) NOT corrected for frequency response (engineering mV)",
+      "units": "mV",
+      "type": "double",
+      "fill": "-1.0E31"
+    },
+    {
+      "name": "PSP_FLD_L2_TDS_WF_Burst_Time_Series_SWEAP_Counts_f",
+      "description": "The TDS wave-form burst time series for SWEAP (Ch0) - the values are positive integers (GE 0) returned as a real from the SWEAP particle count channel (counts)",
+      "units": "Counts",
+      "type": "double",
+      "fill": "-1.0E31"
+    }
+  ],
+  "startDate": "2018-08-13T11:50:15Z",
+  "stopDate": "2025-07-19T19:46:04Z",
+  "status": {
+    "code": 1200,
+    "message": "OK"
+  }
+}

@@ -1,0 +1,118 @@
+{
+  "HAPI": "2.0",
+  "resourceURL": "https://cdaweb.gsfc.nasa.gov/misc/NotesS.html#STA_LB_PLA_BROWSE",
+  "contact": "Dr. Antoinette Galvin @ University of New Hampshire",
+  "parameters": [
+    {
+      "name": "Time",
+      "length": 24,
+      "units": "UTC",
+      "type": "isotime",
+      "fill": null
+    },
+    {
+      "name": "Density",
+      "description": "Moment: Density [PRELIM]",
+      "units": "1/cm3",
+      "type": "double",
+      "fill": "-1.0E31"
+    },
+    {
+      "name": "Bulk_Speed",
+      "description": "Moment: Bulk_Speed [PRELIM]",
+      "units": "km/s",
+      "type": "double",
+      "fill": "-1.0E31"
+    },
+    {
+      "name": "Vr_HERTN",
+      "description": "Moment: Vr in HERTN [PRELIM]",
+      "units": "km/s",
+      "type": "double",
+      "fill": "-1.0E31"
+    },
+    {
+      "name": "Vt_HERTN",
+      "description": "Moment: Vt in HERTN [PRELIM]",
+      "units": "km/s",
+      "type": "double",
+      "fill": "-1.0E31"
+    },
+    {
+      "name": "Vn_HERTN",
+      "description": "Moment: Vn in HERTN [PRELIM]",
+      "units": "km/s",
+      "type": "double",
+      "fill": "-1.0E31"
+    },
+    {
+      "name": "Vr_RTN",
+      "description": "Moment: Vr in RTN [PRELIM]",
+      "units": "km/s",
+      "type": "double",
+      "fill": "-1.0E31"
+    },
+    {
+      "name": "Vt_RTN",
+      "description": "Moment: Vt in RTN [PRELIM]",
+      "units": "km/s",
+      "type": "double",
+      "fill": "-1.0E31"
+    },
+    {
+      "name": "Vn_RTN",
+      "description": "Moment: Vn in RTN [PRELIM]",
+      "units": "km/s",
+      "type": "double",
+      "fill": "-1.0E31"
+    },
+    {
+      "name": "N_S_flow_angle_HERTN",
+      "description": "Proton N/S Flow Angle. HERTN [PRELIM]",
+      "units": "deg",
+      "type": "double",
+      "fill": "-1.0E31"
+    },
+    {
+      "name": "N_S_flow_angle_RTN",
+      "description": "Proton N/S Flow Angle. RTN [PRELIM]",
+      "units": "deg",
+      "type": "double",
+      "fill": "-1.0E31"
+    },
+    {
+      "name": "E_W_flow_angle_HERTN",
+      "description": "Proton E/W Flow Angle. HERTN [PRELIM]",
+      "units": "deg",
+      "type": "double",
+      "fill": "-1.0E31"
+    },
+    {
+      "name": "E_W_flow_angle_RTN",
+      "description": "Proton E/W Flow Angle. RTN [PRELIM]",
+      "units": "deg",
+      "type": "double",
+      "fill": "-1.0E31"
+    },
+    {
+      "name": "Temperature_Inst",
+      "description": "Moment: Temperature xx in Instrument Coordinates. [PRELIM]",
+      "units": "K",
+      "type": "double",
+      "fill": "-1.0E31"
+    },
+    {
+      "name": "Pressure_Inst",
+      "description": "Moment: Pressure xx in Instrument Coordinates. [PRELIM]",
+      "units": "Pa",
+      "type": "double",
+      "fill": "-1.0E31"
+    }
+  ],
+  "startDate": "2011-07-06T15:37:15Z",
+  "stopDate": "2026-02-05T16:25:06Z",
+  "status": {
+    "code": 1200,
+    "message": "OK"
+  }
+}

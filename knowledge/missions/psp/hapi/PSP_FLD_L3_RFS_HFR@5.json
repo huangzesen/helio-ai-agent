@@ -1,0 +1,50 @@
+{
+  "HAPI": "2.0",
+  "resourceURL": "https://cdaweb.gsfc.nasa.gov/misc/NotesP.html#PSP_FLD_L3_RFS_HFR",
+  "contact": "Stuart D. Bale (bale@ssl.berkeley.edu) @ UC Berkeley Space Sciences Laboratory",
+  "parameters": [
+    {
+      "name": "Time",
+      "length": 30,
+      "units": "UTC",
+      "type": "isotime",
+      "fill": null
+    },
+    {
+      "size": [
+        64
+      ],
+      "name": "psp_fld_l3_rfs_hfr_PSD_FLUX",
+      "description": "HFR Flux Density (Stokes I) data, from cross dipole measurements.",
+      "units": "W/m^2/Hz",
+      "type": "double",
+      "fill": "-1.0E31"
+    },
+    {
+      "size": [
+        64
+      ],
+      "name": "psp_fld_l3_rfs_hfr_PSD_SFU",
+      "description": "HFR Flux Density (Stokes I) data, from cross dipole measurements, normalized to 1 AU.",
+      "units": "sfu",
+      "type": "double",
+      "fill": "-1.0E31"
+    },
+    {
+      "size": [
+        64
+      ],
+      "name": "psp_fld_l3_rfs_hfr_STOKES_V",
+      "description": "HFR Circular Polarization (Stokes V) data, normalized to Stokes I.",
+      "units": "None",
+      "type": "double",
+      "fill": "-1.0E31"
+    }
+  ],
+  "startDate": "2018-10-02T03:48:16Z",
+  "stopDate": "2025-07-31T23:59:55Z",
+  "status": {
+    "code": 1200,
+    "message": "OK"
+  }
+}

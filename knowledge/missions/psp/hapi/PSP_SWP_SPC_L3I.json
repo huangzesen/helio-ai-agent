@@ -1,0 +1,1365 @@
+{
+  "HAPI": "2.0",
+  "resourceURL": "https://cdaweb.gsfc.nasa.gov/misc/NotesP.html#PSP_SWP_SPC_L3I",
+  "contact": "Michael L. Stevens @ Center for Astrophysics, Harvard and Smithsonian",
+  "parameters": [
+    {
+      "name": "Time",
+      "length": 30,
+      "units": "UTC",
+      "type": "isotime",
+      "fill": null
+    },
+    {
+      "bins": [
+        {
+          "name": "array32_index",
+          "centers": [
+            1,
+            2,
+            3,
+            4,
+            5,
+            6,
+            7,
+            8,
+            9,
+            10,
+            11,
+            12,
+            13,
+            14,
+            15,
+            16,
+            17,
+            18,
+            19,
+            20,
+            21,
+            22,
+            23,
+            24,
+            25,
+            26,
+            27,
+            28,
+            29,
+            30,
+            31,
+            32
+          ],
+          "units": null
+        }
+      ],
+      "size": [
+        32
+      ],
+      "name": "DQF",
+      "description": "Array of SPC data quality indicators.",
+      "units": "-1=unknown 0=good 1=bad",
+      "type": "integer",
+      "fill": "-128"
+    },
+    {
+      "name": "general_flag",
+      "description": "Global quality flag, signifying whether the data for this epoch are suitable for use without caveate.",
+      "units": "0 = good",
+      "type": "integer",
+      "fill": "-128"
+    },
+    {
+      "bins": [
+        {
+          "name": "vector_index",
+          "centers": [
+            1,
+            2,
+            3
+          ],
+          "units": null
+        }
+      ],
+      "size": [
+        3
+      ],
+      "name": "vp_moment_SC_gd",
+      "description": "Proton bulk velocity from the 1st moment of the reduced distribution function, in the spacecraft frame (Only Good Quality)",
+      "units": null,
+      "type": "double",
+      "fill": "-1.0E31"
+    },
+    {
+      "bins": [
+        {
+          "name": "vector_index",
+          "centers": [
+            1,
+            2,
+            3
+          ],
+          "units": null
+        }
+      ],
+      "size": [
+        3
+      ],
+      "name": "vp_moment_SC_deltahigh_gd",
+      "description": "---> upper uncertainty",
+      "units": null,
+      "type": "double",
+      "fill": "-1.0E31"
+    },
+    {
+      "bins": [
+        {
+          "name": "vector_index",
+          "centers": [
+            1,
+            2,
+            3
+          ],
+          "units": null
+        }
+      ],
+      "size": [
+        3
+      ],
+      "name": "vp_moment_SC_deltalow_gd",
+      "description": "---> lower uncertainty",
+      "units": null,
+      "type": "double",
+      "fill": "-1.0E31"
+    },
+    {
+      "bins": [
+        {
+          "name": "vector_index",
+          "centers": [
+            1,
+            2,
+            3
+          ],
+          "units": null
+        }
+      ],
+      "size": [
+        3
+      ],
+      "name": "vp_moment_RTN_gd",
+      "description": "Proton bulk velocity from the 1st moment of the reduced distribution function in [inertial] RTN coordinate system (Only Good Quality)",
+      "units": null,
+      "type": "double",
+      "fill": "-1.0E31"
+    },
+    {
+      "bins": [
+        {
+          "name": "vector_index",
+          "centers": [
+            1,
+            2,
+            3
+          ],
+          "units": null
+        }
+      ],
+      "size": [
+        3
+      ],
+      "name": "vp_moment_RTN_deltahigh_gd",
+      "description": "---> upper uncertainty",
+      "units": null,
+      "type": "double",
+      "fill": "-1.0E31"
+    },
+    {
+      "bins": [
+        {
+          "name": "vector_index",
+          "centers": [
+            1,
+            2,
+            3
+          ],
+          "units": null
+        }
+      ],
+      "size": [
+        3
+      ],
+      "name": "vp_moment_RTN_deltalow_gd",
+      "description": "---> lower uncertainty",
+      "units": null,
+      "type": "double",
+      "fill": "-1.0E31"
+    },
+    {
+      "name": "np_moment_gd",
+      "description": "Proton density estimate from the 0th moment of the reduced distribution function (Only Good Quality)",
+      "units": "(Good Q) cm^{-3}",
+      "type": "double",
+      "fill": "-1.0E31"
+    },
+    {
+      "name": "np_moment_deltahigh_gd",
+      "description": "---> upper uncertainty",
+      "units": "(Good Qs) cm^{-3}",
+      "type": "double",
+      "fill": "-1.0E31"
+    },
+    {
+      "name": "np_moment_deltalow_gd",
+      "description": "---> lower uncertainty",
+      "units": "(Good Qs) cm^{-3}",
+      "type": "double",
+      "fill": "-1.0E31"
+    },
+    {
+      "name": "wp_moment_gd",
+      "description": "Proton radial [most probable] thermal speed estimate from the 2nd velocity moment of the reduced distribution function (Only Good Quality)",
+      "units": "(Good Qs) km/s",
+      "type": "double",
+      "fill": "-1.0E31"
+    },
+    {
+      "name": "wp_moment_deltahigh_gd",
+      "description": "---> upper uncertainty",
+      "units": "(Good Qs) km/s",
+      "type": "double",
+      "fill": "-1.0E31"
+    },
+    {
+      "name": "wp_moment_deltalow_gd",
+      "description": "---> lower uncertainty",
+      "units": "(Good Qs) km/s",
+      "type": "double",
+      "fill": "-1.0E31"
+    },
+    {
+      "bins": [
+        {
+          "name": "vector_index",
+          "centers": [
+            1,
+            2,
+            3
+          ],
+          "units": null
+        }
+      ],
+      "size": [
+        3
+      ],
+      "name": "vp1_fit_SC_gd",
+      "description": "Primary proton population velocity, from 1-dimensional Maxwellian fitting, in the spacecraft frame (Only Good Quality)",
+      "units": null,
+      "type": "double",
+      "fill": "-1.0E31"
+    },
+    {
+      "bins": [
+        {
+          "name": "vector_index",
+          "centers": [
+            1,
+            2,
+            3
+          ],
+          "units": null
+        }
+      ],
+      "size": [
+        3
+      ],
+      "name": "vp1_fit_SC_uncertainty_gd",
+      "description": "---> 1-sigma error",
+      "units": null,
+      "type": "double",
+      "fill": "-1.0E31"
+    },
+    {
+      "bins": [
+        {
+          "name": "vector_index",
+          "centers": [
+            1,
+            2,
+            3
+          ],
+          "units": null
+        }
+      ],
+      "size": [
+        3
+      ],
+      "name": "vp1_fit_RTN_gd",
+      "description": "Primary proton population velocity, from 1-dimensional Maxwellian fitting, in the [inertial] RTN frame (Only Good Quality)",
+      "units": null,
+      "type": "double",
+      "fill": "-1.0E31"
+    },
+    {
+      "bins": [
+        {
+          "name": "vector_index",
+          "centers": [
+            1,
+            2,
+            3
+          ],
+          "units": null
+        }
+      ],
+      "size": [
+        3
+      ],
+      "name": "vp1_fit_RTN_uncertainty_gd",
+      "description": "---> 1-sigma error",
+      "units": null,
+      "type": "double",
+      "fill": "-1.0E31"
+    },
+    {
+      "name": "np1_fit_gd",
+      "description": "Primary proton population density, from 1-dimensional Maxwellian fitting. (Only Good Quality)",
+      "units": "(Good Qs) cm^{-3}",
+      "type": "double",
+      "fill": "-1.0E31"
+    },
+    {
+      "name": "np1_fit_uncertainty_gd",
+      "description": "---> 1-sigma error",
+      "units": "(Good Qs) cm^{-3}",
+      "type": "double",
+      "fill": "-1.0E31"
+    },
+    {
+      "name": "wp1_fit_gd",
+      "description": "Primary proton population radial [most probable] thermal speed, from 1-dimensional Maxwellian fitting. (Only Good Quality)",
+      "units": "(Good Qs) km/s",
+      "type": "double",
+      "fill": "-1.0E31"
+    },
+    {
+      "name": "wp1_fit_uncertainty_gd",
+      "description": "---> 1-sigma error",
+      "units": "(Good Qs) km/s",
+      "type": "double",
+      "fill": "-1.0E31"
+    },
+    {
+      "bins": [
+        {
+          "name": "vector_index",
+          "centers": [
+            1,
+            2,
+            3
+          ],
+          "units": null
+        }
+      ],
+      "size": [
+        3
+      ],
+      "name": "vp_fit_SC_gd",
+      "description": "Proton bulk velocity, from 1-dimensional Maxwellian fitting, in the spacecraft frame (Only Good Quality)",
+      "units": null,
+      "type": "double",
+      "fill": "-1.0E31"
+    },
+    {
+      "bins": [
+        {
+          "name": "vector_index",
+          "centers": [
+            1,
+            2,
+            3
+          ],
+          "units": null
+        }
+      ],
+      "size": [
+        3
+      ],
+      "name": "vp_fit_SC_uncertainty_gd",
+      "description": "---> 1-sigma error",
+      "units": null,
+      "type": "double",
+      "fill": "-1.0E31"
+    },
+    {
+      "bins": [
+        {
+          "name": "vector_index",
+          "centers": [
+            1,
+            2,
+            3
+          ],
+          "units": null
+        }
+      ],
+      "size": [
+        3
+      ],
+      "name": "vp_fit_RTN_gd",
+      "description": "Proton bulk velocity, from 1-dimensional Maxwellian fitting, in the [inertial] RTN frame (Only Good Quality)",
+      "units": null,
+      "type": "double",
+      "fill": "-1.0E31"
+    },
+    {
+      "bins": [
+        {
+          "name": "vector_index",
+          "centers": [
+            1,
+            2,
+            3
+          ],
+          "units": null
+        }
+      ],
+      "size": [
+        3
+      ],
+      "name": "vp_fit_RTN_uncertainty_gd",
+      "description": "---> 1-sigma error",
+      "units": null,
+      "type": "double",
+      "fill": "-1.0E31"
+    },
+    {
+      "name": "np_fit_gd",
+      "description": "[Total] proton density, from 1-dimensional Maxwellian fitting. (Only Good Quality)",
+      "units": "(Good Qs) cm^{-3}",
+      "type": "double",
+      "fill": "-1.0E31"
+    },
+    {
+      "name": "np_fit_uncertainty_gd",
+      "description": "---> 1-sigma error",
+      "units": "cm^{-3}",
+      "type": "double",
+      "fill": "-1.0E31"
+    },
+    {
+      "name": "wp_fit_gd",
+      "description": "Proton radial [most probable] thermal speed component, from 1-dimensional Maxwellian fitting. (Only Good Quality)",
+      "units": "(Good Qs) km/s",
+      "type": "double",
+      "fill": "-1.0E31"
+    },
+    {
+      "name": "wp_fit_uncertainty_gd",
+      "description": "---> 1-sigma error",
+      "units": "(Good Qs) km/s",
+      "type": "double",
+      "fill": "-1.0E31"
+    },
+    {
+      "bins": [
+        {
+          "name": "vector_index",
+          "centers": [
+            1,
+            2,
+            3
+          ],
+          "units": null
+        }
+      ],
+      "size": [
+        3
+      ],
+      "name": "va_fit_SC_gd",
+      "description": "Alpha particle velocity vector, from 1-dimensional Maxwellian fitting, in the spacecraft frame (Only Good Quality)",
+      "units": null,
+      "type": "double",
+      "fill": "-1.0E31"
+    },
+    {
+      "bins": [
+        {
+          "name": "vector_index",
+          "centers": [
+            1,
+            2,
+            3
+          ],
+          "units": null
+        }
+      ],
+      "size": [
+        3
+      ],
+      "name": "va_fit_SC_uncertainty_gd",
+      "description": "---> 1-sigma error",
+      "units": null,
+      "type": "double",
+      "fill": "-1.0E31"
+    },
+    {
+      "bins": [
+        {
+          "name": "vector_index",
+          "centers": [
+            1,
+            2,
+            3
+          ],
+          "units": null
+        }
+      ],
+      "size": [
+        3
+      ],
+      "name": "va_fit_RTN_gd",
+      "description": "Alpha particle velocity vector, from 1-dimensional Maxwellian fitting, in the [inertial] RTN frame (Only Good Quality)",
+      "units": null,
+      "type": "double",
+      "fill": "-1.0E31"
+    },
+    {
+      "bins": [
+        {
+          "name": "vector_index",
+          "centers": [
+            1,
+            2,
+            3
+          ],
+          "units": null
+        }
+      ],
+      "size": [
+        3
+      ],
+      "name": "va_fit_RTN_uncertainty_gd",
+      "description": "---> 1-sigma error",
+      "units": null,
+      "type": "double",
+      "fill": "-1.0E31"
+    },
+    {
+      "name": "na_fit_gd",
+      "description": "Alpha particle density, from 1-dimensional Maxwellian fitting. (Only Good Quality)",
+      "units": "(Good Qs) cm^{-3}",
+      "type": "double",
+      "fill": "-1.0E31"
+    },
+    {
+      "name": "na_fit_uncertainty_gd",
+      "description": "---> 1-sigma error",
+      "units": "(Good Qs) cm^{-3}",
+      "type": "double",
+      "fill": "-1.0E31"
+    },
+    {
+      "name": "wa_fit_gd",
+      "description": "Alpha particle radial [most probable] thermal speed, from 1-dimensional Maxwellian fitting. (Only Good Quality)",
+      "units": "(Good Qs) km/s",
+      "type": "double",
+      "fill": "-1.0E31"
+    },
+    {
+      "name": "wa_fit_uncertainty_gd",
+      "description": "---> 1-sigma error",
+      "units": "(Good Qs) km/s",
+      "type": "double",
+      "fill": "-1.0E31"
+    },
+    {
+      "bins": [
+        {
+          "name": "vector_index",
+          "centers": [
+            1,
+            2,
+            3
+          ],
+          "units": null
+        }
+      ],
+      "size": [
+        3
+      ],
+      "name": "v3_fit_SC_gd",
+      "description": "Population 3 velocity vector, from 1-dimensional Maxwellian fitting, in the spacecraft frame (Only Good Quality)",
+      "units": null,
+      "type": "double",
+      "fill": "-1.0E31"
+    },
+    {
+      "bins": [
+        {
+          "name": "vector_index",
+          "centers": [
+            1,
+            2,
+            3
+          ],
+          "units": null
+        }
+      ],
+      "size": [
+        3
+      ],
+      "name": "v3_fit_SC_uncertainty_gd",
+      "description": "---> 1-sigma error",
+      "units": null,
+      "type": "double",
+      "fill": "-1.0E31"
+    },
+    {
+      "bins": [
+        {
+          "name": "vector_index",
+          "centers": [
+            1,
+            2,
+            3
+          ],
+          "units": null
+        }
+      ],
+      "size": [
+        3
+      ],
+      "name": "v3_fit_RTN_gd",
+      "description": "Population 3 velocity vector, from 1-dimensional Maxwellian fitting, in the [inertial] RTN frame (Only Good Quality)",
+      "units": null,
+      "type": "double",
+      "fill": "-1.0E31"
+    },
+    {
+      "bins": [
+        {
+          "name": "vector_index",
+          "centers": [
+            1,
+            2,
+            3
+          ],
+          "units": null
+        }
+      ],
+      "size": [
+        3
+      ],
+      "name": "v3_fit_RTN_uncertainty_gd",
+      "description": "---> 1-sigma error",
+      "units": null,
+      "type": "double",
+      "fill": "-1.0E31"
+    },
+    {
+      "name": "n3_fit_gd",
+      "description": "Population 3 particle density, from 1-dimensional Maxwellian fitting. (Only Good Quality)",
+      "units": "(Good Qs) cm^{-3}",
+      "type": "double",
+      "fill": "-1.0E31"
+    },
+    {
+      "name": "n3_fit_uncertainty_gd",
+      "description": "---> 1-sigma error",
+      "units": "(Good Qs) cm^{-3}",
+      "type": "double",
+      "fill": "-1.0E31"
+    },
+    {
+      "name": "w3_fit_gd",
+      "description": "Population 3 particle radial [most probable] thermal speed, from 1-dimensional Maxwellian fitting. (Only Good Quality)",
+      "units": "(Good Qs) km/s",
+      "type": "double",
+      "fill": "-1.0E31"
+    },
+    {
+      "name": "w3_fit_uncertainty_gd",
+      "description": "---> 1-sigma error",
+      "units": "(Good Qs) km/s",
+      "type": "double",
+      "fill": "-1.0E31"
+    },
+    {
+      "bins": [
+        {
+          "name": "vector_index",
+          "centers": [
+            1,
+            2,
+            3
+          ],
+          "units": null
+        }
+      ],
+      "size": [
+        3
+      ],
+      "name": "sc_pos_HCI",
+      "description": "PSP Spacecraft position in the Heliocentric Inertial system, in km",
+      "units": "km",
+      "type": "double",
+      "fill": "-1.0E31"
+    },
+    {
+      "bins": [
+        {
+          "name": "vector_index",
+          "centers": [
+            1,
+            2,
+            3
+          ],
+          "units": null
+        }
+      ],
+      "size": [
+        3
+      ],
+      "name": "sc_vel_HCI",
+      "description": "PSP Spacecraft velocity in the Heliocentric Inertial system, in km/s",
+      "units": "km/s",
+      "type": "double",
+      "fill": "-1.0E31"
+    },
+    {
+      "name": "carr_latitude",
+      "description": "Carrington Latitude",
+      "units": "degrees",
+      "type": "double",
+      "fill": "-1.0E31"
+    },
+    {
+      "name": "carr_longitude",
+      "description": "Carrington Longitude",
+      "units": "degrees",
+      "type": "double",
+      "fill": "-1.0E31"
+    },
+    {
+      "bins": [
+        {
+          "name": "vector_index",
+          "centers": [
+            1,
+            2,
+            3
+          ],
+          "units": null
+        }
+      ],
+      "size": [
+        3
+      ],
+      "name": "vp_moment_SC",
+      "description": "Proton bulk velocity from the 1st moment of the reduced distribution function, in the spacecraft frame (All Qualities)",
+      "units": null,
+      "type": "double",
+      "fill": "-1.0E31"
+    },
+    {
+      "bins": [
+        {
+          "name": "vector_index",
+          "centers": [
+            1,
+            2,
+            3
+          ],
+          "units": null
+        }
+      ],
+      "size": [
+        3
+      ],
+      "name": "vp_moment_SC_deltahigh",
+      "description": "---> upper uncertainty",
+      "units": null,
+      "type": "double",
+      "fill": "-1.0E31"
+    },
+    {
+      "bins": [
+        {
+          "name": "vector_index",
+          "centers": [
+            1,
+            2,
+            3
+          ],
+          "units": null
+        }
+      ],
+      "size": [
+        3
+      ],
+      "name": "vp_moment_SC_deltalow",
+      "description": "---> lower uncertainty",
+      "units": null,
+      "type": "double",
+      "fill": "-1.0E31"
+    },
+    {
+      "bins": [
+        {
+          "name": "vector_index",
+          "centers": [
+            1,
+            2,
+            3
+          ],
+          "units": null
+        }
+      ],
+      "size": [
+        3
+      ],
+      "name": "vp_moment_RTN",
+      "description": "Proton bulk velocity from the 1st moment of the reduced distribution function in [inertial] RTN coordinate system (All Qualities)",
+      "units": null,
+      "type": "double",
+      "fill": "-1.0E31"
+    },
+    {
+      "bins": [
+        {
+          "name": "vector_index",
+          "centers": [
+            1,
+            2,
+            3
+          ],
+          "units": null
+        }
+      ],
+      "size": [
+        3
+      ],
+      "name": "vp_moment_RTN_deltahigh",
+      "description": "---> upper uncertainty",
+      "units": null,
+      "type": "double",
+      "fill": "-1.0E31"
+    },
+    {
+      "bins": [
+        {
+          "name": "vector_index",
+          "centers": [
+            1,
+            2,
+            3
+          ],
+          "units": null
+        }
+      ],
+      "size": [
+        3
+      ],
+      "name": "vp_moment_RTN_deltalow",
+      "description": "---> lower uncertainty",
+      "units": null,
+      "type": "double",
+      "fill": "-1.0E31"
+    },
+    {
+      "name": "np_moment",
+      "description": "Proton density estimate from the 0th moment of the reduced distribution function (All Qualities)",
+      "units": "(All Qs) cm^{-3}",
+      "type": "double",
+      "fill": "-1.0E31"
+    },
+    {
+      "name": "np_moment_deltahigh",
+      "description": "---> upper uncertainty",
+      "units": "(All Qs) cm^{-3}",
+      "type": "double",
+      "fill": "-1.0E31"
+    },
+    {
+      "name": "np_moment_deltalow",
+      "description": "---> lower uncertainty",
+      "units": "(All Qs) cm^{-3}",
+      "type": "double",
+      "fill": "-1.0E31"
+    },
+    {
+      "name": "wp_moment",
+      "description": "Proton radial [most probable] thermal speed estimate from the 2nd velocity moment of the reduced distribution function (All Qualities)",
+      "units": "(All Qs) km/s",
+      "type": "double",
+      "fill": "-1.0E31"
+    },
+    {
+      "name": "wp_moment_deltahigh",
+      "description": "---> upper uncertainty",
+      "units": "(All Qs) km/s",
+      "type": "double",
+      "fill": "-1.0E31"
+    },
+    {
+      "name": "wp_moment_deltalow",
+      "description": "---> lower uncertainty",
+      "units": "(All Qs) km/s",
+      "type": "double",
+      "fill": "-1.0E31"
+    },
+    {
+      "bins": [
+        {
+          "name": "vector_index",
+          "centers": [
+            1,
+            2,
+            3
+          ],
+          "units": null
+        }
+      ],
+      "size": [
+        3
+      ],
+      "name": "vp1_fit_SC",
+      "description": "Primary proton population velocity, from 1-dimensional Maxwellian fitting, in the spacecraft frame (All Qualities)",
+      "units": null,
+      "type": "double",
+      "fill": "-1.0E31"
+    },
+    {
+      "bins": [
+        {
+          "name": "vector_index",
+          "centers": [
+            1,
+            2,
+            3
+          ],
+          "units": null
+        }
+      ],
+      "size": [
+        3
+      ],
+      "name": "vp1_fit_SC_uncertainty",
+      "description": "---> 1-sigma error",
+      "units": null,
+      "type": "double",
+      "fill": "-1.0E31"
+    },
+    {
+      "bins": [
+        {
+          "name": "vector_index",
+          "centers": [
+            1,
+            2,
+            3
+          ],
+          "units": null
+        }
+      ],
+      "size": [
+        3
+      ],
+      "name": "vp1_fit_RTN",
+      "description": "Primary proton population velocity, from 1-dimensional Maxwellian fitting, in the [inertial] RTN frame (All Qualities)",
+      "units": null,
+      "type": "double",
+      "fill": "-1.0E31"
+    },
+    {
+      "bins": [
+        {
+          "name": "vector_index",
+          "centers": [
+            1,
+            2,
+            3
+          ],
+          "units": null
+        }
+      ],
+      "size": [
+        3
+      ],
+      "name": "vp1_fit_RTN_uncertainty",
+      "description": "---> 1-sigma error",
+      "units": null,
+      "type": "double",
+      "fill": "-1.0E31"
+    },
+    {
+      "name": "np1_fit",
+      "description": "Primary proton population density, from 1-dimensional Maxwellian fitting. (All Qualities)",
+      "units": "(All Qs) cm^{-3}",
+      "type": "double",
+      "fill": "-1.0E31"
+    },
+    {
+      "name": "np1_fit_uncertainty",
+      "description": "---> 1-sigma error",
+      "units": "(All Qs) cm^{-3}",
+      "type": "double",
+      "fill": "-1.0E31"
+    },
+    {
+      "name": "wp1_fit",
+      "description": "Primary proton population radial [most probable] thermal speed, from 1-dimensional Maxwellian fitting. (All Qualities)",
+      "units": "(All Qs) km/s",
+      "type": "double",
+      "fill": "-1.0E31"
+    },
+    {
+      "name": "wp1_fit_uncertainty",
+      "description": "---> 1-sigma error",
+      "units": "(All Qs) km/s",
+      "type": "double",
+      "fill": "-1.0E31"
+    },
+    {
+      "bins": [
+        {
+          "name": "vector_index",
+          "centers": [
+            1,
+            2,
+            3
+          ],
+          "units": null
+        }
+      ],
+      "size": [
+        3
+      ],
+      "name": "vp_fit_SC",
+      "description": "Proton bulk velocity, from 1-dimensional Maxwellian fitting, in the spacecraft frame (All Qualities)",
+      "units": null,
+      "type": "double",
+      "fill": "-1.0E31"
+    },
+    {
+      "bins": [
+        {
+          "name": "vector_index",
+          "centers": [
+            1,
+            2,
+            3
+          ],
+          "units": null
+        }
+      ],
+      "size": [
+        3
+      ],
+      "name": "vp_fit_SC_uncertainty",
+      "description": "---> 1-sigma error",
+      "units": null,
+      "type": "double",
+      "fill": "-1.0E31"
+    },
+    {
+      "bins": [
+        {
+          "name": "vector_index",
+          "centers": [
+            1,
+            2,
+            3
+          ],
+          "units": null
+        }
+      ],
+      "size": [
+        3
+      ],
+      "name": "vp_fit_RTN",
+      "description": "Proton bulk velocity, from 1-dimensional Maxwellian fitting, in the [inertial] RTN frame (All Qualities)",
+      "units": null,
+      "type": "double",
+      "fill": "-1.0E31"
+    },
+    {
+      "bins": [
+        {
+          "name": "vector_index",
+          "centers": [
+            1,
+            2,
+            3
+          ],
+          "units": null
+        }
+      ],
+      "size": [
+        3
+      ],
+      "name": "vp_fit_RTN_uncertainty",
+      "description": "---> 1-sigma error",
+      "units": null,
+      "type": "double",
+      "fill": "-1.0E31"
+    },
+    {
+      "name": "np_fit",
+      "description": "[Total] proton density, from 1-dimensional Maxwellian fitting. (All Qualities)",
+      "units": "(All Qs) cm^{-3}",
+      "type": "double",
+      "fill": "-1.0E31"
+    },
+    {
+      "name": "np_fit_uncertainty",
+      "description": "---> 1-sigma error",
+      "units": "(All Qs) cm^{-3}",
+      "type": "double",
+      "fill": "-1.0E31"
+    },
+    {
+      "name": "wp_fit",
+      "description": "Proton radial [most probable] thermal speed component, from 1-dimensional Maxwellian fitting. (All Qualities)",
+      "units": "(All Qs) km/s",
+      "type": "double",
+      "fill": "-1.0E31"
+    },
+    {
+      "name": "wp_fit_uncertainty",
+      "description": "---> 1-sigma error",
+      "units": "(All Qs) km/s",
+      "type": "double",
+      "fill": "-1.0E31"
+    },
+    {
+      "bins": [
+        {
+          "name": "vector_index",
+          "centers": [
+            1,
+            2,
+            3
+          ],
+          "units": null
+        }
+      ],
+      "size": [
+        3
+      ],
+      "name": "va_fit_SC",
+      "description": "Alpha particle velocity vector, from 1-dimensional Maxwellian fitting, in the spacecraft frame (All Qualities)",
+      "units": null,
+      "type": "double",
+      "fill": "-1.0E31"
+    },
+    {
+      "bins": [
+        {
+          "name": "vector_index",
+          "centers": [
+            1,
+            2,
+            3
+          ],
+          "units": null
+        }
+      ],
+      "size": [
+        3
+      ],
+      "name": "va_fit_SC_uncertainty",
+      "description": "---> 1-sigma error",
+      "units": null,
+      "type": "double",
+      "fill": "-1.0E31"
+    },
+    {
+      "bins": [
+        {
+          "name": "vector_index",
+          "centers": [
+            1,
+            2,
+            3
+          ],
+          "units": null
+        }
+      ],
+      "size": [
+        3
+      ],
+      "name": "va_fit_RTN",
+      "description": "Alpha particle velocity vector, from 1-dimensional Maxwellian fitting, in the [inertial] RTN frame (All Qualities)",
+      "units": null,
+      "type": "double",
+      "fill": "-1.0E31"
+    },
+    {
+      "bins": [
+        {
+          "name": "vector_index",
+          "centers": [
+            1,
+            2,
+            3
+          ],
+          "units": null
+        }
+      ],
+      "size": [
+        3
+      ],
+      "name": "va_fit_RTN_uncertainty",
+      "description": "---> 1-sigma error",
+      "units": null,
+      "type": "double",
+      "fill": "-1.0E31"
+    },
+    {
+      "name": "na_fit",
+      "description": "Alpha particle density, from 1-dimensional Maxwellian fitting. (All Qualities)",
+      "units": "(All Qs) cm^{-3}",
+      "type": "double",
+      "fill": "-1.0E31"
+    },
+    {
+      "name": "na_fit_uncertainty",
+      "description": "---> 1-sigma error",
+      "units": "(All Qs) cm^{-3}",
+      "type": "double",
+      "fill": "-1.0E31"
+    },
+    {
+      "name": "wa_fit",
+      "description": "Alpha particle radial [most probable] thermal speed, from 1-dimensional Maxwellian fitting. (All Qualities)",
+      "units": "(All Qs) km/s",
+      "type": "double",
+      "fill": "-1.0E31"
+    },
+    {
+      "name": "wa_fit_uncertainty",
+      "description": "---> 1-sigma error",
+      "units": "(All Qs) km/s",
+      "type": "double",
+      "fill": "-1.0E31"
+    },
+    {
+      "bins": [
+        {
+          "name": "vector_index",
+          "centers": [
+            1,
+            2,
+            3
+          ],
+          "units": null
+        }
+      ],
+      "size": [
+        3
+      ],
+      "name": "v3_fit_SC",
+      "description": "Population 3 velocity vector, from 1-dimensional Maxwellian fitting, in the spacecraft frame (All Qualities)",
+      "units": null,
+      "type": "double",
+      "fill": "-1.0E31"
+    },
+    {
+      "bins": [
+        {
+          "name": "vector_index",
+          "centers": [
+            1,
+            2,
+            3
+          ],
+          "units": null
+        }
+      ],
+      "size": [
+        3
+      ],
+      "name": "v3_fit_SC_uncertainty",
+      "description": "---> 1-sigma error",
+      "units": null,
+      "type": "double",
+      "fill": "-1.0E31"
+    },
+    {
+      "bins": [
+        {
+          "name": "vector_index",
+          "centers": [
+            1,
+            2,
+            3
+          ],
+          "units": null
+        }
+      ],
+      "size": [
+        3
+      ],
+      "name": "v3_fit_RTN",
+      "description": "Population 3 velocity vector, from 1-dimensional Maxwellian fitting, in the [inertial] RTN frame (All Qualities)",
+      "units": null,
+      "type": "double",
+      "fill": "-1.0E31"
+    },
+    {
+      "bins": [
+        {
+          "name": "vector_index",
+          "centers": [
+            1,
+            2,
+            3
+          ],
+          "units": null
+        }
+      ],
+      "size": [
+        3
+      ],
+      "name": "v3_fit_RTN_uncertainty",
+      "description": "---> 1-sigma error",
+      "units": null,
+      "type": "double",
+      "fill": "-1.0E31"
+    },
+    {
+      "name": "n3_fit",
+      "description": "Population 3 particle density, from 1-dimensional Maxwellian fitting. (All Qualities)",
+      "units": "(All Qs) cm^{-3}",
+      "type": "double",
+      "fill": "-1.0E31"
+    },
+    {
+      "name": "n3_fit_uncertainty",
+      "description": "---> 1-sigma error",
+      "units": "(All Qs) cm^{-3}",
+      "type": "double",
+      "fill": "-1.0E31"
+    },
+    {
+      "name": "w3_fit",
+      "description": "Population 3 particle radial [most probable] thermal speed, from 1-dimensional Maxwellian fitting. (All Qualities)",
+      "units": "(All Qs) km/s",
+      "type": "double",
+      "fill": "-1.0E31"
+    },
+    {
+      "name": "w3_fit_uncertainty",
+      "description": "---> 1-sigma error",
+      "units": "(All Qs) km/s",
+      "type": "double",
+      "fill": "-1.0E31"
+    }
+  ],
+  "startDate": "2018-10-30T23:59:59Z",
+  "stopDate": "2025-07-31T23:59:30Z",
+  "status": {
+    "code": 1200,
+    "message": "OK"
+  }
+}

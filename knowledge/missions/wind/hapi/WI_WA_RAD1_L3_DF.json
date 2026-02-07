@@ -1,0 +1,62 @@
+{
+  "HAPI": "2.0",
+  "resourceURL": "https://cdaweb.gsfc.nasa.gov/misc/NotesW.html#WI_WA_RAD1_L3_DF",
+  "contact": "K. Issautier @ LESIA, Observatoire de Paris-PSL, CNRS",
+  "parameters": [
+    {
+      "name": "Time",
+      "length": 30,
+      "units": "UTC",
+      "type": "isotime",
+      "fill": null
+    },
+    {
+      "name": "STOKES_I",
+      "description": "Stokes I parameter of the incoming wave",
+      "units": "W/m^2/Hz",
+      "type": "double",
+      "fill": "-1.0E31"
+    },
+    {
+      "name": "WAVE_COLATITUDE_SRF",
+      "description": "Wave vector colatitude",
+      "units": "degrees",
+      "type": "double",
+      "fill": "-1.0E31"
+    },
+    {
+      "name": "WAVE_AZIMUTH_SRF",
+      "description": "Wave vector azimuth",
+      "units": "degrees",
+      "type": "double",
+      "fill": "-1.0E31"
+    },
+    {
+      "name": "SOURCE_SIZE",
+      "description": "Radio source angular size radius",
+      "units": "degrees",
+      "type": "double",
+      "fill": "-1.0E31"
+    },
+    {
+      "name": "MODULATION_RATE",
+      "description": "Signal modulation rate",
+      "units": " ",
+      "type": "double",
+      "fill": "-1.0E31"
+    },
+    {
+      "name": "QUALITY_FLAG",
+      "description": "Quality flag; 3=Good, 1=problems, 2=survey, 4=received special treatment",
+      "units": "3 = Good ",
+      "type": "integer",
+      "fill": "255"
+    }
+  ],
+  "startDate": "1994-11-10T16:38:07Z",
+  "stopDate": "2026-02-03T23:59:23Z",
+  "status": {
+    "code": 1200,
+    "message": "OK"
+  }
+}

@@ -1,0 +1,41 @@
+{
+  "HAPI": "2.0",
+  "resourceURL": "https://cdaweb.gsfc.nasa.gov/misc/NotesS.html#SOLO_L3_RPW-TNR-FP",
+  "contact": "M.Maksimovic @ LESIA, Observatoire de Paris-CNRS",
+  "parameters": [
+    {
+      "name": "Time",
+      "length": 30,
+      "units": "UTC",
+      "type": "isotime",
+      "fill": null
+    },
+    {
+      "name": "SENSOR_CONFIG",
+      "description": "THR sensor configuration",
+      "units": " ",
+      "type": "integer",
+      "fill": "255"
+    },
+    {
+      "name": "PLASMA_FREQ",
+      "description": "Plasma frequency value derived by the palsma peak tracking",
+      "units": "kHz",
+      "type": "double",
+      "fill": "-1.0E31"
+    },
+    {
+      "name": "QUALITY_FACTOR",
+      "description": "Quality factor for the plasma frequency data",
+      "units": " ",
+      "type": "double",
+      "fill": "-1.0E31"
+    }
+  ],
+  "startDate": "2020-06-15T00:00:49Z",
+  "stopDate": "2022-12-29T12:50:23Z",
+  "status": {
+    "code": 1200,
+    "message": "OK"
+  }
+}

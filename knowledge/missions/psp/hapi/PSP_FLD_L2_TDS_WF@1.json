@@ -1,0 +1,433 @@
+{
+  "HAPI": "2.0",
+  "resourceURL": "https://cdaweb.gsfc.nasa.gov/misc/NotesP.html#PSP_FLD_L2_TDS_WF",
+  "contact": "Stuart D. Bale (bale@berkeley.edu) @ UC Berkeley Space Sciences Laboratory",
+  "parameters": [
+    {
+      "name": "Time",
+      "length": 30,
+      "units": "UTC",
+      "type": "isotime",
+      "fill": null
+    },
+    {
+      "name": "PSP_FLD_L2_TDS_WF_Version",
+      "description": "TDS wave-form burst telemetry format version number",
+      "units": "None",
+      "type": "double",
+      "fill": "4.294967295E9"
+    },
+    {
+      "name": "PSP_FLD_L2_TDS_WF_Burst_ID",
+      "description": "Event number for this burst",
+      "units": "None",
+      "type": "double",
+      "fill": "4.294967295E9"
+    },
+    {
+      "name": "PSP_FLD_L2_TDS_WF_Burst_Quality",
+      "description": "Overall quality for this burst (arbitrary units - used for burst selection)",
+      "units": "Arbitrary",
+      "type": "double",
+      "fill": "4.294967295E9"
+    },
+    {
+      "name": "PSP_FLD_L2_TDS_WF_N_Samples_per_Channel",
+      "description": "Number of samples per channel",
+      "units": "None",
+      "type": "double",
+      "fill": "4.294967295E9"
+    },
+    {
+      "name": "PSP_FLD_L2_TDS_WF_N_Samples_per_Channel_MAX",
+      "description": "Maximum number of samples allowed per channel (always 262,144)",
+      "units": "None",
+      "type": "double",
+      "fill": "4.294967295E9"
+    },
+    {
+      "name": "PSP_FLD_L2_TDS_WF_Burst_Total_SWEAP_Counts",
+      "description": "The total number of SWEAP particle counts in this TDS wave-form burst time series (Ch0) - the value is a positive integer (GE 0) returned as a real8 from the SWEAP particle counting channel (counts)",
+      "units": "Counts",
+      "type": "double",
+      "fill": "-1.0E31"
+    },
+    {
+      "name": "PSP_FLD_L2_TDS_WF_Burst_Total_SWEAP_Counting_Rate",
+      "description": "The observed SWEAP particle counting rate (Ch0) during this burst (counts per second)",
+      "units": "CPS",
+      "type": "double",
+      "fill": "-1.0E31"
+    },
+    {
+      "name": "PSP_FLD_L2_TDS_WF_Trigger_Threshold_Engineering_mV",
+      "description": "The current burst trigger threshold (engineering mV)",
+      "units": "mV",
+      "type": "double",
+      "fill": "-1.0E31"
+    },
+    {
+      "name": "PSP_FLD_L2_TDS_WF_Trigger_Position",
+      "description": "The desired time/location of the burst trigger after the start of the burst (s)",
+      "units": "s",
+      "type": "double",
+      "fill": "-1.0E31"
+    },
+    {
+      "name": "PSP_FLD_L2_TDS_WF_Sample_Speed",
+      "description": "Possibly down-sampled sample rate of the TDS (Samples/second)",
+      "units": "Sa/s",
+      "type": "double",
+      "fill": "-1.0E31"
+    },
+    {
+      "name": "PSP_FLD_L2_TDS_WF_Sample_Period",
+      "description": "Possibly down-sampled sample period of the TDS samples (seconds/sample)",
+      "units": "s",
+      "type": "double",
+      "fill": "-1.0E31"
+    },
+    {
+      "name": "PSP_FLD_L2_TDS_WF_Burst_Period",
+      "description": "Burst duration period of this TDS burst (seconds/burst)",
+      "units": "s",
+      "type": "double",
+      "fill": "-1.0E31"
+    },
+    {
+      "name": "PSP_FLD_L2_TDS_WF_DFB_Voltage_V1",
+      "description": "The DFB DC voltage measurement from the V1 sensor (Volts)",
+      "units": "V",
+      "type": "double",
+      "fill": "-1.0E31"
+    },
+    {
+      "name": "PSP_FLD_L2_TDS_WF_DFB_Voltage_V2",
+      "description": "The DFB DC voltage measurement from the V2 sensor (Volts)",
+      "units": "V",
+      "type": "double",
+      "fill": "-1.0E31"
+    },
+    {
+      "name": "PSP_FLD_L2_TDS_WF_DFB_Voltage_V3",
+      "description": "The DFB DC voltage measurement from the V3 sensor (Volts)",
+      "units": "V",
+      "type": "double",
+      "fill": "-1.0E31"
+    },
+    {
+      "name": "PSP_FLD_L2_TDS_WF_DFB_Voltage_V4",
+      "description": "The DFB DC voltage measurement from the V4 sensor (Volts)",
+      "units": "V",
+      "type": "double",
+      "fill": "-1.0E31"
+    },
+    {
+      "name": "PSP_FLD_L2_TDS_WF_SC_Reaction_Wheel_Speed_RW1",
+      "description": "Indicates the rotational speed of the 1st reaction wheel (revolutions per second)",
+      "units": "RPS",
+      "type": "double",
+      "fill": "-1.0E31"
+    },
+    {
+      "name": "PSP_FLD_L2_TDS_WF_SC_Reaction_Wheel_Speed_RW2",
+      "description": "Indicates the rotational speed of the 2nd reaction wheel (revolutions per second)",
+      "units": "RPS",
+      "type": "double",
+      "fill": "-1.0E31"
+    },
+    {
+      "name": "PSP_FLD_L2_TDS_WF_SC_Reaction_Wheel_Speed_RW3",
+      "description": "Indicates the rotational speed of the 3rd reaction wheel (revolutions per second)",
+      "units": "RPS",
+      "type": "double",
+      "fill": "-1.0E31"
+    },
+    {
+      "name": "PSP_FLD_L2_TDS_WF_SC_Reaction_Wheel_Speed_RW4",
+      "description": "Indicates the rotational speed of the 4th reaction wheel (revolutions per second)",
+      "units": "RPS",
+      "type": "double",
+      "fill": "-1.0E31"
+    },
+    {
+      "name": "PSP_FLD_L2_TDS_WF_Burst_Peak_V1_Engineering_mV",
+      "description": "TDS wave-form burst time series peak for the high-gain V1 sensor (Ch1) NOT corrected for frequency response (engineering mV)",
+      "units": "mV",
+      "type": "double",
+      "fill": "-1.0E31"
+    },
+    {
+      "name": "PSP_FLD_L2_TDS_WF_Burst_Peak_V2_Engineering_mV",
+      "description": "TDS wave-form burst time series peak for the high-gain V2 sensor (Ch2) NOT corrected for frequency response (engineering mV)",
+      "units": "mV",
+      "type": "double",
+      "fill": "-1.0E31"
+    },
+    {
+      "name": "PSP_FLD_L2_TDS_WF_Burst_Peak_V3_Engineering_mV",
+      "description": "TDS wave-form burst time series peak for the high-gain V3 sensor (Ch3) NOT corrected for frequency response (engineering mV)",
+      "units": "mV",
+      "type": "double",
+      "fill": "-1.0E31"
+    },
+    {
+      "name": "PSP_FLD_L2_TDS_WF_Burst_Peak_V4_Engineering_mV",
+      "description": "TDS wave-form burst time series peak for the high-gain V4 sensor (Ch4) NOT corrected for frequency response (engineering mV)",
+      "units": "mV",
+      "type": "double",
+      "fill": "-1.0E31"
+    },
+    {
+      "name": "PSP_FLD_L2_TDS_WF_Burst_Peak_V5_Engineering_mV",
+      "description": "TDS wave-form burst time series peak for the high-gain V5 sensor (Ch5) NOT corrected for frequency response (engineering mV)",
+      "units": "mV",
+      "type": "double",
+      "fill": "-1.0E31"
+    },
+    {
+      "name": "PSP_FLD_L2_TDS_WF_Burst_Peak_V1V2_Engineering_mV",
+      "description": "TDS wave-form burst time series peak for the high-gain difference of V1-V2 (Ch3) NOT corrected for frequency response (engineering mV)",
+      "units": "mV",
+      "type": "double",
+      "fill": "-1.0E31"
+    },
+    {
+      "name": "PSP_FLD_L2_TDS_WF_Burst_Peak_V3V4_Engineering_mV",
+      "description": "TDS wave-form burst time series peak for the high-gain difference of V3-V4 (Ch1) NOT corrected for frequency response (engineering mV)",
+      "units": "mV",
+      "type": "double",
+      "fill": "-1.0E31"
+    },
+    {
+      "name": "PSP_FLD_L2_TDS_WF_Burst_Peak_V1234_Engineering_mV",
+      "description": "TDS wave-form burst time series peak for the high-gain sum of V1+V2+V3+V4 (Ch2) NOT corrected for frequency response (engineering mV)",
+      "units": "mV",
+      "type": "double",
+      "fill": "-1.0E31"
+    },
+    {
+      "name": "PSP_FLD_L2_TDS_WF_Burst_Peak_SCM4_Engineering_nT",
+      "description": "TDS wave-form burst time series peak for the high-gain SCM MF sensor (Ch4) NOT corrected for frequency response (engineering nT)",
+      "units": "nT",
+      "type": "double",
+      "fill": "-1.0E31"
+    },
+    {
+      "name": "PSP_FLD_L2_TDS_WF_Burst_Peak_SCM5_Engineering_nT",
+      "description": "TDS wave-form burst time series peak for the high-gain SCM MF sensor (Ch5) NOT corrected for frequency response (engineering nT)",
+      "units": "nT",
+      "type": "double",
+      "fill": "-1.0E31"
+    },
+    {
+      "name": "PSP_FLD_L2_TDS_WF_Burst_Peak_SCM4LG_Engineering_nT",
+      "description": "TDS wave-form burst time series peak for the low-gain SCM MF sensor (Ch4) NOT corrected for frequency response (engineering nT)",
+      "units": "nT",
+      "type": "double",
+      "fill": "-1.0E31"
+    },
+    {
+      "name": "PSP_FLD_L2_TDS_WF_Burst_Peak_SCM4_Engineering_mV",
+      "description": "TDS wave-form burst time series peak for the high-gain SCM MF sensor (Ch4) NOT corrected for frequency response (engineering mV)",
+      "units": "mV",
+      "type": "double",
+      "fill": "-1.0E31"
+    },
+    {
+      "name": "PSP_FLD_L2_TDS_WF_Burst_Peak_SCM5_Engineering_mV",
+      "description": "TDS wave-form burst time series peak for the high-gain SCM MF sensor (Ch5) NOT corrected for frequency response (engineering mV)",
+      "units": "mV",
+      "type": "double",
+      "fill": "-1.0E31"
+    },
+    {
+      "name": "PSP_FLD_L2_TDS_WF_Burst_Peak_SCM4LG_Engineering_mV",
+      "description": "TDS wave-form burst time series peak for the low-gain SCM MF sensor (Ch4) NOT corrected for frequency response (engineering mV)",
+      "units": "mV",
+      "type": "double",
+      "fill": "-1.0E31"
+    },
+    {
+      "name": "PSP_FLD_L2_TDS_WF_Burst_Peak_V1LG_Engineering_mV",
+      "description": "TDS wave-form burst time series peak for the low-gain V1 sensor (Ch3) NOT corrected for frequency response (engineering mV)",
+      "units": "mV",
+      "type": "double",
+      "fill": "-1.0E31"
+    },
+    {
+      "name": "PSP_FLD_L2_TDS_WF_Burst_Peak_V2LG_Engineering_mV",
+      "description": "TDS wave-form burst time series peak for the low-gain V2 sensor (Ch5) NOT corrected for frequency response (engineering mV)",
+      "units": "mV",
+      "type": "double",
+      "fill": "-1.0E31"
+    },
+    {
+      "name": "PSP_FLD_L2_TDS_WF_Burst_Peak_V3LG_Engineering_mV",
+      "description": "TDS wave-form burst time series peak for the low-gain V3 sensor (Ch1) NOT corrected for frequency response (engineering mV)",
+      "units": "mV",
+      "type": "double",
+      "fill": "-1.0E31"
+    },
+    {
+      "name": "PSP_FLD_L2_TDS_WF_Burst_Peak_V4LG_Engineering_mV",
+      "description": "TDS wave-form burst time series peak for the low-gain V4 sensor (Ch2) NOT corrected for frequency response (engineering mV)",
+      "units": "mV",
+      "type": "double",
+      "fill": "-1.0E31"
+    },
+    {
+      "name": "PSP_FLD_L2_TDS_WF_Burst_Peak_V5LG_Engineering_mV",
+      "description": "TDS wave-form burst time series peak for the low-gain V5 sensor (Ch4) NOT corrected for frequency response (engineering mV)",
+      "units": "mV",
+      "type": "double",
+      "fill": "-1.0E31"
+    },
+    {
+      "name": "PSP_FLD_L2_TDS_WF_Burst_RMS_V1_Engineering_mV",
+      "description": "TDS wave-form burst time series RMS for the high-gain V1 sensor (Ch1) NOT corrected for frequency response (engineering mV)",
+      "units": "mV",
+      "type": "double",
+      "fill": "-1.0E31"
+    },
+    {
+      "name": "PSP_FLD_L2_TDS_WF_Burst_RMS_V2_Engineering_mV",
+      "description": "TDS wave-form burst time series RMS for the high-gain V2 sensor (Ch2) NOT corrected for frequency response (engineering mV)",
+      "units": "mV",
+      "type": "double",
+      "fill": "-1.0E31"
+    },
+    {
+      "name": "PSP_FLD_L2_TDS_WF_Burst_RMS_V3_Engineering_mV",
+      "description": "TDS wave-form burst time series RMS for the high-gain V3 sensor (Ch3) NOT corrected for frequency response (engineering mV)",
+      "units": "mV",
+      "type": "double",
+      "fill": "-1.0E31"
+    },
+    {
+      "name": "PSP_FLD_L2_TDS_WF_Burst_RMS_V4_Engineering_mV",
+      "description": "TDS wave-form burst time series RMS for the high-gain V4 sensor (Ch4) NOT corrected for frequency response (engineering mV)",
+      "units": "mV",
+      "type": "double",
+      "fill": "-1.0E31"
+    },
+    {
+      "name": "PSP_FLD_L2_TDS_WF_Burst_RMS_V5_Engineering_mV",
+      "description": "TDS wave-form burst time series RMS for the high-gain V5 sensor (Ch5) NOT corrected for frequency response (engineering mV)",
+      "units": "mV",
+      "type": "double",
+      "fill": "-1.0E31"
+    },
+    {
+      "name": "PSP_FLD_L2_TDS_WF_Burst_RMS_V1V2_Engineering_mV",
+      "description": "TDS wave-form burst time series RMS for the high-gain difference of V1-V2 (Ch3) NOT corrected for frequency response (engineering mV)",
+      "units": "mV",
+      "type": "double",
+      "fill": "-1.0E31"
+    },
+    {
+      "name": "PSP_FLD_L2_TDS_WF_Burst_RMS_V3V4_Engineering_mV",
+      "description": "TDS wave-form burst time series RMS for the high-gain difference of V3-V4 (Ch1) NOT corrected for frequency response (engineering mV)",
+      "units": "mV",
+      "type": "double",
+      "fill": "-1.0E31"
+    },
+    {
+      "name": "PSP_FLD_L2_TDS_WF_Burst_RMS_V1234_Engineering_mV",
+      "description": "TDS wave-form burst time series RMS for the high-gain sum of V1+V2+V3+V4 (Ch2) NOT corrected for frequency response (engineering mV)",
+      "units": "mV",
+      "type": "double",
+      "fill": "-1.0E31"
+    },
+    {
+      "name": "PSP_FLD_L2_TDS_WF_Burst_RMS_SCM4_Engineering_nT",
+      "description": "TDS wave-form burst time series RMS for the high-gain SCM MF sensor (Ch4) NOT corrected for frequency response (engineering nT)",
+      "units": "nT",
+      "type": "double",
+      "fill": "-1.0E31"
+    },
+    {
+      "name": "PSP_FLD_L2_TDS_WF_Burst_RMS_SCM5_Engineering_nT",
+      "description": "TDS wave-form burst time series RMS for the high-gain SCM MF sensor (Ch5) NOT corrected for frequency response (engineering nT)",
+      "units": "nT",
+      "type": "double",
+      "fill": "-1.0E31"
+    },
+    {
+      "name": "PSP_FLD_L2_TDS_WF_Burst_RMS_SCM4LG_Engineering_nT",
+      "description": "TDS wave-form burst time series RMS for the low-gain SCM MF sensor (Ch4) NOT corrected for frequency response (engineering nT)",
+      "units": "nT",
+      "type": "double",
+      "fill": "-1.0E31"
+    },
+    {
+      "name": "PSP_FLD_L2_TDS_WF_Burst_RMS_SCM4_Engineering_mV",
+      "description": "TDS wave-form burst time series RMS for the high-gain SCM MF sensor (Ch4) NOT corrected for frequency response (engineering mV)",
+      "units": "mV",
+      "type": "double",
+      "fill": "-1.0E31"
+    },
+    {
+      "name": "PSP_FLD_L2_TDS_WF_Burst_RMS_SCM5_Engineering_mV",
+      "description": "TDS wave-form burst time series RMS for the high-gain SCM MF sensor (Ch5) NOT corrected for frequency response (engineering mV)",
+      "units": "mV",
+      "type": "double",
+      "fill": "-1.0E31"
+    },
+    {
+      "name": "PSP_FLD_L2_TDS_WF_Burst_RMS_SCM4LG_Engineering_mV",
+      "description": "TDS wave-form burst time series RMS for the low-gain SCM MF sensor (Ch4) NOT corrected for frequency response (engineering mV)",
+      "units": "mV",
+      "type": "double",
+      "fill": "-1.0E31"
+    },
+    {
+      "name": "PSP_FLD_L2_TDS_WF_Burst_RMS_V1LG_Engineering_mV",
+      "description": "TDS wave-form burst time series RMS for the low-gain V1 sensor (Ch3) NOT corrected for frequency response (engineering mV)",
+      "units": "mV",
+      "type": "double",
+      "fill": "-1.0E31"
+    },
+    {
+      "name": "PSP_FLD_L2_TDS_WF_Burst_RMS_V2LG_Engineering_mV",
+      "description": "TDS wave-form burst time series RMS for the low-gain V2 sensor (Ch5) NOT corrected for frequency response (engineering mV)",
+      "units": "mV",
+      "type": "double",
+      "fill": "-1.0E31"
+    },
+    {
+      "name": "PSP_FLD_L2_TDS_WF_Burst_RMS_V3LG_Engineering_mV",
+      "description": "TDS wave-form burst time series RMS for the low-gain V3 sensor (Ch1) NOT corrected for frequency response (engineering mV)",
+      "units": "mV",
+      "type": "double",
+      "fill": "-1.0E31"
+    },
+    {
+      "name": "PSP_FLD_L2_TDS_WF_Burst_RMS_V4LG_Engineering_mV",
+      "description": "TDS wave-form burst time series RMS for the low-gain V4 sensor (Ch2) NOT corrected for frequency response (engineering mV)",
+      "units": "mV",
+      "type": "double",
+      "fill": "-1.0E31"
+    },
+    {
+      "name": "PSP_FLD_L2_TDS_WF_Burst_RMS_V5LG_Engineering_mV",
+      "description": "TDS wave-form burst time series RMS for the low-gain V5 sensor (Ch4) NOT corrected for frequency response (engineering mV)",
+      "units": "mV",
+      "type": "double",
+      "fill": "-1.0E31"
+    },
+    {
+      "name": "PSP_FLD_L2_TDS_WF_SC_Solar_Distance",
+      "description": "Value is the S/C provided distance to the sun at the time of this burst",
+      "units": "km",
+      "type": "double",
+      "fill": "-1.0E31"
+    }
+  ],
+  "startDate": "2018-08-13T11:50:15Z",
+  "stopDate": "2025-07-19T19:46:04Z",
+  "status": {
+    "code": 1200,
+    "message": "OK"
+  }
+}

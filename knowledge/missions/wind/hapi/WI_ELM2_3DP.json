@@ -1,0 +1,218 @@
+{
+  "HAPI": "2.0",
+  "resourceURL": "https://cdaweb.gsfc.nasa.gov/misc/NotesW.html#WI_ELM2_3DP",
+  "contact": "R. Lin/S. Bale @ UC Berkeley",
+  "parameters": [
+    {
+      "name": "Time",
+      "length": 24,
+      "units": "UTC",
+      "type": "isotime",
+      "fill": null
+    },
+    {
+      "name": "SC_POT",
+      "description": "[SC_POT] Spacecraft potential estimated from electron ONLY measurements",
+      "units": "eV",
+      "type": "double",
+      "fill": "-1.0E31"
+    },
+    {
+      "name": "SC_CURRENT",
+      "description": "---> [SC_CURRENT?] Current contribution to the spacecraft from thermal electrons",
+      "units": "#/cm2-sec",
+      "type": "double",
+      "fill": "-1.0E31"
+    },
+    {
+      "size": [
+        3
+      ],
+      "name": "MAGF",
+      "description": "---> [MAGF] magnetic field vector interpolated (linearly) to the time of the EESA Low distribution, in GSE cartesian components",
+      "units": "nT",
+      "type": "double",
+      "fill": "-1.0E31"
+    },
+    {
+      "name": "DENSITY",
+      "description": "---> [DENSITY] Electron number density",
+      "units": "#/cm3",
+      "type": "double",
+      "fill": "-1.0E31"
+    },
+    {
+      "name": "AVGTEMP",
+      "description": "---> [AVGTEMP] Average electron temperature",
+      "units": "eV",
+      "type": "double",
+      "fill": "-1.0E31"
+    },
+    {
+      "name": "VTHERMAL",
+      "description": "---> [VTHERMAL] electron most probable speed",
+      "units": "km/sec",
+      "type": "double",
+      "fill": "-1.0E31"
+    },
+    {
+      "size": [
+        3
+      ],
+      "name": "VELOCITY",
+      "description": "---> [VELOCITY] electron Flow Velocity, GSE cartesian",
+      "units": "km/s",
+      "type": "double",
+      "fill": "-1.0E31"
+    },
+    {
+      "size": [
+        3
+      ],
+      "name": "FLUX",
+      "description": "---> [FLUX] electron total number flux - cartesian GSE",
+      "units": "#/cm2-sec",
+      "type": "double",
+      "fill": "-1.0E31"
+    },
+    {
+      "size": [
+        6
+      ],
+      "name": "PTENS",
+      "description": "[PTENS] electron Pressure Tensor calculated in the GSE coordinate basis.  The elements correspond to, in the following order: XX, YY, ZZ, XY, XZ, YZ",
+      "units": "eV/cm^3",
+      "type": "double",
+      "fill": "-1.0E31"
+    },
+    {
+      "size": [
+        6
+      ],
+      "name": "MFTENS",
+      "description": "---> [MFTENS] electron Momentum Flux Tensor calculated in the GSE coordinate basis.  The elements correspond to, in the following order: XX, YY, ZZ, XY, XZ, YZ",
+      "units": "eV/cm^3",
+      "type": "double",
+      "fill": "-1.0E31"
+    },
+    {
+      "size": [
+        3
+      ],
+      "name": "EFLUX",
+      "description": "---> [EFLUX] eflux",
+      "units": " ",
+      "type": "double",
+      "fill": "-1.0E31"
+    },
+    {
+      "size": [
+        3
+      ],
+      "name": "T3",
+      "description": "---> [T3] electron Temperature eigenvalues after diagonalization of tensor, calculated in the GSE coordinate basis.  The elements correspond to:  XX, YY, ZZ",
+      "units": "eV",
+      "type": "double",
+      "fill": "-1.0E31"
+    },
+    {
+      "size": [
+        3
+      ],
+      "name": "SYMM",
+      "description": "[SYMM] ZZ-component of the eigenvectors associated with the eigen values from the diagonalized .T3 (i.e., the eigenvector associated with the Z eigen value from .T3 or .T3[2])",
+      "units": null,
+      "type": "double",
+      "fill": "-1.0E31"
+    },
+    {
+      "name": "SYMM_THETA",
+      "description": "---> [SYMM_THETA] Spherical coordinate latitude of .SYMM",
+      "units": "Degrees",
+      "type": "double",
+      "fill": "-1.0E31"
+    },
+    {
+      "name": "SYMM_PHI",
+      "description": "---> [SYMM_PHI] Spherical coordinate longitude of .SYMM",
+      "units": "Degrees",
+      "type": "double",
+      "fill": "-1.0E31"
+    },
+    {
+      "name": "SYMM_ANG",
+      "description": "---> [SYMM_ANG] angle between the ZZ-component of the eigenvectors associated with the eigen values from the diagonalized .T3 and the magnetic field vector (i.e., .MAGF vector)",
+      "units": "Degrees",
+      "type": "double",
+      "fill": "-1.0E31"
+    },
+    {
+      "size": [
+        3
+      ],
+      "name": "MAGT3",
+      "description": "---> [MAGT3] electron temperature tensor... rotated into a field-aligned coordinate basis and then taking the diagonal elements only",
+      "units": "eV",
+      "type": "double",
+      "fill": "-1.0E31"
+    },
+    {
+      "size": [
+        2
+      ],
+      "name": "ERANGE",
+      "description": "[P.ERANGE] electron energy range used to compute the moments",
+      "units": "eV",
+      "type": "double",
+      "fill": "-1.0E31"
+    },
+    {
+      "name": "MASS",
+      "description": "---> [MASS] electron mass of species",
+      "units": "eV/c^2",
+      "type": "double",
+      "fill": "-1.0E31"
+    },
+    {
+      "name": "VALID",
+      "description": "---> [VALID] electron Validity flag; 1=OK",
+      "units": "(1=OK)",
+      "type": "integer",
+      "fill": "-32768"
+    },
+    {
+      "name": "VEL_MAG",
+      "description": "[VEL_MAG] electron bulk flow speed",
+      "units": "km/s",
+      "type": "double",
+      "fill": "-1.0E31"
+    },
+    {
+      "name": "VEL_TH",
+      "description": "---> [VEL_TH] electron bulk flow velocity; latitude/theta",
+      "units": "Degrees",
+      "type": "double",
+      "fill": "-1.0E31"
+    },
+    {
+      "name": "VEL_PHI",
+      "description": "---> [VELPHI] electron bulk flow velocity; longitude/phi",
+      "units": "Degrees",
+      "type": "double",
+      "fill": "-1.0E31"
+    },
+    {
+      "name": "TIME",
+      "description": "UNIX time; seconds since January 1, 1970",
+      "units": "sec since 1-1-70",
+      "type": "double",
+      "fill": "-1.0E31"
+    }
+  ],
+  "startDate": "1994-11-15T12:54:33Z",
+  "stopDate": "2026-01-05T23:54:37Z",
+  "status": {
+    "code": 1200,
+    "message": "OK"
+  }
+}

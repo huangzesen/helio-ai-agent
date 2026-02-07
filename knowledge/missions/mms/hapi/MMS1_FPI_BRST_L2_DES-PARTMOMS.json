@@ -1,0 +1,134 @@
+{
+  "HAPI": "2.0",
+  "resourceURL": "https://cdaweb.gsfc.nasa.gov/misc/NotesM.html#MMS1_FPI_BRST_L2_DES-PARTMOMS",
+  "contact": "J. Burch, B. Giles @ SwRI, GSFC",
+  "parameters": [
+    {
+      "name": "Time",
+      "length": 30,
+      "units": "UTC",
+      "type": "isotime",
+      "fill": null
+    },
+    {
+      "name": "mms1_des_errorflags_brst",
+      "description": "MMS1 FPI/DES vector of data-quality indicators at burst-start time",
+      "units": "32-bit error flags",
+      "type": "double",
+      "fill": "4.294967295E9"
+    },
+    {
+      "size": [
+        32
+      ],
+      "name": "mms1_des_numberdensity_part_brst",
+      "description": "MMS1 FPI/DES partial electron number density during this burst",
+      "units": "cm^-3",
+      "type": "double",
+      "fill": "-1.0E31"
+    },
+    {
+      "size": [
+        32,
+        3
+      ],
+      "name": "mms1_des_bulkv_part_dbcs_brst",
+      "description": "MMS1 FPI/DES partial electron bulk-velocity vector in DBCS during this burst",
+      "units": "km/s",
+      "type": "double",
+      "fill": "-1.0E31"
+    },
+    {
+      "size": [
+        32,
+        3
+      ],
+      "name": "mms1_des_bulkv_part_gse_brst",
+      "description": "MMS1 FPI/DES partial electron bulk-velocity vector in GSE during this burst",
+      "units": "km/s",
+      "type": "double",
+      "fill": "-1.0E31"
+    },
+    {
+      "size": [
+        32,
+        3,
+        3
+      ],
+      "name": "mms1_des_prestensor_part_dbcs_brst",
+      "description": "MMS1 FPI/DES partial electron pressure tensor in DBCS during this burst",
+      "units": "nPa",
+      "type": "double",
+      "fill": "-1.0E31"
+    },
+    {
+      "size": [
+        32,
+        3,
+        3
+      ],
+      "name": "mms1_des_prestensor_part_gse_brst",
+      "description": "MMS1 FPI/DES partial electron pressure tensor in GSE during this burst",
+      "units": "nPa",
+      "type": "double",
+      "fill": "-1.0E31"
+    },
+    {
+      "size": [
+        32,
+        3,
+        3
+      ],
+      "name": "mms1_des_temptensor_part_dbcs_brst",
+      "description": "MMS1 FPI/DES partial electron temperature tensor in DBCS during this burst",
+      "units": "eV",
+      "type": "double",
+      "fill": "-1.0E31"
+    },
+    {
+      "size": [
+        32,
+        3,
+        3
+      ],
+      "name": "mms1_des_temptensor_part_gse_brst",
+      "description": "MMS1 FPI/DES partial electron temperature tensor in GSE during this burst",
+      "units": "eV",
+      "type": "double",
+      "fill": "-1.0E31"
+    },
+    {
+      "size": [
+        32
+      ],
+      "name": "mms1_des_temppara_part_brst",
+      "description": "MMS1 FPI/DES partial electron parallel temperature during this burst",
+      "units": "eV",
+      "type": "double",
+      "fill": "-1.0E31"
+    },
+    {
+      "size": [
+        32
+      ],
+      "name": "mms1_des_tempperp_part_brst",
+      "description": "MMS1 FPI/DES partial electron perpendicular temperature during this burst",
+      "units": "eV",
+      "type": "double",
+      "fill": "-1.0E31"
+    },
+    {
+      "name": "mms1_des_part_index_brst",
+      "description": "MMS1 FPI/DES recommended energy index during this burst",
+      "units": "0-31",
+      "type": "integer",
+      "fill": "65535"
+    }
+  ],
+  "startDate": "2015-09-01T12:11:14Z",
+  "stopDate": "2021-06-19T22:06:42Z",
+  "status": {
+    "code": 1200,
+    "message": "OK"
+  }
+}

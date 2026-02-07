@@ -1,0 +1,180 @@
+{
+  "HAPI": "2.0",
+  "resourceURL": "https://cdaweb.gsfc.nasa.gov/misc/NotesP.html#PSP_ISOIS-EPILO_L2-PE",
+  "contact": "David McComas @ Princeton University",
+  "parameters": [
+    {
+      "name": "Time",
+      "length": 30,
+      "units": "UTC",
+      "type": "isotime",
+      "fill": null
+    },
+    {
+      "bins": [
+        {
+          "name": "Look_Direction_08",
+          "centers": [
+            0,
+            1,
+            2,
+            3,
+            4,
+            5,
+            6,
+            7
+          ],
+          "units": " "
+        }
+      ],
+      "size": [
+        8
+      ],
+      "name": "PA_ChanF",
+      "description": "Pitch angle ChanF",
+      "units": "degree",
+      "type": "double",
+      "fill": "-1.0E31"
+    },
+    {
+      "bins": [
+        {
+          "name": "Look_Direction_08",
+          "centers": [
+            0,
+            1,
+            2,
+            3,
+            4,
+            5,
+            6,
+            7
+          ],
+          "units": " "
+        }
+      ],
+      "size": [
+        8
+      ],
+      "name": "SA_ChanF",
+      "description": "Nominal Parker Spiral angle ChanF",
+      "units": "degree",
+      "type": "double",
+      "fill": "-1.0E31"
+    },
+    {
+      "size": [
+        8,
+        3
+      ],
+      "name": "RTN_ChanF",
+      "description": "RTN flow direction ChanF",
+      "units": " ",
+      "type": "double",
+      "fill": "-1.0E31"
+    },
+    {
+      "size": [
+        8,
+        3
+      ],
+      "name": "HCI_ChanF",
+      "description": "HCI flow direction ChanF",
+      "units": " ",
+      "type": "double",
+      "fill": "-1.0E31"
+    },
+    {
+      "name": "HCI_R_ChanF",
+      "description": "Heliocentric distance ChanF",
+      "units": "AU",
+      "type": "double",
+      "fill": "-1.0E31"
+    },
+    {
+      "name": "HCI_Lat_ChanF",
+      "description": "HCI latitude ChanF",
+      "units": "degrees",
+      "type": "double",
+      "fill": "-1.0E31"
+    },
+    {
+      "name": "HCI_Lon_ChanF",
+      "description": "HCI longitude ChanF",
+      "units": "degrees",
+      "type": "double",
+      "fill": "-1.0E31"
+    },
+    {
+      "name": "HGC_R_ChanF",
+      "description": "Heliocentric distance ChanF",
+      "units": "AU",
+      "type": "double",
+      "fill": "-1.0E31"
+    },
+    {
+      "name": "HGC_Lat_ChanF",
+      "description": "HGC latitude ChanF",
+      "units": "degrees",
+      "type": "double",
+      "fill": "-1.0E31"
+    },
+    {
+      "name": "HGC_Lon_ChanF",
+      "description": "HGC longitude ChanF",
+      "units": "degrees",
+      "type": "double",
+      "fill": "-1.0E31"
+    },
+    {
+      "size": [
+        8,
+        48
+      ],
+      "name": "Electron_Counts_ChanF",
+      "description": "Electron counts channel F (HiTimeResElectrons)",
+      "units": "counts",
+      "type": "double",
+      "fill": "-9223372036854775808"
+    },
+    {
+      "size": [
+        8,
+        48
+      ],
+      "name": "Electron_CountRate_ChanF",
+      "description": "Electron count rate channel F (HiTimeResElectrons)",
+      "units": "counts/sec",
+      "type": "double",
+      "fill": "-1.0E31"
+    },
+    {
+      "size": [
+        8,
+        48
+      ],
+      "name": "H_Counts_ChanF",
+      "description": "H counts channel F (HiTimeResElectrons)",
+      "units": "counts",
+      "type": "double",
+      "fill": "-9223372036854775808"
+    },
+    {
+      "size": [
+        8,
+        48
+      ],
+      "name": "H_CountRate_ChanF",
+      "description": "H count rate channel F (HiTimeResElectrons)",
+      "units": "counts/sec",
+      "type": "double",
+      "fill": "-1.0E31"
+    }
+  ],
+  "startDate": "2018-09-28T00:10:54Z",
+  "stopDate": "2025-08-06T03:42:18Z",
+  "status": {
+    "code": 1200,
+    "message": "OK"
+  }
+}

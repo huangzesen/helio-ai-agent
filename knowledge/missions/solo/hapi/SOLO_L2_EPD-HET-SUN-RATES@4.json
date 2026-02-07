@@ -1,0 +1,54 @@
+{
+  "HAPI": "2.0",
+  "resourceURL": "https://cdaweb.gsfc.nasa.gov/misc/NotesS.html#SOLO_L2_EPD-HET-SUN-RATES",
+  "contact": "J. Rodriguez-Pacheco @ Space Research Group, Universidad de Alcala",
+  "parameters": [
+    {
+      "name": "Time",
+      "length": 30,
+      "units": "UTC",
+      "type": "isotime",
+      "fill": null
+    },
+    {
+      "bins": [
+        {
+          "name": "Fe_Bins_Low_Energy",
+          "centers": [
+            23.66,
+            24.41,
+            26.03,
+            27.78,
+            29.8,
+            42.12,
+            58.86,
+            82.94,
+            102.7,
+            128.6,
+            155.8,
+            192.4,
+            215.2,
+            265.2,
+            332.6,
+            412.6
+          ],
+          "units": "MeV/n"
+        }
+      ],
+      "size": [
+        16
+      ],
+      "name": "Fe_Flux",
+      "description": "Iron flux",
+      "units": "particles / (s cm^2 sr MeV/n)",
+      "type": "double",
+      "fill": "-1.0E31"
+    }
+  ],
+  "startDate": "2020-05-13T00:00:03Z",
+  "stopDate": "2025-10-31T23:59:57Z",
+  "status": {
+    "code": 1200,
+    "message": "OK"
+  }
+}

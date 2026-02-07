@@ -1,0 +1,676 @@
+{
+  "HAPI": "2.0",
+  "resourceURL": "https://cdaweb.gsfc.nasa.gov/misc/NotesW.html#WI_M2_SWE",
+  "contact": "K. Ogilvie @ NASA/GSFC",
+  "parameters": [
+    {
+      "name": "Time",
+      "length": 24,
+      "units": "UTC",
+      "type": "isotime",
+      "fill": null
+    },
+    {
+      "bins": [
+        {
+          "name": "Echan_vals",
+          "centers": [
+            0,
+            1,
+            2,
+            3,
+            4,
+            5,
+            6,
+            7,
+            8,
+            9,
+            10,
+            11,
+            12,
+            13,
+            14,
+            15
+          ],
+          "units": null
+        }
+      ],
+      "size": [
+        16
+      ],
+      "name": "Ve",
+      "description": "Electron speed",
+      "units": "cm/s",
+      "type": "double",
+      "fill": "-1.0E31"
+    },
+    {
+      "bins": [
+        {
+          "name": "Echan_vals",
+          "centers": [
+            0,
+            1,
+            2,
+            3,
+            4,
+            5,
+            6,
+            7,
+            8,
+            9,
+            10,
+            11,
+            12,
+            13,
+            14,
+            15
+          ],
+          "units": null
+        }
+      ],
+      "size": [
+        16
+      ],
+      "name": "Ve_stack",
+      "description": "--> Stack plot of Electron speed",
+      "units": "cm/s",
+      "type": "double",
+      "fill": "-1.0E31"
+    },
+    {
+      "size": [
+        16
+      ],
+      "name": "eV",
+      "description": "Electron energy",
+      "units": "eV",
+      "type": "double",
+      "fill": "-1.0E31"
+    },
+    {
+      "bins": [
+        {
+          "name": "Echan_vals",
+          "centers": [
+            0,
+            1,
+            2,
+            3,
+            4,
+            5,
+            6,
+            7,
+            8,
+            9,
+            10,
+            11,
+            12,
+            13,
+            14,
+            15
+          ],
+          "units": null
+        }
+      ],
+      "size": [
+        16
+      ],
+      "name": "eV_stack",
+      "description": "--> Stack plot of Electron energy",
+      "units": "eV",
+      "type": "double",
+      "fill": "-1.0E31"
+    },
+    {
+      "bins": [
+        {
+          "name": "Echan_vals",
+          "centers": [
+            0,
+            1,
+            2,
+            3,
+            4,
+            5,
+            6,
+            7,
+            8,
+            9,
+            10,
+            11,
+            12,
+            13,
+            14,
+            15
+          ],
+          "units": null
+        }
+      ],
+      "size": [
+        16
+      ],
+      "name": "f_para",
+      "description": "Electron flux, parallel average",
+      "units": "#/[cc*(cm/s)^3*str]",
+      "type": "double",
+      "fill": "-1.0E31"
+    },
+    {
+      "bins": [
+        {
+          "name": "Echan_vals",
+          "centers": [
+            0,
+            1,
+            2,
+            3,
+            4,
+            5,
+            6,
+            7,
+            8,
+            9,
+            10,
+            11,
+            12,
+            13,
+            14,
+            15
+          ],
+          "units": null
+        }
+      ],
+      "size": [
+        16
+      ],
+      "name": "f_para_all",
+      "description": "--> stack plot for all channels",
+      "units": "#/[cc*(cm/s)^3*str]",
+      "type": "double",
+      "fill": "-1.0E31"
+    },
+    {
+      "bins": [
+        {
+          "name": "Echan_vals",
+          "centers": [
+            0,
+            1,
+            2,
+            3,
+            4,
+            5,
+            6,
+            7,
+            8,
+            9,
+            10,
+            11,
+            12,
+            13,
+            14,
+            15
+          ],
+          "units": null
+        }
+      ],
+      "size": [
+        16
+      ],
+      "name": "f_para_even",
+      "description": "--> stack plot for even channels",
+      "units": "#/[cc*(cm/s)^3*str]",
+      "type": "double",
+      "fill": "-1.0E31"
+    },
+    {
+      "bins": [
+        {
+          "name": "Echan_vals",
+          "centers": [
+            0,
+            1,
+            2,
+            3,
+            4,
+            5,
+            6,
+            7,
+            8,
+            9,
+            10,
+            11,
+            12,
+            13,
+            14,
+            15
+          ],
+          "units": null
+        }
+      ],
+      "size": [
+        16
+      ],
+      "name": "f_para_odd",
+      "description": "--> stack plot for odd channels",
+      "units": "#/[cc*(cm/s)^3*str]",
+      "type": "double",
+      "fill": "-1.0E31"
+    },
+    {
+      "bins": [
+        {
+          "name": "Echan_vals",
+          "centers": [
+            0,
+            1,
+            2,
+            3,
+            4,
+            5,
+            6,
+            7,
+            8,
+            9,
+            10,
+            11,
+            12,
+            13,
+            14,
+            15
+          ],
+          "units": null
+        }
+      ],
+      "size": [
+        16
+      ],
+      "name": "f_perp",
+      "description": "Electron flux, perpendicular average",
+      "units": "#/[cc*(cm/s)^3*str]",
+      "type": "double",
+      "fill": "-1.0E31"
+    },
+    {
+      "bins": [
+        {
+          "name": "Echan_vals",
+          "centers": [
+            0,
+            1,
+            2,
+            3,
+            4,
+            5,
+            6,
+            7,
+            8,
+            9,
+            10,
+            11,
+            12,
+            13,
+            14,
+            15
+          ],
+          "units": null
+        }
+      ],
+      "size": [
+        16
+      ],
+      "name": "f_perp_all",
+      "description": "--> stack plot for all channels",
+      "units": "#/[cc*(cm/s)^3*str]",
+      "type": "double",
+      "fill": "-1.0E31"
+    },
+    {
+      "bins": [
+        {
+          "name": "Echan_vals",
+          "centers": [
+            0,
+            1,
+            2,
+            3,
+            4,
+            5,
+            6,
+            7,
+            8,
+            9,
+            10,
+            11,
+            12,
+            13,
+            14,
+            15
+          ],
+          "units": null
+        }
+      ],
+      "size": [
+        16
+      ],
+      "name": "f_perp_even",
+      "description": "--> stack plot for even channels",
+      "units": "#/[cc*(cm/s)^3*str]",
+      "type": "double",
+      "fill": "-1.0E31"
+    },
+    {
+      "bins": [
+        {
+          "name": "Echan_vals",
+          "centers": [
+            0,
+            1,
+            2,
+            3,
+            4,
+            5,
+            6,
+            7,
+            8,
+            9,
+            10,
+            11,
+            12,
+            13,
+            14,
+            15
+          ],
+          "units": null
+        }
+      ],
+      "size": [
+        16
+      ],
+      "name": "f_perp_odd",
+      "description": "--> stack plot for odd channels",
+      "units": "#/[cc*(cm/s)^3*str]",
+      "type": "double",
+      "fill": "-1.0E31"
+    },
+    {
+      "bins": [
+        {
+          "name": "Echan_vals",
+          "centers": [
+            0,
+            1,
+            2,
+            3,
+            4,
+            5,
+            6,
+            7,
+            8,
+            9,
+            10,
+            11,
+            12,
+            13,
+            14,
+            15
+          ],
+          "units": null
+        }
+      ],
+      "size": [
+        16
+      ],
+      "name": "f_anti",
+      "description": "Electron flux, anti-parallel average",
+      "units": "#/[cc*(cm/s)^3*str]",
+      "type": "double",
+      "fill": "-1.0E31"
+    },
+    {
+      "bins": [
+        {
+          "name": "Echan_vals",
+          "centers": [
+            0,
+            1,
+            2,
+            3,
+            4,
+            5,
+            6,
+            7,
+            8,
+            9,
+            10,
+            11,
+            12,
+            13,
+            14,
+            15
+          ],
+          "units": null
+        }
+      ],
+      "size": [
+        16
+      ],
+      "name": "f_anti_all",
+      "description": "--> stack plot for all channels",
+      "units": "#/[cc*(cm/s)^3*str]",
+      "type": "double",
+      "fill": "-1.0E31"
+    },
+    {
+      "bins": [
+        {
+          "name": "Echan_vals",
+          "centers": [
+            0,
+            1,
+            2,
+            3,
+            4,
+            5,
+            6,
+            7,
+            8,
+            9,
+            10,
+            11,
+            12,
+            13,
+            14,
+            15
+          ],
+          "units": null
+        }
+      ],
+      "size": [
+        16
+      ],
+      "name": "f_anti_even",
+      "description": "--> stack plot for even channels",
+      "units": "#/[cc*(cm/s)^3*str]",
+      "type": "double",
+      "fill": "-1.0E31"
+    },
+    {
+      "bins": [
+        {
+          "name": "Echan_vals",
+          "centers": [
+            0,
+            1,
+            2,
+            3,
+            4,
+            5,
+            6,
+            7,
+            8,
+            9,
+            10,
+            11,
+            12,
+            13,
+            14,
+            15
+          ],
+          "units": null
+        }
+      ],
+      "size": [
+        16
+      ],
+      "name": "f_anti_odd",
+      "description": "--> stack plot for odd channels",
+      "units": "#/[cc*(cm/s)^3*str]",
+      "type": "double",
+      "fill": "-1.0E31"
+    },
+    {
+      "bins": [
+        {
+          "name": "Echan_vals",
+          "centers": [
+            0,
+            1,
+            2,
+            3,
+            4,
+            5,
+            6,
+            7,
+            8,
+            9,
+            10,
+            11,
+            12,
+            13,
+            14,
+            15
+          ],
+          "units": null
+        }
+      ],
+      "size": [
+        16
+      ],
+      "name": "f_omni",
+      "description": "Electron flux, omni-directional average",
+      "units": "#/[cc*(cm/s)^3*str]",
+      "type": "double",
+      "fill": "-1.0E31"
+    },
+    {
+      "bins": [
+        {
+          "name": "Echan_vals",
+          "centers": [
+            0,
+            1,
+            2,
+            3,
+            4,
+            5,
+            6,
+            7,
+            8,
+            9,
+            10,
+            11,
+            12,
+            13,
+            14,
+            15
+          ],
+          "units": null
+        }
+      ],
+      "size": [
+        16
+      ],
+      "name": "f_omni_all",
+      "description": "--> stack plot for all channels",
+      "units": "#/[cc*(cm/s)^3*str]",
+      "type": "double",
+      "fill": "-1.0E31"
+    },
+    {
+      "bins": [
+        {
+          "name": "Echan_vals",
+          "centers": [
+            0,
+            1,
+            2,
+            3,
+            4,
+            5,
+            6,
+            7,
+            8,
+            9,
+            10,
+            11,
+            12,
+            13,
+            14,
+            15
+          ],
+          "units": null
+        }
+      ],
+      "size": [
+        16
+      ],
+      "name": "f_omni_even",
+      "description": "--> stack plot for even channels",
+      "units": "#/[cc*(cm/s)^3*str]",
+      "type": "double",
+      "fill": "-1.0E31"
+    },
+    {
+      "bins": [
+        {
+          "name": "Echan_vals",
+          "centers": [
+            0,
+            1,
+            2,
+            3,
+            4,
+            5,
+            6,
+            7,
+            8,
+            9,
+            10,
+            11,
+            12,
+            13,
+            14,
+            15
+          ],
+          "units": null
+        }
+      ],
+      "size": [
+        13
+      ],
+      "name": "f_omni_odd",
+      "description": "--> stack plot for odd channels",
+      "units": "#/[cc*(cm/s)^3*str]",
+      "type": "double",
+      "fill": "-1.0E31"
+    }
+  ],
+  "startDate": "1994-12-28T23:59:56Z",
+  "stopDate": "2001-07-10T00:00:35Z",
+  "status": {
+    "code": 1200,
+    "message": "OK"
+  }
+}

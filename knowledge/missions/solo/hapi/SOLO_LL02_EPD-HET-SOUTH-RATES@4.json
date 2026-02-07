@@ -1,0 +1,48 @@
+{
+  "HAPI": "2.0",
+  "resourceURL": "https://cdaweb.gsfc.nasa.gov/misc/NotesS.html#SOLO_LL02_EPD-HET-SOUTH-RATES",
+  "contact": "J. Rodriguez-Pacheco @ Space Research Group, Universidad de Alcala",
+  "parameters": [
+    {
+      "name": "Time",
+      "length": 30,
+      "units": "UTC",
+      "type": "isotime",
+      "fill": null
+    },
+    {
+      "name": "Ele_HR_Flux",
+      "description": "Electron number flux in 1 - 2.5 MeV range with 5 s cadence",
+      "units": "particles / (s cm^2 sr MeV)",
+      "type": "double",
+      "fill": "-1.0E31"
+    },
+    {
+      "name": "Ele_HR_Flux_Sigma",
+      "description": "Electron HR number flux uncertainty",
+      "units": "particles / (s cm^2 sr MeV)",
+      "type": "double",
+      "fill": "-1.0E31"
+    },
+    {
+      "name": "H_HR_Flux",
+      "description": "Hydrogen number flux in 13.5 - 105 MeV range with 5 s cadence",
+      "units": "particles / (s cm^2 sr MeV)",
+      "type": "double",
+      "fill": "-1.0E31"
+    },
+    {
+      "name": "H_HR_Flux_Sigma",
+      "description": "Hydrogen HR number flux uncertainty",
+      "units": "particles / (s cm^2 sr MeV)",
+      "type": "double",
+      "fill": "-1.0E31"
+    }
+  ],
+  "startDate": "2020-06-03T14:22:45Z",
+  "stopDate": "2026-02-05T02:43:32Z",
+  "status": {
+    "code": 1200,
+    "message": "OK"
+  }
+}

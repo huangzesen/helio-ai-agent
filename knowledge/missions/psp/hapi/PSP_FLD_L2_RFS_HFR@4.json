@@ -1,0 +1,51 @@
+{
+  "HAPI": "2.0",
+  "resourceURL": "https://cdaweb.gsfc.nasa.gov/misc/NotesP.html#PSP_FLD_L2_RFS_HFR",
+  "contact": "Stuart D. Bale (bale@ssl.berkeley.edu) @ UC Berkeley Space Sciences Laboratory",
+  "parameters": [
+    {
+      "name": "Time",
+      "length": 30,
+      "units": "UTC",
+      "type": "isotime",
+      "fill": null
+    },
+    {
+      "size": [
+        64
+      ],
+      "name": "psp_fld_l2_rfs_hfr_cross_im_V1V2_V3V4",
+      "description": "HFR Cross Spectra Imag Part, Ch0: V1V2 Ch1: V3V4",
+      "units": "Volts^2/Hz",
+      "type": "double",
+      "fill": "-1.0E31"
+    },
+    {
+      "name": "psp_fld_l2_rfs_hfr_cross_im_V1V2_V3V4_gain",
+      "description": "Gain flag for HFR Cross Spectra Imag Part, Ch0: V1V2 Ch1: V3V4",
+      "units": "None",
+      "type": "integer",
+      "fill": "-32768"
+    },
+    {
+      "name": "psp_fld_l2_rfs_hfr_cross_im_V1V2_V3V4_nsum",
+      "description": "N summed spectra for HFR Cross Spectra Imag Part, Ch0: V1V2 Ch1: V3V4",
+      "units": "None",
+      "type": "integer",
+      "fill": "-32768"
+    },
+    {
+      "name": "psp_fld_l2_rfs_hfr_cross_im_V1V2_V3V4_hl",
+      "description": "Overrange flag for HFR Cross Spectra Imag Part, Ch0: V1V2 Ch1: V3V4",
+      "units": "None",
+      "type": "integer",
+      "fill": "-32768"
+    }
+  ],
+  "startDate": "2018-09-02T22:19:13Z",
+  "stopDate": "2025-07-31T23:59:55Z",
+  "status": {
+    "code": 1200,
+    "message": "OK"
+  }
+}

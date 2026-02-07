@@ -1,0 +1,174 @@
+{
+  "HAPI": "2.0",
+  "resourceURL": "https://cdaweb.gsfc.nasa.gov/misc/NotesP.html#PSP_FLD_L3_RFS_HFR",
+  "contact": "Stuart D. Bale (bale@ssl.berkeley.edu) @ UC Berkeley Space Sciences Laboratory",
+  "parameters": [
+    {
+      "name": "Time",
+      "length": 30,
+      "units": "UTC",
+      "type": "isotime",
+      "fill": null
+    },
+    {
+      "name": "psp_fld_l3_rfs_hfr_solar_distance",
+      "description": "Distance from the solar center for PSP spacecraft in units of solar radii (Rs).",
+      "units": "Rs",
+      "type": "double",
+      "fill": "-1.0E31"
+    },
+    {
+      "bins": [
+        {
+          "name": "component_index_position",
+          "centers": [
+            1,
+            2,
+            3
+          ],
+          "units": " "
+        }
+      ],
+      "size": [
+        3
+      ],
+      "name": "psp_fld_l3_rfs_hfr_position_HCI",
+      "description": "Position vector for PSP spacecraft in HCI frame.",
+      "units": "km",
+      "type": "double",
+      "fill": "-1.0E31"
+    },
+    {
+      "bins": [
+        {
+          "name": "component_index_position",
+          "centers": [
+            1,
+            2,
+            3
+          ],
+          "units": " "
+        }
+      ],
+      "size": [
+        3
+      ],
+      "name": "psp_fld_l3_rfs_hfr_position_HEE",
+      "description": "Position vector for PSP spacecraft in HEE frame.",
+      "units": "km",
+      "type": "double",
+      "fill": "-1.0E31"
+    },
+    {
+      "bins": [
+        {
+          "name": "component_index_position",
+          "centers": [
+            1,
+            2,
+            3
+          ],
+          "units": " "
+        }
+      ],
+      "size": [
+        3
+      ],
+      "name": "psp_fld_l3_rfs_hfr_position_HAE",
+      "description": "Position vector for PSP spacecraft in HAE frame.",
+      "units": "km",
+      "type": "double",
+      "fill": "-1.0E31"
+    },
+    {
+      "bins": [
+        {
+          "name": "component_index_position",
+          "centers": [
+            1,
+            2,
+            3
+          ],
+          "units": " "
+        }
+      ],
+      "size": [
+        3
+      ],
+      "name": "psp_fld_l3_rfs_hfr_position_HEEQ",
+      "description": "Position vector for PSP spacecraft in HEEQ frame.",
+      "units": "km",
+      "type": "double",
+      "fill": "-1.0E31"
+    },
+    {
+      "bins": [
+        {
+          "name": "component_index_position",
+          "centers": [
+            1,
+            2,
+            3
+          ],
+          "units": " "
+        }
+      ],
+      "size": [
+        3
+      ],
+      "name": "psp_fld_l3_rfs_hfr_position_HG",
+      "description": "Position vector for PSP spacecraft in HG frame.",
+      "units": "km",
+      "type": "double",
+      "fill": "-1.0E31"
+    },
+    {
+      "bins": [
+        {
+          "name": "component_index_position",
+          "centers": [
+            1,
+            2,
+            3
+          ],
+          "units": " "
+        }
+      ],
+      "size": [
+        3
+      ],
+      "name": "psp_fld_l3_rfs_hfr_position_IAU_JUPITER",
+      "description": "Position vector for PSP spacecraft in IAU_JUPITER frame.",
+      "units": "km",
+      "type": "double",
+      "fill": "-1.0E31"
+    },
+    {
+      "bins": [
+        {
+          "name": "component_index_position",
+          "centers": [
+            1,
+            2,
+            3
+          ],
+          "units": " "
+        }
+      ],
+      "size": [
+        3
+      ],
+      "name": "psp_fld_l3_rfs_hfr_position_RTN",
+      "description": "Position vector for PSP spacecraft in RTN frame.",
+      "units": "km",
+      "type": "double",
+      "fill": "-1.0E31"
+    }
+  ],
+  "startDate": "2018-10-02T03:48:16Z",
+  "stopDate": "2025-07-31T23:59:55Z",
+  "status": {
+    "code": 1200,
+    "message": "OK"
+  }
+}

@@ -1,0 +1,74 @@
+{
+  "HAPI": "2.0",
+  "resourceURL": "https://cdaweb.gsfc.nasa.gov/misc/NotesD.html#DSCOVR_H0_MAG",
+  "contact": "A. Koval @ UMBC, NASA/GSFC",
+  "parameters": [
+    {
+      "name": "Time",
+      "length": 24,
+      "units": "UTC",
+      "type": "isotime",
+      "fill": null
+    },
+    {
+      "name": "B1F1",
+      "description": "Magnetic field magnitude (1 sec)",
+      "units": "nT",
+      "type": "double",
+      "fill": "-1.0E31"
+    },
+    {
+      "name": "B1SDF1",
+      "description": "Standard deviation of B magnitude (1 sec)",
+      "units": "nT",
+      "type": "double",
+      "fill": "-1.0E31"
+    },
+    {
+      "size": [
+        3
+      ],
+      "name": "B1GSE",
+      "description": "Magnetic field vector in GSE cartesian coordinates (1 sec)",
+      "units": "nT",
+      "type": "double",
+      "fill": "-1.0E31"
+    },
+    {
+      "size": [
+        3
+      ],
+      "name": "B1SDGSE",
+      "description": "Standard deviation of B vector in GSE coordinates (1 sec)",
+      "units": "nT",
+      "type": "double",
+      "fill": "-1.0E31"
+    },
+    {
+      "size": [
+        3
+      ],
+      "name": "B1RTN",
+      "description": "Magnetic field vector in RTN cartesian coordinates (1 sec)",
+      "units": "nT",
+      "type": "double",
+      "fill": "-1.0E31"
+    },
+    {
+      "size": [
+        3
+      ],
+      "name": "B1SDRTN",
+      "description": "Standard deviation of B vector in RTN coordinates (1 sec)",
+      "units": "nT",
+      "type": "double",
+      "fill": "-1.0E31"
+    }
+  ],
+  "startDate": "2015-06-08T00:00:00Z",
+  "stopDate": "2025-12-06T23:59:59Z",
+  "status": {
+    "code": 1200,
+    "message": "OK"
+  }
+}

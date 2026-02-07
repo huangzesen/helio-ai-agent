@@ -1,0 +1,30 @@
+{
+  "HAPI": "2.0",
+  "resourceURL": "https://cdaweb.gsfc.nasa.gov/misc/NotesP.html#PSP_FLD_L2_DFB_DC_SPEC_SCMVLFHG",
+  "contact": "Stuart D. Bale (bale@ssl.berkeley.edu) @ UC Berkeley Space Sciences Laboratory",
+  "parameters": [
+    {
+      "name": "Time",
+      "length": 30,
+      "units": "UTC",
+      "type": "isotime",
+      "fill": null
+    },
+    {
+      "size": [
+        54
+      ],
+      "name": "psp_fld_l2_dfb_dc_spec_SCMvlfhg",
+      "description": "L2 Power Spectra for channel SCMVLFHG",
+      "units": "nT^2/Hz",
+      "type": "double",
+      "fill": "-1.0E31"
+    }
+  ],
+  "startDate": "2019-08-17T00:04:13Z",
+  "stopDate": "2025-07-31T23:59:30Z",
+  "status": {
+    "code": 1200,
+    "message": "OK"
+  }
+}

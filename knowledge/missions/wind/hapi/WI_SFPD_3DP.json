@@ -1,0 +1,240 @@
+{
+  "HAPI": "2.0",
+  "resourceURL": "https://cdaweb.gsfc.nasa.gov/misc/NotesW.html#WI_SFPD_3DP",
+  "contact": "R. Lin/S. Bale @ UC Berkeley",
+  "parameters": [
+    {
+      "name": "Time",
+      "length": 24,
+      "units": "UTC",
+      "type": "isotime",
+      "fill": null
+    },
+    {
+      "size": [
+        8,
+        7
+      ],
+      "name": "FLUX",
+      "description": "Electron number flux 27 keV to 520 keV in 7 energy and 8 pitch angle bins (as energy-angle displays)",
+      "units": "#/cm2-ster-eV-sec",
+      "type": "double",
+      "fill": "NaN"
+    },
+    {
+      "size": [
+        8,
+        7
+      ],
+      "name": "FLUX_byE_atA",
+      "description": "Electron number flux 27 keV to 520 keV at 8 pitch angles as spectrograms by energy",
+      "units": "#/cm2-ster-eV-sec",
+      "type": "double",
+      "fill": "NaN"
+    },
+    {
+      "size": [
+        7
+      ],
+      "name": "FLUX_byE_atA_stackPA0",
+      "description": "Electron number flux 27 keV to 520 keV as a stack_plot of 7 energies at the Bin1 angle (often ~15 deg)",
+      "units": "#/cm2-ster-eV-sec",
+      "type": "double",
+      "fill": "NaN"
+    },
+    {
+      "size": [
+        7
+      ],
+      "name": "FLUX_byE_atA_stackPA1",
+      "description": "---> As a stack_plot at the Bin2 angle (often ~35 deg)",
+      "units": "#/cm2-ster-eV-sec",
+      "type": "double",
+      "fill": "NaN"
+    },
+    {
+      "size": [
+        7
+      ],
+      "name": "FLUX_byE_atA_stackPA2",
+      "description": "---> As a stack_plot at the Bin3 angle (often ~57 deg)",
+      "units": "#/cm2-ster-eV-sec",
+      "type": "double",
+      "fill": "NaN"
+    },
+    {
+      "size": [
+        7
+      ],
+      "name": "FLUX_byE_atA_stackPA3",
+      "description": "---> As a stack_plot at the Bin4 angle (often ~80 deg)",
+      "units": "#/cm2-ster-eV-sec",
+      "type": "double",
+      "fill": "NaN"
+    },
+    {
+      "size": [
+        7
+      ],
+      "name": "FLUX_byE_atA_stackPA4",
+      "description": "---> As a stack_plot at the Bin5 angle (often ~102 deg)",
+      "units": "#/cm2-ster-eV-sec",
+      "type": "double",
+      "fill": "NaN"
+    },
+    {
+      "size": [
+        7
+      ],
+      "name": "FLUX_byE_atA_stackPA5",
+      "description": "---> As a stack_plot at the Bin6 angle (often ~123 deg)",
+      "units": "#/cm2-ster-eV-sec",
+      "type": "double",
+      "fill": "NaN"
+    },
+    {
+      "size": [
+        7
+      ],
+      "name": "FLUX_byE_atA_stackPA6",
+      "description": "---> As a stack_plot at the Bin7 angle (often ~145 deg)",
+      "units": "#/cm2-ster-eV-sec",
+      "type": "double",
+      "fill": "NaN"
+    },
+    {
+      "size": [
+        7
+      ],
+      "name": "FLUX_byE_atA_stackPA7",
+      "description": "---> As a stack_plot at the Bin8 angle (often ~165 deg)",
+      "units": "#/cm2-ster-eV-sec",
+      "type": "double",
+      "fill": "NaN"
+    },
+    {
+      "size": [
+        8,
+        7
+      ],
+      "name": "FLUX_byA_atE",
+      "description": "Electron number flux 27 keV - 520 keV at 7 energies as spectrograms by pitch angle",
+      "units": "#/cm2-ster-eV-sec",
+      "type": "double",
+      "fill": "NaN"
+    },
+    {
+      "size": [
+        8
+      ],
+      "name": "FLUX_byA_atE_stackE0",
+      "description": "Electron number flux 27 keV to 520 keV as a stack plot of 8 pitch angles at the Ch1 energy (often ~27 keV)",
+      "units": "#/cm2-ster-eV-sec",
+      "type": "double",
+      "fill": "NaN"
+    },
+    {
+      "size": [
+        8
+      ],
+      "name": "FLUX_byA_atE_stackE1",
+      "description": "---> As a stack plot at the Ch2 energy (often ~40.5 keV)",
+      "units": "#/cm2-ster-eV-sec",
+      "type": "double",
+      "fill": "NaN"
+    },
+    {
+      "size": [
+        8
+      ],
+      "name": "FLUX_byA_atE_stackE2",
+      "description": "---> As a stack plot at the Ch3 energy (often ~86 keV)",
+      "units": "#/cm2-ster-eV-sec",
+      "type": "double",
+      "fill": "NaN"
+    },
+    {
+      "size": [
+        8
+      ],
+      "name": "FLUX_byA_atE_stackE3",
+      "description": "---> As a stack plot at the Ch4 energy (often ~110 keV)",
+      "units": "#/cm2-ster-eV-sec",
+      "type": "double",
+      "fill": "NaN"
+    },
+    {
+      "size": [
+        8
+      ],
+      "name": "FLUX_byA_atE_stackE4",
+      "description": "---> As a stack plot at the Ch5 energy (often ~180 keV)",
+      "units": "#/cm2-ster-eV-sec",
+      "type": "double",
+      "fill": "NaN"
+    },
+    {
+      "size": [
+        8
+      ],
+      "name": "FLUX_byA_atE_stackE5",
+      "description": "---> As a stack plot at the Ch6 energy (often ~310 keV)",
+      "units": "#/cm2-ster-eV-sec",
+      "type": "double",
+      "fill": "NaN"
+    },
+    {
+      "size": [
+        8
+      ],
+      "name": "FLUX_byA_atE_stackE6",
+      "description": "---> As a stack plot at the Ch7 energy (often ~520 keV)",
+      "units": "#/cm2-ster-eV-sec",
+      "type": "double",
+      "fill": "NaN"
+    },
+    {
+      "size": [
+        8
+      ],
+      "name": "PANGLE",
+      "description": "Time-varying electron pitch angles for 8 angular bins",
+      "units": "deg",
+      "type": "double",
+      "fill": "NaN"
+    },
+    {
+      "size": [
+        7
+      ],
+      "name": "ENERGY_filled",
+      "description": "---> Time-varying electron energies for 7 channels",
+      "units": "eV",
+      "type": "double",
+      "fill": "NaN"
+    },
+    {
+      "size": [
+        3
+      ],
+      "name": "MAGF",
+      "description": "[MAGF] Magnetic field cartesian GSE vector",
+      "units": "nT",
+      "type": "double",
+      "fill": "NaN"
+    },
+    {
+      "name": "TIME",
+      "description": "UNIX time; seconds since January 1, 1970",
+      "units": "sec since 1-1-70",
+      "type": "double",
+      "fill": "NaN"
+    }
+  ],
+  "startDate": "1994-11-15T12:56:18Z",
+  "stopDate": "2026-01-05T23:57:59Z",
+  "status": {
+    "code": 1200,
+    "message": "OK"
+  }
+}

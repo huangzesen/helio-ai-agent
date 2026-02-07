@@ -1,0 +1,34 @@
+{
+  "HAPI": "2.0",
+  "resourceURL": "https://cdaweb.gsfc.nasa.gov/misc/NotesS.html#SOLO_L3_RPW-BIA-DENSITY-10-SECONDS",
+  "contact": "M.Maksimovic @ LESIA, Observatoire de Paris-CNRS",
+  "parameters": [
+    {
+      "name": "Time",
+      "length": 30,
+      "units": "UTC",
+      "type": "isotime",
+      "fill": null
+    },
+    {
+      "name": "DENSITY",
+      "description": "Plasma density derived from probe-to-spacecraft potential and electron plasma frequency. Median value over 10 s interval.",
+      "units": "cm^-3",
+      "type": "double",
+      "fill": "-1.0E31"
+    },
+    {
+      "name": "DENSITYSTD",
+      "description": "Standard deviation of the plasma density over 10 s interval.",
+      "units": "cm^-3",
+      "type": "double",
+      "fill": "-1.0E31"
+    }
+  ],
+  "startDate": "2020-06-15T00:00:10Z",
+  "stopDate": "2022-11-26T00:02:00Z",
+  "status": {
+    "code": 1200,
+    "message": "OK"
+  }
+}

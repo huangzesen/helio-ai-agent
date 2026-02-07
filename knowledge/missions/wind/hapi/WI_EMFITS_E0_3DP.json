@@ -1,0 +1,65 @@
+{
+  "HAPI": "2.0",
+  "resourceURL": "https://cdaweb.gsfc.nasa.gov/misc/NotesW.html#WI_EMFITS_E0_3DP",
+  "contact": "Stuart D. Bale @ University of California, Berkeley",
+  "parameters": [
+    {
+      "name": "Time",
+      "length": 24,
+      "units": "UTC",
+      "type": "isotime",
+      "fill": null
+    },
+    {
+      "name": "N_e_dens_wi_3dp",
+      "description": "Total electron density moment in units of /cm^3",
+      "units": "/cm^3",
+      "type": "double",
+      "fill": "-1.0E31"
+    },
+    {
+      "name": "T_e_par_wi_3dp",
+      "description": "Parallel total electron temperature moment in units of eV",
+      "units": "eV",
+      "type": "double",
+      "fill": "-1.0E31"
+    },
+    {
+      "name": "T_e_perp_wi_3dp",
+      "description": "Perpendicular total electron temperature moment in units of eV",
+      "units": "eV",
+      "type": "double",
+      "fill": "-1.0E31"
+    },
+    {
+      "name": "Q_e_par_wi_3dp",
+      "description": "Parallel electron heat flux moment in units of uW/m^2",
+      "units": "uW/m^2",
+      "type": "double",
+      "fill": "-1.0E31"
+    },
+    {
+      "size": [
+        3
+      ],
+      "name": "V_e_xyz_gse_wi_3dp",
+      "description": "Electron velocity vector moment in GSE coordinates in units of km/s",
+      "units": "km/s",
+      "type": "double",
+      "fill": "-1.0E31"
+    },
+    {
+      "name": "Quality0_wi_3dp",
+      "description": "Q0, Quality parameter for electron data",
+      "units": null,
+      "type": "double",
+      "fill": "-1.0E31"
+    }
+  ],
+  "startDate": "1995-01-01T00:01:33Z",
+  "stopDate": "2004-12-31T23:59:05Z",
+  "status": {
+    "code": 1200,
+    "message": "OK"
+  }
+}

@@ -1,0 +1,636 @@
+{
+  "HAPI": "2.0",
+  "resourceURL": "https://cdaweb.gsfc.nasa.gov/misc/NotesA.html#AC_H3_EPM",
+  "contact": "R. Gold @ JHU/APL",
+  "parameters": [
+    {
+      "name": "Time",
+      "length": 24,
+      "units": "UTC",
+      "type": "isotime",
+      "fill": null
+    },
+    {
+      "name": "P1",
+      "description": "P1 LEMS30, (0.046-0.067 MeV Ions), Sector Avg",
+      "units": "1/(cm**2-s-sr-MeV)",
+      "type": "double",
+      "fill": "-1.0E31"
+    },
+    {
+      "name": "P2",
+      "description": "P2 LEMS30, (0.067-0.115 MeV Ions), Sector Avg",
+      "units": "1/(cm**2-s-sr-MeV)",
+      "type": "double",
+      "fill": "-1.0E31"
+    },
+    {
+      "name": "P3",
+      "description": "P3 LEMS30, (0.115-0.193 MeV Ions), Sector Avg",
+      "units": "1/(cm**2-s-sr-MeV)",
+      "type": "double",
+      "fill": "-1.0E31"
+    },
+    {
+      "name": "P4",
+      "description": "P4 LEMS30, (0.193-0.315 MeV Ions), Sector Avg",
+      "units": "1/(cm**2-s-sr-MeV)",
+      "type": "double",
+      "fill": "-1.0E31"
+    },
+    {
+      "name": "P5",
+      "description": "P5 LEMS30, (0.315-0.580 MeV Ions), Sector Avg",
+      "units": "1/(cm**2-s-sr-MeV)",
+      "type": "double",
+      "fill": "-1.0E31"
+    },
+    {
+      "name": "P6",
+      "description": "P6 LEMS30, (0.580-1.06 MeV Ions), Sector Avg",
+      "units": "1/(cm**2-s-sr-MeV)",
+      "type": "double",
+      "fill": "-1.0E31"
+    },
+    {
+      "name": "P7",
+      "description": "P7 LEMS30, (1.06-1.88 MeV Ions), Sector Avg",
+      "units": "1/(cm**2-s-sr-MeV)",
+      "type": "double",
+      "fill": "-1.0E31"
+    },
+    {
+      "name": "P8",
+      "description": "P8 LEMS30, (1.88-4.70 MeV Ions), Sector Avg",
+      "units": "1/(cm**2-s-sr-MeV)",
+      "type": "double",
+      "fill": "-1.0E31"
+    },
+    {
+      "name": "unc_P1",
+      "description": "P1 LEMS30, (0.046-0.067 MeV Ions), Uncertainty",
+      "units": "[fraction]",
+      "type": "double",
+      "fill": "-1.0E31"
+    },
+    {
+      "name": "unc_P2",
+      "description": "P2 LEMS30, (0.067-0.115 MeV Ions), Uncertainty",
+      "units": "[fraction]",
+      "type": "double",
+      "fill": "-1.0E31"
+    },
+    {
+      "name": "unc_P3",
+      "description": "P3 LEMS30, (0.115-0.193 MeV Ions), Uncertainty",
+      "units": "[fraction]",
+      "type": "double",
+      "fill": "-1.0E31"
+    },
+    {
+      "name": "unc_P4",
+      "description": "P4 LEMS30, (0.193-0.315 MeV Ions), Uncertainty",
+      "units": "[fraction]",
+      "type": "double",
+      "fill": "-1.0E31"
+    },
+    {
+      "name": "unc_P5",
+      "description": "P5 LEMS30, (0.315-0.580 MeV Ions), Uncertainty",
+      "units": "[fraction]",
+      "type": "double",
+      "fill": "-1.0E31"
+    },
+    {
+      "name": "unc_P6",
+      "description": "P6 LEMS30, (0.580-1.06 MeV Ions), Uncertainty",
+      "units": "[fraction]",
+      "type": "double",
+      "fill": "-1.0E31"
+    },
+    {
+      "name": "unc_P7",
+      "description": "P7 LEMS30, (1.06-1.88 MeV Ions), Uncertainty",
+      "units": "[fraction]",
+      "type": "double",
+      "fill": "-1.0E31"
+    },
+    {
+      "name": "unc_P8",
+      "description": "P8 LEMS30, (1.88-4.70 MeV Ions), Uncertainty",
+      "units": "[fraction]",
+      "type": "double",
+      "fill": "-1.0E31"
+    },
+    {
+      "name": "DE1",
+      "description": "DE1 DE, (0.038-0.053 MeV Electrons), Sector Avg",
+      "units": "1/(cm**2-s-sr-MeV)",
+      "type": "double",
+      "fill": "-1.0E31"
+    },
+    {
+      "name": "DE2",
+      "description": "DE2 DE, (0.053-0.103 MeV Electrons), Sector Avg",
+      "units": "1/(cm**2-s-sr-MeV)",
+      "type": "double",
+      "fill": "-1.0E31"
+    },
+    {
+      "name": "DE3",
+      "description": "DE3 DE, (0.103-0.175 MeV Electrons), Sector Avg",
+      "units": "1/(cm**2-s-sr-MeV)",
+      "type": "double",
+      "fill": "-1.0E31"
+    },
+    {
+      "name": "DE4",
+      "description": "DE4 DE, (0.175-0.315 MeV Electrons), Sector Avg",
+      "units": "1/(cm**2-s-sr-MeV)",
+      "type": "double",
+      "fill": "-1.0E31"
+    },
+    {
+      "name": "unc_DE1",
+      "description": "DE1 DE, (0.038-0.053 MeV Electrons), Uncertainty",
+      "units": "[fraction]",
+      "type": "double",
+      "fill": "-1.0E31"
+    },
+    {
+      "name": "unc_DE2",
+      "description": "DE2 DE, (0.053-0.103 MeV Electrons), Uncertainty",
+      "units": "[fraction]",
+      "type": "double",
+      "fill": "-1.0E31"
+    },
+    {
+      "name": "unc_DE3",
+      "description": "DE3 DE, (0.103-0.175 MeV Electrons), Uncertainty",
+      "units": "[fraction]",
+      "type": "double",
+      "fill": "-1.0E31"
+    },
+    {
+      "name": "unc_DE4",
+      "description": "DE4 DE, (0.175-0.315 MeV Electrons), Uncertainty",
+      "units": "[fraction]",
+      "type": "double",
+      "fill": "-1.0E31"
+    },
+    {
+      "name": "W3",
+      "description": "W3 CA60, (0.389-1.28 MeV/nuc. He), Sector Avg",
+      "units": "1/(cm**2-s-sr-MeV/nuc.)",
+      "type": "double",
+      "fill": "-1.0E31"
+    },
+    {
+      "name": "W4",
+      "description": "W4 CA60, (1.28-6.98 MeV/nuc. He), Sector Avg",
+      "units": "1/(cm**2-s-sr-MeV/nuc.)",
+      "type": "double",
+      "fill": "-1.0E31"
+    },
+    {
+      "name": "W5",
+      "description": "W5 CA60, (0.546-1.83 MeV/nuc. CNO), Sector Avg",
+      "units": "1/(cm**2-s-sr-MeV/nuc.)",
+      "type": "double",
+      "fill": "-1.0E31"
+    },
+    {
+      "name": "W6",
+      "description": "W6 CA60, (1.83-19.1 MeV/nuc. CNO), Sector Avg",
+      "units": "1/(cm**2-s-sr-MeV/nuc.)",
+      "type": "double",
+      "fill": "-1.0E31"
+    },
+    {
+      "name": "W7",
+      "description": "W7 CA60, (0.298-0.955 MeV/nuc. Fe (9<Z<29)), Sector Avg",
+      "units": "1/(cm**2-s-sr-MeV/nuc.)",
+      "type": "double",
+      "fill": "-1.0E31"
+    },
+    {
+      "name": "W8",
+      "description": "W8 CA60, (0.955-92.7 MeV/nuc. Fe (9<Z<29)), Sector Avg",
+      "units": "1/(cm**2-s-sr-MeV/nuc.)",
+      "type": "double",
+      "fill": "-1.0E31"
+    },
+    {
+      "name": "unc_W3",
+      "description": "W3 CA60, (0.389-1.28 MeV/nuc. He), Uncertainty",
+      "units": "[fraction]",
+      "type": "double",
+      "fill": "-1.0E31"
+    },
+    {
+      "name": "unc_W4",
+      "description": "W4 CA60, (1.28-6.98 MeV/nuc. He), Uncertainty",
+      "units": "[fraction]",
+      "type": "double",
+      "fill": "-1.0E31"
+    },
+    {
+      "name": "unc_W5",
+      "description": "W5 CA60, (0.546-1.83 MeV/nuc. CNO), Uncertainty",
+      "units": "[fraction]",
+      "type": "double",
+      "fill": "-1.0E31"
+    },
+    {
+      "name": "unc_W6",
+      "description": "W6 CA60, (1.83-19.1 MeV/nuc. CNO), Uncertainty",
+      "units": "[fraction]",
+      "type": "double",
+      "fill": "-1.0E31"
+    },
+    {
+      "name": "unc_W7",
+      "description": "W7 CA60, (0.298-0.955 MeV/nuc. Fe (9<Z<29)), Uncertainty",
+      "units": "[fraction]",
+      "type": "double",
+      "fill": "-1.0E31"
+    },
+    {
+      "name": "unc_W8",
+      "description": "W8 CA60, (0.955-92.7 MeV/nuc. Fe (9<Z<29)), Uncertainty",
+      "units": "[fraction]",
+      "type": "double",
+      "fill": "-1.0E31"
+    },
+    {
+      "name": "E1p",
+      "description": "E1p LEFS60, (0.045-0.062 MeV Electrons (+Ions) ), Sector Avg",
+      "units": "1/(cm**2-s-sr-MeV)",
+      "type": "double",
+      "fill": "-1.0E31"
+    },
+    {
+      "name": "E2p",
+      "description": "E2p LEFS60, (0.062-0.102 MeV Electrons (+Ions) ), Sector Avg",
+      "units": "1/(cm**2-s-sr-MeV)",
+      "type": "double",
+      "fill": "-1.0E31"
+    },
+    {
+      "name": "E3p",
+      "description": "E3p LEFS60, (0.102-0.175 MeV Electrons (+Ions) ), Sector Avg",
+      "units": "1/(cm**2-s-sr-MeV)",
+      "type": "double",
+      "fill": "-1.0E31"
+    },
+    {
+      "name": "E4p",
+      "description": "E4p LEFS60, (0.175-0.290 MeV Electrons (+Ions) ), Sector Avg",
+      "units": "1/(cm**2-s-sr-MeV)",
+      "type": "double",
+      "fill": "-1.0E31"
+    },
+    {
+      "name": "FP5p",
+      "description": "FP5p LEFS60, (0.568-0.795 MeV Ions), Sector Avg",
+      "units": "1/(cm**2-s-sr-MeV)",
+      "type": "double",
+      "fill": "-1.0E31"
+    },
+    {
+      "name": "FP6p",
+      "description": "FP6p LEFS60, (0.795-1.19 MeV Ions), Sector Avg",
+      "units": "1/(cm**2-s-sr-MeV)",
+      "type": "double",
+      "fill": "-1.0E31"
+    },
+    {
+      "name": "FP7p",
+      "description": "FP7p LEFS60, (1.19-4.92 MeV Ions), Sector Avg",
+      "units": "1/(cm**2-s-sr-MeV)",
+      "type": "double",
+      "fill": "-1.0E31"
+    },
+    {
+      "name": "unc_E1p",
+      "description": "E1p LEFS60, (0.045-0.062 MeV Electrons (+Ions) ), Uncertainty",
+      "units": "[fraction]",
+      "type": "double",
+      "fill": "-1.0E31"
+    },
+    {
+      "name": "unc_E2p",
+      "description": "E2p LEFS60, (0.062-0.102 MeV Electrons (+Ions) ), Uncertainty",
+      "units": "[fraction]",
+      "type": "double",
+      "fill": "-1.0E31"
+    },
+    {
+      "name": "unc_E3p",
+      "description": "E3p LEFS60, (0.102-0.175 MeV Electrons (+Ions) ), Uncertainty",
+      "units": "[fraction]",
+      "type": "double",
+      "fill": "-1.0E31"
+    },
+    {
+      "name": "unc_E4p",
+      "description": "E4p LEFS60, (0.175-0.290 MeV Electrons (+Ions) ), Uncertainty",
+      "units": "[fraction]",
+      "type": "double",
+      "fill": "-1.0E31"
+    },
+    {
+      "name": "unc_FP5p",
+      "description": "FP5p LEFS60, (0.568-0.795 MeV Ions), Uncertainty",
+      "units": "[fraction]",
+      "type": "double",
+      "fill": "-1.0E31"
+    },
+    {
+      "name": "unc_FP6p",
+      "description": "FP6p LEFS60, (0.795-1.19 MeV Ions), Uncertainty",
+      "units": "[fraction]",
+      "type": "double",
+      "fill": "-1.0E31"
+    },
+    {
+      "name": "unc_FP7p",
+      "description": "FP7p LEFS60, (1.19-4.92 MeV Ions), Uncertainty",
+      "units": "[fraction]",
+      "type": "double",
+      "fill": "-1.0E31"
+    },
+    {
+      "name": "Z2",
+      "description": "Z2 WARTD, (Z>1, E>0.7 MeV Ions), Sector Avg",
+      "units": "1/(cm**2-s-sr)",
+      "type": "double",
+      "fill": "-1.0E31"
+    },
+    {
+      "name": "Z2A",
+      "description": "Z2A WARTD, (Z>7, E>7.5 MeV Ions), Sector Avg",
+      "units": "1/(cm**2-s-sr)",
+      "type": "double",
+      "fill": "-1.0E31"
+    },
+    {
+      "name": "Z3",
+      "description": "Z3 WARTD, (Z>5, E>2.5 MeV Ions), Sector Avg",
+      "units": "1/(cm**2-s-sr)",
+      "type": "double",
+      "fill": "-1.0E31"
+    },
+    {
+      "name": "Z4",
+      "description": "Z4 WARTD, (Z>10, E>9.0 MeV Ions), Sector Avg",
+      "units": "1/(cm**2-s-sr)",
+      "type": "double",
+      "fill": "-1.0E31"
+    },
+    {
+      "name": "unc_Z2",
+      "description": "Z2 WARTD, (Z>1, E>0.7 MeV Ions)",
+      "units": "[fraction]",
+      "type": "double",
+      "fill": "-1.0E31"
+    },
+    {
+      "name": "unc_Z2A",
+      "description": "Z2A WARTD, (Z>7, E>7.5 MeV Ions)",
+      "units": "[fraction]",
+      "type": "double",
+      "fill": "-1.0E31"
+    },
+    {
+      "name": "unc_Z3",
+      "description": "Z3 WARTD, (Z>5, E>2.5 MeV Ions)",
+      "units": "[fraction]",
+      "type": "double",
+      "fill": "-1.0E31"
+    },
+    {
+      "name": "unc_Z4",
+      "description": "Z4 WARTD, (Z>10, E>9.0 MeV Ions)",
+      "units": "[fraction]",
+      "type": "double",
+      "fill": "-1.0E31"
+    },
+    {
+      "name": "P1p",
+      "description": "P1p LEMS120, (0.047-0.068 MeV Ions), Sector Avg",
+      "units": "1/(cm**2-s-sr-MeV)",
+      "type": "double",
+      "fill": "-1.0E31"
+    },
+    {
+      "name": "P2p",
+      "description": "P2p LEMS120, (0.068-0.115 MeV Ions), Sector Avg",
+      "units": "1/(cm**2-s-sr-MeV)",
+      "type": "double",
+      "fill": "-1.0E31"
+    },
+    {
+      "name": "P3p",
+      "description": "P3p LEMS120, (0.115-0.195 MeV Ions), Sector Avg",
+      "units": "1/(cm**2-s-sr-MeV)",
+      "type": "double",
+      "fill": "-1.0E31"
+    },
+    {
+      "name": "P4p",
+      "description": "P4p LEMS120, (0.195-0.321 MeV Ions), Sector Avg",
+      "units": "1/(cm**2-s-sr-MeV)",
+      "type": "double",
+      "fill": "-1.0E31"
+    },
+    {
+      "name": "P5p",
+      "description": "P5p LEMS120, (0.321-0.580 MeV Ions), Sector Avg",
+      "units": "1/(cm**2-s-sr-MeV)",
+      "type": "double",
+      "fill": "-1.0E31"
+    },
+    {
+      "name": "P6p",
+      "description": "P6p LEMS120, (0.580-1.06 MeV Ions), Sector Avg",
+      "units": "1/(cm**2-s-sr-MeV)",
+      "type": "double",
+      "fill": "-1.0E31"
+    },
+    {
+      "name": "P7p",
+      "description": "P7p LEMS120, (1.06-1.90 MeV Ions), Sector Avg",
+      "units": "1/(cm**2-s-sr-MeV)",
+      "type": "double",
+      "fill": "-1.0E31"
+    },
+    {
+      "name": "P8p",
+      "description": "P8p LEMS120, (1.90-4.80 MeV Ions), Sector Avg",
+      "units": "1/(cm**2-s-sr-MeV)",
+      "type": "double",
+      "fill": "-1.0E31"
+    },
+    {
+      "name": "unc_P1p",
+      "description": "P1p LEMS120, (0.047-0.068 MeV Ions), Uncertainty",
+      "units": "[fraction]",
+      "type": "double",
+      "fill": "-1.0E31"
+    },
+    {
+      "name": "unc_P2p",
+      "description": "P2p LEMS120, (0.068-0.115 MeV Ions), Uncertainty",
+      "units": "[fraction]",
+      "type": "double",
+      "fill": "-1.0E31"
+    },
+    {
+      "name": "unc_P3p",
+      "description": "P3p LEMS120, (0.115-0.195 MeV Ions), Uncertainty",
+      "units": "[fraction]",
+      "type": "double",
+      "fill": "-1.0E31"
+    },
+    {
+      "name": "unc_P4p",
+      "description": "P4p LEMS120, (0.195-0.321 MeV Ions), Uncertainty",
+      "units": "[fraction]",
+      "type": "double",
+      "fill": "-1.0E31"
+    },
+    {
+      "name": "unc_P5p",
+      "description": "P5p LEMS120, (0.321-0.580 MeV Ions), Uncertainty",
+      "units": "[fraction]",
+      "type": "double",
+      "fill": "-1.0E31"
+    },
+    {
+      "name": "unc_P6p",
+      "description": "P6p LEMS120, (0.580-1.06 MeV Ions), Uncertainty",
+      "units": "[fraction]",
+      "type": "double",
+      "fill": "-1.0E31"
+    },
+    {
+      "name": "unc_P7p",
+      "description": "P7p LEMS120, (1.06-1.90 MeV Ions), Uncertainty",
+      "units": "[fraction]",
+      "type": "double",
+      "fill": "-1.0E31"
+    },
+    {
+      "name": "unc_P8p",
+      "description": "P8p LEMS120, (1.90-4.80 MeV Ions), Uncertainty",
+      "units": "[fraction]",
+      "type": "double",
+      "fill": "-1.0E31"
+    },
+    {
+      "name": "E1",
+      "description": "E1 LEFS150, (0.044-0.058 MeV Electrons (+Ions) ), Sector Avg",
+      "units": "1/(cm**2-s-sr-MeV)",
+      "type": "double",
+      "fill": "-1.0E31"
+    },
+    {
+      "name": "E2",
+      "description": "E2 LEFS150, (0.058-0.104 MeV Electrons (+Ions) ), Sector Avg",
+      "units": "1/(cm**2-s-sr-MeV)",
+      "type": "double",
+      "fill": "-1.0E31"
+    },
+    {
+      "name": "E3",
+      "description": "E3 LEFS150, (0.104-0.180 MeV Electrons (+Ions) ), Sector Avg",
+      "units": "1/(cm**2-s-sr-MeV)",
+      "type": "double",
+      "fill": "-1.0E31"
+    },
+    {
+      "name": "E4",
+      "description": "E4 LEFS150, (0.180-0.295 MeV Electrons (+Ions) ), Sector Avg",
+      "units": "1/(cm**2-s-sr-MeV)",
+      "type": "double",
+      "fill": "-1.0E31"
+    },
+    {
+      "name": "FP5",
+      "description": "FP5  LEFS150, (0.568-0.796 MeV Ions), Sector Avg",
+      "units": "1/(cm**2-s-sr-MeV)",
+      "type": "double",
+      "fill": "-1.0E31"
+    },
+    {
+      "name": "FP6",
+      "description": "FP6 LEFS150, (0.796-1.11 MeV Ions), Sector Avg",
+      "units": "1/(cm**2-s-sr-MeV)",
+      "type": "double",
+      "fill": "-1.0E31"
+    },
+    {
+      "name": "FP7",
+      "description": "FP7 LEFS150, (1.11-4.92 MeV Ions), Sector Avg",
+      "units": "1/(cm**2-s-sr-MeV)",
+      "type": "double",
+      "fill": "-1.0E31"
+    },
+    {
+      "name": "unc_E1",
+      "description": "E1 LEFS150, (0.044-0.058 MeV Electrons (+Ions) ), Uncertainty",
+      "units": "[fraction]",
+      "type": "double",
+      "fill": "-1.0E31"
+    },
+    {
+      "name": "unc_E2",
+      "description": "E2 LEFS150, (0.058-0.104 MeV Electrons (+Ions) ), Uncertainty",
+      "units": "[fraction]",
+      "type": "double",
+      "fill": "-1.0E31"
+    },
+    {
+      "name": "unc_E3",
+      "description": "E3 LEFS150, (0.104-0.180 MeV Electrons (+Ions) ), Uncertainty",
+      "units": "[fraction]",
+      "type": "double",
+      "fill": "-1.0E31"
+    },
+    {
+      "name": "unc_E4",
+      "description": "E4 LEFS150, (0.180-0.295 MeV Electrons (+Ions) ), Uncertainty",
+      "units": "[fraction]",
+      "type": "double",
+      "fill": "-1.0E31"
+    },
+    {
+      "name": "unc_FP5",
+      "description": "FP5 LEFS150, (0.568-0.796 MeV Ions), Uncertainty",
+      "units": "[fraction]",
+      "type": "double",
+      "fill": "-1.0E31"
+    },
+    {
+      "name": "unc_FP6",
+      "description": "FP6 LEFS150, (0.796-1.11 MeV Ions), Uncertainty",
+      "units": "[fraction]",
+      "type": "double",
+      "fill": "-1.0E31"
+    },
+    {
+      "name": "unc_FP7",
+      "description": "FP7 LEFS150, (1.11-4.92 MeV Ions), Uncertainty",
+      "units": "[fraction]",
+      "type": "double",
+      "fill": "-1.0E31"
+    }
+  ],
+  "startDate": "1997-08-31T00:00:08Z",
+  "stopDate": "2025-09-15T23:59:49Z",
+  "status": {
+    "code": 1200,
+    "message": "OK"
+  }
+}

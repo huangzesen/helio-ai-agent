@@ -1,0 +1,54 @@
+{
+  "HAPI": "2.0",
+  "resourceURL": "https://cdaweb.gsfc.nasa.gov/misc/NotesW.html#WI_H3-RTN_MFI",
+  "contact": "A. Koval @ UMBC, NASA/GSFC",
+  "parameters": [
+    {
+      "name": "Time",
+      "length": 24,
+      "units": "UTC",
+      "type": "isotime",
+      "fill": null
+    },
+    {
+      "name": "BF1",
+      "description": "Magnetic field magnitude (1 min)",
+      "units": "nT (1min)",
+      "type": "double",
+      "fill": "-1.0E31"
+    },
+    {
+      "name": "BRMSF1",
+      "description": "RMS magnitude (1 min)",
+      "units": "nT (1min)",
+      "type": "double",
+      "fill": "-1.0E31"
+    },
+    {
+      "size": [
+        3
+      ],
+      "name": "BRTN",
+      "description": "Magnetic field vector in RTN cartesian coordinates (1 min)",
+      "units": "nT (1min)",
+      "type": "double",
+      "fill": "-1.0E31"
+    },
+    {
+      "size": [
+        3
+      ],
+      "name": "BRMSRTN",
+      "description": "RMS vector in RTN coordinates (1 min)",
+      "units": "nT (1min)",
+      "type": "double",
+      "fill": "-1.0E31"
+    }
+  ],
+  "startDate": "1994-11-13T00:00:30Z",
+  "stopDate": "2026-01-30T23:59:30Z",
+  "status": {
+    "code": 1200,
+    "message": "OK"
+  }
+}

@@ -1,0 +1,455 @@
+{
+  "HAPI": "2.0",
+  "resourceURL": "https://cdaweb.gsfc.nasa.gov/misc/NotesM.html#MMS1_FPI_SLOW_L2_DIS-MOMSAUX",
+  "contact": "J. Burch, D. Gershman @ SwRI, GSFC",
+  "parameters": [
+    {
+      "name": "Time",
+      "length": 30,
+      "units": "UTC",
+      "type": "isotime",
+      "fill": null
+    },
+    {
+      "name": "mms1_dis_errorflags_slow",
+      "description": "MMS1 FPI/DIS vector of data-quality indicators at survey-start time",
+      "units": "32-bit error flags",
+      "type": "double",
+      "fill": "4.294967295E9"
+    },
+    {
+      "size": [
+        32
+      ],
+      "name": "mms1_dis_numberdensity_part_slow",
+      "description": "MMS1 FPI/DIS partial ion number density during this survey",
+      "units": "cm^-3",
+      "type": "double",
+      "fill": "-1.0E31"
+    },
+    {
+      "size": [
+        32,
+        3
+      ],
+      "name": "mms1_dis_bulkv_part_dbcs_slow",
+      "description": "MMS1 FPI/DIS partial ion bulk-velocity vector in DBCS during this survey",
+      "units": "km/s",
+      "type": "double",
+      "fill": "-1.0E31"
+    },
+    {
+      "size": [
+        32,
+        3
+      ],
+      "name": "mms1_dis_bulkv_part_gse_slow",
+      "description": "MMS1 FPI/DIS partial ion bulk-velocity vector in GSE during this survey",
+      "units": "km/s",
+      "type": "double",
+      "fill": "-1.0E31"
+    },
+    {
+      "size": [
+        32,
+        3,
+        3
+      ],
+      "name": "mms1_dis_prestensor_part_dbcs_slow",
+      "description": "MMS1 FPI/DIS partial ion pressure tensor in DBCS during this survey",
+      "units": "nPa",
+      "type": "double",
+      "fill": "-1.0E31"
+    },
+    {
+      "size": [
+        32,
+        3,
+        3
+      ],
+      "name": "mms1_dis_prestensor_part_gse_slow",
+      "description": "MMS1 FPI/DIS partial ion pressure tensor in GSE during this survey",
+      "units": "nPa",
+      "type": "double",
+      "fill": "-1.0E31"
+    },
+    {
+      "size": [
+        32,
+        3,
+        3
+      ],
+      "name": "mms1_dis_temptensor_part_dbcs_slow",
+      "description": "MMS1 FPI/DIS partial ion temperature tensor in DBCS during this survey",
+      "units": "eV",
+      "type": "double",
+      "fill": "-1.0E31"
+    },
+    {
+      "size": [
+        32,
+        3,
+        3
+      ],
+      "name": "mms1_dis_temptensor_part_gse_slow",
+      "description": "MMS1 FPI/DIS partial ion temperature tensor in GSE during this survey",
+      "units": "eV",
+      "type": "double",
+      "fill": "-1.0E31"
+    },
+    {
+      "size": [
+        32
+      ],
+      "name": "mms1_dis_temppara_part_slow",
+      "description": "MMS1 FPI/DIS partial ion parallel temperature during this survey",
+      "units": "eV",
+      "type": "double",
+      "fill": "-1.0E31"
+    },
+    {
+      "size": [
+        32
+      ],
+      "name": "mms1_dis_tempperp_part_slow",
+      "description": "MMS1 FPI/DIS partial ion perpendicular temperature during this survey",
+      "units": "eV",
+      "type": "double",
+      "fill": "-1.0E31"
+    },
+    {
+      "name": "mms1_dis_part_index_slow",
+      "description": "MMS1 FPI/DIS recommended energy index for partial moments during this survey",
+      "units": "0-31",
+      "type": "integer",
+      "fill": "65535"
+    },
+    {
+      "name": "mms1_dis_startdelphi_count_slow",
+      "description": "MMS1 FPI/DIS Del-Phi (obs spin-phase) count at survey-start time",
+      "units": "del-phi counts",
+      "type": "integer",
+      "fill": "65535"
+    },
+    {
+      "name": "mms1_dis_startdelphi_angle_slow",
+      "description": "MMS1 FPI/DIS Del-Phi (obs spin-phase) angle at survey-start time",
+      "units": "deg",
+      "type": "double",
+      "fill": "-1.0E31"
+    },
+    {
+      "size": [
+        32
+      ],
+      "name": "mms1_dis_energyspectr_px_slow",
+      "description": "MMS1 FPI/DIS ion energy spectrum \"near\" +X_DBCS during this survey",
+      "units": "keV/(cm^2 s sr keV)",
+      "type": "double",
+      "fill": "-1.0E31"
+    },
+    {
+      "size": [
+        32
+      ],
+      "name": "mms1_dis_energyspectr_mx_slow",
+      "description": "MMS1 FPI/DIS ion energy spectrum \"near\" -X_DBCS during this survey",
+      "units": "keV/(cm^2 s sr keV)",
+      "type": "double",
+      "fill": "-1.0E31"
+    },
+    {
+      "size": [
+        32
+      ],
+      "name": "mms1_dis_energyspectr_py_slow",
+      "description": "MMS1 FPI/DIS ion energy spectrum \"near\" +Y_DBCS during this survey",
+      "units": "keV/(cm^2 s sr keV)",
+      "type": "double",
+      "fill": "-1.0E31"
+    },
+    {
+      "size": [
+        32
+      ],
+      "name": "mms1_dis_energyspectr_my_slow",
+      "description": "MMS1 FPI/DIS ion energy spectrum \"near\" -Y_DBCS during this survey",
+      "units": "keV/(cm^2 s sr keV)",
+      "type": "double",
+      "fill": "-1.0E31"
+    },
+    {
+      "size": [
+        32
+      ],
+      "name": "mms1_dis_energyspectr_pz_slow",
+      "description": "MMS1 FPI/DIS ion energy spectrum \"near\" +Z_DBCS during this survey",
+      "units": "keV/(cm^2 s sr keV)",
+      "type": "double",
+      "fill": "-1.0E31"
+    },
+    {
+      "size": [
+        32
+      ],
+      "name": "mms1_dis_energyspectr_mz_slow",
+      "description": "MMS1 FPI/DIS ion energy spectrum \"near\" -Z_DBCS during this survey",
+      "units": "keV/(cm^2 s sr keV)",
+      "type": "double",
+      "fill": "-1.0E31"
+    },
+    {
+      "size": [
+        32
+      ],
+      "name": "mms1_dis_energyspectr_omni_slow",
+      "description": "MMS1 FPI/DIS omni-directional ion energy spectrum during this survey",
+      "units": "keV/(cm^2 s sr keV)",
+      "type": "double",
+      "fill": "-1.0E31"
+    },
+    {
+      "name": "mms1_dis_spectr_bg_slow",
+      "description": "MMS1 FPI/DIS ion background energy during this survey",
+      "units": "keV/(cm^2 s sr keV)",
+      "type": "double",
+      "fill": "-1.0E31"
+    },
+    {
+      "name": "mms1_dis_numberdensity_bg_slow",
+      "description": "MMS1 FPI/DIS ion background number density during this survey",
+      "units": "cm^-3",
+      "type": "double",
+      "fill": "-1.0E31"
+    },
+    {
+      "name": "mms1_dis_numberdensity_slow",
+      "description": "MMS1 FPI/DIS ion number density during this survey",
+      "units": "cm^-3",
+      "type": "double",
+      "fill": "-1.0E31"
+    },
+    {
+      "name": "mms1_dis_densityextrapolation_low_slow",
+      "description": "MMS1 FPI/DIS estimated (via extrapolation to 0) contribution to density integral below 10eV",
+      "units": "cm^-3",
+      "type": "double",
+      "fill": "-1.0E31"
+    },
+    {
+      "name": "mms1_dis_densityextrapolation_high_slow",
+      "description": "MMS1 FPI/DIS estimated (via extrapolation to infinity) contribution to density integral above 30keV",
+      "units": "cm^-3",
+      "type": "double",
+      "fill": "-1.0E31"
+    },
+    {
+      "size": [
+        3
+      ],
+      "name": "mms1_dis_bulkv_dbcs_slow",
+      "description": "MMS1 FPI/DIS ion bulk-velocity vector in DBCS during this survey",
+      "units": "km/s",
+      "type": "double",
+      "fill": "-1.0E31"
+    },
+    {
+      "size": [
+        3
+      ],
+      "name": "mms1_dis_bulkv_gse_slow",
+      "description": "MMS1 FPI/DIS ion bulk-velocity vector in GSE during this survey",
+      "units": "km/s",
+      "type": "double",
+      "fill": "-1.0E31"
+    },
+    {
+      "size": [
+        3,
+        3
+      ],
+      "name": "mms1_dis_prestensor_dbcs_slow",
+      "description": "MMS1 FPI/DIS ion pressure tensor in DBCS during this survey",
+      "units": "nPa",
+      "type": "double",
+      "fill": "-1.0E31"
+    },
+    {
+      "size": [
+        3,
+        3
+      ],
+      "name": "mms1_dis_prestensor_gse_slow",
+      "description": "MMS1 FPI/DIS ion pressure tensor in GSE during this survey",
+      "units": "nPa",
+      "type": "double",
+      "fill": "-1.0E31"
+    },
+    {
+      "name": "mms1_dis_pres_bg_slow",
+      "description": "MMS1 FPI/DIS ion background pressure during this survey",
+      "units": "nPa",
+      "type": "double",
+      "fill": "-1.0E31"
+    },
+    {
+      "size": [
+        3,
+        3
+      ],
+      "name": "mms1_dis_temptensor_dbcs_slow",
+      "description": "MMS1 FPI/DIS ion temperature tensor in DBCS during this survey",
+      "units": "eV",
+      "type": "double",
+      "fill": "-1.0E31"
+    },
+    {
+      "size": [
+        3,
+        3
+      ],
+      "name": "mms1_dis_temptensor_gse_slow",
+      "description": "MMS1 FPI/DIS ion temperature tensor in GSE during this survey",
+      "units": "eV",
+      "type": "double",
+      "fill": "-1.0E31"
+    },
+    {
+      "size": [
+        3
+      ],
+      "name": "mms1_dis_heatq_dbcs_slow",
+      "description": "MMS1 FPI/DIS ion heat-flux vector in DBCS during this survey",
+      "units": "mW/m^2",
+      "type": "double",
+      "fill": "-1.0E31"
+    },
+    {
+      "size": [
+        3
+      ],
+      "name": "mms1_dis_heatq_gse_slow",
+      "description": "MMS1 FPI/DIS ion heat-flux vector in GSE during this survey",
+      "units": "mW/m^2",
+      "type": "double",
+      "fill": "-1.0E31"
+    },
+    {
+      "name": "mms1_dis_temppara_slow",
+      "description": "MMS1 FPI/DIS ion parallel temperature during this BP",
+      "units": "eV",
+      "type": "double",
+      "fill": "-1.0E31"
+    },
+    {
+      "name": "mms1_dis_tempperp_slow",
+      "description": "MMS1 FPI/DIS ion perpendicular temperature during this BP",
+      "units": "eV",
+      "type": "double",
+      "fill": "-1.0E31"
+    },
+    {
+      "name": "mms1_dis_scpot_mean_slow",
+      "description": "MMS1 FPI/DIS S/C potential mean",
+      "units": "V",
+      "type": "double",
+      "fill": "-1.0E31"
+    },
+    {
+      "name": "mms1_dis_scpot_max_slow",
+      "description": "MMS1 FPI/DIS S/C potential max",
+      "units": "V",
+      "type": "double",
+      "fill": "-1.0E31"
+    },
+    {
+      "size": [
+        4
+      ],
+      "name": "mms1_dis_fpib_gse_srvy_slow",
+      "description": "Magnetic field vector X,Y,Z, and magnitude B",
+      "units": "nT",
+      "type": "double",
+      "fill": "-1.0E31"
+    },
+    {
+      "size": [
+        4
+      ],
+      "name": "mms1_dis_fpib_dmpa_srvy_slow",
+      "description": "Magnetic field vector X,Y,Z, and magnitude B",
+      "units": "nT",
+      "type": "double",
+      "fill": "-1.0E31"
+    },
+    {
+      "size": [
+        3
+      ],
+      "name": "mms1_dis_pos_gse_slow",
+      "description": "Position in GSE coordinates, 30 second",
+      "units": "km",
+      "type": "double",
+      "fill": "-1.0E31"
+    },
+    {
+      "size": [
+        3
+      ],
+      "name": "mms1_dis_pos_gsm_slow",
+      "description": "Position in GSM coordinates, 30 second",
+      "units": "km",
+      "type": "double",
+      "fill": "-1.0E31"
+    },
+    {
+      "size": [
+        32
+      ],
+      "name": "mms1_dis_numberdensity_int_slow",
+      "description": "MMS1 number density integrands",
+      "units": "cm^-3",
+      "type": "double",
+      "fill": "-1.0E31"
+    },
+    {
+      "size": [
+        32,
+        3
+      ],
+      "name": "mms1_dis_numberflux_int_dbcs_slow",
+      "description": "number flux",
+      "units": "km/s * cm^-3",
+      "type": "double",
+      "fill": "-1.0E31"
+    },
+    {
+      "size": [
+        32,
+        3,
+        3
+      ],
+      "name": "mms1_dis_prestensor_int_dbcs_slow",
+      "description": "MMS1 pressure tensor integrands",
+      "units": "erg/cm^3",
+      "type": "double",
+      "fill": "-1.0E31"
+    },
+    {
+      "size": [
+        32
+      ],
+      "name": "mms1_dis_ugrid_int_slow",
+      "description": "Normalized energies (E/(E+E0)) used in numerical integration of plasma moments",
+      "units": "eV/eV",
+      "type": "double",
+      "fill": "-1.0E31"
+    }
+  ],
+  "startDate": "2015-09-01T00:32:55Z",
+  "stopDate": "2025-08-29T23:04:25Z",
+  "status": {
+    "code": 1200,
+    "message": "OK"
+  }
+}

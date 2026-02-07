@@ -1,0 +1,38 @@
+{
+  "HAPI": "2.0",
+  "resourceURL": "https://cdaweb.gsfc.nasa.gov/misc/NotesM.html#MMS1_SCM_SRVY_L2_SCSRVY",
+  "contact": "J. Burch, O. Le Contel @ SWRI, LPP",
+  "parameters": [
+    {
+      "name": "Time",
+      "length": 30,
+      "units": "UTC",
+      "type": "isotime",
+      "fill": null
+    },
+    {
+      "size": [
+        3
+      ],
+      "name": "mms1_scm_acb_gse_scsrvy_srvy_l2",
+      "description": "L2 AC magnetic field in GSE frame",
+      "units": "nT",
+      "type": "double",
+      "fill": "NaN"
+    },
+    {
+      "name": "mms1_scm_qf_scm123_scsrvy_srvy_l2",
+      "length": "3",
+      "description": "(List/Create Only) Quality Factor (one letter per antenna, G=good)",
+      "units": "(GGG=All Good)",
+      "type": "string",
+      "fill": "XXX"
+    }
+  ],
+  "startDate": "2015-09-02T00:00:01Z",
+  "stopDate": "2026-01-01T23:59:59Z",
+  "status": {
+    "code": 1200,
+    "message": "OK"
+  }
+}

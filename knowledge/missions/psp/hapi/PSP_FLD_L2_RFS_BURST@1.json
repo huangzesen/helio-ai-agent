@@ -1,0 +1,51 @@
+{
+  "HAPI": "2.0",
+  "resourceURL": "https://cdaweb.gsfc.nasa.gov/misc/NotesP.html#PSP_FLD_L2_RFS_BURST",
+  "contact": "Stuart D. Bale (bale@ssl.berkeley.edu) @ UC Berkeley Space Sciences Laboratory",
+  "parameters": [
+    {
+      "name": "Time",
+      "length": 30,
+      "units": "UTC",
+      "type": "isotime",
+      "fill": null
+    },
+    {
+      "size": [
+        192
+      ],
+      "name": "psp_fld_l2_rfs_burst_auto_ch1_V3V4",
+      "description": "BURST auto, Ch1: V3V4",
+      "units": "Volts^2/Hz",
+      "type": "double",
+      "fill": "-1.0E31"
+    },
+    {
+      "name": "psp_fld_l2_rfs_burst_auto_ch1_V3V4_gain",
+      "description": "Gain flag for BURST auto, Ch1: V3V4",
+      "units": "None",
+      "type": "integer",
+      "fill": "-32768"
+    },
+    {
+      "name": "psp_fld_l2_rfs_burst_auto_ch1_V3V4_nsum",
+      "description": "N summed spectra for BURST auto, Ch1: V3V4",
+      "units": "None",
+      "type": "integer",
+      "fill": "-32768"
+    },
+    {
+      "name": "psp_fld_l2_rfs_burst_auto_ch1_V3V4_hl",
+      "description": "Overrange flag for BURST auto, Ch1: V3V4",
+      "units": "None",
+      "type": "integer",
+      "fill": "-32768"
+    }
+  ],
+  "startDate": "2019-12-26T18:04:05Z",
+  "stopDate": "2019-12-26T18:24:12Z",
+  "status": {
+    "code": 1200,
+    "message": "OK"
+  }
+}

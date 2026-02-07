@@ -1,0 +1,48 @@
+{
+  "HAPI": "2.0",
+  "resourceURL": "https://cdaweb.gsfc.nasa.gov/misc/NotesS.html#SOLO_L3_RPW-BIA-SCPOT-10-SECONDS",
+  "contact": "M.Maksimovic @ LESIA, Observatoire de Paris-CNRS",
+  "parameters": [
+    {
+      "name": "Time",
+      "length": 30,
+      "units": "UTC",
+      "type": "isotime",
+      "fill": null
+    },
+    {
+      "name": "SCPOT",
+      "description": "Spacecraft potential with respect to plasma. Median value over 10 s interval.",
+      "units": "V",
+      "type": "double",
+      "fill": "-1.0E31"
+    },
+    {
+      "name": "SCPOTSTD",
+      "description": "Std. deviation of the s/c potential with respect to plasma over 10 s interval.",
+      "units": "V",
+      "type": "double",
+      "fill": "-1.0E31"
+    },
+    {
+      "name": "PSP",
+      "description": "Average probe-to-spacecraft potential. Median over 10 s interval.",
+      "units": "V",
+      "type": "double",
+      "fill": "-1.0E31"
+    },
+    {
+      "name": "PSPSTD",
+      "description": "Std. deviation of the average probe-to-spacecraft potential over 10 s interval.",
+      "units": "V",
+      "type": "double",
+      "fill": "-1.0E31"
+    }
+  ],
+  "startDate": "2020-06-15T00:00:10Z",
+  "stopDate": "2023-01-01T00:02:20Z",
+  "status": {
+    "code": 1200,
+    "message": "OK"
+  }
+}

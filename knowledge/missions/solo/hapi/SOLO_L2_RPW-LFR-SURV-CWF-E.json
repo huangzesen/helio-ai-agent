@@ -1,0 +1,71 @@
+{
+  "HAPI": "2.0",
+  "resourceURL": "https://cdaweb.gsfc.nasa.gov/misc/NotesS.html#SOLO_L2_RPW-LFR-SURV-CWF-E",
+  "contact": "M.Maksimovic @ LESIA, Observatoire de Paris-CNRS",
+  "parameters": [
+    {
+      "name": "Time",
+      "length": 30,
+      "units": "UTC",
+      "type": "isotime",
+      "fill": null
+    },
+    {
+      "size": [
+        3
+      ],
+      "name": "VDC",
+      "description": "Probe to spacecraft potential (probes 1,2,3)",
+      "units": "V",
+      "type": "double",
+      "fill": "-1.0E31"
+    },
+    {
+      "size": [
+        3
+      ],
+      "name": "EDC",
+      "description": "Probe to probe voltages (probes V1-V2, V1-V3, V2-V3)",
+      "units": "V",
+      "type": "double",
+      "fill": "-1.0E31"
+    },
+    {
+      "size": [
+        3
+      ],
+      "name": "EAC",
+      "description": "AC probe to probe voltages (probes V1-V2, V1-V3, V2-V3)",
+      "units": "V",
+      "type": "double",
+      "fill": "-1.0E31"
+    },
+    {
+      "name": "IBIAS1",
+      "description": "Calibrated bias current on probe 1.",
+      "units": "nA",
+      "type": "double",
+      "fill": "-1.0E31"
+    },
+    {
+      "name": "IBIAS2",
+      "description": "Calibrated bias current on probe 2.",
+      "units": "nA",
+      "type": "double",
+      "fill": "-1.0E31"
+    },
+    {
+      "name": "IBIAS3",
+      "description": "Calibrated bias current on probe 3.",
+      "units": "nA",
+      "type": "double",
+      "fill": "-1.0E31"
+    }
+  ],
+  "startDate": "2020-06-15T00:00:13Z",
+  "stopDate": "2023-11-13T00:02:58Z",
+  "status": {
+    "code": 1200,
+    "message": "OK"
+  }
+}

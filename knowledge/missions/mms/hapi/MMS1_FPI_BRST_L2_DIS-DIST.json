@@ -1,0 +1,828 @@
+{
+  "HAPI": "2.0",
+  "resourceURL": "https://cdaweb.gsfc.nasa.gov/misc/NotesM.html#MMS1_FPI_BRST_L2_DIS-DIST",
+  "contact": "J. Burch, C. Pollock @ SwRI, NASA/GSFC",
+  "parameters": [
+    {
+      "name": "Time",
+      "length": 30,
+      "units": "UTC",
+      "type": "isotime",
+      "fill": null
+    },
+    {
+      "size": [
+        32,
+        16,
+        32
+      ],
+      "name": "mms1_dis_dist_brst",
+      "description": "[CDAWeb List/Download/Create ONLY] MMS1 FPI/DIS burst sky-map instrument distribution",
+      "units": "phase-space density",
+      "type": "double",
+      "fill": "-1.0E31"
+    },
+    {
+      "size": [
+        32,
+        16,
+        32
+      ],
+      "name": "mms1_dis_dist_brst1_even",
+      "description": "MMS1 FPI/DIS burst sky-map instrument distribution - 10.6 eV (E1/even)",
+      "units": "phase-space density",
+      "type": "double",
+      "fill": "-1.0E31"
+    },
+    {
+      "size": [
+        32,
+        16,
+        32
+      ],
+      "name": "mms1_dis_dist_brst1_odd",
+      "description": "MMS1 FPI/DIS burst sky-map instrument distribution - 12.0 eV (E1/odd)",
+      "units": "phase-space density",
+      "type": "double",
+      "fill": "-1.0E31"
+    },
+    {
+      "size": [
+        32,
+        16,
+        32
+      ],
+      "name": "mms1_dis_dist_brst1_evenodd_movie",
+      "description": "---> Movie -  ~11.3 eV (E1 even-odd)",
+      "units": "phase-space density",
+      "type": "double",
+      "fill": "-1.0E31"
+    },
+    {
+      "size": [
+        32,
+        16,
+        32
+      ],
+      "name": "mms1_dis_dist_brst1_even_movie",
+      "description": "---> Movie - 10.6 eV (E1/even)",
+      "units": "phase-space density",
+      "type": "double",
+      "fill": "-1.0E31"
+    },
+    {
+      "size": [
+        32,
+        16,
+        32
+      ],
+      "name": "mms1_dis_dist_brst1_odd_movie",
+      "description": "---> Movie - 12.0 eV (E1/odd)",
+      "units": "phase-space density",
+      "type": "double",
+      "fill": "-1.0E31"
+    },
+    {
+      "size": [
+        32,
+        16,
+        32
+      ],
+      "name": "mms1_dis_dist_brst6_even",
+      "description": "MMS1 FPI/DIS burst sky-map instrument distribution - 37.2 eV (E6/even)",
+      "units": "phase-space density",
+      "type": "double",
+      "fill": "-1.0E31"
+    },
+    {
+      "size": [
+        32,
+        16,
+        32
+      ],
+      "name": "mms1_dis_dist_brst6_odd",
+      "description": "MMS1 FPI/DIS burst sky-map instrument distribution - 42.1 eV (E6/odd)",
+      "units": "phase-space density",
+      "type": "double",
+      "fill": "-1.0E31"
+    },
+    {
+      "size": [
+        32,
+        16,
+        32
+      ],
+      "name": "mms1_dis_dist_brst6_evenodd_movie",
+      "description": "---> Movie - ~39.6 eV (E6 even-odd)",
+      "units": "phase-space density",
+      "type": "double",
+      "fill": "-1.0E31"
+    },
+    {
+      "size": [
+        32,
+        16,
+        32
+      ],
+      "name": "mms1_dis_dist_brst6_even_movie",
+      "description": "---> Movie - 37.2 eV (E6/even)",
+      "units": "phase-space density",
+      "type": "double",
+      "fill": "-1.0E31"
+    },
+    {
+      "size": [
+        32,
+        16,
+        32
+      ],
+      "name": "mms1_dis_dist_brst6_odd_movie",
+      "description": "---> Movie - 42.1 eV (E6/odd)",
+      "units": "phase-space density",
+      "type": "double",
+      "fill": "-1.0E31"
+    },
+    {
+      "size": [
+        32,
+        16,
+        32
+      ],
+      "name": "mms1_dis_dist_brst9_even",
+      "description": "MMS1 FPI/DIS burst sky-map instrument distribution - 78.8 eV (E9/even)",
+      "units": "phase-space density",
+      "type": "double",
+      "fill": "-1.0E31"
+    },
+    {
+      "size": [
+        32,
+        16,
+        32
+      ],
+      "name": "mms1_dis_dist_brst9_odd",
+      "description": "MMS1 FPI/DIS burst sky-map instrument distribution - 89.3 eV (E9/odd)",
+      "units": "phase-space density",
+      "type": "double",
+      "fill": "-1.0E31"
+    },
+    {
+      "size": [
+        32,
+        16,
+        32
+      ],
+      "name": "mms1_dis_dist_brst9_evenodd_movie",
+      "description": "---> Movie - ~83.9 eV (E9 even-odd)",
+      "units": "phase-space density",
+      "type": "double",
+      "fill": "-1.0E31"
+    },
+    {
+      "size": [
+        32,
+        16,
+        32
+      ],
+      "name": "mms1_dis_dist_brst9_even_movie",
+      "description": "---> Movie - 78.8 eV (E9/even)",
+      "units": "phase-space density",
+      "type": "double",
+      "fill": "-1.0E31"
+    },
+    {
+      "size": [
+        32,
+        16,
+        32
+      ],
+      "name": "mms1_dis_dist_brst9_odd_movie",
+      "description": "---> Movie - 89.3 eV (E9/odd)",
+      "units": "phase-space density",
+      "type": "double",
+      "fill": "-1.0E31"
+    },
+    {
+      "size": [
+        32,
+        16,
+        32
+      ],
+      "name": "mms1_dis_dist_brst12_even",
+      "description": "MMS1 FPI/DIS burst sky-map instrument distribution - 167 eV (E12/even)",
+      "units": "phase-space density",
+      "type": "double",
+      "fill": "-1.0E31"
+    },
+    {
+      "size": [
+        32,
+        16,
+        32
+      ],
+      "name": "mms1_dis_dist_brst12_odd",
+      "description": "MMS1 FPI/DIS burst sky-map instrument distribution - 189 eV (E12/odd)",
+      "units": "phase-space density",
+      "type": "double",
+      "fill": "-1.0E31"
+    },
+    {
+      "size": [
+        32,
+        16,
+        32
+      ],
+      "name": "mms1_dis_dist_brst12_evenodd_movie",
+      "description": "---> Movie - ~178 eV (E12 even-odd)",
+      "units": "phase-space density",
+      "type": "double",
+      "fill": "-1.0E31"
+    },
+    {
+      "size": [
+        32,
+        16,
+        32
+      ],
+      "name": "mms1_dis_dist_brst12_even_movie",
+      "description": "---> Movie - 167 eV (E12/even)",
+      "units": "phase-space density",
+      "type": "double",
+      "fill": "-1.0E31"
+    },
+    {
+      "size": [
+        32,
+        16,
+        32
+      ],
+      "name": "mms1_dis_dist_brst12_odd_movie",
+      "description": "---> Movie - 189 eV (E12/odd)",
+      "units": "phase-space density",
+      "type": "double",
+      "fill": "-1.0E31"
+    },
+    {
+      "size": [
+        32,
+        16,
+        32
+      ],
+      "name": "mms1_dis_dist_brst14_even",
+      "description": "MMS1 FPI/DIS burst sky-map instrument distribution - 275 eV (E14/even)",
+      "units": "phase-space density",
+      "type": "double",
+      "fill": "-1.0E31"
+    },
+    {
+      "size": [
+        32,
+        16,
+        32
+      ],
+      "name": "mms1_dis_dist_brst14_odd",
+      "description": "MMS1 FPI/DIS burst sky-map instrument distribution - 312 eV (E14/odd)",
+      "units": "phase-space density",
+      "type": "double",
+      "fill": "-1.0E31"
+    },
+    {
+      "size": [
+        32,
+        16,
+        32
+      ],
+      "name": "mms1_dis_dist_brst14_evenodd_movie",
+      "description": "---> Movie - ~293 eV (E14 even-odd)",
+      "units": "phase-space density",
+      "type": "double",
+      "fill": "-1.0E31"
+    },
+    {
+      "size": [
+        32,
+        16,
+        32
+      ],
+      "name": "mms1_dis_dist_brst14_even_movie",
+      "description": "---> Movie - 275 eV (E14/even)",
+      "units": "phase-space density",
+      "type": "double",
+      "fill": "-1.0E31"
+    },
+    {
+      "size": [
+        32,
+        16,
+        32
+      ],
+      "name": "mms1_dis_dist_brst14_odd_movie",
+      "description": "---> Movie - 312 eV (E14/odd)",
+      "units": "phase-space density",
+      "type": "double",
+      "fill": "-1.0E31"
+    },
+    {
+      "size": [
+        32,
+        16,
+        32
+      ],
+      "name": "mms1_dis_dist_brst16_even",
+      "description": "MMS1 FPI/DIS burst sky-map instrument distribution - 455 eV (E16/even)",
+      "units": "phase-space density",
+      "type": "double",
+      "fill": "-1.0E31"
+    },
+    {
+      "size": [
+        32,
+        16,
+        32
+      ],
+      "name": "mms1_dis_dist_brst16_odd",
+      "description": "MMS1 FPI/DIS burst sky-map instrument distribution - 515 eV (E16/odd)",
+      "units": "phase-space density",
+      "type": "double",
+      "fill": "-1.0E31"
+    },
+    {
+      "size": [
+        32,
+        16,
+        32
+      ],
+      "name": "mms1_dis_dist_brst16_evenodd_movie",
+      "description": "---> Movie - ~484 eV (E16 even-odd)",
+      "units": "phase-space density",
+      "type": "double",
+      "fill": "-1.0E31"
+    },
+    {
+      "size": [
+        32,
+        16,
+        32
+      ],
+      "name": "mms1_dis_dist_brst16_even_movie",
+      "description": "---> Movie - 455 eV (E16/even)",
+      "units": "phase-space density",
+      "type": "double",
+      "fill": "-1.0E31"
+    },
+    {
+      "size": [
+        32,
+        16,
+        32
+      ],
+      "name": "mms1_dis_dist_brst16_odd_movie",
+      "description": "---> Movie - 515 eV (E16/odd)",
+      "units": "phase-space density",
+      "type": "double",
+      "fill": "-1.0E31"
+    },
+    {
+      "size": [
+        32,
+        16,
+        32
+      ],
+      "name": "mms1_dis_dist_brst18_even",
+      "description": "MMS1 FPI/DIS burst sky-map instrument distribution - 750 eV (E18/even)",
+      "units": "phase-space density",
+      "type": "double",
+      "fill": "-1.0E31"
+    },
+    {
+      "size": [
+        32,
+        16,
+        32
+      ],
+      "name": "mms1_dis_dist_brst18_odd",
+      "description": "MMS1 FPI/DIS burst sky-map instrument distribution - 850 eV (E18/odd)",
+      "units": "phase-space density",
+      "type": "double",
+      "fill": "-1.0E31"
+    },
+    {
+      "size": [
+        32,
+        16,
+        32
+      ],
+      "name": "mms1_dis_dist_brst18_evenodd_movie",
+      "description": "---> Movie - ~800 eV (E18 even-odd)",
+      "units": "phase-space density",
+      "type": "double",
+      "fill": "-1.0E31"
+    },
+    {
+      "size": [
+        32,
+        16,
+        32
+      ],
+      "name": "mms1_dis_dist_brst18_even_movie",
+      "description": "---> Movie - 750 eV (E18/even)",
+      "units": "phase-space density",
+      "type": "double",
+      "fill": "-1.0E31"
+    },
+    {
+      "size": [
+        32,
+        16,
+        32
+      ],
+      "name": "mms1_dis_dist_brst18_odd_movie",
+      "description": "---> Movie - 850 eV (E18/odd)",
+      "units": "phase-space density",
+      "type": "double",
+      "fill": "-1.0E31"
+    },
+    {
+      "size": [
+        32,
+        16,
+        32
+      ],
+      "name": "mms1_dis_dist_brst20_even",
+      "description": "MMS1 FPI/DIS burst sky-map instrument distribution - 1240 eV (E20/even)",
+      "units": "phase-space density",
+      "type": "double",
+      "fill": "-1.0E31"
+    },
+    {
+      "size": [
+        32,
+        16,
+        32
+      ],
+      "name": "mms1_dis_dist_brst20_odd",
+      "description": "MMS1 FPI/DIS burst sky-map instrument distribution - 1400 eV (E20/odd)",
+      "units": "phase-space density",
+      "type": "double",
+      "fill": "-1.0E31"
+    },
+    {
+      "size": [
+        32,
+        16,
+        32
+      ],
+      "name": "mms1_dis_dist_brst20_evenodd_movie",
+      "description": "---> Movie - ~1320 eV (E20 even-odd)",
+      "units": "phase-space density",
+      "type": "double",
+      "fill": "-1.0E31"
+    },
+    {
+      "size": [
+        32,
+        16,
+        32
+      ],
+      "name": "mms1_dis_dist_brst20_even_movie",
+      "description": "---> Movie - 1240 eV (E20/even)",
+      "units": "phase-space density",
+      "type": "double",
+      "fill": "-1.0E31"
+    },
+    {
+      "size": [
+        32,
+        16,
+        32
+      ],
+      "name": "mms1_dis_dist_brst20_odd_movie",
+      "description": "---> Movie - 1400 eV (E20/odd)",
+      "units": "phase-space density",
+      "type": "double",
+      "fill": "-1.0E31"
+    },
+    {
+      "size": [
+        32,
+        16,
+        32
+      ],
+      "name": "mms1_dis_dist_brst23_even",
+      "description": "MMS1 FPI/DIS burst sky-map instrument distribution - 2620 eV (E23/even)",
+      "units": "phase-space density",
+      "type": "double",
+      "fill": "-1.0E31"
+    },
+    {
+      "size": [
+        32,
+        16,
+        32
+      ],
+      "name": "mms1_dis_dist_brst23_odd",
+      "description": "MMS1 FPI/DIS burst sky-map instrument distribution - 2970 eV (E23/odd)",
+      "units": "phase-space density",
+      "type": "double",
+      "fill": "-1.0E31"
+    },
+    {
+      "size": [
+        32,
+        16,
+        32
+      ],
+      "name": "mms1_dis_dist_brst23_evenodd_movie",
+      "description": "---> Movie - ~2800 eV (E23 even-odd)",
+      "units": "phase-space density",
+      "type": "double",
+      "fill": "-1.0E31"
+    },
+    {
+      "size": [
+        32,
+        16,
+        32
+      ],
+      "name": "mms1_dis_dist_brst23_even_movie",
+      "description": "---> Movie - 2620 eV (E23/even)",
+      "units": "phase-space density",
+      "type": "double",
+      "fill": "-1.0E31"
+    },
+    {
+      "size": [
+        32,
+        16,
+        32
+      ],
+      "name": "mms1_dis_dist_brst23_odd_movie",
+      "description": "---> Movie - 2970 eV (E23/odd)",
+      "units": "phase-space density",
+      "type": "double",
+      "fill": "-1.0E31"
+    },
+    {
+      "size": [
+        32,
+        16,
+        32
+      ],
+      "name": "mms1_dis_dist_brst26_even",
+      "description": "MMS1 FPI/DIS burst sky-map instrument distribution - 5560 eV (E26/even)",
+      "units": "phase-space density",
+      "type": "double",
+      "fill": "-1.0E31"
+    },
+    {
+      "size": [
+        32,
+        16,
+        32
+      ],
+      "name": "mms1_dis_dist_brst26_odd",
+      "description": "MMS1 FPI/DIS burst sky-map instrument distribution - 6300 eV (E26/odd)",
+      "units": "phase-space density",
+      "type": "double",
+      "fill": "-1.0E31"
+    },
+    {
+      "size": [
+        32,
+        16,
+        32
+      ],
+      "name": "mms1_dis_dist_brst26_evenodd_movie",
+      "description": "---> Movie - ~5920 eV (E26 even-odd)",
+      "units": "phase-space density",
+      "type": "double",
+      "fill": "-1.0E31"
+    },
+    {
+      "size": [
+        32,
+        16,
+        32
+      ],
+      "name": "mms1_dis_dist_brst26_even_movie",
+      "description": "---> Movie - 5560 eV (E26/even)",
+      "units": "phase-space density",
+      "type": "double",
+      "fill": "-1.0E31"
+    },
+    {
+      "size": [
+        32,
+        16,
+        32
+      ],
+      "name": "mms1_dis_dist_brst26_odd_movie",
+      "description": "---> Movie - 6300 eV (E26/odd)",
+      "units": "phase-space density",
+      "type": "double",
+      "fill": "-1.0E31"
+    },
+    {
+      "size": [
+        32,
+        16,
+        32
+      ],
+      "name": "mms1_dis_dist_brst32_even",
+      "description": "MMS1 FPI/DIS burst sky-map instrument distribution - 25000 eV (E32/even)",
+      "units": "phase-space density",
+      "type": "double",
+      "fill": "-1.0E31"
+    },
+    {
+      "size": [
+        32,
+        16,
+        32
+      ],
+      "name": "mms1_dis_dist_brst32_odd",
+      "description": "MMS1 FPI/DIS burst sky-map instrument distribution - 28300 eV (E32/odd)",
+      "units": "phase-space density",
+      "type": "double",
+      "fill": "-1.0E31"
+    },
+    {
+      "size": [
+        32,
+        16,
+        32
+      ],
+      "name": "mms1_dis_dist_brst32_evenodd_movie",
+      "description": "---> Movie - ~26600 eV (E32 even-odd)",
+      "units": "phase-space density",
+      "type": "double",
+      "fill": "-1.0E31"
+    },
+    {
+      "size": [
+        32,
+        16,
+        32
+      ],
+      "name": "mms1_dis_dist_brst32_even_movie",
+      "description": "---> Movie - 25000 eV (E32/even)",
+      "units": "phase-space density",
+      "type": "double",
+      "fill": "-1.0E31"
+    },
+    {
+      "size": [
+        32,
+        16,
+        32
+      ],
+      "name": "mms1_dis_dist_brst32_odd_movie",
+      "description": "---> Movie - 28300 eV (E32/odd)",
+      "units": "phase-space density",
+      "type": "double",
+      "fill": "-1.0E31"
+    },
+    {
+      "size": [
+        32,
+        16,
+        32
+      ],
+      "name": "mms1_dis_disterr_brst",
+      "description": "[List/Create only in CDAWeb] 1-sigma error: MMS1 FPI/DIS burst sky-map instrument distribution",
+      "units": "phase-space density",
+      "type": "double",
+      "fill": "-1.0E31"
+    },
+    {
+      "name": "mms1_dis_errorflags_brst",
+      "description": "MMS1 FPI/DIS vector of data-quality indicators at burst-start time",
+      "units": "32-bit error flags",
+      "type": "double",
+      "fill": "4.294967295E9"
+    },
+    {
+      "name": "mms1_dis_compressionloss_brst",
+      "description": "---> MMS1 FPI/DIS compression lossless/lossy indicator at survey-start time",
+      "units": "0, 1",
+      "type": "integer",
+      "fill": "255"
+    },
+    {
+      "name": "mms1_dis_steptable_parity_brst",
+      "description": "---> MMS1 FPI/DIS step table parity, this burst",
+      "units": "0, 1",
+      "type": "integer",
+      "fill": "255"
+    },
+    {
+      "name": "mms1_dis_startdelphi_count_brst",
+      "description": "---> MMS1 FPI/DIS Del-Phi (obs spin-phase) count at burst-start time",
+      "units": "del-phi counts",
+      "type": "integer",
+      "fill": "65535"
+    },
+    {
+      "name": "mms1_dis_startdelphi_angle_brst",
+      "description": "---> MMS1 FPI/DIS Del-Phi (obs spin-phase) angle at burst-start time",
+      "units": "deg",
+      "type": "double",
+      "fill": "-1.0E31"
+    },
+    {
+      "size": [
+        32
+      ],
+      "name": "mms1_dis_avgf1counts_brst",
+      "description": "MMS1 FPI/DIS burst average f1 count values",
+      "units": "s^3/cm^6",
+      "type": "double",
+      "fill": "-1.0E31"
+    },
+    {
+      "size": [
+        32,
+        16,
+        32
+      ],
+      "name": "mms1_dis_steptimeoffsets_brst",
+      "description": "MMS1 FPI/DIS burst sky-map microsecond offsets from Epoch",
+      "units": "us",
+      "type": "double",
+      "fill": "-1.0E31"
+    },
+    {
+      "name": "mms1_dis_sector_despinp_brst",
+      "description": "---> MMS1 FPI/DIS sector de-Spin P value, this burst",
+      "units": "00-32",
+      "type": "integer",
+      "fill": "255"
+    },
+    {
+      "bins": [
+        {
+          "name": "mms1_dis_sector_index_brst",
+          "centers": [
+            0,
+            1,
+            2,
+            3,
+            4,
+            5,
+            6,
+            7,
+            8,
+            9,
+            10,
+            11,
+            12,
+            13,
+            14,
+            15,
+            16,
+            17,
+            18,
+            19,
+            20,
+            21,
+            22,
+            23,
+            24,
+            25,
+            26,
+            27,
+            28,
+            29,
+            30,
+            31
+          ],
+          "units": "00-31"
+        }
+      ],
+      "size": [
+        32
+      ],
+      "name": "mms1_dis_phi_brst",
+      "description": "MMS1 FPI/DIS burst sky-map instrument azimuthal angles",
+      "units": "deg",
+      "type": "double",
+      "fill": "-1.0E31"
+    },
+    {
+      "size": [
+        32
+      ],
+      "name": "mms1_dis_energy_brst",
+      "description": "MMS FPI/DIS burst sky-map parity 0/1 energies",
+      "units": "eV",
+      "type": "double",
+      "fill": "-1.0E31"
+    }
+  ],
+  "startDate": "2015-09-01T00:00:00Z",
+  "stopDate": "2025-09-03T21:07:22Z",
+  "status": {
+    "code": 1200,
+    "message": "OK"
+  }
+}

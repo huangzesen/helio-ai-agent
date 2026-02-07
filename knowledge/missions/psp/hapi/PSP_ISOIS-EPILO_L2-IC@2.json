@@ -1,0 +1,401 @@
+{
+  "HAPI": "2.0",
+  "resourceURL": "https://cdaweb.gsfc.nasa.gov/misc/NotesP.html#PSP_ISOIS-EPILO_L2-IC",
+  "contact": "David McComas @ Princeton University",
+  "parameters": [
+    {
+      "name": "Time",
+      "length": 30,
+      "units": "UTC",
+      "type": "isotime",
+      "fill": null
+    },
+    {
+      "bins": [
+        {
+          "name": "Look_Direction_80",
+          "centers": [
+            0,
+            1,
+            2,
+            3,
+            4,
+            5,
+            6,
+            7,
+            8,
+            9,
+            10,
+            11,
+            12,
+            13,
+            14,
+            15,
+            16,
+            17,
+            18,
+            19,
+            20,
+            21,
+            22,
+            23,
+            24,
+            25,
+            26,
+            27,
+            28,
+            29,
+            30,
+            31,
+            32,
+            33,
+            34,
+            35,
+            36,
+            37,
+            38,
+            39,
+            40,
+            41,
+            42,
+            43,
+            44,
+            45,
+            46,
+            47,
+            48,
+            49,
+            50,
+            51,
+            52,
+            53,
+            54,
+            55,
+            56,
+            57,
+            58,
+            59,
+            60,
+            61,
+            62,
+            63,
+            64,
+            65,
+            66,
+            67,
+            68,
+            69,
+            70,
+            71,
+            72,
+            73,
+            74,
+            75,
+            76,
+            77,
+            78,
+            79
+          ],
+          "units": " "
+        }
+      ],
+      "size": [
+        80
+      ],
+      "name": "PA_ChanC",
+      "description": "Pitch angle ChanC",
+      "units": "degree",
+      "type": "double",
+      "fill": "-1.0E31"
+    },
+    {
+      "bins": [
+        {
+          "name": "Look_Direction_80",
+          "centers": [
+            0,
+            1,
+            2,
+            3,
+            4,
+            5,
+            6,
+            7,
+            8,
+            9,
+            10,
+            11,
+            12,
+            13,
+            14,
+            15,
+            16,
+            17,
+            18,
+            19,
+            20,
+            21,
+            22,
+            23,
+            24,
+            25,
+            26,
+            27,
+            28,
+            29,
+            30,
+            31,
+            32,
+            33,
+            34,
+            35,
+            36,
+            37,
+            38,
+            39,
+            40,
+            41,
+            42,
+            43,
+            44,
+            45,
+            46,
+            47,
+            48,
+            49,
+            50,
+            51,
+            52,
+            53,
+            54,
+            55,
+            56,
+            57,
+            58,
+            59,
+            60,
+            61,
+            62,
+            63,
+            64,
+            65,
+            66,
+            67,
+            68,
+            69,
+            70,
+            71,
+            72,
+            73,
+            74,
+            75,
+            76,
+            77,
+            78,
+            79
+          ],
+          "units": " "
+        }
+      ],
+      "size": [
+        80
+      ],
+      "name": "SA_ChanC",
+      "description": "Nominal Parker Spiral angle ChanC",
+      "units": "degree",
+      "type": "double",
+      "fill": "-1.0E31"
+    },
+    {
+      "size": [
+        80,
+        3
+      ],
+      "name": "RTN_ChanC",
+      "description": "RTN flow direction ChanC",
+      "units": " ",
+      "type": "double",
+      "fill": "-1.0E31"
+    },
+    {
+      "size": [
+        80,
+        3
+      ],
+      "name": "HCI_ChanC",
+      "description": "HCI flow direction ChanC",
+      "units": " ",
+      "type": "double",
+      "fill": "-1.0E31"
+    },
+    {
+      "name": "HCI_R_ChanC",
+      "description": "Heliocentric distance ChanC",
+      "units": "AU",
+      "type": "double",
+      "fill": "-1.0E31"
+    },
+    {
+      "name": "HCI_Lat_ChanC",
+      "description": "HCI latitude ChanC",
+      "units": "degrees",
+      "type": "double",
+      "fill": "-1.0E31"
+    },
+    {
+      "name": "HCI_Lon_ChanC",
+      "description": "HCI longitude ChanC",
+      "units": "degrees",
+      "type": "double",
+      "fill": "-1.0E31"
+    },
+    {
+      "name": "HGC_R_ChanC",
+      "description": "Heliocentric distance ChanC",
+      "units": "AU",
+      "type": "double",
+      "fill": "-1.0E31"
+    },
+    {
+      "name": "HGC_Lat_ChanC",
+      "description": "HGC latitude ChanC",
+      "units": "degrees",
+      "type": "double",
+      "fill": "-1.0E31"
+    },
+    {
+      "name": "HGC_Lon_ChanC",
+      "description": "HGC longitude ChanC",
+      "units": "degrees",
+      "type": "double",
+      "fill": "-1.0E31"
+    },
+    {
+      "size": [
+        80,
+        48
+      ],
+      "name": "He3_Counts_ChanC",
+      "description": "He3 counts channel C (Ions1)",
+      "units": "counts",
+      "type": "double",
+      "fill": "-9223372036854775808"
+    },
+    {
+      "size": [
+        80,
+        48
+      ],
+      "name": "He3_CountRate_ChanC",
+      "description": "He3 count rate channel C (Ions1)",
+      "units": "counts/sec",
+      "type": "double",
+      "fill": "-1.0E31"
+    },
+    {
+      "size": [
+        80,
+        48
+      ],
+      "name": "He4_Counts_ChanC",
+      "description": "He4 counts channel C (Ions1)",
+      "units": "counts",
+      "type": "double",
+      "fill": "-9223372036854775808"
+    },
+    {
+      "size": [
+        80,
+        48
+      ],
+      "name": "He4_CountRate_ChanC",
+      "description": "He4 count rate channel C (Ions1)",
+      "units": "counts/sec",
+      "type": "double",
+      "fill": "-1.0E31"
+    },
+    {
+      "size": [
+        80,
+        48
+      ],
+      "name": "He4_Flux_ChanC",
+      "description": "He4 flux channel C (Ions1)",
+      "units": "cm!E-2!Nsr!E-1!Nsec!E-1!NkeV!E-1!N",
+      "type": "double",
+      "fill": "-1.0E31"
+    },
+    {
+      "size": [
+        80,
+        48
+      ],
+      "name": "O_Counts_ChanC",
+      "description": "O counts channel C (Ions1)",
+      "units": "counts",
+      "type": "double",
+      "fill": "-9223372036854775808"
+    },
+    {
+      "size": [
+        80,
+        48
+      ],
+      "name": "O_CountRate_ChanC",
+      "description": "O count rate channel C (Ions1)",
+      "units": "counts/sec",
+      "type": "double",
+      "fill": "-1.0E31"
+    },
+    {
+      "size": [
+        80,
+        48
+      ],
+      "name": "O_Flux_ChanC",
+      "description": "O flux channel C (Ions1)",
+      "units": "cm!E-2!Nsr!E-1!Nsec!E-1!NkeV!E-1!N",
+      "type": "double",
+      "fill": "-1.0E31"
+    },
+    {
+      "size": [
+        80,
+        48
+      ],
+      "name": "Fe_Counts_ChanC",
+      "description": "Fe counts channel C (Ions1)",
+      "units": "counts",
+      "type": "double",
+      "fill": "-9223372036854775808"
+    },
+    {
+      "size": [
+        80,
+        48
+      ],
+      "name": "Fe_CountRate_ChanC",
+      "description": "Fe count rate channel C (Ions1)",
+      "units": "counts/sec",
+      "type": "double",
+      "fill": "-1.0E31"
+    },
+    {
+      "size": [
+        80,
+        48
+      ],
+      "name": "Fe_Flux_ChanC",
+      "description": "Fe flux channel C (Ions1)",
+      "units": "cm!E-2!Nsr!E-1!Nsec!E-1!NkeV!E-1!N",
+      "type": "double",
+      "fill": "-1.0E31"
+    }
+  ],
+  "startDate": "2018-09-28T00:10:54Z",
+  "stopDate": "2025-08-06T03:42:18Z",
+  "status": {
+    "code": 1200,
+    "message": "OK"
+  }
+}

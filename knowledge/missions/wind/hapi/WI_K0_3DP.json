@@ -1,0 +1,145 @@
+{
+  "HAPI": "2.0",
+  "resourceURL": "https://cdaweb.gsfc.nasa.gov/misc/NotesW.html#WI_K0_3DP",
+  "contact": "R. Lin/S. Bale @ UC Berkeley",
+  "parameters": [
+    {
+      "name": "Time",
+      "length": 24,
+      "units": "UTC",
+      "type": "isotime",
+      "fill": null
+    },
+    {
+      "size": [
+        3
+      ],
+      "name": "sc_position",
+      "description": "Wind s/c position in GSE coords, 3 comp",
+      "units": "km",
+      "type": "double",
+      "fill": "-1.0E31"
+    },
+    {
+      "size": [
+        3
+      ],
+      "name": "sc_velocity",
+      "description": "Wind s/c velocity in GSE coord., 3 comp.",
+      "units": "km/s",
+      "type": "double",
+      "fill": "-1.0E31"
+    },
+    {
+      "bins": [
+        {
+          "name": "e_flux_energy",
+          "centers": [
+            0.25,
+            1.1,
+            5.0,
+            20.0,
+            34.0,
+            90.0,
+            176.0
+          ],
+          "units": "keV"
+        }
+      ],
+      "size": [
+        7
+      ],
+      "name": "elect_flux",
+      "description": "Electron Flux at 7 energies (0.1-225 keV)",
+      "units": "pfu",
+      "type": "double",
+      "fill": "-1.0E31"
+    },
+    {
+      "name": "elect_density",
+      "description": "electron density, scalar",
+      "units": "#/cm^3",
+      "type": "double",
+      "fill": "-1.0E31"
+    },
+    {
+      "size": [
+        3
+      ],
+      "name": "elect_vel",
+      "description": "electron velocity in GSE coord, 3 comp.",
+      "units": "km/s",
+      "type": "double",
+      "fill": "-1.0E31"
+    },
+    {
+      "name": "elect_temp",
+      "description": "electron temperature, scalar",
+      "units": "eV",
+      "type": "double",
+      "fill": "-1.0E31"
+    },
+    {
+      "name": "elect_qdotb",
+      "description": "electron heat flux along magnetic field direction",
+      "units": "eV/cm^2-s",
+      "type": "double",
+      "fill": "-1.0E31"
+    },
+    {
+      "bins": [
+        {
+          "name": "ion_flux_energy",
+          "centers": [
+            0.14,
+            0.7,
+            4.0,
+            19.0,
+            39.0,
+            92.0,
+            257.0
+          ],
+          "units": "keV"
+        }
+      ],
+      "size": [
+        7
+      ],
+      "name": "ion_flux",
+      "description": "Ion flux at 7 energies (.07-400 keV)",
+      "units": "pfu",
+      "type": "double",
+      "fill": "-1.0E31"
+    },
+    {
+      "name": "ion_density",
+      "description": "ion density, scalar",
+      "units": "#/cm^3",
+      "type": "double",
+      "fill": "-1.0E31"
+    },
+    {
+      "size": [
+        3
+      ],
+      "name": "ion_vel",
+      "description": "ion velocity in GSE coord., 3 comp.",
+      "units": "km/s",
+      "type": "double",
+      "fill": "-1.0E31"
+    },
+    {
+      "name": "ion_temp",
+      "description": "ion temperature, scalar",
+      "units": "eV",
+      "type": "double",
+      "fill": "-1.0E31"
+    }
+  ],
+  "startDate": "2019-01-01T00:00:39Z",
+  "stopDate": "2026-02-04T23:58:36Z",
+  "status": {
+    "code": 1200,
+    "message": "OK"
+  }
+}

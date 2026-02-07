@@ -1,0 +1,548 @@
+{
+  "HAPI": "2.0",
+  "resourceURL": "https://cdaweb.gsfc.nasa.gov/misc/NotesW.html#WI_L2-30MIN_SMS-STICS-AFM-SOLARWIND",
+  "contact": "S. T. Lepri @ U of Michigan",
+  "parameters": [
+    {
+      "name": "Time",
+      "length": 24,
+      "units": "UTC",
+      "type": "isotime",
+      "fill": null
+    },
+    {
+      "bins": [
+        {
+          "name": "SECTOR_index",
+          "centers": [
+            1,
+            2,
+            3,
+            4,
+            5,
+            6,
+            7,
+            8,
+            9,
+            10,
+            11,
+            12,
+            13,
+            14,
+            15,
+            16
+          ],
+          "units": "sector index"
+        },
+        {
+          "name": "TELESCOPE_index",
+          "centers": [
+            1,
+            2,
+            3
+          ],
+          "units": " "
+        }
+      ],
+      "size": [
+        16,
+        3
+      ],
+      "name": "AFM_tc_hplus",
+      "description": "Angular flux map gives the flux of ions flowing in a given direction in triple coincidence H+",
+      "units": "(cm^2 sr s)^-1",
+      "type": "double",
+      "fill": "-1.0E31"
+    },
+    {
+      "bins": [
+        {
+          "name": "SECTOR_index",
+          "centers": [
+            1,
+            2,
+            3,
+            4,
+            5,
+            6,
+            7,
+            8,
+            9,
+            10,
+            11,
+            12,
+            13,
+            14,
+            15,
+            16
+          ],
+          "units": "sector index"
+        },
+        {
+          "name": "TELESCOPE_index",
+          "centers": [
+            1,
+            2,
+            3
+          ],
+          "units": " "
+        }
+      ],
+      "size": [
+        16,
+        3
+      ],
+      "name": "AFM_tc_heplus",
+      "description": "Angular flux map gives the flux of ions flowing in a given direction in triple coincidence He+",
+      "units": "(cm^2 sr s)^-1",
+      "type": "double",
+      "fill": "-1.0E31"
+    },
+    {
+      "bins": [
+        {
+          "name": "SECTOR_index",
+          "centers": [
+            1,
+            2,
+            3,
+            4,
+            5,
+            6,
+            7,
+            8,
+            9,
+            10,
+            11,
+            12,
+            13,
+            14,
+            15,
+            16
+          ],
+          "units": "sector index"
+        },
+        {
+          "name": "TELESCOPE_index",
+          "centers": [
+            1,
+            2,
+            3
+          ],
+          "units": " "
+        }
+      ],
+      "size": [
+        16,
+        3
+      ],
+      "name": "AFM_tc_he2plus",
+      "description": "Angular flux map gives the flux of ions flowing in a given direction in triple coincidence He2+",
+      "units": "(cm^2 sr s)^-1",
+      "type": "double",
+      "fill": "-1.0E31"
+    },
+    {
+      "bins": [
+        {
+          "name": "SECTOR_index",
+          "centers": [
+            1,
+            2,
+            3,
+            4,
+            5,
+            6,
+            7,
+            8,
+            9,
+            10,
+            11,
+            12,
+            13,
+            14,
+            15,
+            16
+          ],
+          "units": "sector index"
+        },
+        {
+          "name": "TELESCOPE_index",
+          "centers": [
+            1,
+            2,
+            3
+          ],
+          "units": " "
+        }
+      ],
+      "size": [
+        16,
+        3
+      ],
+      "name": "AFM_tc_oplus",
+      "description": "Angular flux map gives the flux of ions flowing in a given direction in triple coincidence O+",
+      "units": "(cm^2 sr s)^-1",
+      "type": "double",
+      "fill": "-1.0E31"
+    },
+    {
+      "bins": [
+        {
+          "name": "SECTOR_index",
+          "centers": [
+            1,
+            2,
+            3,
+            4,
+            5,
+            6,
+            7,
+            8,
+            9,
+            10,
+            11,
+            12,
+            13,
+            14,
+            15,
+            16
+          ],
+          "units": "sector index"
+        },
+        {
+          "name": "TELESCOPE_index",
+          "centers": [
+            1,
+            2,
+            3
+          ],
+          "units": " "
+        }
+      ],
+      "size": [
+        16,
+        3
+      ],
+      "name": "AFM_tc_o6plus",
+      "description": "Angular flux map gives the flux of ions flowing in a given direction in triple coincidence O6+",
+      "units": "(cm^2 sr s)^-1",
+      "type": "double",
+      "fill": "-1.0E31"
+    },
+    {
+      "bins": [
+        {
+          "name": "SECTOR_index",
+          "centers": [
+            1,
+            2,
+            3,
+            4,
+            5,
+            6,
+            7,
+            8,
+            9,
+            10,
+            11,
+            12,
+            13,
+            14,
+            15,
+            16
+          ],
+          "units": "sector index"
+        },
+        {
+          "name": "TELESCOPE_index",
+          "centers": [
+            1,
+            2,
+            3
+          ],
+          "units": " "
+        }
+      ],
+      "size": [
+        16,
+        3
+      ],
+      "name": "AFM_tc_c5plus",
+      "description": "Angular flux map gives the flux of ions flowing in a given direction in triple coincidence C5+",
+      "units": "(cm^2 sr s)^-1",
+      "type": "double",
+      "fill": "-1.0E31"
+    },
+    {
+      "bins": [
+        {
+          "name": "SECTOR_index",
+          "centers": [
+            1,
+            2,
+            3,
+            4,
+            5,
+            6,
+            7,
+            8,
+            9,
+            10,
+            11,
+            12,
+            13,
+            14,
+            15,
+            16
+          ],
+          "units": "sector index"
+        },
+        {
+          "name": "TELESCOPE_index",
+          "centers": [
+            1,
+            2,
+            3
+          ],
+          "units": " "
+        }
+      ],
+      "size": [
+        16,
+        3
+      ],
+      "name": "AFM_tc_fe10plus",
+      "description": "Angular flux map gives the flux of ions flowing in a given direction in triple coincidence Fe10+",
+      "units": "(cm^2 sr s)^-1",
+      "type": "double",
+      "fill": "-1.0E31"
+    },
+    {
+      "bins": [
+        {
+          "name": "SECTOR_index",
+          "centers": [
+            1,
+            2,
+            3,
+            4,
+            5,
+            6,
+            7,
+            8,
+            9,
+            10,
+            11,
+            12,
+            13,
+            14,
+            15,
+            16
+          ],
+          "units": "sector index"
+        },
+        {
+          "name": "TELESCOPE_index",
+          "centers": [
+            1,
+            2,
+            3
+          ],
+          "units": " "
+        }
+      ],
+      "size": [
+        16,
+        3
+      ],
+      "name": "AFM_dc_hplus",
+      "description": "Angular flux map gives the flux of ions flowing in a given direction in double coincidence H+",
+      "units": "(cm^2 sr s)^-1",
+      "type": "double",
+      "fill": "-1.0E31"
+    },
+    {
+      "bins": [
+        {
+          "name": "SECTOR_index",
+          "centers": [
+            1,
+            2,
+            3,
+            4,
+            5,
+            6,
+            7,
+            8,
+            9,
+            10,
+            11,
+            12,
+            13,
+            14,
+            15,
+            16
+          ],
+          "units": "sector index"
+        },
+        {
+          "name": "TELESCOPE_index",
+          "centers": [
+            1,
+            2,
+            3
+          ],
+          "units": " "
+        }
+      ],
+      "size": [
+        16,
+        3
+      ],
+      "name": "AFM_dc_heplus",
+      "description": "Angular flux map gives the flux of ions flowing in a given direction in double coincidence He+",
+      "units": "(cm^2 sr s)^-1",
+      "type": "double",
+      "fill": "-1.0E31"
+    },
+    {
+      "bins": [
+        {
+          "name": "SECTOR_index",
+          "centers": [
+            1,
+            2,
+            3,
+            4,
+            5,
+            6,
+            7,
+            8,
+            9,
+            10,
+            11,
+            12,
+            13,
+            14,
+            15,
+            16
+          ],
+          "units": "sector index"
+        },
+        {
+          "name": "TELESCOPE_index",
+          "centers": [
+            1,
+            2,
+            3
+          ],
+          "units": " "
+        }
+      ],
+      "size": [
+        16,
+        3
+      ],
+      "name": "AFM_dc_he2plus",
+      "description": "Angular flux map gives the flux of ions flowing in a given direction in double coincidence He2+",
+      "units": "(cm^2 sr s)^-1",
+      "type": "double",
+      "fill": "-1.0E31"
+    },
+    {
+      "bins": [
+        {
+          "name": "SECTOR_index",
+          "centers": [
+            1,
+            2,
+            3,
+            4,
+            5,
+            6,
+            7,
+            8,
+            9,
+            10,
+            11,
+            12,
+            13,
+            14,
+            15,
+            16
+          ],
+          "units": "sector index"
+        },
+        {
+          "name": "TELESCOPE_index",
+          "centers": [
+            1,
+            2,
+            3
+          ],
+          "units": " "
+        }
+      ],
+      "size": [
+        16,
+        3
+      ],
+      "name": "AFM_dc_oplus",
+      "description": "Angular flux map gives the flux of ions flowing in a given direction in double coincidence O+",
+      "units": "(cm^2 sr s)^-1",
+      "type": "double",
+      "fill": "-1.0E31"
+    },
+    {
+      "bins": [
+        {
+          "name": "SECTOR_index",
+          "centers": [
+            1,
+            2,
+            3,
+            4,
+            5,
+            6,
+            7,
+            8,
+            9,
+            10,
+            11,
+            12,
+            13,
+            14,
+            15,
+            16
+          ],
+          "units": "sector index"
+        },
+        {
+          "name": "TELESCOPE_index",
+          "centers": [
+            1,
+            2,
+            3
+          ],
+          "units": " "
+        }
+      ],
+      "size": [
+        16,
+        3
+      ],
+      "name": "AFM_dc_o6plus",
+      "description": "Angular flux map gives the flux of ions flowing in a given direction in double coincidence O6+",
+      "units": "(cm^2 sr s)^-1",
+      "type": "double",
+      "fill": "-1.0E31"
+    }
+  ],
+  "startDate": "1995-01-01T00:07:11Z",
+  "stopDate": "2021-06-30T23:36:05Z",
+  "status": {
+    "code": 1200,
+    "message": "OK"
+  }
+}

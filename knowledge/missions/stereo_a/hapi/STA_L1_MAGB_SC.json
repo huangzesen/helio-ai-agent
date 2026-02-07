@@ -1,0 +1,30 @@
+{
+  "HAPI": "2.0",
+  "resourceURL": "https://cdaweb.gsfc.nasa.gov/misc/NotesS.html#STA_L1_MAGB_SC",
+  "contact": "Christina Lee @ UCB/SSL",
+  "parameters": [
+    {
+      "name": "Time",
+      "length": 24,
+      "units": "UTC",
+      "type": "isotime",
+      "fill": null
+    },
+    {
+      "size": [
+        4
+      ],
+      "name": "BFIELD",
+      "description": "Magnetic field vector in Spacecraft coordinates from the IMPACT/MAG instrument.",
+      "units": "nT",
+      "type": "double",
+      "fill": "-1.0E31"
+    }
+  ],
+  "startDate": "2006-11-07T02:01:21Z",
+  "stopDate": "2025-10-31T21:38:52Z",
+  "status": {
+    "code": 1200,
+    "message": "OK"
+  }
+}

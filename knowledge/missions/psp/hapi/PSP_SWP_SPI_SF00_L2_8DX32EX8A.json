@@ -1,0 +1,84 @@
+{
+  "HAPI": "2.0",
+  "resourceURL": "https://cdaweb.gsfc.nasa.gov/misc/NotesP.html#PSP_SWP_SPI_SF00_L2_8DX32EX8A",
+  "contact": "Michael L. Stevens @ Center for Astrophysics, Harvard and Smithsonian",
+  "parameters": [
+    {
+      "name": "Time",
+      "length": 30,
+      "units": "UTC",
+      "type": "isotime",
+      "fill": null
+    },
+    {
+      "name": "CNTS",
+      "description": "Counts",
+      "units": " ",
+      "type": "double",
+      "fill": "NaN"
+    },
+    {
+      "size": [
+        2048
+      ],
+      "name": "DATA",
+      "description": "Data",
+      "units": " ",
+      "type": "double",
+      "fill": "NaN"
+    },
+    {
+      "name": "QUALITY_FLAG",
+      "description": "Quality Flag",
+      "units": " ",
+      "type": "integer",
+      "fill": "65535"
+    },
+    {
+      "size": [
+        2048
+      ],
+      "name": "EFLUX",
+      "description": "Differential Energy Flux vs Energy/angle bin",
+      "units": "eV/cm2-s-ster-eV",
+      "type": "double",
+      "fill": "NaN"
+    },
+    {
+      "size": [
+        2048
+      ],
+      "name": "ENERGY",
+      "description": "Energy [NO PLOT]",
+      "units": "eV",
+      "type": "double",
+      "fill": "NaN"
+    },
+    {
+      "size": [
+        2048
+      ],
+      "name": "THETA",
+      "description": "Elevation Angle in instrument coordinates [NO PLOT]",
+      "units": "Degrees",
+      "type": "double",
+      "fill": "NaN"
+    },
+    {
+      "size": [
+        2048
+      ],
+      "name": "PHI",
+      "description": "Azimuth Angle in instrument coordinates [NO PLOT]",
+      "units": "Degrees",
+      "type": "double",
+      "fill": "NaN"
+    }
+  ],
+  "startDate": "2018-10-02T04:04:01Z",
+  "stopDate": "2025-07-31T23:59:49Z",
+  "status": {
+    "code": 1200,
+    "message": "OK"
+  }
+}

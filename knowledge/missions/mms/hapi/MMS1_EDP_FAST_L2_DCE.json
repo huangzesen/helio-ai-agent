@@ -1,0 +1,67 @@
+{
+  "HAPI": "2.0",
+  "resourceURL": "https://cdaweb.gsfc.nasa.gov/misc/NotesM.html#MMS1_EDP_FAST_L2_DCE",
+  "contact": "J.Burch, R.Ergun, P.Lindqvist. @ SWRI, LASP, KTH",
+  "parameters": [
+    {
+      "name": "Time",
+      "length": 30,
+      "units": "UTC",
+      "type": "isotime",
+      "fill": null
+    },
+    {
+      "size": [
+        3
+      ],
+      "name": "mms1_edp_dce_gse_fast_l2",
+      "description": "L2 DC E Field (GSE coords) calibrated for SDP and ADP, all flag values included",
+      "units": "mV/m",
+      "type": "double",
+      "fill": "-1.0E31"
+    },
+    {
+      "size": [
+        3
+      ],
+      "name": "mms1_edp_dce_dsl_fast_l2",
+      "description": "L2 DC E Field (DSL coords) calibrated for SDP and ADP, all flag values included",
+      "units": "mV/m",
+      "type": "double",
+      "fill": "-1.0E31"
+    },
+    {
+      "size": [
+        3
+      ],
+      "name": "mms1_edp_dce_par_epar_fast_l2",
+      "description": "L2 DC E Parallel Field with error calibrated for SDP and ADP",
+      "units": "mV/m",
+      "type": "double",
+      "fill": "-1.0E31"
+    },
+    {
+      "size": [
+        3
+      ],
+      "name": "mms1_edp_dce_err_fast_l2",
+      "description": "Approximate DC E field error derived from SDP (quality and bitmask) and ADP (residue)",
+      "units": "mV/m",
+      "type": "double",
+      "fill": "-1.0E31"
+    },
+    {
+      "name": "mms1_edp_quality_fast_l2",
+      "description": "Quality indicator (3 good), (2 ok data, use with some caution), (1 bad data, use with caution), (0 Really bad data or no data at all)",
+      "units": "(3=good, 2=OK)",
+      "type": "integer",
+      "fill": "255"
+    }
+  ],
+  "startDate": "2015-09-01T09:51:44Z",
+  "stopDate": "2025-12-20T18:14:21Z",
+  "status": {
+    "code": 1200,
+    "message": "OK"
+  }
+}

@@ -1,0 +1,30 @@
+{
+  "HAPI": "2.0",
+  "resourceURL": "https://cdaweb.gsfc.nasa.gov/misc/NotesP.html#PSP_ISOIS_L2-SUMMARY",
+  "contact": "David McComas @ Princeton University",
+  "parameters": [
+    {
+      "name": "Time",
+      "length": 30,
+      "units": "UTC",
+      "type": "isotime",
+      "fill": null
+    },
+    {
+      "size": [
+        48
+      ],
+      "name": "H_CountRate_ChanP_SP",
+      "description": "H count rate channel P (HiResProtons)",
+      "units": "counts/sec",
+      "type": "double",
+      "fill": "-1.0E31"
+    }
+  ],
+  "startDate": "2018-09-28T00:29:56Z",
+  "stopDate": "2025-08-06T02:30:15Z",
+  "status": {
+    "code": 1200,
+    "message": "OK"
+  }
+}

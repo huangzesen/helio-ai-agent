@@ -1,0 +1,48 @@
+{
+  "HAPI": "2.0",
+  "resourceURL": "https://cdaweb.gsfc.nasa.gov/misc/NotesW.html#WI_K0_SPHA",
+  "contact": " @ ",
+  "parameters": [
+    {
+      "name": "Time",
+      "length": 24,
+      "units": "UTC",
+      "type": "isotime",
+      "fill": null
+    },
+    {
+      "name": "SPIN_PHASE",
+      "description": "Spin phase angle                        ",
+      "units": "rad",
+      "type": "double",
+      "fill": "-1.0E31"
+    },
+    {
+      "name": "AVG_SPIN_RATE",
+      "description": "Average spin rate                       ",
+      "units": "rad/sec",
+      "type": "double",
+      "fill": "-1.0E31"
+    },
+    {
+      "name": "STNDEV_SPIN_RATE",
+      "description": "Std dev of spin rate                    ",
+      "units": "rad/sec",
+      "type": "double",
+      "fill": "-1.0E31"
+    },
+    {
+      "name": "FAULT",
+      "description": "Fault level status indicator            ",
+      "units": " ",
+      "type": "integer",
+      "fill": "-2147483648"
+    }
+  ],
+  "startDate": "1994-11-01T09:06:02Z",
+  "stopDate": "2026-02-04T23:58:36Z",
+  "status": {
+    "code": 1200,
+    "message": "OK"
+  }
+}

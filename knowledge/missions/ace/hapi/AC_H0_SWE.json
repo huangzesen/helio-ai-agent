@@ -1,0 +1,98 @@
+{
+  "HAPI": "2.0",
+  "resourceURL": "https://cdaweb.gsfc.nasa.gov/misc/NotesA.html#AC_H0_SWE",
+  "contact": "D. J. McComas @ SWRI",
+  "parameters": [
+    {
+      "name": "Time",
+      "length": 24,
+      "units": "UTC",
+      "type": "isotime",
+      "fill": null
+    },
+    {
+      "name": "Np",
+      "description": "Solar Wind Proton Number Density, scalar",
+      "units": "#/cc",
+      "type": "double",
+      "fill": "-1.0E31"
+    },
+    {
+      "name": "Vp",
+      "description": "Solar Wind Bulk Speed",
+      "units": "km/s",
+      "type": "double",
+      "fill": "-1.0E31"
+    },
+    {
+      "name": "Tpr",
+      "description": "radial component of the proton temperature",
+      "units": "Kelvin",
+      "type": "double",
+      "fill": "-1.0E31"
+    },
+    {
+      "name": "alpha_ratio",
+      "description": "alpha to proton density ratio",
+      "units": "ratio",
+      "type": "double",
+      "fill": "-1.0E31"
+    },
+    {
+      "size": [
+        3
+      ],
+      "name": "V_GSE",
+      "description": "Solar Wind Velocity in GSE coord., 3 components",
+      "units": "km/s",
+      "type": "double",
+      "fill": "-1.0E31"
+    },
+    {
+      "size": [
+        3
+      ],
+      "name": "V_RTN",
+      "description": "Solar Wind Velocity in RTN coord., 3 components",
+      "units": "km/s",
+      "type": "double",
+      "fill": "-1.0E31"
+    },
+    {
+      "size": [
+        3
+      ],
+      "name": "V_GSM",
+      "description": "Solar Wind Velocity in GSM coord., 3 comp.",
+      "units": "km/s",
+      "type": "double",
+      "fill": "-1.0E31"
+    },
+    {
+      "size": [
+        3
+      ],
+      "name": "SC_pos_GSE",
+      "description": "ACE s/c position, 3 comp. in GSE coord.",
+      "units": "km",
+      "type": "double",
+      "fill": "-1.0E31"
+    },
+    {
+      "size": [
+        3
+      ],
+      "name": "SC_pos_GSM",
+      "description": "ACE s/c position, 3 comp. in GSM coord.",
+      "units": "km",
+      "type": "double",
+      "fill": "-1.0E31"
+    }
+  ],
+  "startDate": "1998-02-04T00:00:31Z",
+  "stopDate": "2024-07-09T23:59:13Z",
+  "status": {
+    "code": 1200,
+    "message": "OK"
+  }
+}

@@ -1,0 +1,116 @@
+{
+  "HAPI": "2.0",
+  "resourceURL": "https://cdaweb.gsfc.nasa.gov/misc/NotesS.html#SOLO_LL02_SWA-HIS-RAT",
+  "contact": "C. J. Owen @ MSSL-UCL, University College London, UK",
+  "parameters": [
+    {
+      "name": "Time",
+      "length": 30,
+      "units": "UTC",
+      "type": "isotime",
+      "fill": null
+    },
+    {
+      "size": [
+        64
+      ],
+      "name": "SWA_HIS_SPECTRUM1",
+      "description": "Spectrum 1 data from HIS",
+      "units": " ",
+      "type": "double",
+      "fill": "-1.0E31"
+    },
+    {
+      "size": [
+        64
+      ],
+      "name": "SWA_HIS_SPECTRUM2",
+      "description": "Spectrum 2 data from HIS",
+      "units": " ",
+      "type": "double",
+      "fill": "-1.0E31"
+    },
+    {
+      "name": "SWA_HIS_RATIO1",
+      "description": "The ratio 1 between 2 species from HIS",
+      "units": null,
+      "type": "double",
+      "fill": "-1.0E31"
+    },
+    {
+      "name": "SWA_HIS_RATIO2",
+      "description": "The ratio 2 between 2 species from HIS",
+      "units": null,
+      "type": "double",
+      "fill": "-1.0E31"
+    },
+    {
+      "size": [
+        64
+      ],
+      "name": "SWA_HIS_DIFF_FLUX1",
+      "description": "Differential flux calculated from spectrum 1 spectra",
+      "units": "(cm^2 s sr keV)^-1",
+      "type": "double",
+      "fill": "-1.0E31"
+    },
+    {
+      "name": "SWA_HIS_N1",
+      "description": "Density calculated from spectrum 1 spectra",
+      "units": "cm^-3",
+      "type": "double",
+      "fill": "-1.0E31"
+    },
+    {
+      "name": "SWA_HIS_V1",
+      "description": "Velocity calculated from spectrum 1 spectra",
+      "units": "km s^-1",
+      "type": "double",
+      "fill": "-1.0E31"
+    },
+    {
+      "name": "SWA_HIS_T1",
+      "description": "Temperature calculated from spectrum 1 spectra",
+      "units": "K",
+      "type": "double",
+      "fill": "-1.0E31"
+    },
+    {
+      "size": [
+        64
+      ],
+      "name": "SWA_HIS_DIFF_FLUX2",
+      "description": "Differential flux calculated from spectrum 2 spectra",
+      "units": "(cm^2 s sr keV)^-1",
+      "type": "double",
+      "fill": "-1.0E31"
+    },
+    {
+      "name": "SWA_HIS_N2",
+      "description": "Density calculated from spectrum 2 spectra",
+      "units": "cm^-3",
+      "type": "double",
+      "fill": "-1.0E31"
+    },
+    {
+      "name": "SWA_HIS_V2",
+      "description": "Velocity calculated from spectrum 2 spectra",
+      "units": "km s^-1",
+      "type": "double",
+      "fill": "-1.0E31"
+    },
+    {
+      "name": "SWA_HIS_T2",
+      "description": "Temperature calculated from spectrum 2 spectra",
+      "units": "K",
+      "type": "double",
+      "fill": "-1.0E31"
+    }
+  ],
+  "startDate": "2021-04-01T02:05:22Z",
+  "stopDate": "2023-04-27T14:18:56Z",
+  "status": {
+    "code": 1200,
+    "message": "OK"
+  }
+}

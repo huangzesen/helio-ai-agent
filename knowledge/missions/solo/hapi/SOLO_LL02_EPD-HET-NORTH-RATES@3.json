@@ -1,0 +1,66 @@
+{
+  "HAPI": "2.0",
+  "resourceURL": "https://cdaweb.gsfc.nasa.gov/misc/NotesS.html#SOLO_LL02_EPD-HET-NORTH-RATES",
+  "contact": "J. Rodriguez-Pacheco @ Space Research Group, Universidad de Alcala",
+  "parameters": [
+    {
+      "name": "Time",
+      "length": 30,
+      "units": "UTC",
+      "type": "isotime",
+      "fill": null
+    },
+    {
+      "bins": [
+        {
+          "name": "Fe_Bins_Low_Energy",
+          "centers": [
+            24.4,
+            27.78,
+            82.99,
+            155.8,
+            265.2
+          ],
+          "units": "MeV/n"
+        }
+      ],
+      "size": [
+        5
+      ],
+      "name": "Fe_Flux",
+      "description": "Iron number flux as a function of energy",
+      "units": "particles / (s cm^2 sr MeV/n)",
+      "type": "double",
+      "fill": "-1.0E31"
+    },
+    {
+      "bins": [
+        {
+          "name": "Fe_Bins_Low_Energy",
+          "centers": [
+            24.4,
+            27.78,
+            82.99,
+            155.8,
+            265.2
+          ],
+          "units": "MeV/n"
+        }
+      ],
+      "size": [
+        5
+      ],
+      "name": "Fe_Flux_Sigma",
+      "description": "Iron number flux uncertainty",
+      "units": "particles / (s cm^2 sr MeV/n)",
+      "type": "double",
+      "fill": "-1.0E31"
+    }
+  ],
+  "startDate": "2020-06-03T14:22:45Z",
+  "stopDate": "2026-02-05T02:43:32Z",
+  "status": {
+    "code": 1200,
+    "message": "OK"
+  }
+}

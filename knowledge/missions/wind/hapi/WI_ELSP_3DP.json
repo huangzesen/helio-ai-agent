@@ -1,0 +1,67 @@
+{
+  "HAPI": "2.0",
+  "resourceURL": "https://cdaweb.gsfc.nasa.gov/misc/NotesW.html#WI_ELSP_3DP",
+  "contact": "R. Lin/S. Bale @ UC Berkeley",
+  "parameters": [
+    {
+      "name": "Time",
+      "length": 24,
+      "units": "UTC",
+      "type": "isotime",
+      "fill": null
+    },
+    {
+      "size": [
+        15
+      ],
+      "name": "FLUX",
+      "description": "Electron differential number flux as function of time-varying energy  in range 5-1100 eV [as spectrogram]",
+      "units": "#/cm2-ster-sec-eV",
+      "type": "double",
+      "fill": "-1.0E31"
+    },
+    {
+      "size": [
+        15
+      ],
+      "name": "FLUX_STACKED",
+      "description": "---> As stacked plot",
+      "units": "#/cm2-ster-sec-eV",
+      "type": "double",
+      "fill": "-1.0E31"
+    },
+    {
+      "size": [
+        15
+      ],
+      "name": "FLUX_SIMPLE",
+      "description": "---> As simple time series",
+      "units": "#/cm2-ster-sec-eV",
+      "type": "double",
+      "fill": "-1.0E31"
+    },
+    {
+      "size": [
+        15
+      ],
+      "name": "ENERGY",
+      "description": "Time-varying electron energies in 15 channels (center of 40% wide energy band)",
+      "units": "eV",
+      "type": "double",
+      "fill": "-1.0E31"
+    },
+    {
+      "name": "TIME",
+      "description": "UNIX time; seconds since January 1, 1970",
+      "units": "sec since 1-1-70",
+      "type": "double",
+      "fill": "-1.0E31"
+    }
+  ],
+  "startDate": "1994-11-15T12:54:34Z",
+  "stopDate": "2026-01-05T23:54:39Z",
+  "status": {
+    "code": 1200,
+    "message": "OK"
+  }
+}

@@ -1,0 +1,125 @@
+{
+  "HAPI": "2.0",
+  "resourceURL": "https://cdaweb.gsfc.nasa.gov/misc/NotesS.html#SOLO_L2_EPD-HET-NORTH-RATES",
+  "contact": "J. Rodriguez-Pacheco @ Space Research Group, Universidad de Alcala",
+  "parameters": [
+    {
+      "name": "Time",
+      "length": 30,
+      "units": "UTC",
+      "type": "isotime",
+      "fill": null
+    },
+    {
+      "bins": [
+        {
+          "name": "C_Bins_Low_Energy",
+          "centers": [
+            12.54,
+            12.81,
+            13.3,
+            13.94,
+            14.81,
+            21.66,
+            30.48,
+            37.0,
+            44.64,
+            52.83,
+            62.5,
+            73.47,
+            86.76,
+            102.2,
+            121.5,
+            144.2,
+            173.2
+          ],
+          "units": "MeV/n"
+        }
+      ],
+      "size": [
+        17
+      ],
+      "name": "C_Flux",
+      "description": "Carbon flux",
+      "units": "particles / (s cm^2 sr MeV/n)",
+      "type": "double",
+      "fill": "-1.0E31"
+    },
+    {
+      "bins": [
+        {
+          "name": "N_Bins_Low_Energy",
+          "centers": [
+            13.52,
+            13.81,
+            14.42,
+            15.25,
+            16.08,
+            23.67,
+            33.86,
+            41.53,
+            49.91,
+            59.5,
+            69.72,
+            82.41,
+            97.63,
+            115.9,
+            137.7,
+            164.2,
+            197.6
+          ],
+          "units": "MeV/n"
+        }
+      ],
+      "size": [
+        17
+      ],
+      "name": "N_Flux",
+      "description": "Nitrogen flux",
+      "units": "particles / (s cm^2 sr MeV/n)",
+      "type": "double",
+      "fill": "-1.0E31"
+    },
+    {
+      "bins": [
+        {
+          "name": "O_Bins_Low_Energy",
+          "centers": [
+            14.51,
+            14.85,
+            15.45,
+            16.33,
+            17.18,
+            25.52,
+            36.8,
+            45.36,
+            54.49,
+            64.97,
+            77.17,
+            91.58,
+            108.8,
+            128.8,
+            152.7,
+            182.2,
+            216.6
+          ],
+          "units": "MeV/n"
+        }
+      ],
+      "size": [
+        17
+      ],
+      "name": "O_Flux",
+      "description": "Oxygen flux",
+      "units": "particles / (s cm^2 sr MeV/n)",
+      "type": "double",
+      "fill": "-1.0E31"
+    }
+  ],
+  "startDate": "2020-05-13T00:00:03Z",
+  "stopDate": "2025-10-31T23:59:57Z",
+  "status": {
+    "code": 1200,
+    "message": "OK"
+  }
+}

@@ -1,0 +1,69 @@
+{
+  "HAPI": "2.0",
+  "resourceURL": "https://cdaweb.gsfc.nasa.gov/misc/NotesS.html#SOLO_HELIO1HR_POSITION",
+  "contact": "Natalia Papitashvili @ NASA/GSFC/SPDF",
+  "parameters": [
+    {
+      "name": "Time",
+      "length": 24,
+      "units": "UTC",
+      "type": "isotime",
+      "fill": null
+    },
+    {
+      "name": "RAD_AU",
+      "description": "Distance from Sun to object",
+      "units": "AU",
+      "type": "double",
+      "fill": "-1.0E31"
+    },
+    {
+      "name": "SE_LAT",
+      "description": "Latitude in Solar Ecliptic Coordinate System (SE)",
+      "units": "deg",
+      "type": "double",
+      "fill": "-1.0E31"
+    },
+    {
+      "name": "SE_LON",
+      "description": "Longitude in Solar Ecliptic Coordinate System (SE)",
+      "units": "deg",
+      "type": "double",
+      "fill": "-1.0E31"
+    },
+    {
+      "name": "HG_LAT",
+      "description": "Latitude in heliographic Rotating Coordinate System (HG)",
+      "units": "deg",
+      "type": "double",
+      "fill": "-1.0E31"
+    },
+    {
+      "name": "HG_LON",
+      "description": "Longitude in Heliographic Rotating Coordinate System (HG)",
+      "units": "deg",
+      "type": "double",
+      "fill": "-1.0E31"
+    },
+    {
+      "name": "HGI_LAT",
+      "description": "Latitude in heliographic Inertial Coordinate System (HGI)",
+      "units": "deg",
+      "type": "double",
+      "fill": "-1.0E31"
+    },
+    {
+      "name": "HGI_LON",
+      "description": "Longitude in heliographic Inertial Coordinate System (HGI)",
+      "units": "deg",
+      "type": "double",
+      "fill": "-1.0E31"
+    }
+  ],
+  "startDate": "2020-02-11T00:00:00Z",
+  "stopDate": "2030-11-19T23:00:00Z",
+  "status": {
+    "code": 1200,
+    "message": "OK"
+  }
+}

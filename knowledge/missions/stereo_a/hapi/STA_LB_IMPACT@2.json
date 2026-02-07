@@ -1,0 +1,867 @@
+{
+  "HAPI": "2.0",
+  "resourceURL": "https://cdaweb.gsfc.nasa.gov/misc/NotesS.html#STA_LB_IMPACT",
+  "contact": "Christina Lee @ UCB/SSL",
+  "parameters": [
+    {
+      "name": "Time",
+      "length": 24,
+      "units": "UTC",
+      "type": "isotime",
+      "fill": null
+    },
+    {
+      "name": "HETLiveTime",
+      "description": "SEP/HET Livetime",
+      "units": "s",
+      "type": "double",
+      "fill": "-1.0E31"
+    },
+    {
+      "name": "LETLiveTime",
+      "description": "---> SEP/LET Livetime",
+      "units": "s",
+      "type": "double",
+      "fill": "-1.0E31"
+    },
+    {
+      "name": "LETTrigRate",
+      "description": "---> LET Number of Front-end Triggers",
+      "units": "cnts",
+      "type": "double",
+      "fill": "4.294967295E9"
+    },
+    {
+      "name": "LETHazRate",
+      "description": "---> LET Number of events with hazard flag",
+      "units": "cnts",
+      "type": "double",
+      "fill": "4.294967295E9"
+    },
+    {
+      "name": "LETAcceptRate",
+      "description": "---> LET Number of accepted events",
+      "units": "cnts",
+      "type": "double",
+      "fill": "4.294967295E9"
+    },
+    {
+      "name": "LETCodeOK",
+      "description": "---> LET Code OK. Internal code check, 1=good, 0=bad",
+      "units": null,
+      "type": "double",
+      "fill": "4.294967295E9"
+    },
+    {
+      "name": "LETHeaterDutyCycle",
+      "description": "---> LET Heater Duty Cycle",
+      "units": null,
+      "type": "double",
+      "fill": "4.294967295E9"
+    },
+    {
+      "name": "LETLeakConv",
+      "description": "---> LET Leakage Current Balance, 1=ok, 0=bad",
+      "units": null,
+      "type": "double",
+      "fill": "4.294967295E9"
+    },
+    {
+      "name": "LETDyThState",
+      "description": "---> LET Dynamic Thresholding State, 0=normal, 1,2,3=higher threshold setting",
+      "units": null,
+      "type": "double",
+      "fill": "4.294967295E9"
+    },
+    {
+      "name": "LETMinute",
+      "description": "---> LET Minute Counter - rolls over at 60",
+      "units": null,
+      "type": "double",
+      "fill": "4.294967295E9"
+    },
+    {
+      "name": "SEPTStatus",
+      "description": "---> SEPT Status Code",
+      "units": null,
+      "type": "double",
+      "fill": "4.294967295E9"
+    },
+    {
+      "name": "HETElectronFlux",
+      "description": "HET Electron Flux between 0.7 and 4 MeV",
+      "units": "1/cm^2-s-ster-MeV",
+      "type": "double",
+      "fill": "-1.0E31"
+    },
+    {
+      "bins": [
+        {
+          "name": "HET3EnergyBins",
+          "centers": [
+            0,
+            1,
+            2
+          ],
+          "units": "bin"
+        }
+      ],
+      "size": [
+        3
+      ],
+      "name": "HETProtonFlux",
+      "description": "---> HET Proton Flux measured in 3 energy channels",
+      "units": "1/cm^2-s-ster-MeV",
+      "type": "double",
+      "fill": "-1.0E31"
+    },
+    {
+      "bins": [
+        {
+          "name": "HET3EnergyBins",
+          "centers": [
+            0,
+            1,
+            2
+          ],
+          "units": "bin"
+        }
+      ],
+      "size": [
+        3
+      ],
+      "name": "HETHeFlux",
+      "description": "---> HET He Flux measured in 3 energy channels",
+      "units": "1/cm^2-s-ster-MeV/nuc",
+      "type": "double",
+      "fill": "-1.0E31"
+    },
+    {
+      "bins": [
+        {
+          "name": "HET2EnergyBins",
+          "centers": [
+            0,
+            1
+          ],
+          "units": "bin"
+        }
+      ],
+      "size": [
+        2
+      ],
+      "name": "HETCNOFlux",
+      "description": "---> HET CNO Flux in 2 energy bins",
+      "units": "1/cm^2-s-ster-MeV/nuc",
+      "type": "double",
+      "fill": "-1.0E31"
+    },
+    {
+      "name": "HETFeFlux",
+      "description": "---> HET Fe Flux between 52 and 74 MeV/nuc",
+      "units": "1/cm^2-s-ster-MeV/nuc",
+      "type": "double",
+      "fill": "-1.0E31"
+    },
+    {
+      "bins": [
+        {
+          "name": "SITEnergyBins",
+          "centers": [
+            0,
+            1,
+            2,
+            3
+          ],
+          "units": null
+        }
+      ],
+      "size": [
+        4
+      ],
+      "name": "SITHeFlux",
+      "description": "SIT He Flux in 4 energy bins",
+      "units": "1/cm^2-s-ster-MeV/nuc",
+      "type": "double",
+      "fill": "-1.0E31"
+    },
+    {
+      "bins": [
+        {
+          "name": "SITEnergyBins",
+          "centers": [
+            0,
+            1,
+            2,
+            3
+          ],
+          "units": null
+        }
+      ],
+      "size": [
+        4
+      ],
+      "name": "SITCNOFlux",
+      "description": "---> SIT CNO Flux in 4 energy bins",
+      "units": "1/cm^2-s-ster-MeV/nuc",
+      "type": "double",
+      "fill": "-1.0E31"
+    },
+    {
+      "bins": [
+        {
+          "name": "SITEnergyBins",
+          "centers": [
+            0,
+            1,
+            2,
+            3
+          ],
+          "units": null
+        }
+      ],
+      "size": [
+        4
+      ],
+      "name": "SITFeFlux",
+      "description": "---> SIT Fe Flux in 4 energy bins",
+      "units": "1/cm^2-s-ster-MeV/nuc",
+      "type": "double",
+      "fill": "-1.0E31"
+    },
+    {
+      "bins": [
+        {
+          "name": "LETProtonBins",
+          "centers": [
+            0,
+            1,
+            2,
+            3
+          ],
+          "units": null
+        }
+      ],
+      "size": [
+        4
+      ],
+      "name": "LETProtonFlux",
+      "description": "LET Proton Flux in 4 bins (middle 2 have same energy, but different angular coverage)",
+      "units": "1/cm^2-s-ster-MeV",
+      "type": "double",
+      "fill": "-1.0E31"
+    },
+    {
+      "bins": [
+        {
+          "name": "LET4HeBins",
+          "centers": [
+            0,
+            1,
+            2,
+            3,
+            4
+          ],
+          "units": null
+        }
+      ],
+      "size": [
+        5
+      ],
+      "name": "LET4HeFlux",
+      "description": "---> LET 4He Flux in 5 bins. Bins 1,2 and 3,4 have same energy coverage but different angular coverage",
+      "units": "1/cm^2-s-ster-MeV/nuc",
+      "type": "double",
+      "fill": "-1.0E31"
+    },
+    {
+      "bins": [
+        {
+          "name": "LET3HeBins",
+          "centers": [
+            0,
+            1
+          ],
+          "units": null
+        }
+      ],
+      "size": [
+        2
+      ],
+      "name": "LET3HeFlux",
+      "description": "---> LET 3He Flux in 2 energies (full 260 deg coverage)",
+      "units": "1/cm^2-s-ster-MeV/nuc",
+      "type": "double",
+      "fill": "-1.0E31"
+    },
+    {
+      "bins": [
+        {
+          "name": "LETCNOBins",
+          "centers": [
+            0,
+            1,
+            2
+          ],
+          "units": null
+        }
+      ],
+      "size": [
+        3
+      ],
+      "name": "LETCNOFlux",
+      "description": "---> LET CNO Flux in 3 energy bins",
+      "units": "1/cm^2-s-ster-MeV/nuc",
+      "type": "double",
+      "fill": "-1.0E31"
+    },
+    {
+      "bins": [
+        {
+          "name": "LETFeBins",
+          "centers": [
+            0,
+            1,
+            2,
+            3
+          ],
+          "units": null
+        }
+      ],
+      "size": [
+        4
+      ],
+      "name": "LETFeFlux",
+      "description": "---> LET Fe Flux in 4 energy bins",
+      "units": "1/cm^2-s-ster-MeV/nuc",
+      "type": "double",
+      "fill": "-1.0E31"
+    },
+    {
+      "bins": [
+        {
+          "name": "SEPTElectronBins",
+          "centers": [
+            0,
+            1,
+            2,
+            3,
+            4,
+            5,
+            6,
+            7,
+            8,
+            9
+          ],
+          "units": null
+        }
+      ],
+      "size": [
+        10
+      ],
+      "name": "SEPTElectronFlux",
+      "description": "SEPT Electron Flux (see labels for binning)",
+      "units": "1/cm^2-s-ster-MeV",
+      "type": "double",
+      "fill": "-1.0E31"
+    },
+    {
+      "bins": [
+        {
+          "name": "SEPTIonBins",
+          "centers": [
+            0,
+            1,
+            2,
+            3,
+            4,
+            5,
+            6,
+            7,
+            8,
+            9
+          ],
+          "units": null
+        }
+      ],
+      "size": [
+        10
+      ],
+      "name": "SEPTIonFlux",
+      "description": "SEPT Ion Flux (see labels for binning)",
+      "units": "1/cm^2-s-ster-MeV/nuc",
+      "type": "double",
+      "fill": "-1.0E31"
+    },
+    {
+      "name": "HETElectronCnts",
+      "description": "HET Electron Counts (0.7 - 4 MeV)",
+      "units": "cnts",
+      "type": "double",
+      "fill": "4.294967295E9"
+    },
+    {
+      "bins": [
+        {
+          "name": "HET3EnergyBins",
+          "centers": [
+            0,
+            1,
+            2
+          ],
+          "units": "bin"
+        }
+      ],
+      "size": [
+        3
+      ],
+      "name": "HETProtonCnts",
+      "description": "---> HET Proton Counts (in 3 energy bins)",
+      "units": "cnts",
+      "type": "double",
+      "fill": "4.294967295E9"
+    },
+    {
+      "size": [
+        2
+      ],
+      "name": "HETCNOCnts",
+      "description": "---> HET CNO Counts (in 2 energy bins)",
+      "units": "cnts",
+      "type": "double",
+      "fill": "4.294967295E9"
+    },
+    {
+      "name": "HETFeCnts",
+      "description": "---> HET Fe Cnts (52 - 74 MeV/nuc)",
+      "units": "cnts",
+      "type": "double",
+      "fill": "4.294967295E9"
+    },
+    {
+      "bins": [
+        {
+          "name": "SITEnergyBins",
+          "centers": [
+            0,
+            1,
+            2,
+            3
+          ],
+          "units": null
+        }
+      ],
+      "size": [
+        4
+      ],
+      "name": "SITHeCnts",
+      "description": "SIT He Counts",
+      "units": "cnts",
+      "type": "double",
+      "fill": "4.294967295E9"
+    },
+    {
+      "bins": [
+        {
+          "name": "SITEnergyBins",
+          "centers": [
+            0,
+            1,
+            2,
+            3
+          ],
+          "units": null
+        }
+      ],
+      "size": [
+        4
+      ],
+      "name": "SITCNOCnts",
+      "description": "---> SIT CNO Counts",
+      "units": "cnts",
+      "type": "double",
+      "fill": "4.294967295E9"
+    },
+    {
+      "bins": [
+        {
+          "name": "SITEnergyBins",
+          "centers": [
+            0,
+            1,
+            2,
+            3
+          ],
+          "units": null
+        }
+      ],
+      "size": [
+        4
+      ],
+      "name": "SITFeCnts",
+      "description": "---> SIT Fe Counts",
+      "units": "cnts",
+      "type": "double",
+      "fill": "4.294967295E9"
+    },
+    {
+      "bins": [
+        {
+          "name": "LETProtonBins",
+          "centers": [
+            0,
+            1,
+            2,
+            3
+          ],
+          "units": null
+        }
+      ],
+      "size": [
+        4
+      ],
+      "name": "LETProtonCnts",
+      "description": "LET Proton Counts",
+      "units": "cnts",
+      "type": "double",
+      "fill": "4.294967295E9"
+    },
+    {
+      "bins": [
+        {
+          "name": "LET4HeBins",
+          "centers": [
+            0,
+            1,
+            2,
+            3,
+            4
+          ],
+          "units": null
+        }
+      ],
+      "size": [
+        5
+      ],
+      "name": "LET4HeCnts",
+      "description": "---> LET 4He Counts",
+      "units": "cnts",
+      "type": "double",
+      "fill": "4.294967295E9"
+    },
+    {
+      "bins": [
+        {
+          "name": "LET3HeBins",
+          "centers": [
+            0,
+            1
+          ],
+          "units": null
+        }
+      ],
+      "size": [
+        2
+      ],
+      "name": "LET3HeCnts",
+      "description": "---> LET 3He Counts",
+      "units": "cnts",
+      "type": "double",
+      "fill": "4.294967295E9"
+    },
+    {
+      "bins": [
+        {
+          "name": "LETCNOBins",
+          "centers": [
+            0,
+            1,
+            2
+          ],
+          "units": null
+        }
+      ],
+      "size": [
+        3
+      ],
+      "name": "LETCNOCnts",
+      "description": "---> LET CNO Counts",
+      "units": "cnts",
+      "type": "double",
+      "fill": "4.294967295E9"
+    },
+    {
+      "bins": [
+        {
+          "name": "LETFeBins",
+          "centers": [
+            0,
+            1,
+            2,
+            3
+          ],
+          "units": null
+        }
+      ],
+      "size": [
+        4
+      ],
+      "name": "LETFeCnts",
+      "description": "---> LET Fe Counts",
+      "units": "cnts",
+      "type": "double",
+      "fill": "4.294967295E9"
+    },
+    {
+      "bins": [
+        {
+          "name": "SEPTElectronBins",
+          "centers": [
+            0,
+            1,
+            2,
+            3,
+            4,
+            5,
+            6,
+            7,
+            8,
+            9
+          ],
+          "units": null
+        }
+      ],
+      "size": [
+        10
+      ],
+      "name": "SEPTElectronCnts",
+      "description": "SEPT Electron Counts",
+      "units": "cnts",
+      "type": "double",
+      "fill": "4.294967295E9"
+    },
+    {
+      "bins": [
+        {
+          "name": "SEPTIonBins",
+          "centers": [
+            0,
+            1,
+            2,
+            3,
+            4,
+            5,
+            6,
+            7,
+            8,
+            9
+          ],
+          "units": null
+        }
+      ],
+      "size": [
+        10
+      ],
+      "name": "SEPTIonCnts",
+      "description": "SEPT Ion Counts",
+      "units": "cnts",
+      "type": "double",
+      "fill": "4.294967295E9"
+    },
+    {
+      "bins": [
+        {
+          "name": "HET3EnergyBins",
+          "centers": [
+            0,
+            1,
+            2
+          ],
+          "units": "bin"
+        }
+      ],
+      "size": [
+        3
+      ],
+      "name": "HETHeCnts",
+      "description": "HET He Counts",
+      "units": "cnts",
+      "type": "double",
+      "fill": "4.294967295E9"
+    },
+    {
+      "name": "SFSEPTElectrons",
+      "description": "Summary Flux SEPT Electrons from 0.035 to 0.065 MeV summed in all directions",
+      "units": "1/cm^2-s-ster-MeV",
+      "type": "double",
+      "fill": "-1.0E31"
+    },
+    {
+      "name": "SFHETElectrons",
+      "description": "---> Summary Flux HET Electrons from 0.7 to 4 MeV",
+      "units": "1/cm^2-s-ster-MeV",
+      "type": "double",
+      "fill": "-1.0E31"
+    },
+    {
+      "name": "SFSEPTIons1",
+      "description": "---> Summary Flux SEPT Ions from 0.137 to 0.623 MeV",
+      "units": "1/cm^2-s-ster-MeV",
+      "type": "double",
+      "fill": "-1.0E31"
+    },
+    {
+      "name": "SFSEPTIons2",
+      "description": "---> Summary Flux SEPT Ions from 0.623 to 2.22 MeV",
+      "units": "1/cm^2-s-ster-MeV",
+      "type": "double",
+      "fill": "-1.0E31"
+    },
+    {
+      "name": "SFLETProtons",
+      "description": "---> Summary Flux LET Protons from 2.2 to 12 MeV",
+      "units": "1/cm^2-s-ster-MeV",
+      "type": "double",
+      "fill": "-1.0E31"
+    },
+    {
+      "name": "SFHETProtons",
+      "description": "---> Summary Flux HET Protons from 13 to 100 MeV",
+      "units": "1/cm^2-s-ster-MeV",
+      "type": "double",
+      "fill": "-1.0E31"
+    },
+    {
+      "name": "SFSITHe",
+      "description": "---> Summary Flux SIT Helium from 0.12 to 1.08 Mev/nuc",
+      "units": "1/cm^2-s-ster-MeV",
+      "type": "double",
+      "fill": "-1.0E31"
+    },
+    {
+      "name": "SFSITCNO",
+      "description": "---> Summary Flux SIT CNO from 0.12 to 1.08 MeV/nuc",
+      "units": "1/cm^2-s-ster-MeV",
+      "type": "double",
+      "fill": "-1.0E31"
+    },
+    {
+      "name": "SFSITFe",
+      "description": "---> Summary Flux SIT Fe from 0.12 to 1.08 MeV/nuc",
+      "units": "1/cm^2-s-ster-MeV",
+      "type": "double",
+      "fill": "-1.0E31"
+    },
+    {
+      "name": "SFLETHe",
+      "description": "---> Summary Flux LET Helium from 4 to 12 MeV/nuc",
+      "units": "1/cm^2-s-ster-MeV",
+      "type": "double",
+      "fill": "-1.0E31"
+    },
+    {
+      "name": "SFLETCNO",
+      "description": "---> Summary Flux LET CNO from 4 to 12 MeV/nuc",
+      "units": "1/cm^2-s-ster-MeV",
+      "type": "double",
+      "fill": "-1.0E31"
+    },
+    {
+      "name": "SFLETFe",
+      "description": "---> Summary Flux LET Fe from 4 to 12 MeV/nuc",
+      "units": "1/cm^2-s-ster-MeV",
+      "type": "double",
+      "fill": "-1.0E31"
+    },
+    {
+      "name": "SCSEPTElectrons",
+      "description": "Summary Counts SEPT Electrons from 0.035 to 0.065 MeV",
+      "units": "cnts",
+      "type": "double",
+      "fill": "4.294967295E9"
+    },
+    {
+      "name": "SCHETElectrons",
+      "description": "---> Summary Counts HET Electrons from 0.7 to 4 MeV",
+      "units": "cnts",
+      "type": "double",
+      "fill": "4.294967295E9"
+    },
+    {
+      "name": "SCSEPTIons1",
+      "description": "---> Summary Counts SEPT Ions from 0.137 to 0.623 MeV",
+      "units": "cnts",
+      "type": "double",
+      "fill": "4.294967295E9"
+    },
+    {
+      "name": "SCSEPTIons2",
+      "description": "---> Summary Counts SEPT Ions from 0.623 to 2.22 MeV",
+      "units": "cnts",
+      "type": "double",
+      "fill": "4.294967295E9"
+    },
+    {
+      "name": "SCLETProtons",
+      "description": "---> Summary Counts LET Protons from 2.2 to 12 MeV",
+      "units": "cnts",
+      "type": "double",
+      "fill": "4.294967295E9"
+    },
+    {
+      "name": "SCHETProtons",
+      "description": "---> Summary Counts HET Protons from 13 to 100 MeV",
+      "units": "cnts",
+      "type": "double",
+      "fill": "4.294967295E9"
+    },
+    {
+      "name": "SCSITHe",
+      "description": "---> Summary Counts SIT Helium from 0.12 to 1.08 MeV/nuc",
+      "units": "cnts",
+      "type": "double",
+      "fill": "4.294967295E9"
+    },
+    {
+      "name": "SCSITCNO",
+      "description": "---> Summary Counts SIT CNO from 0.12 to 1.08 MeV/nuc",
+      "units": "cnts",
+      "type": "double",
+      "fill": "4.294967295E9"
+    },
+    {
+      "name": "SCSITFe",
+      "description": "---> Summary Counts SIT Fe from 0.12 to 1.08 MeV/nuc",
+      "units": "cnts",
+      "type": "double",
+      "fill": "4.294967295E9"
+    },
+    {
+      "name": "SCLETHe",
+      "description": "---> Summary Counts LET Helium from 4 to 12 MeV/nuc",
+      "units": "cnts",
+      "type": "double",
+      "fill": "4.294967295E9"
+    },
+    {
+      "name": "SCLETCNO",
+      "description": "---> Summary Counts LET CNO from 4 to 12 MeV/nuc",
+      "units": "cnts",
+      "type": "double",
+      "fill": "4.294967295E9"
+    },
+    {
+      "name": "SCLETFe",
+      "description": "---> Summary Counts LET Fe from 4 to 12 MeV/nuc",
+      "units": "cnts",
+      "type": "double",
+      "fill": "4.294967295E9"
+    }
+  ],
+  "startDate": "2007-03-20T17:04:31Z",
+  "stopDate": "2026-02-05T16:26:06Z",
+  "status": {
+    "code": 1200,
+    "message": "OK"
+  }
+}

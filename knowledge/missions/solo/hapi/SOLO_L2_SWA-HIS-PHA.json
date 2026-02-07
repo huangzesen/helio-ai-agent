@@ -1,0 +1,146 @@
+{
+  "HAPI": "2.0",
+  "resourceURL": "https://cdaweb.gsfc.nasa.gov/misc/NotesS.html#SOLO_L2_SWA-HIS-PHA",
+  "contact": "S. Livi @ SWRI",
+  "parameters": [
+    {
+      "name": "Time",
+      "length": 30,
+      "units": "UTC",
+      "type": "isotime",
+      "fill": null
+    },
+    {
+      "name": "PHA_EOQ_STEP",
+      "description": "E/q index of each PHA",
+      "units": " ",
+      "type": "integer",
+      "fill": "-32768"
+    },
+    {
+      "name": "PHA_EOQ",
+      "description": "E/q of each PHA",
+      "units": "keV/e",
+      "type": "double",
+      "fill": "-1.0E31"
+    },
+    {
+      "name": "PHA_AZIMUTH_BIN",
+      "description": "Azimuth bin for each PHA",
+      "units": " ",
+      "type": "integer",
+      "fill": "-32768"
+    },
+    {
+      "name": "PHA_AZIMUTH",
+      "description": "Azimuth for each PHA",
+      "units": "Degrees",
+      "type": "double",
+      "fill": "-1.0E31"
+    },
+    {
+      "name": "PHA_ELEVATION_BIN",
+      "description": "Elevation angle bin for each PHA",
+      "units": " ",
+      "type": "integer",
+      "fill": "-32768"
+    },
+    {
+      "name": "PHA_ELEVATION",
+      "description": "Elevation angle for each PHA",
+      "units": "Degrees",
+      "type": "double",
+      "fill": "-1.0E31"
+    },
+    {
+      "name": "PHA_TOF_BIN",
+      "description": "TOF bin for each PHA",
+      "units": " ",
+      "type": "integer",
+      "fill": "-32768"
+    },
+    {
+      "name": "PHA_TOF",
+      "description": "TOF for each PHA",
+      "units": "ns",
+      "type": "double",
+      "fill": "-1.0E31"
+    },
+    {
+      "name": "PHA_SSD_ENERGY_BIN",
+      "description": "SSD energy bin for each PHA",
+      "units": " ",
+      "type": "integer",
+      "fill": "-32768"
+    },
+    {
+      "name": "PHA_SSD_ENERGY",
+      "description": "SSD energy for each PHA",
+      "units": "keV",
+      "type": "double",
+      "fill": "-1.0E31"
+    },
+    {
+      "name": "PHA_DETECTOR_ID",
+      "description": "SSD ID",
+      "units": " ",
+      "type": "integer",
+      "fill": "-32768"
+    },
+    {
+      "name": "PHA_DETECTOR_ANGLE",
+      "description": "SSD angle",
+      "units": "Degrees",
+      "type": "double",
+      "fill": "-1.0E31"
+    },
+    {
+      "name": "PHA_DECIMATION_CLASSIFICATION",
+      "description": "Decimation classification",
+      "units": " ",
+      "type": "integer",
+      "fill": "-32768"
+    },
+    {
+      "name": "PHA_PRIORITIZATION_RANGE",
+      "description": "Prioritization range",
+      "units": " ",
+      "type": "integer",
+      "fill": "-32768"
+    },
+    {
+      "name": "PHA_MULTI_SSD",
+      "description": "Multi-SSD flag",
+      "units": " ",
+      "type": "integer",
+      "fill": "-32768"
+    },
+    {
+      "name": "PHA_PRIORITY_WEIGHT",
+      "description": "PHA priority weight",
+      "units": " ",
+      "type": "double",
+      "fill": "-1.0E31"
+    },
+    {
+      "name": "PHA_PRIORITY_WEIGHT_DELTA",
+      "description": "PHA priority weight delta",
+      "units": " ",
+      "type": "double",
+      "fill": "-1.0E31"
+    },
+    {
+      "name": "PA_HVPS_SET_POINT",
+      "description": "PA HVPS set point",
+      "units": "kV",
+      "type": "double",
+      "fill": "-1.0E31"
+    }
+  ],
+  "startDate": "2022-01-01T00:00:27Z",
+  "stopDate": "2023-04-27T14:12:45Z",
+  "status": {
+    "code": 1200,
+    "message": "OK"
+  }
+}

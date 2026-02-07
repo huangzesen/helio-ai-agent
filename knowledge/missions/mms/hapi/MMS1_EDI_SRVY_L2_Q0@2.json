@@ -1,0 +1,74 @@
+{
+  "HAPI": "2.0",
+  "resourceURL": "https://cdaweb.gsfc.nasa.gov/misc/NotesM.html#MMS1_EDI_SRVY_L2_Q0",
+  "contact": "Roy Torbert, Hans Vaith @ UNH",
+  "parameters": [
+    {
+      "name": "Time",
+      "length": 30,
+      "units": "UTC",
+      "type": "isotime",
+      "fill": null
+    },
+    {
+      "name": "mms1_edi_energy_gdu2_srvy_l2",
+      "description": "---> GDU2 energy",
+      "units": "eV",
+      "type": "integer",
+      "fill": "65535"
+    },
+    {
+      "name": "mms1_edi_counts_gdu2_srvy_l2",
+      "description": "GDU2 quality 0 counts.",
+      "units": "counts",
+      "type": "integer",
+      "fill": "65535"
+    },
+    {
+      "size": [
+        2
+      ],
+      "name": "mms1_edi_traj_bcs_gdu2_srvy_l2",
+      "description": "GDU2 Electron incident trajectory vectors in spherical BCS coordinates.",
+      "units": "rad",
+      "type": "double",
+      "fill": "-1.0E31"
+    },
+    {
+      "size": [
+        2
+      ],
+      "name": "mms1_edi_traj_dbcs_gdu2_srvy_l2",
+      "description": "GDU2 Electron incident trajectory vectors in spherical DBCS coordinates.",
+      "units": "rad",
+      "type": "double",
+      "fill": "-1.0E31"
+    },
+    {
+      "size": [
+        2
+      ],
+      "name": "mms1_edi_traj_gse_gdu2_srvy_l2",
+      "description": "GDU2 Electron incident trajectory vectors in spherical GSE coordinates.",
+      "units": "rad",
+      "type": "double",
+      "fill": "-1.0E31"
+    },
+    {
+      "size": [
+        2
+      ],
+      "name": "mms1_edi_traj_gsm_gdu2_srvy_l2",
+      "description": "GDU2 Electron incident trajectory vectors in spherical GSM coordinates.",
+      "units": "rad",
+      "type": "double",
+      "fill": "-1.0E31"
+    }
+  ],
+  "startDate": "2015-09-01T00:02:03Z",
+  "stopDate": "2026-01-01T23:59:59Z",
+  "status": {
+    "code": 1200,
+    "message": "OK"
+  }
+}

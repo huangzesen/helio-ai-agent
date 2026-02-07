@@ -1,0 +1,125 @@
+{
+  "HAPI": "2.0",
+  "resourceURL": "https://cdaweb.gsfc.nasa.gov/misc/NotesP.html#PSP_COHO1HR_MERGED_MAG_PLASMA",
+  "contact": "Natalia Papitashvili @ NASA/GSFC",
+  "parameters": [
+    {
+      "name": "Time",
+      "length": 24,
+      "units": "UTC",
+      "type": "isotime",
+      "fill": null
+    },
+    {
+      "name": "radialDistance",
+      "description": "Heliocentric distance",
+      "units": "AU",
+      "type": "double",
+      "fill": "-1.0E31"
+    },
+    {
+      "name": "heliographicLatitude",
+      "description": "HelioGraphic Inertial (HGI) latitude of the spacecraft position ",
+      "units": "deg",
+      "type": "double",
+      "fill": "-1.0E31"
+    },
+    {
+      "name": "heliographicLongitude",
+      "description": "HelioGraphic Inertial (HGI) longitude of the spacecraft position",
+      "units": "deg",
+      "type": "double",
+      "fill": "-1.0E31"
+    },
+    {
+      "name": "BR",
+      "description": "IMF BR in RTN (Radial-Tangential-Normal) coordinate system",
+      "units": "nT",
+      "type": "double",
+      "fill": "-1.0E31"
+    },
+    {
+      "name": "BT",
+      "description": "IMF BT in RTN coordinate system",
+      "units": "nT",
+      "type": "double",
+      "fill": "-1.0E31"
+    },
+    {
+      "name": "BN",
+      "description": "IMF BN in RTN coordinate system",
+      "units": "nT",
+      "type": "double",
+      "fill": "-1.0E31"
+    },
+    {
+      "name": "B",
+      "description": "Magnitude, Avg. B field(Vr)",
+      "units": "nT",
+      "type": "double",
+      "fill": "-1.0E31"
+    },
+    {
+      "name": "VR",
+      "description": "Proton VR in RTN (Radial-Tangential-Normal) coordinate system",
+      "units": "km/sec",
+      "type": "double",
+      "fill": "-1.0E31"
+    },
+    {
+      "name": "VT",
+      "description": "Proton VT in RTN coordinate system",
+      "units": "km/sec",
+      "type": "double",
+      "fill": "-1.0E31"
+    },
+    {
+      "name": "VN",
+      "description": "Proton VN in RTN coordinate system",
+      "units": "km/sec",
+      "type": "double",
+      "fill": "-1.0E31"
+    },
+    {
+      "name": "ProtonSpeed",
+      "description": "Proton bulk speed",
+      "units": "km/s",
+      "type": "double",
+      "fill": "-1.0E31"
+    },
+    {
+      "name": "flow_theta",
+      "description": "Flow elevation angle in RTN coordinate system ",
+      "units": "deg",
+      "type": "double",
+      "fill": "-1.0E31"
+    },
+    {
+      "name": "flow_lon",
+      "description": "Flow azimuth angle in RTN coordinate system ",
+      "units": "deg",
+      "type": "double",
+      "fill": "-1.0E31"
+    },
+    {
+      "name": "protonDensity",
+      "description": "Proton density",
+      "units": "N/cm3",
+      "type": "double",
+      "fill": "-1.0E31"
+    },
+    {
+      "name": "protonTemp",
+      "description": "Proton temperature",
+      "units": "deg K",
+      "type": "double",
+      "fill": "-1.0E31"
+    }
+  ],
+  "startDate": "2018-01-01T00:00:00Z",
+  "stopDate": "2025-12-31T23:00:00Z",
+  "status": {
+    "code": 1200,
+    "message": "OK"
+  }
+}

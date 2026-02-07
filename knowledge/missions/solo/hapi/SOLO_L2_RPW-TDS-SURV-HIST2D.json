@@ -1,0 +1,38 @@
+{
+  "HAPI": "2.0",
+  "resourceURL": "https://cdaweb.gsfc.nasa.gov/misc/NotesS.html#SOLO_L2_RPW-TDS-SURV-HIST2D",
+  "contact": "M.Maksimovic @ LESIA, Observatoire de Paris-CNRS",
+  "parameters": [
+    {
+      "name": "Time",
+      "length": 30,
+      "units": "UTC",
+      "type": "isotime",
+      "fill": null
+    },
+    {
+      "name": "HIST2D_TOT_SNAPSHOT",
+      "description": "Total number of snapshots",
+      "units": " ",
+      "type": "integer",
+      "fill": "65535"
+    },
+    {
+      "size": [
+        128,
+        128
+      ],
+      "name": "HIST2D_COUNTS",
+      "description": "Total number of counts",
+      "units": "Counts",
+      "type": "integer",
+      "fill": "65535"
+    }
+  ],
+  "startDate": "2020-06-15T00:05:19Z",
+  "stopDate": "2023-11-12T22:59:27Z",
+  "status": {
+    "code": 1200,
+    "message": "OK"
+  }
+}

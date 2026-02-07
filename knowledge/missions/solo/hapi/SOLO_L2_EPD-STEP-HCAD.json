@@ -1,0 +1,152 @@
+{
+  "HAPI": "2.0",
+  "resourceURL": "https://cdaweb.gsfc.nasa.gov/misc/NotesS.html#SOLO_L2_EPD-STEP-HCAD",
+  "contact": "J. Rodriguez-Pacheco @ Space Research Group, Universidad de Alcala",
+  "parameters": [
+    {
+      "name": "Time",
+      "length": 30,
+      "units": "UTC",
+      "type": "isotime",
+      "fill": null
+    },
+    {
+      "bins": [
+        {
+          "name": "Bins_Low_Energy",
+          "centers": [
+            0.007662,
+            0.01115,
+            0.02,
+            0.03507
+          ],
+          "units": "MeV"
+        },
+        {
+          "name": "Sector_Rows",
+          "centers": [
+            1,
+            2,
+            3
+          ],
+          "units": " "
+        }
+      ],
+      "size": [
+        4,
+        3
+      ],
+      "name": "Magnet_Rows_Flux",
+      "description": "Magnet channel flux for each row of pixels",
+      "units": "particles / (s cm^2 sr MeV)",
+      "type": "double",
+      "fill": "-1.0E31"
+    },
+    {
+      "bins": [
+        {
+          "name": "Bins_Low_Energy",
+          "centers": [
+            0.007662,
+            0.01115,
+            0.02,
+            0.03507
+          ],
+          "units": "MeV"
+        },
+        {
+          "name": "Sector_Rows",
+          "centers": [
+            1,
+            2,
+            3
+          ],
+          "units": " "
+        }
+      ],
+      "size": [
+        4,
+        3
+      ],
+      "name": "Integral_Rows_Flux",
+      "description": "Integral channel flux for each row of pixels",
+      "units": "particles / (s cm^2 sr MeV)",
+      "type": "double",
+      "fill": "-1.0E31"
+    },
+    {
+      "bins": [
+        {
+          "name": "Bins_Low_Energy",
+          "centers": [
+            0.007662,
+            0.01115,
+            0.02,
+            0.03507
+          ],
+          "units": "MeV"
+        },
+        {
+          "name": "Sector_Columns",
+          "centers": [
+            1,
+            2,
+            3,
+            4,
+            5
+          ],
+          "units": " "
+        }
+      ],
+      "size": [
+        4,
+        5
+      ],
+      "name": "Magnet_Cols_Flux",
+      "description": "Magnet channel flux for each column of pixels",
+      "units": "particles / (s cm^2 sr MeV)",
+      "type": "double",
+      "fill": "-1.0E31"
+    },
+    {
+      "bins": [
+        {
+          "name": "Bins_Low_Energy",
+          "centers": [
+            0.007662,
+            0.01115,
+            0.02,
+            0.03507
+          ],
+          "units": "MeV"
+        },
+        {
+          "name": "Sector_Columns",
+          "centers": [
+            1,
+            2,
+            3,
+            4,
+            5
+          ],
+          "units": " "
+        }
+      ],
+      "size": [
+        4,
+        5
+      ],
+      "name": "Integral_Cols_Flux",
+      "description": "Integral channel flux for each column of pixels",
+      "units": "particles / (s cm^2 sr MeV)",
+      "type": "double",
+      "fill": "-1.0E31"
+    }
+  ],
+  "startDate": "2020-04-30T00:00:01Z",
+  "stopDate": "2021-10-22T11:48:44Z",
+  "status": {
+    "code": 1200,
+    "message": "OK"
+  }
+}

@@ -1,0 +1,2738 @@
+{
+  "HAPI": "2.0",
+  "resourceURL": "https://cdaweb.gsfc.nasa.gov/misc/NotesS.html#STA_L1_LET",
+  "contact": "Christina Lee @ UCB/SSL",
+  "parameters": [
+    {
+      "name": "Time",
+      "length": 24,
+      "units": "UTC",
+      "type": "isotime",
+      "fill": null
+    },
+    {
+      "bins": [
+        {
+          "name": "HHe4_unsec_flux_DEPEND_1",
+          "centers": [
+            2.0,
+            2.45,
+            2.95,
+            3.4,
+            3.8,
+            4.25,
+            4.75,
+            5.5,
+            7.0,
+            9.0,
+            11.0,
+            13.5
+          ],
+          "units": "MeV/nuc"
+        }
+      ],
+      "size": [
+        12
+      ],
+      "name": "H_unsec_flux",
+      "description": "Unsectored H flux at 12 energy bins in particles/(cm^2*sec*sr*MeV/nucleon)",
+      "units": "#/(cm^2*s*sr*Mev/nucleon)",
+      "type": "double",
+      "fill": "-1.0E31"
+    },
+    {
+      "bins": [
+        {
+          "name": "He3He_unsec_flux_DEPEND_1",
+          "centers": [
+            2.45,
+            2.95,
+            3.4,
+            3.8,
+            4.25,
+            4.75,
+            5.5,
+            7.0,
+            9.0,
+            11.0,
+            13.5
+          ],
+          "units": "MeV/nuc"
+        }
+      ],
+      "size": [
+        11
+      ],
+      "name": "He3_unsec_flux",
+      "description": "-->Unsectored He3 flux at 11 energy bins",
+      "units": "#/(cm^2*s*sr*Mev/nucleon)",
+      "type": "double",
+      "fill": "-1.0E31"
+    },
+    {
+      "bins": [
+        {
+          "name": "HHe4_unsec_flux_DEPEND_1",
+          "centers": [
+            2.0,
+            2.45,
+            2.95,
+            3.4,
+            3.8,
+            4.25,
+            4.75,
+            5.5,
+            7.0,
+            9.0,
+            11.0,
+            13.5
+          ],
+          "units": "MeV/nuc"
+        }
+      ],
+      "size": [
+        12
+      ],
+      "name": "He4_unsec_flux",
+      "description": "-->Unsectored He4 flux at 12 energy bins",
+      "units": "#/(cm^2*s*sr*Mev/nucleon)",
+      "type": "double",
+      "fill": "-1.0E31"
+    },
+    {
+      "bins": [
+        {
+          "name": "CNO_unsec_flux_DEPEND_1",
+          "centers": [
+            3.4,
+            3.8,
+            4.25,
+            4.75,
+            5.5,
+            7.0,
+            9.0,
+            11.0,
+            13.5,
+            18.0,
+            24.0,
+            30.0
+          ],
+          "units": "MeV/nuc"
+        }
+      ],
+      "size": [
+        12
+      ],
+      "name": "C_unsec_flux",
+      "description": "-->Unsectored C flux at 12 energy bins",
+      "units": "#/(cm^2*s*sr*Mev/nucleon)",
+      "type": "double",
+      "fill": "-1.0E31"
+    },
+    {
+      "bins": [
+        {
+          "name": "CNO_unsec_flux_DEPEND_1",
+          "centers": [
+            3.4,
+            3.8,
+            4.25,
+            4.75,
+            5.5,
+            7.0,
+            9.0,
+            11.0,
+            13.5,
+            18.0,
+            24.0,
+            30.0
+          ],
+          "units": "MeV/nuc"
+        }
+      ],
+      "size": [
+        12
+      ],
+      "name": "N_unsec_flux",
+      "description": "-->Unsectored N flux at 12 energy bins",
+      "units": "#/(cm^2*s*sr*Mev/nucleon)",
+      "type": "double",
+      "fill": "-1.0E31"
+    },
+    {
+      "bins": [
+        {
+          "name": "CNO_unsec_flux_DEPEND_1",
+          "centers": [
+            3.4,
+            3.8,
+            4.25,
+            4.75,
+            5.5,
+            7.0,
+            9.0,
+            11.0,
+            13.5,
+            18.0,
+            24.0,
+            30.0
+          ],
+          "units": "MeV/nuc"
+        }
+      ],
+      "size": [
+        12
+      ],
+      "name": "O_unsec_flux",
+      "description": "-->Unsectored O flux at 12 energy bins",
+      "units": "#/(cm^2*s*sr*Mev/nucleon)",
+      "type": "double",
+      "fill": "-1.0E31"
+    },
+    {
+      "bins": [
+        {
+          "name": "Ne_unsec_flux_DEPEND_1",
+          "centers": [
+            3.4,
+            3.8,
+            4.25,
+            4.75,
+            5.5,
+            7.0,
+            9.0,
+            11.0,
+            13.5,
+            18.0,
+            24.0,
+            30.0,
+            36.5
+          ],
+          "units": "MeV/nuc"
+        }
+      ],
+      "size": [
+        13
+      ],
+      "name": "Ne_unsec_flux",
+      "description": "-->Unsectored Ne flux at 13 energy bins",
+      "units": "#/(cm^2*s*sr*MeV/nuc)",
+      "type": "double",
+      "fill": "-1.0E31"
+    },
+    {
+      "bins": [
+        {
+          "name": "Na_unsec_flux_DEPEND_1",
+          "centers": [
+            7.0,
+            9.0,
+            11.0,
+            13.5,
+            18.0,
+            24.0,
+            30.0,
+            36.5
+          ],
+          "units": "MeV/nuc"
+        }
+      ],
+      "size": [
+        8
+      ],
+      "name": "Na_unsec_flux",
+      "description": "-->Unsectored Na flux at 8 energy bins",
+      "units": "#/(cm^2*s*sr*MeV/nuc)",
+      "type": "double",
+      "fill": "-1.0E31"
+    },
+    {
+      "bins": [
+        {
+          "name": "MgSi_unsec_flux_DEPEND_1",
+          "centers": [
+            3.4,
+            3.8,
+            4.25,
+            4.75,
+            5.5,
+            7.0,
+            9.0,
+            11.0,
+            13.5,
+            18.0,
+            24.0,
+            30.0,
+            36.5,
+            46.0
+          ],
+          "units": "MeV/nuc"
+        }
+      ],
+      "size": [
+        14
+      ],
+      "name": "Mg_unsec_flux",
+      "description": "-->Unsectored Mg flux at 14 energy bins",
+      "units": "#/(cm^2*s*sr*MeV/nuc)",
+      "type": "double",
+      "fill": "-1.0E31"
+    },
+    {
+      "bins": [
+        {
+          "name": "Al_unsec_flux_DEPEND_1",
+          "centers": [
+            7.0,
+            9.0,
+            11.0,
+            13.5,
+            18.0,
+            24.0,
+            30.0,
+            36.5,
+            46.0
+          ],
+          "units": "MeV/nuc"
+        }
+      ],
+      "size": [
+        9
+      ],
+      "name": "Al_unsec_flux",
+      "description": "-->Unsectored Al flux at 9 energy bins",
+      "units": "#/(cm^2*s*sr*MeV/nuc)",
+      "type": "double",
+      "fill": "-1.0E31"
+    },
+    {
+      "bins": [
+        {
+          "name": "MgSi_unsec_flux_DEPEND_1",
+          "centers": [
+            3.4,
+            3.8,
+            4.25,
+            4.75,
+            5.5,
+            7.0,
+            9.0,
+            11.0,
+            13.5,
+            18.0,
+            24.0,
+            30.0,
+            36.5,
+            46.0
+          ],
+          "units": "MeV/nuc"
+        }
+      ],
+      "size": [
+        14
+      ],
+      "name": "Si_unsec_flux",
+      "description": "-->Unsectored Si flux at 14 energy bins",
+      "units": "#/(cm^2*s*sr*MeV/nuc)",
+      "type": "double",
+      "fill": "-1.0E31"
+    },
+    {
+      "bins": [
+        {
+          "name": "SArCa_unsec_flux_DEPEND_1",
+          "centers": [
+            3.8,
+            4.25,
+            4.75,
+            5.5,
+            7.0,
+            9.0,
+            11.0,
+            13.5,
+            18.0,
+            24.0,
+            30.0,
+            36.5,
+            46.0
+          ],
+          "units": "MeV/nuc"
+        }
+      ],
+      "size": [
+        13
+      ],
+      "name": "S_unsec_flux",
+      "description": "-->Unsectored S flux in 13 energy bins",
+      "units": "#/(cm^2*s*sr*MeV/nuc)",
+      "type": "double",
+      "fill": "-1.0E31"
+    },
+    {
+      "bins": [
+        {
+          "name": "SArCa_unsec_flux_DEPEND_1",
+          "centers": [
+            3.8,
+            4.25,
+            4.75,
+            5.5,
+            7.0,
+            9.0,
+            11.0,
+            13.5,
+            18.0,
+            24.0,
+            30.0,
+            36.5,
+            46.0
+          ],
+          "units": "MeV/nuc"
+        }
+      ],
+      "size": [
+        13
+      ],
+      "name": "Ar_unsec_flux",
+      "description": "-->Unsectored Ar flux in 13 energy bins",
+      "units": "#/(cm^2*s*sr*MeV/nuc)",
+      "type": "double",
+      "fill": "-1.0E31"
+    },
+    {
+      "bins": [
+        {
+          "name": "SArCa_unsec_flux_DEPEND_1",
+          "centers": [
+            3.8,
+            4.25,
+            4.75,
+            5.5,
+            7.0,
+            9.0,
+            11.0,
+            13.5,
+            18.0,
+            24.0,
+            30.0,
+            36.5,
+            46.0
+          ],
+          "units": "MeV/nuc"
+        }
+      ],
+      "size": [
+        13
+      ],
+      "name": "Ca_unsec_flux",
+      "description": "-->Unsectored Ca flux in 13 energy bins",
+      "units": "#/(cm^2*s*sr*MeV/nuc)",
+      "type": "double",
+      "fill": "-1.0E31"
+    },
+    {
+      "bins": [
+        {
+          "name": "Fe_unsec_flux_DEPEND_1",
+          "centers": [
+            2.95,
+            3.4,
+            3.8,
+            4.25,
+            4.75,
+            5.5,
+            7.0,
+            9.0,
+            11.0,
+            13.5,
+            18.0,
+            24.0,
+            30.0,
+            36.5,
+            46.0,
+            61.0
+          ],
+          "units": "MeV/nuc"
+        }
+      ],
+      "size": [
+        16
+      ],
+      "name": "Fe_unsec_flux",
+      "description": "-->Unsectored Fe flux in 16 energy bins",
+      "units": "#/(cm^2*s*sr*MeV/nuc)",
+      "type": "double",
+      "fill": "-1.0E31"
+    },
+    {
+      "bins": [
+        {
+          "name": "Ni_unsec_flux_DEPEND_1",
+          "centers": [
+            9.0,
+            11.0,
+            13.5,
+            18.0,
+            24.0,
+            30.0,
+            36.5,
+            46.0,
+            61.0
+          ],
+          "units": "MeV/nuc"
+        }
+      ],
+      "size": [
+        9
+      ],
+      "name": "Ni_unsec_flux",
+      "description": "-->Unsectored Ni flux in 9 energy bins",
+      "units": "#/(cm^2*s*sr*Mev/nuc)",
+      "type": "double",
+      "fill": "-1.0E31"
+    },
+    {
+      "bins": [
+        {
+          "name": "HHe4_unsec_flux_DEPEND_1",
+          "centers": [
+            2.0,
+            2.45,
+            2.95,
+            3.4,
+            3.8,
+            4.25,
+            4.75,
+            5.5,
+            7.0,
+            9.0,
+            11.0,
+            13.5
+          ],
+          "units": "MeV/nuc"
+        }
+      ],
+      "size": [
+        12
+      ],
+      "name": "H_unsec_cnts",
+      "description": "Unsectored H counts",
+      "units": "cnts",
+      "type": "integer",
+      "fill": "-2147483648"
+    },
+    {
+      "bins": [
+        {
+          "name": "He3He_unsec_flux_DEPEND_1",
+          "centers": [
+            2.45,
+            2.95,
+            3.4,
+            3.8,
+            4.25,
+            4.75,
+            5.5,
+            7.0,
+            9.0,
+            11.0,
+            13.5
+          ],
+          "units": "MeV/nuc"
+        }
+      ],
+      "size": [
+        11
+      ],
+      "name": "He3_unsec_cnts",
+      "description": "-->Unsectored He3 counts",
+      "units": "cnts",
+      "type": "integer",
+      "fill": "-2147483648"
+    },
+    {
+      "bins": [
+        {
+          "name": "HHe4_unsec_flux_DEPEND_1",
+          "centers": [
+            2.0,
+            2.45,
+            2.95,
+            3.4,
+            3.8,
+            4.25,
+            4.75,
+            5.5,
+            7.0,
+            9.0,
+            11.0,
+            13.5
+          ],
+          "units": "MeV/nuc"
+        }
+      ],
+      "size": [
+        12
+      ],
+      "name": "He4_unsec_cnts",
+      "description": "-->Unsectored He4 counts",
+      "units": "cnts",
+      "type": "integer",
+      "fill": "-2147483648"
+    },
+    {
+      "bins": [
+        {
+          "name": "CNO_unsec_flux_DEPEND_1",
+          "centers": [
+            3.4,
+            3.8,
+            4.25,
+            4.75,
+            5.5,
+            7.0,
+            9.0,
+            11.0,
+            13.5,
+            18.0,
+            24.0,
+            30.0
+          ],
+          "units": "MeV/nuc"
+        }
+      ],
+      "size": [
+        12
+      ],
+      "name": "C_unsec_cnts",
+      "description": "-->Unsectored C counts",
+      "units": "cnts",
+      "type": "integer",
+      "fill": "-2147483648"
+    },
+    {
+      "bins": [
+        {
+          "name": "CNO_unsec_flux_DEPEND_1",
+          "centers": [
+            3.4,
+            3.8,
+            4.25,
+            4.75,
+            5.5,
+            7.0,
+            9.0,
+            11.0,
+            13.5,
+            18.0,
+            24.0,
+            30.0
+          ],
+          "units": "MeV/nuc"
+        }
+      ],
+      "size": [
+        12
+      ],
+      "name": "N_unsec_cnts",
+      "description": "-->Unsectored N counts",
+      "units": "cnts",
+      "type": "integer",
+      "fill": "-2147483648"
+    },
+    {
+      "bins": [
+        {
+          "name": "CNO_unsec_flux_DEPEND_1",
+          "centers": [
+            3.4,
+            3.8,
+            4.25,
+            4.75,
+            5.5,
+            7.0,
+            9.0,
+            11.0,
+            13.5,
+            18.0,
+            24.0,
+            30.0
+          ],
+          "units": "MeV/nuc"
+        }
+      ],
+      "size": [
+        12
+      ],
+      "name": "O_unsec_cnts",
+      "description": "-->Unsectored O counts",
+      "units": "cnts",
+      "type": "integer",
+      "fill": "-2147483648"
+    },
+    {
+      "bins": [
+        {
+          "name": "Ne_unsec_flux_DEPEND_1",
+          "centers": [
+            3.4,
+            3.8,
+            4.25,
+            4.75,
+            5.5,
+            7.0,
+            9.0,
+            11.0,
+            13.5,
+            18.0,
+            24.0,
+            30.0,
+            36.5
+          ],
+          "units": "MeV/nuc"
+        }
+      ],
+      "size": [
+        13
+      ],
+      "name": "Ne_unsec_cnts",
+      "description": "-->Unsectored Ne counts",
+      "units": "cnts",
+      "type": "integer",
+      "fill": "-2147483648"
+    },
+    {
+      "bins": [
+        {
+          "name": "Na_unsec_flux_DEPEND_1",
+          "centers": [
+            7.0,
+            9.0,
+            11.0,
+            13.5,
+            18.0,
+            24.0,
+            30.0,
+            36.5
+          ],
+          "units": "MeV/nuc"
+        }
+      ],
+      "size": [
+        8
+      ],
+      "name": "Na_unsec_cnts",
+      "description": "-->Unsectored Na counts",
+      "units": "cnts",
+      "type": "integer",
+      "fill": "-2147483648"
+    },
+    {
+      "bins": [
+        {
+          "name": "MgSi_unsec_flux_DEPEND_1",
+          "centers": [
+            3.4,
+            3.8,
+            4.25,
+            4.75,
+            5.5,
+            7.0,
+            9.0,
+            11.0,
+            13.5,
+            18.0,
+            24.0,
+            30.0,
+            36.5,
+            46.0
+          ],
+          "units": "MeV/nuc"
+        }
+      ],
+      "size": [
+        14
+      ],
+      "name": "Mg_unsec_cnts",
+      "description": "-->Unsectored Mg counts",
+      "units": "cnts",
+      "type": "integer",
+      "fill": "-2147483648"
+    },
+    {
+      "bins": [
+        {
+          "name": "Al_unsec_flux_DEPEND_1",
+          "centers": [
+            7.0,
+            9.0,
+            11.0,
+            13.5,
+            18.0,
+            24.0,
+            30.0,
+            36.5,
+            46.0
+          ],
+          "units": "MeV/nuc"
+        }
+      ],
+      "size": [
+        9
+      ],
+      "name": "Al_unsec_cnts",
+      "description": "-->Unsectored Al cnts",
+      "units": "cnts",
+      "type": "integer",
+      "fill": "-2147483648"
+    },
+    {
+      "bins": [
+        {
+          "name": "MgSi_unsec_flux_DEPEND_1",
+          "centers": [
+            3.4,
+            3.8,
+            4.25,
+            4.75,
+            5.5,
+            7.0,
+            9.0,
+            11.0,
+            13.5,
+            18.0,
+            24.0,
+            30.0,
+            36.5,
+            46.0
+          ],
+          "units": "MeV/nuc"
+        }
+      ],
+      "size": [
+        14
+      ],
+      "name": "Si_unsec_cnts",
+      "description": "-->Unsectored Si counts",
+      "units": "cnts",
+      "type": "integer",
+      "fill": "-2147483648"
+    },
+    {
+      "bins": [
+        {
+          "name": "SArCa_unsec_flux_DEPEND_1",
+          "centers": [
+            3.8,
+            4.25,
+            4.75,
+            5.5,
+            7.0,
+            9.0,
+            11.0,
+            13.5,
+            18.0,
+            24.0,
+            30.0,
+            36.5,
+            46.0
+          ],
+          "units": "MeV/nuc"
+        }
+      ],
+      "size": [
+        13
+      ],
+      "name": "S_unsec_cnts",
+      "description": "-->Unsectored S counts",
+      "units": "cnts",
+      "type": "integer",
+      "fill": "-2147483647"
+    },
+    {
+      "bins": [
+        {
+          "name": "SArCa_unsec_flux_DEPEND_1",
+          "centers": [
+            3.8,
+            4.25,
+            4.75,
+            5.5,
+            7.0,
+            9.0,
+            11.0,
+            13.5,
+            18.0,
+            24.0,
+            30.0,
+            36.5,
+            46.0
+          ],
+          "units": "MeV/nuc"
+        }
+      ],
+      "size": [
+        13
+      ],
+      "name": "Ar_unsec_cnts",
+      "description": "-->Unsectored Ar counts",
+      "units": "cnts",
+      "type": "integer",
+      "fill": "-2147483647"
+    },
+    {
+      "bins": [
+        {
+          "name": "SArCa_unsec_flux_DEPEND_1",
+          "centers": [
+            3.8,
+            4.25,
+            4.75,
+            5.5,
+            7.0,
+            9.0,
+            11.0,
+            13.5,
+            18.0,
+            24.0,
+            30.0,
+            36.5,
+            46.0
+          ],
+          "units": "MeV/nuc"
+        }
+      ],
+      "size": [
+        13
+      ],
+      "name": "Ca_unsec_cnts",
+      "description": "-->Unsectored Ca counts",
+      "units": "cnts",
+      "type": "integer",
+      "fill": "-2147483647"
+    },
+    {
+      "bins": [
+        {
+          "name": "Fe_unsec_flux_DEPEND_1",
+          "centers": [
+            2.95,
+            3.4,
+            3.8,
+            4.25,
+            4.75,
+            5.5,
+            7.0,
+            9.0,
+            11.0,
+            13.5,
+            18.0,
+            24.0,
+            30.0,
+            36.5,
+            46.0,
+            61.0
+          ],
+          "units": "MeV/nuc"
+        }
+      ],
+      "size": [
+        16
+      ],
+      "name": "Fe_unsec_cnts",
+      "description": "-->Unsectored Fe counts",
+      "units": "cnts",
+      "type": "integer",
+      "fill": "-2147483647"
+    },
+    {
+      "bins": [
+        {
+          "name": "Ni_unsec_flux_DEPEND_1",
+          "centers": [
+            9.0,
+            11.0,
+            13.5,
+            18.0,
+            24.0,
+            30.0,
+            36.5,
+            46.0,
+            61.0
+          ],
+          "units": "MeV/nuc"
+        }
+      ],
+      "size": [
+        9
+      ],
+      "name": "Ni_unsec_cnts",
+      "description": "-->Unsectored Ni cnts",
+      "units": "cnts",
+      "type": "integer",
+      "fill": "-2147483647"
+    },
+    {
+      "bins": [
+        {
+          "name": "LookDirections_DEPEND_1",
+          "centers": [
+            11.2,
+            33.8,
+            56.2,
+            78.8,
+            101.0,
+            124.0,
+            146.0,
+            169.0,
+            191.0,
+            214.0,
+            236.0,
+            259.0,
+            281.0,
+            304.0,
+            326.0,
+            349.0
+          ],
+          "units": "Deg"
+        }
+      ],
+      "size": [
+        16
+      ],
+      "name": "H_Lo_sec_flux",
+      "description": "Sectored low energy H flux in particles/(cm^2*s*sr*MeV/nuc) in 16 look directions between 4 and 6 MeV/nuc",
+      "units": "#/(cm^2*s*sr*MeV/nuc)",
+      "type": "double",
+      "fill": "-1.0E31"
+    },
+    {
+      "bins": [
+        {
+          "name": "LookDirections_DEPEND_1",
+          "centers": [
+            11.2,
+            33.8,
+            56.2,
+            78.8,
+            101.0,
+            124.0,
+            146.0,
+            169.0,
+            191.0,
+            214.0,
+            236.0,
+            259.0,
+            281.0,
+            304.0,
+            326.0,
+            349.0
+          ],
+          "units": "Deg"
+        }
+      ],
+      "size": [
+        16
+      ],
+      "name": "He3_Lo_sec_flux",
+      "description": "-->[DO NOT USE] Sectored low energy He3 flux in particles/(cm^2*s*sr*MeV/nuc) in 16 look directions between 4 and 6 MeV/nuc (Valid before 2010-11-22)",
+      "units": "#/(cm^2*s*sr*MeV/nuc)",
+      "type": "double",
+      "fill": "-1.0E31"
+    },
+    {
+      "bins": [
+        {
+          "name": "LookDirections_DEPEND_1",
+          "centers": [
+            11.2,
+            33.8,
+            56.2,
+            78.8,
+            101.0,
+            124.0,
+            146.0,
+            169.0,
+            191.0,
+            214.0,
+            236.0,
+            259.0,
+            281.0,
+            304.0,
+            326.0,
+            349.0
+          ],
+          "units": "Deg"
+        }
+      ],
+      "size": [
+        16
+      ],
+      "name": "He4_Lo_sec_flux",
+      "description": "-->Sectored low energy He4 flux in particles/(cm^2*s*sr*MeV/nuc) in 16 look directions between 4 and 6 MeV/nuc",
+      "units": "#/(cm^2*s*sr*MeV/nuc)",
+      "type": "double",
+      "fill": "-1.0E31"
+    },
+    {
+      "bins": [
+        {
+          "name": "LookDirections_DEPEND_1",
+          "centers": [
+            11.2,
+            33.8,
+            56.2,
+            78.8,
+            101.0,
+            124.0,
+            146.0,
+            169.0,
+            191.0,
+            214.0,
+            236.0,
+            259.0,
+            281.0,
+            304.0,
+            326.0,
+            349.0
+          ],
+          "units": "Deg"
+        }
+      ],
+      "size": [
+        16
+      ],
+      "name": "He4_Hi_sec_flux",
+      "description": "-->Sectored high energy He4 flux in particles/(cm^2*s*sr*MeV/nuc) in 16 look directions between 6 and 12 MeV/nuc",
+      "units": "#/(cm^2*s*sr*MeV/nuc)",
+      "type": "double",
+      "fill": "-1.0E31"
+    },
+    {
+      "bins": [
+        {
+          "name": "LookDirections_DEPEND_1",
+          "centers": [
+            11.2,
+            33.8,
+            56.2,
+            78.8,
+            101.0,
+            124.0,
+            146.0,
+            169.0,
+            191.0,
+            214.0,
+            236.0,
+            259.0,
+            281.0,
+            304.0,
+            326.0,
+            349.0
+          ],
+          "units": "Deg"
+        }
+      ],
+      "size": [
+        16
+      ],
+      "name": "CNO_Lo_sec_flux",
+      "description": "-->Sectored low energy CNO flux in particles/(cm^2*s*sr*MeV/nuc) in 16 look directions between 4 and 6 MeV/nuc",
+      "units": "#/(cm^2*s*sr*MeV/nuc)",
+      "type": "double",
+      "fill": "-1.0E31"
+    },
+    {
+      "bins": [
+        {
+          "name": "LookDirections_DEPEND_1",
+          "centers": [
+            11.2,
+            33.8,
+            56.2,
+            78.8,
+            101.0,
+            124.0,
+            146.0,
+            169.0,
+            191.0,
+            214.0,
+            236.0,
+            259.0,
+            281.0,
+            304.0,
+            326.0,
+            349.0
+          ],
+          "units": "Deg"
+        }
+      ],
+      "size": [
+        16
+      ],
+      "name": "CNO_Hi_sec_flux",
+      "description": "-->Sectored high energy CNO flux in particles/(cm^2*s*sr*MeV/nuc) in 16 look directions between 6 and 12 MeV/nuc",
+      "units": "#/(cm^2*s*sr*MeV/nuc)",
+      "type": "double",
+      "fill": "-1.0E31"
+    },
+    {
+      "bins": [
+        {
+          "name": "LookDirections_DEPEND_1",
+          "centers": [
+            11.2,
+            33.8,
+            56.2,
+            78.8,
+            101.0,
+            124.0,
+            146.0,
+            169.0,
+            191.0,
+            214.0,
+            236.0,
+            259.0,
+            281.0,
+            304.0,
+            326.0,
+            349.0
+          ],
+          "units": "Deg"
+        }
+      ],
+      "size": [
+        16
+      ],
+      "name": "NeMgSi_Lo_sec_flux",
+      "description": "-->Sectored low energy NiMgSi flux in particles/(cm^2*s*sr*MeV/nuc) in 16 look directions between 4 and 6 MeV/nuc",
+      "units": "#/(cm^2*s*sr*MeV/nuc)",
+      "type": "double",
+      "fill": "-1.0E31"
+    },
+    {
+      "bins": [
+        {
+          "name": "LookDirections_DEPEND_1",
+          "centers": [
+            11.2,
+            33.8,
+            56.2,
+            78.8,
+            101.0,
+            124.0,
+            146.0,
+            169.0,
+            191.0,
+            214.0,
+            236.0,
+            259.0,
+            281.0,
+            304.0,
+            326.0,
+            349.0
+          ],
+          "units": "Deg"
+        }
+      ],
+      "size": [
+        16
+      ],
+      "name": "NeMgSi_Hi_sec_flux",
+      "description": "-->Sectored high energy NeMgSi flux in particles/(cm^2*s*sr*MeV/nuc) in 16 look directions between 6 and 12 MeV/nuc",
+      "units": "#/(cm^2*s*sr*MeV/nuc)",
+      "type": "double",
+      "fill": "-1.0E31"
+    },
+    {
+      "bins": [
+        {
+          "name": "LookDirections_DEPEND_1",
+          "centers": [
+            11.2,
+            33.8,
+            56.2,
+            78.8,
+            101.0,
+            124.0,
+            146.0,
+            169.0,
+            191.0,
+            214.0,
+            236.0,
+            259.0,
+            281.0,
+            304.0,
+            326.0,
+            349.0
+          ],
+          "units": "Deg"
+        }
+      ],
+      "size": [
+        16
+      ],
+      "name": "Fe_Lo_sec_flux",
+      "description": "-->Sectored low energy Fe flux in particles/(cm^2*s*sr*MeV/nuc) in 16 look directions between 4 and 6 MeV/nuc (Valid before 2010-11-22)",
+      "units": "#/(cm^2*s*sr*MeV/nuc)",
+      "type": "double",
+      "fill": "-1.0E31"
+    },
+    {
+      "bins": [
+        {
+          "name": "LookDirections_DEPEND_1",
+          "centers": [
+            11.2,
+            33.8,
+            56.2,
+            78.8,
+            101.0,
+            124.0,
+            146.0,
+            169.0,
+            191.0,
+            214.0,
+            236.0,
+            259.0,
+            281.0,
+            304.0,
+            326.0,
+            349.0
+          ],
+          "units": "Deg"
+        }
+      ],
+      "size": [
+        16
+      ],
+      "name": "Fe_Hi_sec_flux",
+      "description": "-->Sectored high energy Fe flux in particles/(cm^2*s*sr*MeV/nuc) in 16 look directions between 6 and 12 MeV/nuc (Valid before 2010-11-22)",
+      "units": "#/(cm^2*s*sr*MeV/nuc)",
+      "type": "double",
+      "fill": "-1.0E31"
+    },
+    {
+      "bins": [
+        {
+          "name": "LookDirections_DEPEND_1",
+          "centers": [
+            11.2,
+            33.8,
+            56.2,
+            78.8,
+            101.0,
+            124.0,
+            146.0,
+            169.0,
+            191.0,
+            214.0,
+            236.0,
+            259.0,
+            281.0,
+            304.0,
+            326.0,
+            349.0
+          ],
+          "units": "Deg"
+        }
+      ],
+      "size": [
+        16
+      ],
+      "name": "H_Lo_sec_cnts",
+      "description": "Sectored low energy H counts in 16 look directions from 4 to 6 MeV/nuc",
+      "units": "cnts",
+      "type": "integer",
+      "fill": "-2147483647"
+    },
+    {
+      "bins": [
+        {
+          "name": "LookDirections_DEPEND_1",
+          "centers": [
+            11.2,
+            33.8,
+            56.2,
+            78.8,
+            101.0,
+            124.0,
+            146.0,
+            169.0,
+            191.0,
+            214.0,
+            236.0,
+            259.0,
+            281.0,
+            304.0,
+            326.0,
+            349.0
+          ],
+          "units": "Deg"
+        }
+      ],
+      "size": [
+        16
+      ],
+      "name": "He3_Lo_sec_cnts",
+      "description": "-->[DO NOT USE] Sectored low energy He3 counts in 16 look directions  from 4 to 6 MeV/nuc (Valid before 2010-11-22)",
+      "units": "cnts",
+      "type": "integer",
+      "fill": "-2147483647"
+    },
+    {
+      "bins": [
+        {
+          "name": "LookDirections_DEPEND_1",
+          "centers": [
+            11.2,
+            33.8,
+            56.2,
+            78.8,
+            101.0,
+            124.0,
+            146.0,
+            169.0,
+            191.0,
+            214.0,
+            236.0,
+            259.0,
+            281.0,
+            304.0,
+            326.0,
+            349.0
+          ],
+          "units": "Deg"
+        }
+      ],
+      "size": [
+        16
+      ],
+      "name": "He4_Lo_sec_cnts",
+      "description": "-->Sectored low energy He4 counts in 16 look directions  from 4 to 6 MeV/nuc",
+      "units": "cnts",
+      "type": "integer",
+      "fill": "-2147483647"
+    },
+    {
+      "bins": [
+        {
+          "name": "LookDirections_DEPEND_1",
+          "centers": [
+            11.2,
+            33.8,
+            56.2,
+            78.8,
+            101.0,
+            124.0,
+            146.0,
+            169.0,
+            191.0,
+            214.0,
+            236.0,
+            259.0,
+            281.0,
+            304.0,
+            326.0,
+            349.0
+          ],
+          "units": "Deg"
+        }
+      ],
+      "size": [
+        16
+      ],
+      "name": "He4_Hi_sec_cnts",
+      "description": "-->Sectored high energy He4 counts in 16 look directions  from 6 to 12 MeV/nuc",
+      "units": "cnts",
+      "type": "integer",
+      "fill": "-2147483647"
+    },
+    {
+      "bins": [
+        {
+          "name": "LookDirections_DEPEND_1",
+          "centers": [
+            11.2,
+            33.8,
+            56.2,
+            78.8,
+            101.0,
+            124.0,
+            146.0,
+            169.0,
+            191.0,
+            214.0,
+            236.0,
+            259.0,
+            281.0,
+            304.0,
+            326.0,
+            349.0
+          ],
+          "units": "Deg"
+        }
+      ],
+      "size": [
+        16
+      ],
+      "name": "CNO_Lo_sec_cnts",
+      "description": "-->Sectored low energy CNO counts in 16 look directions  from 4 to 6 MeV/nuc",
+      "units": "cnts",
+      "type": "integer",
+      "fill": "-2147483647"
+    },
+    {
+      "bins": [
+        {
+          "name": "LookDirections_DEPEND_1",
+          "centers": [
+            11.2,
+            33.8,
+            56.2,
+            78.8,
+            101.0,
+            124.0,
+            146.0,
+            169.0,
+            191.0,
+            214.0,
+            236.0,
+            259.0,
+            281.0,
+            304.0,
+            326.0,
+            349.0
+          ],
+          "units": "Deg"
+        }
+      ],
+      "size": [
+        16
+      ],
+      "name": "CNO_Hi_sec_cnts",
+      "description": "-->Sectored high energy CNO counts in 16 look directions  from 6 to 12 MeV/nuc",
+      "units": "cnts",
+      "type": "integer",
+      "fill": "-2147483647"
+    },
+    {
+      "bins": [
+        {
+          "name": "LookDirections_DEPEND_1",
+          "centers": [
+            11.2,
+            33.8,
+            56.2,
+            78.8,
+            101.0,
+            124.0,
+            146.0,
+            169.0,
+            191.0,
+            214.0,
+            236.0,
+            259.0,
+            281.0,
+            304.0,
+            326.0,
+            349.0
+          ],
+          "units": "Deg"
+        }
+      ],
+      "size": [
+        16
+      ],
+      "name": "NeMgSi_Lo_sec_cnts",
+      "description": "-->Sectored low energy NeMgSi counts in 16 look directions  from 4 to 6 MeV/nuc",
+      "units": "cnts",
+      "type": "integer",
+      "fill": "-2147483647"
+    },
+    {
+      "bins": [
+        {
+          "name": "LookDirections_DEPEND_1",
+          "centers": [
+            11.2,
+            33.8,
+            56.2,
+            78.8,
+            101.0,
+            124.0,
+            146.0,
+            169.0,
+            191.0,
+            214.0,
+            236.0,
+            259.0,
+            281.0,
+            304.0,
+            326.0,
+            349.0
+          ],
+          "units": "Deg"
+        }
+      ],
+      "size": [
+        16
+      ],
+      "name": "NeMgSi_Hi_sec_cnts",
+      "description": "-->Sectored high energy NeMgSi counts in 16 look directions  from 6 to 12 MeV/nuc",
+      "units": "cnts",
+      "type": "integer",
+      "fill": "-2147483647"
+    },
+    {
+      "bins": [
+        {
+          "name": "LookDirections_DEPEND_1",
+          "centers": [
+            11.2,
+            33.8,
+            56.2,
+            78.8,
+            101.0,
+            124.0,
+            146.0,
+            169.0,
+            191.0,
+            214.0,
+            236.0,
+            259.0,
+            281.0,
+            304.0,
+            326.0,
+            349.0
+          ],
+          "units": "Deg"
+        }
+      ],
+      "size": [
+        16
+      ],
+      "name": "Fe_Lo_sec_cnts",
+      "description": "-->Sectored low energy Fe counts in 16 look directions  from 4 to 6 MeV/nuc (Valid before 2010-11-22)",
+      "units": "cnts",
+      "type": "integer",
+      "fill": "-2147483647"
+    },
+    {
+      "bins": [
+        {
+          "name": "LookDirections_DEPEND_1",
+          "centers": [
+            11.2,
+            33.8,
+            56.2,
+            78.8,
+            101.0,
+            124.0,
+            146.0,
+            169.0,
+            191.0,
+            214.0,
+            236.0,
+            259.0,
+            281.0,
+            304.0,
+            326.0,
+            349.0
+          ],
+          "units": "Deg"
+        }
+      ],
+      "size": [
+        16
+      ],
+      "name": "Fe_Hi_sec_cnts",
+      "description": "-->Sectored high energy Fe counts in 16 look directions  from 6 to 12 MeV/nuc (Valid before 2010-11-22)",
+      "units": "cnts",
+      "type": "integer",
+      "fill": "-2147483647"
+    },
+    {
+      "bins": [
+        {
+          "name": "LookDirections_DEPEND_1",
+          "centers": [
+            11.2,
+            33.8,
+            56.2,
+            78.8,
+            101.0,
+            124.0,
+            146.0,
+            169.0,
+            191.0,
+            214.0,
+            236.0,
+            259.0,
+            281.0,
+            304.0,
+            326.0,
+            349.0
+          ],
+          "units": "Deg"
+        }
+      ],
+      "size": [
+        16
+      ],
+      "name": "H_VLo_sec_flux",
+      "description": "-->Sectored very low energy H flux in particles/(cm^2*s*sr*MeV/nuc) in 16 look directions between 1.8 and 3.6 MeV/nuc (Valid after 2010-11-22)",
+      "units": "#/(cm^2*s*sr*MeV/nuc)",
+      "type": "double",
+      "fill": "-1.0E31"
+    },
+    {
+      "bins": [
+        {
+          "name": "LookDirections_DEPEND_1",
+          "centers": [
+            11.2,
+            33.8,
+            56.2,
+            78.8,
+            101.0,
+            124.0,
+            146.0,
+            169.0,
+            191.0,
+            214.0,
+            236.0,
+            259.0,
+            281.0,
+            304.0,
+            326.0,
+            349.0
+          ],
+          "units": "Deg"
+        }
+      ],
+      "size": [
+        16
+      ],
+      "name": "H_VLo_sec_cnts",
+      "description": "-->Sectored very low energy H counts in 16 look directions from 1,8 to 3.6 MeV/nuc (Valid after 2010-11-22)",
+      "units": "cnts",
+      "type": "integer",
+      "fill": "-2147483648"
+    },
+    {
+      "bins": [
+        {
+          "name": "LookDirections_DEPEND_1",
+          "centers": [
+            11.2,
+            33.8,
+            56.2,
+            78.8,
+            101.0,
+            124.0,
+            146.0,
+            169.0,
+            191.0,
+            214.0,
+            236.0,
+            259.0,
+            281.0,
+            304.0,
+            326.0,
+            349.0
+          ],
+          "units": "Deg"
+        }
+      ],
+      "size": [
+        16
+      ],
+      "name": "H_Hi_sec_flux",
+      "description": "-->Sectored high energy H flux in particles/(cm^2*s*sr*MeV/nuc) in 16 look directions between 6 and 10 MeV/nuc (Valid after 2010-11-22)",
+      "units": "#/(cm^2*s*sr*MeV/nuc)",
+      "type": "double",
+      "fill": "-1.0E31"
+    },
+    {
+      "bins": [
+        {
+          "name": "LookDirections_DEPEND_1",
+          "centers": [
+            11.2,
+            33.8,
+            56.2,
+            78.8,
+            101.0,
+            124.0,
+            146.0,
+            169.0,
+            191.0,
+            214.0,
+            236.0,
+            259.0,
+            281.0,
+            304.0,
+            326.0,
+            349.0
+          ],
+          "units": "Deg"
+        }
+      ],
+      "size": [
+        16
+      ],
+      "name": "H_Hi_sec_cnts",
+      "description": "-->Sectored high energy H counts in 16 look directions from 6 to 10 MeV/nuc (Valid after 2010-11-22)",
+      "units": "cnts",
+      "type": "integer",
+      "fill": "-2147483648"
+    },
+    {
+      "bins": [
+        {
+          "name": "LookDirections_DEPEND_1",
+          "centers": [
+            11.2,
+            33.8,
+            56.2,
+            78.8,
+            101.0,
+            124.0,
+            146.0,
+            169.0,
+            191.0,
+            214.0,
+            236.0,
+            259.0,
+            281.0,
+            304.0,
+            326.0,
+            349.0
+          ],
+          "units": "Deg"
+        }
+      ],
+      "size": [
+        16
+      ],
+      "name": "Fe_Wide_sec_flux",
+      "description": "-->Sectored wide energy Fe flux in particles/(cm^2*s*sr*MeV/nuc) in 16 look directions between 4 and 12 MeV/nuc (Valid after 2010-11-22)",
+      "units": "#/(cm^2*s*sr*MeV/nuc)",
+      "type": "double",
+      "fill": "-1.0E31"
+    },
+    {
+      "bins": [
+        {
+          "name": "LookDirections_DEPEND_1",
+          "centers": [
+            11.2,
+            33.8,
+            56.2,
+            78.8,
+            101.0,
+            124.0,
+            146.0,
+            169.0,
+            191.0,
+            214.0,
+            236.0,
+            259.0,
+            281.0,
+            304.0,
+            326.0,
+            349.0
+          ],
+          "units": "Deg"
+        }
+      ],
+      "size": [
+        16
+      ],
+      "name": "Fe_Wide_sec_cnts",
+      "description": "-->Sectored wide energy Fe counts in 16 look directions between 4 and 12 MeV/nuc (Valid after 2010-11-22)",
+      "units": "cnts",
+      "type": "integer",
+      "fill": "-2147483648"
+    },
+    {
+      "bins": [
+        {
+          "name": "He3He_unsec_flux_DEPEND_1",
+          "centers": [
+            2.45,
+            2.95,
+            3.4,
+            3.8,
+            4.25,
+            4.75,
+            5.5,
+            7.0,
+            9.0,
+            11.0,
+            13.5
+          ],
+          "units": "MeV/nuc"
+        }
+      ],
+      "size": [
+        11
+      ],
+      "name": "He_unsec_flux",
+      "description": "Elemental Helium unsectored flux",
+      "units": "#/(cm^2*s*sr*Mev/nucleon)",
+      "type": "double",
+      "fill": "-1.0E31"
+    },
+    {
+      "bins": [
+        {
+          "name": "He3He_unsec_flux_DEPEND_1",
+          "centers": [
+            2.45,
+            2.95,
+            3.4,
+            3.8,
+            4.25,
+            4.75,
+            5.5,
+            7.0,
+            9.0,
+            11.0,
+            13.5
+          ],
+          "units": "MeV/nuc"
+        }
+      ],
+      "size": [
+        11
+      ],
+      "name": "He_unsec_cnts",
+      "description": "-->Elemental Helium unsectored counts",
+      "units": "cnts",
+      "type": "integer",
+      "fill": "-2147483647"
+    },
+    {
+      "bins": [
+        {
+          "name": "LookDirections_DEPEND_1",
+          "centers": [
+            11.2,
+            33.8,
+            56.2,
+            78.8,
+            101.0,
+            124.0,
+            146.0,
+            169.0,
+            191.0,
+            214.0,
+            236.0,
+            259.0,
+            281.0,
+            304.0,
+            326.0,
+            349.0
+          ],
+          "units": "Deg"
+        }
+      ],
+      "size": [
+        16
+      ],
+      "name": "He_Lo_sec_flux",
+      "description": "Elemental Helium low energy sectored flux  in 16 look directions  from 4 to 6 MeV/nuc (Valid before 2010-11-22)",
+      "units": "#/(cm^2*s*sr*MeV/nuc)",
+      "type": "double",
+      "fill": "-1.0E31"
+    },
+    {
+      "bins": [
+        {
+          "name": "LookDirections_DEPEND_1",
+          "centers": [
+            11.2,
+            33.8,
+            56.2,
+            78.8,
+            101.0,
+            124.0,
+            146.0,
+            169.0,
+            191.0,
+            214.0,
+            236.0,
+            259.0,
+            281.0,
+            304.0,
+            326.0,
+            349.0
+          ],
+          "units": "Deg"
+        }
+      ],
+      "size": [
+        16
+      ],
+      "name": "He_Lo_sec_cnts",
+      "description": "-->Elemental Helium low energy sectored counts  in 16 look directions  from 4 to 6 MeV/nuc (Valid before 2010-11-22)",
+      "units": "cnts",
+      "type": "integer",
+      "fill": "-2147483647"
+    },
+    {
+      "bins": [
+        {
+          "name": "HHe4_summed_flux_DEPEND_1",
+          "centers": [
+            2.7,
+            5.0,
+            8.0,
+            12.5
+          ],
+          "units": "MeV/nuc"
+        }
+      ],
+      "size": [
+        4
+      ],
+      "name": "H_summed_flux",
+      "description": "H (proton) unsectored flux in 4 energy bins (as a time series overlay)",
+      "units": "#/(cm^2*s*sr*Mev/nucleon)",
+      "type": "double",
+      "fill": "-1.0E31"
+    },
+    {
+      "bins": [
+        {
+          "name": "He3He_summed_flux_DEPEND_1",
+          "centers": [
+            5.0,
+            8.0,
+            12.5
+          ],
+          "units": "MeV/nuc"
+        }
+      ],
+      "size": [
+        3
+      ],
+      "name": "He3_summed_flux",
+      "description": "-->[DO NOT USE] He3 unsectored flux in 3 energy bins",
+      "units": "#/(cm^2*s*sr*Mev/nucleon)",
+      "type": "double",
+      "fill": "-1.0E31"
+    },
+    {
+      "bins": [
+        {
+          "name": "HHe4_summed_flux_DEPEND_1",
+          "centers": [
+            2.7,
+            5.0,
+            8.0,
+            12.5
+          ],
+          "units": "MeV/nuc"
+        }
+      ],
+      "size": [
+        4
+      ],
+      "name": "He4_summed_flux",
+      "description": "-->He4 unsectored flux in 4 energy bins",
+      "units": "#/(cm^2*s*sr*Mev/nucleon)",
+      "type": "double",
+      "fill": "-1.0E31"
+    },
+    {
+      "bins": [
+        {
+          "name": "He3He_summed_flux_DEPEND_1",
+          "centers": [
+            5.0,
+            8.0,
+            12.5
+          ],
+          "units": "MeV/nuc"
+        }
+      ],
+      "size": [
+        3
+      ],
+      "name": "He_summed_flux",
+      "description": "-->Elemental Helium unsectored flux in 3 energy bins",
+      "units": "#/(cm^2*s*sr*Mev/nucleon)",
+      "type": "double",
+      "fill": "-1.0E31"
+    },
+    {
+      "bins": [
+        {
+          "name": "CNONeMg_summed_flux_DEPEND_1",
+          "centers": [
+            5.0,
+            8.0,
+            12.5,
+            21.0
+          ],
+          "units": "MeV/nuc"
+        }
+      ],
+      "size": [
+        4
+      ],
+      "name": "C_summed_flux",
+      "description": "-->C unsectored flux in 4 energy bins",
+      "units": "#/(cm^2*s*sr*Mev/nucleon)",
+      "type": "double",
+      "fill": "-1.0E31"
+    },
+    {
+      "bins": [
+        {
+          "name": "CNONeMg_summed_flux_DEPEND_1",
+          "centers": [
+            5.0,
+            8.0,
+            12.5,
+            21.0
+          ],
+          "units": "MeV/nuc"
+        }
+      ],
+      "size": [
+        4
+      ],
+      "name": "N_summed_flux",
+      "description": "-->N unsectored flux in 4 energy bins",
+      "units": "#/(cm^2*s*sr*Mev/nucleon)",
+      "type": "double",
+      "fill": "-1.0E31"
+    },
+    {
+      "bins": [
+        {
+          "name": "CNONeMg_summed_flux_DEPEND_1",
+          "centers": [
+            5.0,
+            8.0,
+            12.5,
+            21.0
+          ],
+          "units": "MeV/nuc"
+        }
+      ],
+      "size": [
+        4
+      ],
+      "name": "O_summed_flux",
+      "description": "-->O unsectored flux in 4 energy bins",
+      "units": "#/(cm^2*s*sr*Mev/nucleon)",
+      "type": "double",
+      "fill": "-1.0E31"
+    },
+    {
+      "bins": [
+        {
+          "name": "CNONeMg_summed_flux_DEPEND_1",
+          "centers": [
+            5.0,
+            8.0,
+            12.5,
+            21.0
+          ],
+          "units": "MeV/nuc"
+        }
+      ],
+      "size": [
+        4
+      ],
+      "name": "Ne_summed_flux",
+      "description": "-->Ne unsectored flux in 4 energy bins",
+      "units": "#/(cm^2*s*sr*Mev/nucleon)",
+      "type": "double",
+      "fill": "-1.0E31"
+    },
+    {
+      "bins": [
+        {
+          "name": "Na_summed_flux_DEPEND_1",
+          "centers": [
+            12.5,
+            21.0
+          ],
+          "units": "MeV/nuc"
+        }
+      ],
+      "size": [
+        2
+      ],
+      "name": "Na_summed_flux",
+      "description": "-->Na unsectored flux in 2 energy bins",
+      "units": "#/(cm^2*s*sr*Mev/nucleon)",
+      "type": "double",
+      "fill": "-1.0E31"
+    },
+    {
+      "bins": [
+        {
+          "name": "CNONeMg_summed_flux_DEPEND_1",
+          "centers": [
+            5.0,
+            8.0,
+            12.5,
+            21.0
+          ],
+          "units": "MeV/nuc"
+        }
+      ],
+      "size": [
+        4
+      ],
+      "name": "Mg_summed_flux",
+      "description": "-->Mg unsectored flux in 4 energy bins",
+      "units": "#/(cm^2*s*sr*Mev/nucleon)",
+      "type": "double",
+      "fill": "-1.0E31"
+    },
+    {
+      "bins": [
+        {
+          "name": "Al_summed_flux_DEPEND_1",
+          "centers": [
+            8.0,
+            12.5,
+            21.0
+          ],
+          "units": "MeV/nuc"
+        }
+      ],
+      "size": [
+        3
+      ],
+      "name": "Al_summed_flux",
+      "description": "-->Al unsectored flux in 3 energy bins",
+      "units": "#/(cm^2*s*sr*Mev/nucleon)",
+      "type": "double",
+      "fill": "-1.0E31"
+    },
+    {
+      "bins": [
+        {
+          "name": "SiSArCaFe_summed_flux_DEPEND_1",
+          "centers": [
+            5.0,
+            8.0,
+            12.5,
+            21.0,
+            33.5
+          ],
+          "units": "MeV/nuc"
+        }
+      ],
+      "size": [
+        5
+      ],
+      "name": "Si_summed_flux",
+      "description": "-->Si unsectored flux in 5 energy bins",
+      "units": "#/(cm^2*s*sr*Mev/nucleon)",
+      "type": "double",
+      "fill": "-1.0E31"
+    },
+    {
+      "bins": [
+        {
+          "name": "SiSArCaFe_summed_flux_DEPEND_1",
+          "centers": [
+            5.0,
+            8.0,
+            12.5,
+            21.0,
+            33.5
+          ],
+          "units": "MeV/nuc"
+        }
+      ],
+      "size": [
+        5
+      ],
+      "name": "S_summed_flux",
+      "description": "-->S unsectored flux in 5 energy bins",
+      "units": "#/(cm^2*s*sr*Mev/nucleon)",
+      "type": "double",
+      "fill": "-1.0E31"
+    },
+    {
+      "bins": [
+        {
+          "name": "SiSArCaFe_summed_flux_DEPEND_1",
+          "centers": [
+            5.0,
+            8.0,
+            12.5,
+            21.0,
+            33.5
+          ],
+          "units": "MeV/nuc"
+        }
+      ],
+      "size": [
+        5
+      ],
+      "name": "Ar_summed_flux",
+      "description": "-->Ar unsectored flux in 5 energy bins",
+      "units": "#/(cm^2*s*sr*Mev/nucleon)",
+      "type": "double",
+      "fill": "-1.0E31"
+    },
+    {
+      "bins": [
+        {
+          "name": "SiSArCaFe_summed_flux_DEPEND_1",
+          "centers": [
+            5.0,
+            8.0,
+            12.5,
+            21.0,
+            33.5
+          ],
+          "units": "MeV/nuc"
+        }
+      ],
+      "size": [
+        5
+      ],
+      "name": "Ca_summed_flux",
+      "description": "-->Ca unsectored flux in 5 energy bins",
+      "units": "#/(cm^2*s*sr*Mev/nucleon)",
+      "type": "double",
+      "fill": "-1.0E31"
+    },
+    {
+      "bins": [
+        {
+          "name": "SiSArCaFe_summed_flux_DEPEND_1",
+          "centers": [
+            5.0,
+            8.0,
+            12.5,
+            21.0,
+            33.5
+          ],
+          "units": "MeV/nuc"
+        }
+      ],
+      "size": [
+        5
+      ],
+      "name": "Fe_summed_flux",
+      "description": "-->Fe unsectored flux in 5 energy bins",
+      "units": "#/(cm^2*s*sr*Mev/nucleon)",
+      "type": "double",
+      "fill": "-1.0E31"
+    },
+    {
+      "bins": [
+        {
+          "name": "Ni_summed_flux_DEPEND_1",
+          "centers": [
+            12.5,
+            21.0,
+            33.5
+          ],
+          "units": "MeV/nuc"
+        }
+      ],
+      "size": [
+        3
+      ],
+      "name": "Ni_summed_flux",
+      "description": "-->Ni unsectored flux in 3 energy bins",
+      "units": "#/(cm^2*s*sr*Mev/nucleon)",
+      "type": "double",
+      "fill": "-1.0E31"
+    },
+    {
+      "bins": [
+        {
+          "name": "HHe4_summed_flux_DEPEND_1",
+          "centers": [
+            2.7,
+            5.0,
+            8.0,
+            12.5
+          ],
+          "units": "MeV/nuc"
+        }
+      ],
+      "size": [
+        4
+      ],
+      "name": "H_summed_cnts",
+      "description": "H (proton) unsectored counts in 4 energy bins",
+      "units": "cnts",
+      "type": "integer",
+      "fill": "-2147483647"
+    },
+    {
+      "bins": [
+        {
+          "name": "He3He_summed_flux_DEPEND_1",
+          "centers": [
+            5.0,
+            8.0,
+            12.5
+          ],
+          "units": "MeV/nuc"
+        }
+      ],
+      "size": [
+        3
+      ],
+      "name": "He3_summed_cnts",
+      "description": "-->[DO NOT USE] He3 unsectored counts in 3 energy bins",
+      "units": "cnts",
+      "type": "integer",
+      "fill": "-2147483647"
+    },
+    {
+      "bins": [
+        {
+          "name": "HHe4_summed_flux_DEPEND_1",
+          "centers": [
+            2.7,
+            5.0,
+            8.0,
+            12.5
+          ],
+          "units": "MeV/nuc"
+        }
+      ],
+      "size": [
+        4
+      ],
+      "name": "He4_summed_cnts",
+      "description": "-->He4 unsectored counts in 4 energy bins",
+      "units": "cnts",
+      "type": "integer",
+      "fill": "-2147483647"
+    },
+    {
+      "bins": [
+        {
+          "name": "He3He_summed_flux_DEPEND_1",
+          "centers": [
+            5.0,
+            8.0,
+            12.5
+          ],
+          "units": "MeV/nuc"
+        }
+      ],
+      "size": [
+        3
+      ],
+      "name": "He_summed_cnts",
+      "description": "-->He unsectored counts in 3 energy bins",
+      "units": "cnts",
+      "type": "integer",
+      "fill": "-2147483647"
+    },
+    {
+      "bins": [
+        {
+          "name": "CNONeMg_summed_flux_DEPEND_1",
+          "centers": [
+            5.0,
+            8.0,
+            12.5,
+            21.0
+          ],
+          "units": "MeV/nuc"
+        }
+      ],
+      "size": [
+        4
+      ],
+      "name": "C_summed_cnts",
+      "description": "-->C unsectored counts in 4 energy bins",
+      "units": "cnts",
+      "type": "integer",
+      "fill": "-2147483647"
+    },
+    {
+      "bins": [
+        {
+          "name": "CNONeMg_summed_flux_DEPEND_1",
+          "centers": [
+            5.0,
+            8.0,
+            12.5,
+            21.0
+          ],
+          "units": "MeV/nuc"
+        }
+      ],
+      "size": [
+        4
+      ],
+      "name": "N_summed_cnts",
+      "description": "-->N unsectored counts in 4 energy bins",
+      "units": "cnts",
+      "type": "integer",
+      "fill": "-2147483647"
+    },
+    {
+      "bins": [
+        {
+          "name": "CNONeMg_summed_flux_DEPEND_1",
+          "centers": [
+            5.0,
+            8.0,
+            12.5,
+            21.0
+          ],
+          "units": "MeV/nuc"
+        }
+      ],
+      "size": [
+        4
+      ],
+      "name": "O_summed_cnts",
+      "description": "-->O unsectored counts in 4 energy bins",
+      "units": "cnts",
+      "type": "integer",
+      "fill": "-2147483647"
+    },
+    {
+      "bins": [
+        {
+          "name": "CNONeMg_summed_flux_DEPEND_1",
+          "centers": [
+            5.0,
+            8.0,
+            12.5,
+            21.0
+          ],
+          "units": "MeV/nuc"
+        }
+      ],
+      "size": [
+        4
+      ],
+      "name": "Ne_summed_cnts",
+      "description": "-->Ne unsectored counts in 4 energy bins",
+      "units": "cnts",
+      "type": "integer",
+      "fill": "-2147483647"
+    },
+    {
+      "bins": [
+        {
+          "name": "Na_summed_flux_DEPEND_1",
+          "centers": [
+            12.5,
+            21.0
+          ],
+          "units": "MeV/nuc"
+        }
+      ],
+      "size": [
+        2
+      ],
+      "name": "Na_summed_cnts",
+      "description": "-->Na unsectored counts in 2 energy bins",
+      "units": "cnts",
+      "type": "integer",
+      "fill": "-2147483647"
+    },
+    {
+      "bins": [
+        {
+          "name": "CNONeMg_summed_flux_DEPEND_1",
+          "centers": [
+            5.0,
+            8.0,
+            12.5,
+            21.0
+          ],
+          "units": "MeV/nuc"
+        }
+      ],
+      "size": [
+        4
+      ],
+      "name": "Mg_summed_cnts",
+      "description": "-->Mg unsectored counts in 4 energy bins",
+      "units": "cnts",
+      "type": "integer",
+      "fill": "-2147483647"
+    },
+    {
+      "bins": [
+        {
+          "name": "Al_summed_flux_DEPEND_1",
+          "centers": [
+            8.0,
+            12.5,
+            21.0
+          ],
+          "units": "MeV/nuc"
+        }
+      ],
+      "size": [
+        3
+      ],
+      "name": "Al_summed_cnts",
+      "description": "-->Al unsectored counts in 3 energy bins",
+      "units": "cnts",
+      "type": "integer",
+      "fill": "-2147483647"
+    },
+    {
+      "bins": [
+        {
+          "name": "SiSArCaFe_summed_flux_DEPEND_1",
+          "centers": [
+            5.0,
+            8.0,
+            12.5,
+            21.0,
+            33.5
+          ],
+          "units": "MeV/nuc"
+        }
+      ],
+      "size": [
+        5
+      ],
+      "name": "Si_summed_cnts",
+      "description": "-->Si unsectored counts in 5 energy bins",
+      "units": "cnts",
+      "type": "integer",
+      "fill": "-2147483647"
+    },
+    {
+      "bins": [
+        {
+          "name": "SiSArCaFe_summed_flux_DEPEND_1",
+          "centers": [
+            5.0,
+            8.0,
+            12.5,
+            21.0,
+            33.5
+          ],
+          "units": "MeV/nuc"
+        }
+      ],
+      "size": [
+        5
+      ],
+      "name": "S_summed_cnts",
+      "description": "-->S unsectored counts in 5 energy bins",
+      "units": "cnts",
+      "type": "integer",
+      "fill": "-2147483647"
+    },
+    {
+      "bins": [
+        {
+          "name": "SiSArCaFe_summed_flux_DEPEND_1",
+          "centers": [
+            5.0,
+            8.0,
+            12.5,
+            21.0,
+            33.5
+          ],
+          "units": "MeV/nuc"
+        }
+      ],
+      "size": [
+        5
+      ],
+      "name": "Ar_summed_cnts",
+      "description": "-->Ar unsectored counts in 5 energy bins",
+      "units": "cnts",
+      "type": "integer",
+      "fill": "-2147483647"
+    },
+    {
+      "bins": [
+        {
+          "name": "SiSArCaFe_summed_flux_DEPEND_1",
+          "centers": [
+            5.0,
+            8.0,
+            12.5,
+            21.0,
+            33.5
+          ],
+          "units": "MeV/nuc"
+        }
+      ],
+      "size": [
+        5
+      ],
+      "name": "Ca_summed_cnts",
+      "description": "-->Ca unsectored counts in 5 energy bins",
+      "units": "cnts",
+      "type": "integer",
+      "fill": "-2147483647"
+    },
+    {
+      "bins": [
+        {
+          "name": "SiSArCaFe_summed_flux_DEPEND_1",
+          "centers": [
+            5.0,
+            8.0,
+            12.5,
+            21.0,
+            33.5
+          ],
+          "units": "MeV/nuc"
+        }
+      ],
+      "size": [
+        5
+      ],
+      "name": "Fe_summed_cnts",
+      "description": "-->Fe unsectored counts in 5 energy bins",
+      "units": "cnts",
+      "type": "integer",
+      "fill": "-2147483647"
+    },
+    {
+      "bins": [
+        {
+          "name": "Ni_summed_flux_DEPEND_1",
+          "centers": [
+            12.5,
+            21.0,
+            33.5
+          ],
+          "units": "MeV/nuc"
+        }
+      ],
+      "size": [
+        3
+      ],
+      "name": "Ni_summed_cnts",
+      "description": "-->Ni unsectored counts in 3 energy bins",
+      "units": "cnts",
+      "type": "integer",
+      "fill": "-2147483647"
+    }
+  ],
+  "startDate": "2006-11-14T17:52:05Z",
+  "stopDate": "2025-11-30T23:58:36Z",
+  "status": {
+    "code": 1200,
+    "message": "OK"
+  }
+}

@@ -1,0 +1,134 @@
+{
+  "HAPI": "2.0",
+  "resourceURL": "https://cdaweb.gsfc.nasa.gov/misc/NotesM.html#MMS1_FPI_FAST_L2_DIS-PARTMOMS",
+  "contact": "J. Burch, B. Giles @ SwRI, GSFC",
+  "parameters": [
+    {
+      "name": "Time",
+      "length": 30,
+      "units": "UTC",
+      "type": "isotime",
+      "fill": null
+    },
+    {
+      "name": "mms1_dis_errorflags_fast",
+      "description": "MMS1 FPI/DIS vector of data-quality indicators at survey-start time",
+      "units": "32-bit error flags",
+      "type": "double",
+      "fill": "4.294967295E9"
+    },
+    {
+      "size": [
+        32
+      ],
+      "name": "mms1_dis_numberdensity_part_fast",
+      "description": "MMS1 FPI/DIS partial ion number density during this survey",
+      "units": "cm^-3",
+      "type": "double",
+      "fill": "-1.0E31"
+    },
+    {
+      "size": [
+        32,
+        3
+      ],
+      "name": "mms1_dis_bulkv_part_dbcs_fast",
+      "description": "MMS1 FPI/DIS partial ion bulk-velocity vector in DBCS during this survey",
+      "units": "km/s",
+      "type": "double",
+      "fill": "-1.0E31"
+    },
+    {
+      "size": [
+        32,
+        3
+      ],
+      "name": "mms1_dis_bulkv_part_gse_fast",
+      "description": "MMS1 FPI/DIS partial ion bulk-velocity vector in GSE during this survey",
+      "units": "km/s",
+      "type": "double",
+      "fill": "-1.0E31"
+    },
+    {
+      "size": [
+        32,
+        3,
+        3
+      ],
+      "name": "mms1_dis_prestensor_part_dbcs_fast",
+      "description": "MMS1 FPI/DIS partial ion pressure tensor in DBCS during this survey",
+      "units": "nPa",
+      "type": "double",
+      "fill": "-1.0E31"
+    },
+    {
+      "size": [
+        32,
+        3,
+        3
+      ],
+      "name": "mms1_dis_prestensor_part_gse_fast",
+      "description": "MMS1 FPI/DIS partial ion pressure tensor in GSE during this survey",
+      "units": "nPa",
+      "type": "double",
+      "fill": "-1.0E31"
+    },
+    {
+      "size": [
+        32,
+        3,
+        3
+      ],
+      "name": "mms1_dis_temptensor_part_dbcs_fast",
+      "description": "MMS1 FPI/DIS partial ion temperature tensor in DBCS during this survey",
+      "units": "eV",
+      "type": "double",
+      "fill": "-1.0E31"
+    },
+    {
+      "size": [
+        32,
+        3,
+        3
+      ],
+      "name": "mms1_dis_temptensor_part_gse_fast",
+      "description": "MMS1 FPI/DIS partial ion temperature tensor in GSE during this survey",
+      "units": "eV",
+      "type": "double",
+      "fill": "-1.0E31"
+    },
+    {
+      "size": [
+        32
+      ],
+      "name": "mms1_dis_temppara_part_fast",
+      "description": "MMS1 FPI/DIS partial ion parallel temperature during this survey",
+      "units": "eV",
+      "type": "double",
+      "fill": "-1.0E31"
+    },
+    {
+      "size": [
+        32
+      ],
+      "name": "mms1_dis_tempperp_part_fast",
+      "description": "MMS1 FPI/DIS partial ion perpendicular temperature during this survey",
+      "units": "eV",
+      "type": "double",
+      "fill": "-1.0E31"
+    },
+    {
+      "name": "mms1_dis_part_index_fast",
+      "description": "MMS1 FPI/DIS recommended energy index during this survey",
+      "units": "0-31",
+      "type": "integer",
+      "fill": "65535"
+    }
+  ],
+  "startDate": "2015-09-01T00:00:01Z",
+  "stopDate": "2021-06-19T23:59:56Z",
+  "status": {
+    "code": 1200,
+    "message": "OK"
+  }
+}

@@ -1,0 +1,145 @@
+{
+  "HAPI": "2.0",
+  "resourceURL": "https://cdaweb.gsfc.nasa.gov/misc/NotesW.html#WI_H0_MFI",
+  "contact": "A. Koval @ UMBC, NASA/GSFC",
+  "parameters": [
+    {
+      "name": "Time",
+      "length": 24,
+      "units": "UTC",
+      "type": "isotime",
+      "fill": null
+    },
+    {
+      "name": "B1F1",
+      "description": "Magnetic field magnitude (1 hour)",
+      "units": "nT (1hr)",
+      "type": "double",
+      "fill": "-1.0E31"
+    },
+    {
+      "name": "B1F1LOG",
+      "description": "Magnetic field magnitude (1 hour - log scaled)",
+      "units": "nT (1hr)",
+      "type": "double",
+      "fill": "-1.0E31"
+    },
+    {
+      "name": "B1RMSF1",
+      "description": "RMS magnitude (1 hour)",
+      "units": "nT (1hr)",
+      "type": "double",
+      "fill": "-1.0E31"
+    },
+    {
+      "size": [
+        3
+      ],
+      "name": "B1GSM",
+      "description": "Magnetic field vector in GSM cartesian coordinates (1 hour)",
+      "units": "nT (1hr)",
+      "type": "double",
+      "fill": "-1.0E31"
+    },
+    {
+      "size": [
+        3
+      ],
+      "name": "B1RMSGSM",
+      "description": "RMS vector in GSM coordinates (1 hour)",
+      "units": "nT (1hr)",
+      "type": "double",
+      "fill": "-1.0E31"
+    },
+    {
+      "size": [
+        3
+      ],
+      "name": "B1GSE",
+      "description": "Magnetic field vector in GSE cartesian coordinates (1 hour)",
+      "units": "nT (1hr)",
+      "type": "double",
+      "fill": "-1.0E31"
+    },
+    {
+      "size": [
+        3
+      ],
+      "name": "B1GSEa",
+      "description": "Magnetic field vector in GSE angular coordinates (1 hour)",
+      "units": null,
+      "type": "double",
+      "fill": "-1.0E31"
+    },
+    {
+      "size": [
+        3
+      ],
+      "name": "B1RMSGSE",
+      "description": "RMS vector in GSE coordinates (1 hour)",
+      "units": "nT (1hr)",
+      "type": "double",
+      "fill": "-1.0E31"
+    },
+    {
+      "name": "DIST1",
+      "description": "Distance from the center of the earth (Define Re = 6378km) (1 hour)",
+      "units": "Re (1hr)",
+      "type": "double",
+      "fill": "-1.0E31"
+    },
+    {
+      "size": [
+        3
+      ],
+      "name": "P1GSM",
+      "description": "Position vector in GSM coordinates (Define Re = 6378km) (1 hour)",
+      "units": "Re (1hr)",
+      "type": "double",
+      "fill": "-1.0E31"
+    },
+    {
+      "size": [
+        3
+      ],
+      "name": "P1GSE",
+      "description": "Position vector in GSE coordinates (Define Re = 6378km) (1 hour)",
+      "units": "Re (1hr)",
+      "type": "double",
+      "fill": "-1.0E31"
+    },
+    {
+      "name": "DIST1V",
+      "description": "Time axis label: Distance from the center of the earth (Define Re = 6378km) (1 hour)",
+      "units": "Re (1hr)",
+      "type": "double",
+      "fill": "-1.0E31"
+    },
+    {
+      "size": [
+        3
+      ],
+      "name": "P1GSMV",
+      "description": "Time axis label: Position vector in GSM coordinates (Define Re = 6378km) (1 hour)",
+      "units": "Re (1hr)",
+      "type": "double",
+      "fill": "-1.0E31"
+    },
+    {
+      "size": [
+        3
+      ],
+      "name": "P1GSEV",
+      "description": "Time axis label: Position vector in GSE coordinates (Define Re = 6378km) (1 hour)",
+      "units": "Re (1hr)",
+      "type": "double",
+      "fill": "-1.0E31"
+    }
+  ],
+  "startDate": "1994-11-13T00:00:30Z",
+  "stopDate": "2026-01-30T23:59:30Z",
+  "status": {
+    "code": 1200,
+    "message": "OK"
+  }
+}

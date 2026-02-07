@@ -1,0 +1,670 @@
+{
+  "HAPI": "2.0",
+  "resourceURL": "https://cdaweb.gsfc.nasa.gov/misc/NotesP.html#PSP_ISOIS-EPIHI_L2-SECOND-RATES",
+  "contact": "David McComas @ Princeton University",
+  "parameters": [
+    {
+      "name": "Time",
+      "length": 30,
+      "units": "UTC",
+      "type": "isotime",
+      "fill": null
+    },
+    {
+      "bins": [
+        {
+          "name": "LET_Electrons_ENERGY",
+          "centers": [
+            0.8,
+            1.4
+          ],
+          "units": "MeV"
+        }
+      ],
+      "size": [
+        2
+      ],
+      "name": "LET1_A_Electrons_Rate",
+      "description": "Electrons rate LET1 A",
+      "units": "counts s!E-1!N",
+      "type": "double",
+      "fill": "-1.0E31"
+    },
+    {
+      "bins": [
+        {
+          "name": "LET_Electrons_ENERGY",
+          "centers": [
+            0.8,
+            1.4
+          ],
+          "units": "MeV"
+        }
+      ],
+      "size": [
+        2
+      ],
+      "name": "LET2_C_Electrons",
+      "description": "LET2 C-side electron rates",
+      "units": "counts",
+      "type": "integer",
+      "fill": "-2147483648"
+    },
+    {
+      "bins": [
+        {
+          "name": "LET_H_ENERGY",
+          "centers": [
+            1.5,
+            3.7,
+            9.5
+          ],
+          "units": "MeV"
+        }
+      ],
+      "size": [
+        3
+      ],
+      "name": "LET1_B_H_Rate",
+      "description": "H rate LET1 B",
+      "units": "counts s!E-1!N",
+      "type": "double",
+      "fill": "-1.0E31"
+    },
+    {
+      "size": [
+        3
+      ],
+      "name": "HET_B_RTN",
+      "description": "RTN flow direction HETB",
+      "units": " ",
+      "type": "double",
+      "fill": "-1.0E31"
+    },
+    {
+      "size": [
+        3
+      ],
+      "name": "HET_A_HCI",
+      "description": "HCI flow direction HETA",
+      "units": " ",
+      "type": "double",
+      "fill": "-1.0E31"
+    },
+    {
+      "bins": [
+        {
+          "name": "LET_Electrons_ENERGY",
+          "centers": [
+            0.8,
+            1.4
+          ],
+          "units": "MeV"
+        }
+      ],
+      "size": [
+        2
+      ],
+      "name": "LET1_A_Electrons",
+      "description": "LET1 A-side electron rates",
+      "units": "counts",
+      "type": "integer",
+      "fill": "-2147483648"
+    },
+    {
+      "name": "HCI_R",
+      "description": "Heliocentric distance",
+      "units": "AU",
+      "type": "double",
+      "fill": "-1.0E31"
+    },
+    {
+      "bins": [
+        {
+          "name": "LET_Electrons_ENERGY",
+          "centers": [
+            0.8,
+            1.4
+          ],
+          "units": "MeV"
+        }
+      ],
+      "size": [
+        2
+      ],
+      "name": "LET1_B_Electrons",
+      "description": "LET1 B-side electron rates",
+      "units": "counts",
+      "type": "integer",
+      "fill": "-2147483648"
+    },
+    {
+      "bins": [
+        {
+          "name": "LET_H_ENERGY",
+          "centers": [
+            1.5,
+            3.7,
+            9.5
+          ],
+          "units": "MeV"
+        }
+      ],
+      "size": [
+        3
+      ],
+      "name": "LET1_B_H",
+      "description": "LET1 B-side hydrogen rates",
+      "units": "counts",
+      "type": "integer",
+      "fill": "-2147483648"
+    },
+    {
+      "bins": [
+        {
+          "name": "HET_H_ENERGY",
+          "centers": [
+            12.3,
+            22.6
+          ],
+          "units": "MeV"
+        }
+      ],
+      "size": [
+        2
+      ],
+      "name": "HET_B_H_Rate",
+      "description": "H rate HET B",
+      "units": "counts s!E-1!N",
+      "type": "double",
+      "fill": "-1.0E31"
+    },
+    {
+      "size": [
+        3
+      ],
+      "name": "LET1_A_HCI",
+      "description": "HCI flow direction LET1A",
+      "units": " ",
+      "type": "double",
+      "fill": "-1.0E31"
+    },
+    {
+      "size": [
+        3
+      ],
+      "name": "LET1_B_RTN",
+      "description": "RTN flow direction LET1B",
+      "units": " ",
+      "type": "double",
+      "fill": "-1.0E31"
+    },
+    {
+      "name": "HET_B_SA",
+      "description": "Nominal Parker Spiral angle HETB",
+      "units": "degree",
+      "type": "double",
+      "fill": "-1.0E31"
+    },
+    {
+      "name": "LET1_A_PA",
+      "description": "Pitch angle LET1A",
+      "units": "degree",
+      "type": "double",
+      "fill": "-1.0E31"
+    },
+    {
+      "bins": [
+        {
+          "name": "LET_H_ENERGY",
+          "centers": [
+            1.5,
+            3.7,
+            9.5
+          ],
+          "units": "MeV"
+        }
+      ],
+      "size": [
+        3
+      ],
+      "name": "LET2_C_H",
+      "description": "LET2 C-side hydrogen  rates",
+      "units": "counts",
+      "type": "integer",
+      "fill": "-2147483648"
+    },
+    {
+      "bins": [
+        {
+          "name": "HET_Electrons_ENERGY",
+          "centers": [
+            0.8,
+            1.4,
+            2.8
+          ],
+          "units": "MeV"
+        }
+      ],
+      "size": [
+        3
+      ],
+      "name": "HET_A_Electrons_Rate",
+      "description": "Electrons rate HET A",
+      "units": "counts s!E-1!N",
+      "type": "double",
+      "fill": "-1.0E31"
+    },
+    {
+      "size": [
+        3
+      ],
+      "name": "LET2_C_RTN",
+      "description": "RTN flow direction LET2C",
+      "units": " ",
+      "type": "double",
+      "fill": "-1.0E31"
+    },
+    {
+      "size": [
+        3
+      ],
+      "name": "HET_A_RTN",
+      "description": "RTN flow direction HETA",
+      "units": " ",
+      "type": "double",
+      "fill": "-1.0E31"
+    },
+    {
+      "bins": [
+        {
+          "name": "HET_H_ENERGY",
+          "centers": [
+            12.3,
+            22.6
+          ],
+          "units": "MeV"
+        }
+      ],
+      "size": [
+        2
+      ],
+      "name": "HET_A_H_Rate",
+      "description": "H rate HET A",
+      "units": "counts s!E-1!N",
+      "type": "double",
+      "fill": "-1.0E31"
+    },
+    {
+      "size": [
+        3
+      ],
+      "name": "HET_B_HCI",
+      "description": "HCI flow direction HETB",
+      "units": " ",
+      "type": "double",
+      "fill": "-1.0E31"
+    },
+    {
+      "bins": [
+        {
+          "name": "LET_H_ENERGY",
+          "centers": [
+            1.5,
+            3.7,
+            9.5
+          ],
+          "units": "MeV"
+        }
+      ],
+      "size": [
+        3
+      ],
+      "name": "LET2_C_H_Rate",
+      "description": "H rate LET2 C",
+      "units": "counts s!E-1!N",
+      "type": "double",
+      "fill": "-1.0E31"
+    },
+    {
+      "name": "LET2_C_SA",
+      "description": "Nominal Parker Spiral angle LET2C",
+      "units": "degree",
+      "type": "double",
+      "fill": "-1.0E31"
+    },
+    {
+      "name": "HCI_Lon",
+      "description": "HCI longitude",
+      "units": "degrees",
+      "type": "double",
+      "fill": "-1.0E31"
+    },
+    {
+      "bins": [
+        {
+          "name": "LET_Electrons_ENERGY",
+          "centers": [
+            0.8,
+            1.4
+          ],
+          "units": "MeV"
+        }
+      ],
+      "size": [
+        2
+      ],
+      "name": "LET2_C_Electrons_Rate",
+      "description": "Electrons rate LET2 C",
+      "units": "counts s!E-1!N",
+      "type": "double",
+      "fill": "-1.0E31"
+    },
+    {
+      "name": "HGC_Lat",
+      "description": "HGC latitude",
+      "units": "degrees",
+      "type": "double",
+      "fill": "-1.0E31"
+    },
+    {
+      "bins": [
+        {
+          "name": "HET_H_ENERGY",
+          "centers": [
+            12.3,
+            22.6
+          ],
+          "units": "MeV"
+        }
+      ],
+      "size": [
+        2
+      ],
+      "name": "HET_A_H",
+      "description": "HET A-side hydrogen rates",
+      "units": "counts",
+      "type": "integer",
+      "fill": "-2147483648"
+    },
+    {
+      "bins": [
+        {
+          "name": "HET_H_ENERGY",
+          "centers": [
+            12.3,
+            22.6
+          ],
+          "units": "MeV"
+        }
+      ],
+      "size": [
+        2
+      ],
+      "name": "HET_B_H",
+      "description": "HET B-side hydrogen rates",
+      "units": "counts",
+      "type": "integer",
+      "fill": "-2147483648"
+    },
+    {
+      "bins": [
+        {
+          "name": "LET_H_ENERGY",
+          "centers": [
+            1.5,
+            3.7,
+            9.5
+          ],
+          "units": "MeV"
+        }
+      ],
+      "size": [
+        3
+      ],
+      "name": "LET1_A_H_Rate",
+      "description": "H rate LET1 A",
+      "units": "counts s!E-1!N",
+      "type": "double",
+      "fill": "-1.0E31"
+    },
+    {
+      "name": "LET1_B_PA",
+      "description": "Pitch angle LET1B",
+      "units": "degree",
+      "type": "double",
+      "fill": "-1.0E31"
+    },
+    {
+      "bins": [
+        {
+          "name": "HET_Electrons_ENERGY",
+          "centers": [
+            0.8,
+            1.4,
+            2.8
+          ],
+          "units": "MeV"
+        }
+      ],
+      "size": [
+        3
+      ],
+      "name": "HET_B_Electrons",
+      "description": "HET B-side electron rates",
+      "units": "counts",
+      "type": "integer",
+      "fill": "-2147483648"
+    },
+    {
+      "name": "HGC_R",
+      "description": "Heliocentric distance",
+      "units": "AU",
+      "type": "double",
+      "fill": "-1.0E31"
+    },
+    {
+      "name": "HGC_Lon",
+      "description": "HGC longitude",
+      "units": "degrees",
+      "type": "double",
+      "fill": "-1.0E31"
+    },
+    {
+      "size": [
+        3
+      ],
+      "name": "LET1_B_HCI",
+      "description": "HCI flow direction LET1B",
+      "units": " ",
+      "type": "double",
+      "fill": "-1.0E31"
+    },
+    {
+      "name": "HCI_Lat",
+      "description": "HCI latitude",
+      "units": "degrees",
+      "type": "double",
+      "fill": "-1.0E31"
+    },
+    {
+      "name": "LET2_C_PA",
+      "description": "Pitch angle LET2C",
+      "units": "degree",
+      "type": "double",
+      "fill": "-1.0E31"
+    },
+    {
+      "bins": [
+        {
+          "name": "LET_Electrons_ENERGY",
+          "centers": [
+            0.8,
+            1.4
+          ],
+          "units": "MeV"
+        }
+      ],
+      "size": [
+        2
+      ],
+      "name": "LET1_B_Electrons_Rate",
+      "description": "Electrons rate LET1 B",
+      "units": "counts s!E-1!N",
+      "type": "double",
+      "fill": "-1.0E31"
+    },
+    {
+      "size": [
+        3
+      ],
+      "name": "LET1_A_RTN",
+      "description": "RTN flow direction LET1A",
+      "units": " ",
+      "type": "double",
+      "fill": "-1.0E31"
+    },
+    {
+      "size": [
+        3
+      ],
+      "name": "LET2_C_HCI",
+      "description": "HCI flow direction LET2C",
+      "units": " ",
+      "type": "double",
+      "fill": "-1.0E31"
+    },
+    {
+      "name": "HET_A_SA",
+      "description": "Nominal Parker Spiral angle HETA",
+      "units": "degree",
+      "type": "double",
+      "fill": "-1.0E31"
+    },
+    {
+      "name": "HET_B_PA",
+      "description": "Pitch angle HETB",
+      "units": "degree",
+      "type": "double",
+      "fill": "-1.0E31"
+    },
+    {
+      "name": "LET1_B_SA",
+      "description": "Nominal Parker Spiral angle LET1B",
+      "units": "degree",
+      "type": "double",
+      "fill": "-1.0E31"
+    },
+    {
+      "bins": [
+        {
+          "name": "HET_Electrons_ENERGY",
+          "centers": [
+            0.8,
+            1.4,
+            2.8
+          ],
+          "units": "MeV"
+        }
+      ],
+      "size": [
+        3
+      ],
+      "name": "HET_A_Electrons",
+      "description": "HET A-side electron rates",
+      "units": "counts",
+      "type": "integer",
+      "fill": "-2147483648"
+    },
+    {
+      "bins": [
+        {
+          "name": "LET_H_ENERGY",
+          "centers": [
+            1.5,
+            3.7,
+            9.5
+          ],
+          "units": "MeV"
+        }
+      ],
+      "size": [
+        3
+      ],
+      "name": "LET1_A_H",
+      "description": "LET1 A-side hydrogen rates",
+      "units": "counts",
+      "type": "integer",
+      "fill": "-2147483648"
+    },
+    {
+      "bins": [
+        {
+          "name": "HET_Electrons_ENERGY",
+          "centers": [
+            0.8,
+            1.4,
+            2.8
+          ],
+          "units": "MeV"
+        }
+      ],
+      "size": [
+        3
+      ],
+      "name": "HET_B_Electrons_Rate",
+      "description": "Electrons rate HET B",
+      "units": "counts s!E-1!N",
+      "type": "double",
+      "fill": "-1.0E31"
+    },
+    {
+      "name": "LET1_A_SA",
+      "description": "Nominal Parker Spiral angle LET1A",
+      "units": "degree",
+      "type": "double",
+      "fill": "-1.0E31"
+    },
+    {
+      "name": "HET_A_PA",
+      "description": "Pitch angle HETA",
+      "units": "degree",
+      "type": "double",
+      "fill": "-1.0E31"
+    },
+    {
+      "bins": [
+        {
+          "name": "Quality_Flag_NUM",
+          "centers": [
+            0,
+            1,
+            2,
+            3,
+            4,
+            5,
+            6,
+            7,
+            8,
+            9
+          ],
+          "units": " "
+        }
+      ],
+      "size": [
+        10
+      ],
+      "name": "Quality_Flag",
+      "description": "Data-quality flag",
+      "units": " ",
+      "type": "integer",
+      "fill": "-128"
+    }
+  ],
+  "startDate": "2018-09-28T00:00:00Z",
+  "stopDate": "2025-06-24T07:06:12Z",
+  "status": {
+    "code": 1200,
+    "message": "OK"
+  }
+}

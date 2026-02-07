@@ -1,0 +1,30 @@
+{
+  "HAPI": "2.0",
+  "resourceURL": "https://cdaweb.gsfc.nasa.gov/misc/NotesS.html#SOLO_L3_MULTI-MAG-RPW-SCM-MERGED-RTN-256",
+  "contact": "M. Kretzschmar ; T. Horbury ; M. Maksimovic @ LPC2E, CNRS/Université d’Orléans/CNES ;  Blackett Laboratory, Imperial College London ; LIRA, Observatoire de Paris/CNRS",
+  "parameters": [
+    {
+      "name": "Time",
+      "length": 30,
+      "units": "UTC",
+      "type": "isotime",
+      "fill": null
+    },
+    {
+      "size": [
+        3
+      ],
+      "name": "B_RTN",
+      "description": "Magnetic field values (Br, Bt, Bn) in the Radial-Tangential-Normal frame",
+      "units": "nT",
+      "type": "double",
+      "fill": "-1.0E31"
+    }
+  ],
+  "startDate": "2020-06-15T12:15:14Z",
+  "stopDate": "2025-07-05T23:35:02Z",
+  "status": {
+    "code": 1200,
+    "message": "OK"
+  }
+}

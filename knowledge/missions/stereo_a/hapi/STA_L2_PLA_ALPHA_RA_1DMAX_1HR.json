@@ -1,0 +1,55 @@
+{
+  "HAPI": "2.0",
+  "resourceURL": "https://cdaweb.gsfc.nasa.gov/misc/NotesS.html#STA_L2_PLA_ALPHA_RA_1DMAX_1HR",
+  "contact": "Dr. Antoinette Galvin @ University of New Hampshire",
+  "parameters": [
+    {
+      "name": "Time",
+      "length": 24,
+      "units": "UTC",
+      "type": "isotime",
+      "fill": null
+    },
+    {
+      "name": "alpha_density",
+      "description": "Alpha Density",
+      "units": "1/cc",
+      "type": "double",
+      "fill": "-1.0E31"
+    },
+    {
+      "name": "alpha_bulk_speed",
+      "description": "Alpha Bulk Speed",
+      "units": "km/s",
+      "type": "double",
+      "fill": "-1.0E31"
+    },
+    {
+      "name": "alpha_thermal_speed",
+      "description": "Alpha Thermal Speed",
+      "units": "sqrt(2kT/m)",
+      "type": "double",
+      "fill": "-1.0E31"
+    },
+    {
+      "name": "Na_Np",
+      "description": "Na/Np",
+      "units": "ratio",
+      "type": "double",
+      "fill": "-1.0E31"
+    },
+    {
+      "name": "Va_Vp",
+      "description": "Va-Vp",
+      "units": "km/s",
+      "type": "double",
+      "fill": "-1.0E31"
+    }
+  ],
+  "startDate": "2007-02-15T00:00:37Z",
+  "stopDate": "2010-12-31T23:00:29Z",
+  "status": {
+    "code": 1200,
+    "message": "OK"
+  }
+}

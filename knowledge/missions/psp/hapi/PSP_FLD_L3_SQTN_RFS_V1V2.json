@@ -1,0 +1,41 @@
+{
+  "HAPI": "2.0",
+  "resourceURL": "https://cdaweb.gsfc.nasa.gov/misc/NotesP.html#PSP_FLD_L3_SQTN_RFS_V1V2",
+  "contact": "Stuart D. Bale (bale@ssl.berkeley.edu) @ UC Berkeley Space Sciences Laboratory",
+  "parameters": [
+    {
+      "name": "Time",
+      "length": 30,
+      "units": "UTC",
+      "type": "isotime",
+      "fill": null
+    },
+    {
+      "name": "electron_density",
+      "description": "Electron number density",
+      "units": "cm^-3",
+      "type": "double",
+      "fill": "-1.0E31"
+    },
+    {
+      "name": "density_quality_flag",
+      "description": "Electron density quality flag, byte: avail starting 09/17/2023",
+      "units": "0=fail 1=>pass",
+      "type": "integer",
+      "fill": "255"
+    },
+    {
+      "name": "electron_core_temperature",
+      "description": "Electron core temperature",
+      "units": "eV",
+      "type": "double",
+      "fill": "-1.0E31"
+    }
+  ],
+  "startDate": "2018-10-15T00:00:26Z",
+  "stopDate": "2025-06-25T23:59:58Z",
+  "status": {
+    "code": 1200,
+    "message": "OK"
+  }
+}

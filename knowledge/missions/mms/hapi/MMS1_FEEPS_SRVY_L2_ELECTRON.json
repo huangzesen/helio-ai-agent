@@ -1,0 +1,2025 @@
+{
+  "HAPI": "2.0",
+  "resourceURL": "https://cdaweb.gsfc.nasa.gov/misc/NotesM.html#MMS1_FEEPS_SRVY_L2_ELECTRON",
+  "contact": "STP @ LASP",
+  "parameters": [
+    {
+      "name": "Time",
+      "length": 30,
+      "units": "UTC",
+      "type": "isotime",
+      "fill": null
+    },
+    {
+      "name": "mms1_epd_feeps_srvy_l2_electron_top_quality_indicator_sensorid_1",
+      "description": "Quality Indicator (0=VALID FOR SCIENCE, 1=CAUTION, 2=PROBLEMATIC, 3=NOT VALID FOR SCIENCE, 4=CALIBRATION) sensor 1",
+      "units": " ",
+      "type": "integer",
+      "fill": "-2147483648"
+    },
+    {
+      "name": "mms1_epd_feeps_srvy_l2_electron_top_quality_indicator_sensorid_2",
+      "description": "Quality Indicator (0=VALID FOR SCIENCE, 1=CAUTION, 2=PROBLEMATIC, 3=NOT VALID FOR SCIENCE, 4=CALIBRATION) sensor 2",
+      "units": " ",
+      "type": "integer",
+      "fill": "-2147483648"
+    },
+    {
+      "name": "mms1_epd_feeps_srvy_l2_electron_top_quality_indicator_sensorid_3",
+      "description": "Quality Indicator (0=VALID FOR SCIENCE, 1=CAUTION, 2=PROBLEMATIC, 3=NOT VALID FOR SCIENCE, 4=CALIBRATION) sensor 3",
+      "units": " ",
+      "type": "integer",
+      "fill": "-2147483648"
+    },
+    {
+      "name": "mms1_epd_feeps_srvy_l2_electron_top_quality_indicator_sensorid_4",
+      "description": "Quality Indicator (0=VALID FOR SCIENCE, 1=CAUTION, 2=PROBLEMATIC, 3=NOT VALID FOR SCIENCE, 4=CALIBRATION) sensor 4",
+      "units": " ",
+      "type": "integer",
+      "fill": "-2147483648"
+    },
+    {
+      "name": "mms1_epd_feeps_srvy_l2_electron_top_quality_indicator_sensorid_5",
+      "description": "Quality Indicator (0=VALID FOR SCIENCE, 1=CAUTION, 2=PROBLEMATIC, 3=NOT VALID FOR SCIENCE, 4=CALIBRATION) sensor 5",
+      "units": " ",
+      "type": "integer",
+      "fill": "-2147483648"
+    },
+    {
+      "name": "mms1_epd_feeps_srvy_l2_electron_top_quality_indicator_sensorid_9",
+      "description": "Quality Indicator (0=VALID FOR SCIENCE, 1=CAUTION, 2=PROBLEMATIC, 3=NOT VALID FOR SCIENCE, 4=CALIBRATION) sensor 9",
+      "units": " ",
+      "type": "integer",
+      "fill": "-2147483648"
+    },
+    {
+      "name": "mms1_epd_feeps_srvy_l2_electron_top_quality_indicator_sensorid_10",
+      "description": "Quality Indicator (0=VALID FOR SCIENCE, 1=CAUTION, 2=PROBLEMATIC, 3=NOT VALID FOR SCIENCE, 4=CALIBRATION) sensor 10",
+      "units": " ",
+      "type": "integer",
+      "fill": "-2147483648"
+    },
+    {
+      "name": "mms1_epd_feeps_srvy_l2_electron_top_quality_indicator_sensorid_11",
+      "description": "Quality Indicator (0=VALID FOR SCIENCE, 1=CAUTION, 2=PROBLEMATIC, 3=NOT VALID FOR SCIENCE, 4=CALIBRATION) sensor 11",
+      "units": " ",
+      "type": "integer",
+      "fill": "-2147483648"
+    },
+    {
+      "name": "mms1_epd_feeps_srvy_l2_electron_top_quality_indicator_sensorid_12",
+      "description": "Quality Indicator (0=VALID FOR SCIENCE, 1=CAUTION, 2=PROBLEMATIC, 3=NOT VALID FOR SCIENCE, 4=CALIBRATION) sensor 12",
+      "units": " ",
+      "type": "integer",
+      "fill": "-2147483648"
+    },
+    {
+      "name": "mms1_epd_feeps_srvy_l2_electron_bottom_quality_indicator_sensorid_1",
+      "description": "Quality Indicator (0=VALID FOR SCIENCE, 1=CAUTION, 2=PROBLEMATIC, 3=NOT VALID FOR SCIENCE, 4=CALIBRATION) sensor 1",
+      "units": " ",
+      "type": "integer",
+      "fill": "-2147483648"
+    },
+    {
+      "name": "mms1_epd_feeps_srvy_l2_electron_bottom_quality_indicator_sensorid_2",
+      "description": "Quality Indicator (0=VALID FOR SCIENCE, 1=CAUTION, 2=PROBLEMATIC, 3=NOT VALID FOR SCIENCE, 4=CALIBRATION) sensor 2",
+      "units": " ",
+      "type": "integer",
+      "fill": "-2147483648"
+    },
+    {
+      "name": "mms1_epd_feeps_srvy_l2_electron_bottom_quality_indicator_sensorid_3",
+      "description": "Quality Indicator (0=VALID FOR SCIENCE, 1=CAUTION, 2=PROBLEMATIC, 3=NOT VALID FOR SCIENCE, 4=CALIBRATION) sensor 3",
+      "units": " ",
+      "type": "integer",
+      "fill": "-2147483648"
+    },
+    {
+      "name": "mms1_epd_feeps_srvy_l2_electron_bottom_quality_indicator_sensorid_4",
+      "description": "Quality Indicator (0=VALID FOR SCIENCE, 1=CAUTION, 2=PROBLEMATIC, 3=NOT VALID FOR SCIENCE, 4=CALIBRATION) sensor 4",
+      "units": " ",
+      "type": "integer",
+      "fill": "-2147483648"
+    },
+    {
+      "name": "mms1_epd_feeps_srvy_l2_electron_bottom_quality_indicator_sensorid_5",
+      "description": "Quality Indicator (0=VALID FOR SCIENCE, 1=CAUTION, 2=PROBLEMATIC, 3=NOT VALID FOR SCIENCE, 4=CALIBRATION) sensor 5",
+      "units": " ",
+      "type": "integer",
+      "fill": "-2147483648"
+    },
+    {
+      "name": "mms1_epd_feeps_srvy_l2_electron_bottom_quality_indicator_sensorid_9",
+      "description": "Quality Indicator (0=VALID FOR SCIENCE, 1=CAUTION, 2=PROBLEMATIC, 3=NOT VALID FOR SCIENCE, 4=CALIBRATION) sensor 9",
+      "units": " ",
+      "type": "integer",
+      "fill": "-2147483648"
+    },
+    {
+      "name": "mms1_epd_feeps_srvy_l2_electron_bottom_quality_indicator_sensorid_10",
+      "description": "Quality Indicator (0=VALID FOR SCIENCE, 1=CAUTION, 2=PROBLEMATIC, 3=NOT VALID FOR SCIENCE, 4=CALIBRATION) sensor 10",
+      "units": " ",
+      "type": "integer",
+      "fill": "-2147483648"
+    },
+    {
+      "name": "mms1_epd_feeps_srvy_l2_electron_bottom_quality_indicator_sensorid_11",
+      "description": "Quality Indicator (0=VALID FOR SCIENCE, 1=CAUTION, 2=PROBLEMATIC, 3=NOT VALID FOR SCIENCE, 4=CALIBRATION) sensor 11",
+      "units": " ",
+      "type": "integer",
+      "fill": "-2147483648"
+    },
+    {
+      "name": "mms1_epd_feeps_srvy_l2_electron_bottom_quality_indicator_sensorid_12",
+      "description": "Quality Indicator (0=VALID FOR SCIENCE, 1=CAUTION, 2=PROBLEMATIC, 3=NOT VALID FOR SCIENCE, 4=CALIBRATION) sensor 12",
+      "units": " ",
+      "type": "integer",
+      "fill": "-2147483648"
+    },
+    {
+      "bins": [
+        {
+          "name": "mms1_epd_feeps_srvy_l2_electron_top_energy_centroid_sensorid_1",
+          "centers": [
+            -2147483648.0,
+            -2147483648.0,
+            -2147483648.0,
+            -2147483648.0,
+            -2147483648.0,
+            -2147483648.0,
+            -2147483648.0,
+            -2147483648.0,
+            -2147483648.0,
+            -2147483648.0,
+            -2147483648.0,
+            -2147483648.0,
+            -2147483648.0,
+            -2147483648.0,
+            -2147483648.0,
+            -2147483648.0
+          ],
+          "units": "keV"
+        }
+      ],
+      "size": [
+        16
+      ],
+      "name": "mms1_epd_feeps_srvy_l2_electron_top_count_rate_sensorid_1",
+      "description": "MMS1 FEEPS top side survey mode electron count rate sensor 1",
+      "units": "counts/s",
+      "type": "double",
+      "fill": "-1.0E31"
+    },
+    {
+      "bins": [
+        {
+          "name": "mms1_epd_feeps_srvy_l2_electron_top_energy_centroid_sensorid_2",
+          "centers": [
+            -2147483648.0,
+            -2147483648.0,
+            -2147483648.0,
+            -2147483648.0,
+            -2147483648.0,
+            -2147483648.0,
+            -2147483648.0,
+            -2147483648.0,
+            -2147483648.0,
+            -2147483648.0,
+            -2147483648.0,
+            -2147483648.0,
+            -2147483648.0,
+            -2147483648.0,
+            -2147483648.0,
+            -2147483648.0
+          ],
+          "units": "keV"
+        }
+      ],
+      "size": [
+        16
+      ],
+      "name": "mms1_epd_feeps_srvy_l2_electron_top_count_rate_sensorid_2",
+      "description": "MMS1 FEEPS top side survey mode electron count rate sensor 2",
+      "units": "counts/s",
+      "type": "double",
+      "fill": "-1.0E31"
+    },
+    {
+      "bins": [
+        {
+          "name": "mms1_epd_feeps_srvy_l2_electron_top_energy_centroid_sensorid_3",
+          "centers": [
+            49.49,
+            68.25,
+            87.005,
+            105.765,
+            123.355,
+            140.935,
+            162.04,
+            186.66,
+            215.97,
+            249.97,
+            288.66,
+            335.55,
+            389.485,
+            451.62,
+            525.48,
+            570.03
+          ],
+          "units": "keV"
+        }
+      ],
+      "size": [
+        16
+      ],
+      "name": "mms1_epd_feeps_srvy_l2_electron_top_count_rate_sensorid_3",
+      "description": "MMS1 FEEPS top side survey mode electron count rate sensor 3",
+      "units": "counts/s",
+      "type": "double",
+      "fill": "-1.0E31"
+    },
+    {
+      "bins": [
+        {
+          "name": "mms1_epd_feeps_srvy_l2_electron_top_energy_centroid_sensorid_4",
+          "centers": [
+            -2147483648.0,
+            -2147483648.0,
+            -2147483648.0,
+            -2147483648.0,
+            -2147483648.0,
+            -2147483648.0,
+            -2147483648.0,
+            -2147483648.0,
+            -2147483648.0,
+            -2147483648.0,
+            -2147483648.0,
+            -2147483648.0,
+            -2147483648.0,
+            -2147483648.0,
+            -2147483648.0,
+            -2147483648.0
+          ],
+          "units": "keV"
+        }
+      ],
+      "size": [
+        16
+      ],
+      "name": "mms1_epd_feeps_srvy_l2_electron_top_count_rate_sensorid_4",
+      "description": "MMS1 FEEPS top side survey mode electron count rate sensor 4",
+      "units": "counts/s",
+      "type": "double",
+      "fill": "-1.0E31"
+    },
+    {
+      "bins": [
+        {
+          "name": "mms1_epd_feeps_srvy_l2_electron_top_energy_centroid_sensorid_5",
+          "centers": [
+            47.265,
+            66.495,
+            84.52,
+            102.55,
+            120.58,
+            138.605,
+            160.24,
+            185.48,
+            214.325,
+            247.975,
+            287.64,
+            333.315,
+            386.195,
+            449.895,
+            523.21,
+            579.695
+          ],
+          "units": "keV"
+        }
+      ],
+      "size": [
+        16
+      ],
+      "name": "mms1_epd_feeps_srvy_l2_electron_top_count_rate_sensorid_5",
+      "description": "MMS1 FEEPS top side survey mode electron count rate sensor 5",
+      "units": "counts/s",
+      "type": "double",
+      "fill": "-1.0E31"
+    },
+    {
+      "bins": [
+        {
+          "name": "mms1_epd_feeps_srvy_l2_electron_top_energy_centroid_sensorid_9",
+          "centers": [
+            47.98,
+            66.06,
+            84.14,
+            103.43,
+            121.51,
+            139.59,
+            160.085,
+            185.4,
+            214.33,
+            248.085,
+            287.865,
+            333.67,
+            387.92,
+            450.605,
+            524.135,
+            579.585
+          ],
+          "units": "keV"
+        }
+      ],
+      "size": [
+        16
+      ],
+      "name": "mms1_epd_feeps_srvy_l2_electron_top_count_rate_sensorid_9",
+      "description": "MMS1 FEEPS top side survey mode electron count rate sensor 9",
+      "units": "counts/s",
+      "type": "double",
+      "fill": "-1.0E31"
+    },
+    {
+      "bins": [
+        {
+          "name": "mms1_epd_feeps_srvy_l2_electron_top_energy_centroid_sensorid_10",
+          "centers": [
+            47.465,
+            66.585,
+            84.505,
+            102.425,
+            120.35,
+            139.47,
+            160.975,
+            184.87,
+            213.55,
+            248.2,
+            287.63,
+            333.035,
+            386.8,
+            450.125,
+            524.205,
+            574.39
+          ],
+          "units": "keV"
+        }
+      ],
+      "size": [
+        16
+      ],
+      "name": "mms1_epd_feeps_srvy_l2_electron_top_count_rate_sensorid_10",
+      "description": "MMS1 FEEPS top side survey mode electron count rate sensor 10",
+      "units": "counts/s",
+      "type": "double",
+      "fill": "-1.0E31"
+    },
+    {
+      "bins": [
+        {
+          "name": "mms1_epd_feeps_srvy_l2_electron_top_energy_centroid_sensorid_11",
+          "centers": [
+            -2147483648.0,
+            -2147483648.0,
+            -2147483648.0,
+            -2147483648.0,
+            -2147483648.0,
+            -2147483648.0,
+            -2147483648.0,
+            -2147483648.0,
+            -2147483648.0,
+            -2147483648.0,
+            -2147483648.0,
+            -2147483648.0,
+            -2147483648.0,
+            -2147483648.0,
+            -2147483648.0,
+            -2147483648.0
+          ],
+          "units": "keV"
+        }
+      ],
+      "size": [
+        16
+      ],
+      "name": "mms1_epd_feeps_srvy_l2_electron_top_count_rate_sensorid_11",
+      "description": "MMS1 FEEPS top side survey mode electron count rate sensor 11",
+      "units": "counts/s",
+      "type": "double",
+      "fill": "-1.0E31"
+    },
+    {
+      "bins": [
+        {
+          "name": "mms1_epd_feeps_srvy_l2_electron_top_energy_centroid_sensorid_12",
+          "centers": [
+            47.77,
+            66.12,
+            85.62,
+            105.12,
+            122.32,
+            140.675,
+            162.465,
+            186.55,
+            215.225,
+            249.635,
+            288.63,
+            334.505,
+            388.415,
+            451.495,
+            524.9,
+            569.63
+          ],
+          "units": "keV"
+        }
+      ],
+      "size": [
+        16
+      ],
+      "name": "mms1_epd_feeps_srvy_l2_electron_top_count_rate_sensorid_12",
+      "description": "MMS1 FEEPS top side survey mode electron count rate sensor 12",
+      "units": "counts/s",
+      "type": "double",
+      "fill": "-1.0E31"
+    },
+    {
+      "bins": [
+        {
+          "name": "mms1_epd_feeps_srvy_l2_electron_bottom_energy_centroid_sensorid_1",
+          "centers": [
+            -2147483648.0,
+            -2147483648.0,
+            -2147483648.0,
+            -2147483648.0,
+            -2147483648.0,
+            -2147483648.0,
+            -2147483648.0,
+            -2147483648.0,
+            -2147483648.0,
+            -2147483648.0,
+            -2147483648.0,
+            -2147483648.0,
+            -2147483648.0,
+            -2147483648.0,
+            -2147483648.0,
+            -2147483648.0
+          ],
+          "units": "keV"
+        }
+      ],
+      "size": [
+        16
+      ],
+      "name": "mms1_epd_feeps_srvy_l2_electron_bottom_count_rate_sensorid_1",
+      "description": "MMS1 FEEPS bottom side survey mode electron count rate sensor 1",
+      "units": "counts/s",
+      "type": "double",
+      "fill": "-1.0E31"
+    },
+    {
+      "bins": [
+        {
+          "name": "mms1_epd_feeps_srvy_l2_electron_bottom_energy_centroid_sensorid_2",
+          "centers": [
+            40.235,
+            57.92,
+            76.78,
+            95.645,
+            113.325,
+            132.19,
+            153.41,
+            178.165,
+            207.64,
+            240.645,
+            279.55,
+            325.53,
+            379.76,
+            443.42,
+            516.515,
+            564.85
+          ],
+          "units": "keV"
+        }
+      ],
+      "size": [
+        16
+      ],
+      "name": "mms1_epd_feeps_srvy_l2_electron_bottom_count_rate_sensorid_2",
+      "description": "MMS1 FEEPS bottom side survey mode electron count rate sensor 2",
+      "units": "counts/s",
+      "type": "double",
+      "fill": "-1.0E31"
+    },
+    {
+      "bins": [
+        {
+          "name": "mms1_epd_feeps_srvy_l2_electron_bottom_energy_centroid_sensorid_3",
+          "centers": [
+            -2147483648.0,
+            -2147483648.0,
+            -2147483648.0,
+            -2147483648.0,
+            -2147483648.0,
+            -2147483648.0,
+            -2147483648.0,
+            -2147483648.0,
+            -2147483648.0,
+            -2147483648.0,
+            -2147483648.0,
+            -2147483648.0,
+            -2147483648.0,
+            -2147483648.0,
+            -2147483648.0,
+            -2147483648.0
+          ],
+          "units": "keV"
+        }
+      ],
+      "size": [
+        16
+      ],
+      "name": "mms1_epd_feeps_srvy_l2_electron_bottom_count_rate_sensorid_3",
+      "description": "MMS1 FEEPS bottom side survey mode electron count rate sensor 3",
+      "units": "counts/s",
+      "type": "double",
+      "fill": "-1.0E31"
+    },
+    {
+      "bins": [
+        {
+          "name": "mms1_epd_feeps_srvy_l2_electron_bottom_energy_centroid_sensorid_4",
+          "centers": [
+            46.85,
+            65.43,
+            84.01,
+            103.82,
+            121.165,
+            138.5,
+            160.795,
+            185.565,
+            214.05,
+            248.73,
+            288.365,
+            334.19,
+            387.445,
+            449.37,
+            522.445,
+            585.605
+          ],
+          "units": "keV"
+        }
+      ],
+      "size": [
+        16
+      ],
+      "name": "mms1_epd_feeps_srvy_l2_electron_bottom_count_rate_sensorid_4",
+      "description": "MMS1 FEEPS bottom side survey mode electron count rate sensor 4",
+      "units": "counts/s",
+      "type": "double",
+      "fill": "-1.0E31"
+    },
+    {
+      "bins": [
+        {
+          "name": "mms1_epd_feeps_srvy_l2_electron_bottom_energy_centroid_sensorid_5",
+          "centers": [
+            47.255,
+            66.415,
+            85.575,
+            103.535,
+            120.305,
+            139.46,
+            161.02,
+            184.965,
+            213.71,
+            247.235,
+            286.755,
+            333.46,
+            387.345,
+            449.61,
+            522.66,
+            574.15
+          ],
+          "units": "keV"
+        }
+      ],
+      "size": [
+        16
+      ],
+      "name": "mms1_epd_feeps_srvy_l2_electron_bottom_count_rate_sensorid_5",
+      "description": "MMS1 FEEPS bottom side survey mode electron count rate sensor 5",
+      "units": "counts/s",
+      "type": "double",
+      "fill": "-1.0E31"
+    },
+    {
+      "bins": [
+        {
+          "name": "mms1_epd_feeps_srvy_l2_electron_bottom_energy_centroid_sensorid_9",
+          "centers": [
+            47.19,
+            65.865,
+            84.54,
+            103.22,
+            121.9,
+            139.33,
+            160.495,
+            185.395,
+            214.035,
+            247.655,
+            286.25,
+            332.32,
+            387.105,
+            450.605,
+            524.07,
+            585.08
+          ],
+          "units": "keV"
+        }
+      ],
+      "size": [
+        16
+      ],
+      "name": "mms1_epd_feeps_srvy_l2_electron_bottom_count_rate_sensorid_9",
+      "description": "MMS1 FEEPS bottom side survey mode electron count rate sensor 9",
+      "units": "counts/s",
+      "type": "double",
+      "fill": "-1.0E31"
+    },
+    {
+      "bins": [
+        {
+          "name": "mms1_epd_feeps_srvy_l2_electron_bottom_energy_centroid_sensorid_10",
+          "centers": [
+            48.07,
+            66.565,
+            85.06,
+            103.56,
+            120.9,
+            139.395,
+            161.365,
+            185.64,
+            214.54,
+            248.065,
+            287.37,
+            333.61,
+            386.785,
+            449.22,
+            523.205,
+            567.13
+          ],
+          "units": "keV"
+        }
+      ],
+      "size": [
+        16
+      ],
+      "name": "mms1_epd_feeps_srvy_l2_electron_bottom_count_rate_sensorid_10",
+      "description": "MMS1 FEEPS bottom side survey mode electron count rate sensor 10",
+      "units": "counts/s",
+      "type": "double",
+      "fill": "-1.0E31"
+    },
+    {
+      "bins": [
+        {
+          "name": "mms1_epd_feeps_srvy_l2_electron_bottom_energy_centroid_sensorid_11",
+          "centers": [
+            -2147483648.0,
+            -2147483648.0,
+            -2147483648.0,
+            -2147483648.0,
+            -2147483648.0,
+            -2147483648.0,
+            -2147483648.0,
+            -2147483648.0,
+            -2147483648.0,
+            -2147483648.0,
+            -2147483648.0,
+            -2147483648.0,
+            -2147483648.0,
+            -2147483648.0,
+            -2147483648.0,
+            -2147483648.0
+          ],
+          "units": "keV"
+        }
+      ],
+      "size": [
+        16
+      ],
+      "name": "mms1_epd_feeps_srvy_l2_electron_bottom_count_rate_sensorid_11",
+      "description": "MMS1 FEEPS bottom side survey mode electron count rate sensor 11",
+      "units": "counts/s",
+      "type": "double",
+      "fill": "-1.0E31"
+    },
+    {
+      "bins": [
+        {
+          "name": "mms1_epd_feeps_srvy_l2_electron_bottom_energy_centroid_sensorid_12",
+          "centers": [
+            -2147483648.0,
+            -2147483648.0,
+            -2147483648.0,
+            -2147483648.0,
+            -2147483648.0,
+            -2147483648.0,
+            -2147483648.0,
+            -2147483648.0,
+            -2147483648.0,
+            -2147483648.0,
+            -2147483648.0,
+            -2147483648.0,
+            -2147483648.0,
+            -2147483648.0,
+            -2147483648.0,
+            -2147483648.0
+          ],
+          "units": "keV"
+        }
+      ],
+      "size": [
+        16
+      ],
+      "name": "mms1_epd_feeps_srvy_l2_electron_bottom_count_rate_sensorid_12",
+      "description": "MMS1 FEEPS bottom side survey mode electron count rate sensor 12",
+      "units": "counts/s",
+      "type": "double",
+      "fill": "-1.0E31"
+    },
+    {
+      "bins": [
+        {
+          "name": "mms1_epd_feeps_srvy_l2_electron_top_energy_centroid_sensorid_1",
+          "centers": [
+            -2147483648.0,
+            -2147483648.0,
+            -2147483648.0,
+            -2147483648.0,
+            -2147483648.0,
+            -2147483648.0,
+            -2147483648.0,
+            -2147483648.0,
+            -2147483648.0,
+            -2147483648.0,
+            -2147483648.0,
+            -2147483648.0,
+            -2147483648.0,
+            -2147483648.0,
+            -2147483648.0,
+            -2147483648.0
+          ],
+          "units": "keV"
+        }
+      ],
+      "size": [
+        16
+      ],
+      "name": "mms1_epd_feeps_srvy_l2_electron_top_intensity_sensorid_1",
+      "description": "MMS1 FEEPS top side survey mode electron intensity sensor 1",
+      "units": "1/(cm^2 s sr keV)",
+      "type": "double",
+      "fill": "-1.0E31"
+    },
+    {
+      "bins": [
+        {
+          "name": "mms1_epd_feeps_srvy_l2_electron_top_energy_centroid_sensorid_2",
+          "centers": [
+            -2147483648.0,
+            -2147483648.0,
+            -2147483648.0,
+            -2147483648.0,
+            -2147483648.0,
+            -2147483648.0,
+            -2147483648.0,
+            -2147483648.0,
+            -2147483648.0,
+            -2147483648.0,
+            -2147483648.0,
+            -2147483648.0,
+            -2147483648.0,
+            -2147483648.0,
+            -2147483648.0,
+            -2147483648.0
+          ],
+          "units": "keV"
+        }
+      ],
+      "size": [
+        16
+      ],
+      "name": "mms1_epd_feeps_srvy_l2_electron_top_intensity_sensorid_2",
+      "description": "MMS1 FEEPS top side survey mode electron intensity sensor 2",
+      "units": "1/(cm^2 s sr keV)",
+      "type": "double",
+      "fill": "-1.0E31"
+    },
+    {
+      "bins": [
+        {
+          "name": "mms1_epd_feeps_srvy_l2_electron_top_energy_centroid_sensorid_3",
+          "centers": [
+            49.49,
+            68.25,
+            87.005,
+            105.765,
+            123.355,
+            140.935,
+            162.04,
+            186.66,
+            215.97,
+            249.97,
+            288.66,
+            335.55,
+            389.485,
+            451.62,
+            525.48,
+            570.03
+          ],
+          "units": "keV"
+        }
+      ],
+      "size": [
+        16
+      ],
+      "name": "mms1_epd_feeps_srvy_l2_electron_top_intensity_sensorid_3",
+      "description": "MMS1 FEEPS top side survey mode electron intensity sensor 3",
+      "units": "1/(cm^2 s sr keV)",
+      "type": "double",
+      "fill": "-1.0E31"
+    },
+    {
+      "bins": [
+        {
+          "name": "mms1_epd_feeps_srvy_l2_electron_top_energy_centroid_sensorid_4",
+          "centers": [
+            -2147483648.0,
+            -2147483648.0,
+            -2147483648.0,
+            -2147483648.0,
+            -2147483648.0,
+            -2147483648.0,
+            -2147483648.0,
+            -2147483648.0,
+            -2147483648.0,
+            -2147483648.0,
+            -2147483648.0,
+            -2147483648.0,
+            -2147483648.0,
+            -2147483648.0,
+            -2147483648.0,
+            -2147483648.0
+          ],
+          "units": "keV"
+        }
+      ],
+      "size": [
+        16
+      ],
+      "name": "mms1_epd_feeps_srvy_l2_electron_top_intensity_sensorid_4",
+      "description": "MMS1 FEEPS top side survey mode electron intensity sensor 4",
+      "units": "1/(cm^2 s sr keV)",
+      "type": "double",
+      "fill": "-1.0E31"
+    },
+    {
+      "bins": [
+        {
+          "name": "mms1_epd_feeps_srvy_l2_electron_top_energy_centroid_sensorid_5",
+          "centers": [
+            47.265,
+            66.495,
+            84.52,
+            102.55,
+            120.58,
+            138.605,
+            160.24,
+            185.48,
+            214.325,
+            247.975,
+            287.64,
+            333.315,
+            386.195,
+            449.895,
+            523.21,
+            579.695
+          ],
+          "units": "keV"
+        }
+      ],
+      "size": [
+        16
+      ],
+      "name": "mms1_epd_feeps_srvy_l2_electron_top_intensity_sensorid_5",
+      "description": "MMS1 FEEPS top side survey mode electron intensity sensor 5",
+      "units": "1/(cm^2 s sr keV)",
+      "type": "double",
+      "fill": "-1.0E31"
+    },
+    {
+      "bins": [
+        {
+          "name": "mms1_epd_feeps_srvy_l2_electron_top_energy_centroid_sensorid_9",
+          "centers": [
+            47.98,
+            66.06,
+            84.14,
+            103.43,
+            121.51,
+            139.59,
+            160.085,
+            185.4,
+            214.33,
+            248.085,
+            287.865,
+            333.67,
+            387.92,
+            450.605,
+            524.135,
+            579.585
+          ],
+          "units": "keV"
+        }
+      ],
+      "size": [
+        16
+      ],
+      "name": "mms1_epd_feeps_srvy_l2_electron_top_intensity_sensorid_9",
+      "description": "MMS1 FEEPS top side survey mode electron intensity sensor 9",
+      "units": "1/(cm^2 s sr keV)",
+      "type": "double",
+      "fill": "-1.0E31"
+    },
+    {
+      "bins": [
+        {
+          "name": "mms1_epd_feeps_srvy_l2_electron_top_energy_centroid_sensorid_10",
+          "centers": [
+            47.465,
+            66.585,
+            84.505,
+            102.425,
+            120.35,
+            139.47,
+            160.975,
+            184.87,
+            213.55,
+            248.2,
+            287.63,
+            333.035,
+            386.8,
+            450.125,
+            524.205,
+            574.39
+          ],
+          "units": "keV"
+        }
+      ],
+      "size": [
+        16
+      ],
+      "name": "mms1_epd_feeps_srvy_l2_electron_top_intensity_sensorid_10",
+      "description": "MMS1 FEEPS top side survey mode electron intensity sensor 10",
+      "units": "1/(cm^2 s sr keV)",
+      "type": "double",
+      "fill": "-1.0E31"
+    },
+    {
+      "bins": [
+        {
+          "name": "mms1_epd_feeps_srvy_l2_electron_top_energy_centroid_sensorid_11",
+          "centers": [
+            -2147483648.0,
+            -2147483648.0,
+            -2147483648.0,
+            -2147483648.0,
+            -2147483648.0,
+            -2147483648.0,
+            -2147483648.0,
+            -2147483648.0,
+            -2147483648.0,
+            -2147483648.0,
+            -2147483648.0,
+            -2147483648.0,
+            -2147483648.0,
+            -2147483648.0,
+            -2147483648.0,
+            -2147483648.0
+          ],
+          "units": "keV"
+        }
+      ],
+      "size": [
+        16
+      ],
+      "name": "mms1_epd_feeps_srvy_l2_electron_top_intensity_sensorid_11",
+      "description": "MMS1 FEEPS top side survey mode electron intensity sensor 11",
+      "units": "1/(cm^2 s sr keV)",
+      "type": "double",
+      "fill": "-1.0E31"
+    },
+    {
+      "bins": [
+        {
+          "name": "mms1_epd_feeps_srvy_l2_electron_top_energy_centroid_sensorid_12",
+          "centers": [
+            47.77,
+            66.12,
+            85.62,
+            105.12,
+            122.32,
+            140.675,
+            162.465,
+            186.55,
+            215.225,
+            249.635,
+            288.63,
+            334.505,
+            388.415,
+            451.495,
+            524.9,
+            569.63
+          ],
+          "units": "keV"
+        }
+      ],
+      "size": [
+        16
+      ],
+      "name": "mms1_epd_feeps_srvy_l2_electron_top_intensity_sensorid_12",
+      "description": "MMS1 FEEPS top side survey mode electron intensity sensor 12",
+      "units": "1/(cm^2 s sr keV)",
+      "type": "double",
+      "fill": "-1.0E31"
+    },
+    {
+      "bins": [
+        {
+          "name": "mms1_epd_feeps_srvy_l2_electron_bottom_energy_centroid_sensorid_1",
+          "centers": [
+            -2147483648.0,
+            -2147483648.0,
+            -2147483648.0,
+            -2147483648.0,
+            -2147483648.0,
+            -2147483648.0,
+            -2147483648.0,
+            -2147483648.0,
+            -2147483648.0,
+            -2147483648.0,
+            -2147483648.0,
+            -2147483648.0,
+            -2147483648.0,
+            -2147483648.0,
+            -2147483648.0,
+            -2147483648.0
+          ],
+          "units": "keV"
+        }
+      ],
+      "size": [
+        16
+      ],
+      "name": "mms1_epd_feeps_srvy_l2_electron_bottom_intensity_sensorid_1",
+      "description": "MMS1 FEEPS bottom side survey mode electron intensity sensor 1",
+      "units": "1/(cm^2 s sr keV)",
+      "type": "double",
+      "fill": "-1.0E31"
+    },
+    {
+      "bins": [
+        {
+          "name": "mms1_epd_feeps_srvy_l2_electron_bottom_energy_centroid_sensorid_2",
+          "centers": [
+            40.235,
+            57.92,
+            76.78,
+            95.645,
+            113.325,
+            132.19,
+            153.41,
+            178.165,
+            207.64,
+            240.645,
+            279.55,
+            325.53,
+            379.76,
+            443.42,
+            516.515,
+            564.85
+          ],
+          "units": "keV"
+        }
+      ],
+      "size": [
+        16
+      ],
+      "name": "mms1_epd_feeps_srvy_l2_electron_bottom_intensity_sensorid_2",
+      "description": "MMS1 FEEPS bottom side survey mode electron intensity sensor 2",
+      "units": "1/(cm^2 s sr keV)",
+      "type": "double",
+      "fill": "-1.0E31"
+    },
+    {
+      "bins": [
+        {
+          "name": "mms1_epd_feeps_srvy_l2_electron_bottom_energy_centroid_sensorid_3",
+          "centers": [
+            -2147483648.0,
+            -2147483648.0,
+            -2147483648.0,
+            -2147483648.0,
+            -2147483648.0,
+            -2147483648.0,
+            -2147483648.0,
+            -2147483648.0,
+            -2147483648.0,
+            -2147483648.0,
+            -2147483648.0,
+            -2147483648.0,
+            -2147483648.0,
+            -2147483648.0,
+            -2147483648.0,
+            -2147483648.0
+          ],
+          "units": "keV"
+        }
+      ],
+      "size": [
+        16
+      ],
+      "name": "mms1_epd_feeps_srvy_l2_electron_bottom_intensity_sensorid_3",
+      "description": "MMS1 FEEPS bottom side survey mode electron intensity sensor 3",
+      "units": "1/(cm^2 s sr keV)",
+      "type": "double",
+      "fill": "-1.0E31"
+    },
+    {
+      "bins": [
+        {
+          "name": "mms1_epd_feeps_srvy_l2_electron_bottom_energy_centroid_sensorid_4",
+          "centers": [
+            46.85,
+            65.43,
+            84.01,
+            103.82,
+            121.165,
+            138.5,
+            160.795,
+            185.565,
+            214.05,
+            248.73,
+            288.365,
+            334.19,
+            387.445,
+            449.37,
+            522.445,
+            585.605
+          ],
+          "units": "keV"
+        }
+      ],
+      "size": [
+        16
+      ],
+      "name": "mms1_epd_feeps_srvy_l2_electron_bottom_intensity_sensorid_4",
+      "description": "MMS1 FEEPS bottom side survey mode electron intensity sensor 4",
+      "units": "1/(cm^2 s sr keV)",
+      "type": "double",
+      "fill": "-1.0E31"
+    },
+    {
+      "bins": [
+        {
+          "name": "mms1_epd_feeps_srvy_l2_electron_bottom_energy_centroid_sensorid_5",
+          "centers": [
+            47.255,
+            66.415,
+            85.575,
+            103.535,
+            120.305,
+            139.46,
+            161.02,
+            184.965,
+            213.71,
+            247.235,
+            286.755,
+            333.46,
+            387.345,
+            449.61,
+            522.66,
+            574.15
+          ],
+          "units": "keV"
+        }
+      ],
+      "size": [
+        16
+      ],
+      "name": "mms1_epd_feeps_srvy_l2_electron_bottom_intensity_sensorid_5",
+      "description": "MMS1 FEEPS bottom side survey mode electron intensity sensor 5",
+      "units": "1/(cm^2 s sr keV)",
+      "type": "double",
+      "fill": "-1.0E31"
+    },
+    {
+      "bins": [
+        {
+          "name": "mms1_epd_feeps_srvy_l2_electron_bottom_energy_centroid_sensorid_9",
+          "centers": [
+            47.19,
+            65.865,
+            84.54,
+            103.22,
+            121.9,
+            139.33,
+            160.495,
+            185.395,
+            214.035,
+            247.655,
+            286.25,
+            332.32,
+            387.105,
+            450.605,
+            524.07,
+            585.08
+          ],
+          "units": "keV"
+        }
+      ],
+      "size": [
+        16
+      ],
+      "name": "mms1_epd_feeps_srvy_l2_electron_bottom_intensity_sensorid_9",
+      "description": "MMS1 FEEPS bottom side survey mode electron intensity sensor 9",
+      "units": "1/(cm^2 s sr keV)",
+      "type": "double",
+      "fill": "-1.0E31"
+    },
+    {
+      "bins": [
+        {
+          "name": "mms1_epd_feeps_srvy_l2_electron_bottom_energy_centroid_sensorid_10",
+          "centers": [
+            48.07,
+            66.565,
+            85.06,
+            103.56,
+            120.9,
+            139.395,
+            161.365,
+            185.64,
+            214.54,
+            248.065,
+            287.37,
+            333.61,
+            386.785,
+            449.22,
+            523.205,
+            567.13
+          ],
+          "units": "keV"
+        }
+      ],
+      "size": [
+        16
+      ],
+      "name": "mms1_epd_feeps_srvy_l2_electron_bottom_intensity_sensorid_10",
+      "description": "MMS1 FEEPS bottom side survey mode electron intensity sensor 10",
+      "units": "1/(cm^2 s sr keV)",
+      "type": "double",
+      "fill": "-1.0E31"
+    },
+    {
+      "bins": [
+        {
+          "name": "mms1_epd_feeps_srvy_l2_electron_bottom_energy_centroid_sensorid_11",
+          "centers": [
+            -2147483648.0,
+            -2147483648.0,
+            -2147483648.0,
+            -2147483648.0,
+            -2147483648.0,
+            -2147483648.0,
+            -2147483648.0,
+            -2147483648.0,
+            -2147483648.0,
+            -2147483648.0,
+            -2147483648.0,
+            -2147483648.0,
+            -2147483648.0,
+            -2147483648.0,
+            -2147483648.0,
+            -2147483648.0
+          ],
+          "units": "keV"
+        }
+      ],
+      "size": [
+        16
+      ],
+      "name": "mms1_epd_feeps_srvy_l2_electron_bottom_intensity_sensorid_11",
+      "description": "MMS1 FEEPS bottom side survey mode electron intensity sensor 11",
+      "units": "1/(cm^2 s sr keV)",
+      "type": "double",
+      "fill": "-1.0E31"
+    },
+    {
+      "bins": [
+        {
+          "name": "mms1_epd_feeps_srvy_l2_electron_bottom_energy_centroid_sensorid_12",
+          "centers": [
+            -2147483648.0,
+            -2147483648.0,
+            -2147483648.0,
+            -2147483648.0,
+            -2147483648.0,
+            -2147483648.0,
+            -2147483648.0,
+            -2147483648.0,
+            -2147483648.0,
+            -2147483648.0,
+            -2147483648.0,
+            -2147483648.0,
+            -2147483648.0,
+            -2147483648.0,
+            -2147483648.0,
+            -2147483648.0
+          ],
+          "units": "keV"
+        }
+      ],
+      "size": [
+        16
+      ],
+      "name": "mms1_epd_feeps_srvy_l2_electron_bottom_intensity_sensorid_12",
+      "description": "MMS1 FEEPS bottom side survey mode electron intensity sensor 12",
+      "units": "1/(cm^2 s sr keV)",
+      "type": "double",
+      "fill": "-1.0E31"
+    },
+    {
+      "bins": [
+        {
+          "name": "mms1_epd_feeps_srvy_l2_electron_top_energy_centroid_sensorid_1",
+          "centers": [
+            -2147483648.0,
+            -2147483648.0,
+            -2147483648.0,
+            -2147483648.0,
+            -2147483648.0,
+            -2147483648.0,
+            -2147483648.0,
+            -2147483648.0,
+            -2147483648.0,
+            -2147483648.0,
+            -2147483648.0,
+            -2147483648.0,
+            -2147483648.0,
+            -2147483648.0,
+            -2147483648.0,
+            -2147483648.0
+          ],
+          "units": "keV"
+        }
+      ],
+      "size": [
+        16
+      ],
+      "name": "mms1_epd_feeps_srvy_l2_electron_top_percent_error_sensorid_1",
+      "description": "MMS1 FEEPS top side survey mode electron count error statistics sensor 1",
+      "units": " ",
+      "type": "double",
+      "fill": "-1.0E31"
+    },
+    {
+      "bins": [
+        {
+          "name": "mms1_epd_feeps_srvy_l2_electron_top_energy_centroid_sensorid_2",
+          "centers": [
+            -2147483648.0,
+            -2147483648.0,
+            -2147483648.0,
+            -2147483648.0,
+            -2147483648.0,
+            -2147483648.0,
+            -2147483648.0,
+            -2147483648.0,
+            -2147483648.0,
+            -2147483648.0,
+            -2147483648.0,
+            -2147483648.0,
+            -2147483648.0,
+            -2147483648.0,
+            -2147483648.0,
+            -2147483648.0
+          ],
+          "units": "keV"
+        }
+      ],
+      "size": [
+        16
+      ],
+      "name": "mms1_epd_feeps_srvy_l2_electron_top_percent_error_sensorid_2",
+      "description": "MMS1 FEEPS top side survey mode electron count error statistics sensor 2",
+      "units": " ",
+      "type": "double",
+      "fill": "-1.0E31"
+    },
+    {
+      "bins": [
+        {
+          "name": "mms1_epd_feeps_srvy_l2_electron_top_energy_centroid_sensorid_3",
+          "centers": [
+            49.49,
+            68.25,
+            87.005,
+            105.765,
+            123.355,
+            140.935,
+            162.04,
+            186.66,
+            215.97,
+            249.97,
+            288.66,
+            335.55,
+            389.485,
+            451.62,
+            525.48,
+            570.03
+          ],
+          "units": "keV"
+        }
+      ],
+      "size": [
+        16
+      ],
+      "name": "mms1_epd_feeps_srvy_l2_electron_top_percent_error_sensorid_3",
+      "description": "MMS1 FEEPS top side survey mode electron count error statistics sensor 3",
+      "units": " ",
+      "type": "double",
+      "fill": "-1.0E31"
+    },
+    {
+      "bins": [
+        {
+          "name": "mms1_epd_feeps_srvy_l2_electron_top_energy_centroid_sensorid_4",
+          "centers": [
+            -2147483648.0,
+            -2147483648.0,
+            -2147483648.0,
+            -2147483648.0,
+            -2147483648.0,
+            -2147483648.0,
+            -2147483648.0,
+            -2147483648.0,
+            -2147483648.0,
+            -2147483648.0,
+            -2147483648.0,
+            -2147483648.0,
+            -2147483648.0,
+            -2147483648.0,
+            -2147483648.0,
+            -2147483648.0
+          ],
+          "units": "keV"
+        }
+      ],
+      "size": [
+        16
+      ],
+      "name": "mms1_epd_feeps_srvy_l2_electron_top_percent_error_sensorid_4",
+      "description": "MMS1 FEEPS top side survey mode electron count error statistics sensor 4",
+      "units": " ",
+      "type": "double",
+      "fill": "-1.0E31"
+    },
+    {
+      "bins": [
+        {
+          "name": "mms1_epd_feeps_srvy_l2_electron_top_energy_centroid_sensorid_5",
+          "centers": [
+            47.265,
+            66.495,
+            84.52,
+            102.55,
+            120.58,
+            138.605,
+            160.24,
+            185.48,
+            214.325,
+            247.975,
+            287.64,
+            333.315,
+            386.195,
+            449.895,
+            523.21,
+            579.695
+          ],
+          "units": "keV"
+        }
+      ],
+      "size": [
+        16
+      ],
+      "name": "mms1_epd_feeps_srvy_l2_electron_top_percent_error_sensorid_5",
+      "description": "MMS1 FEEPS top side survey mode electron count error statistics sensor 5",
+      "units": " ",
+      "type": "double",
+      "fill": "-1.0E31"
+    },
+    {
+      "bins": [
+        {
+          "name": "mms1_epd_feeps_srvy_l2_electron_top_energy_centroid_sensorid_9",
+          "centers": [
+            47.98,
+            66.06,
+            84.14,
+            103.43,
+            121.51,
+            139.59,
+            160.085,
+            185.4,
+            214.33,
+            248.085,
+            287.865,
+            333.67,
+            387.92,
+            450.605,
+            524.135,
+            579.585
+          ],
+          "units": "keV"
+        }
+      ],
+      "size": [
+        16
+      ],
+      "name": "mms1_epd_feeps_srvy_l2_electron_top_percent_error_sensorid_9",
+      "description": "MMS1 FEEPS top side survey mode electron count error statistics sensor 9",
+      "units": " ",
+      "type": "double",
+      "fill": "-1.0E31"
+    },
+    {
+      "bins": [
+        {
+          "name": "mms1_epd_feeps_srvy_l2_electron_top_energy_centroid_sensorid_10",
+          "centers": [
+            47.465,
+            66.585,
+            84.505,
+            102.425,
+            120.35,
+            139.47,
+            160.975,
+            184.87,
+            213.55,
+            248.2,
+            287.63,
+            333.035,
+            386.8,
+            450.125,
+            524.205,
+            574.39
+          ],
+          "units": "keV"
+        }
+      ],
+      "size": [
+        16
+      ],
+      "name": "mms1_epd_feeps_srvy_l2_electron_top_percent_error_sensorid_10",
+      "description": "MMS1 FEEPS top side survey mode electron count error statistics sensor 10",
+      "units": " ",
+      "type": "double",
+      "fill": "-1.0E31"
+    },
+    {
+      "bins": [
+        {
+          "name": "mms1_epd_feeps_srvy_l2_electron_top_energy_centroid_sensorid_11",
+          "centers": [
+            -2147483648.0,
+            -2147483648.0,
+            -2147483648.0,
+            -2147483648.0,
+            -2147483648.0,
+            -2147483648.0,
+            -2147483648.0,
+            -2147483648.0,
+            -2147483648.0,
+            -2147483648.0,
+            -2147483648.0,
+            -2147483648.0,
+            -2147483648.0,
+            -2147483648.0,
+            -2147483648.0,
+            -2147483648.0
+          ],
+          "units": "keV"
+        }
+      ],
+      "size": [
+        16
+      ],
+      "name": "mms1_epd_feeps_srvy_l2_electron_top_percent_error_sensorid_11",
+      "description": "MMS1 FEEPS top side survey mode electron count error statistics sensor 11",
+      "units": " ",
+      "type": "double",
+      "fill": "-1.0E31"
+    },
+    {
+      "bins": [
+        {
+          "name": "mms1_epd_feeps_srvy_l2_electron_top_energy_centroid_sensorid_12",
+          "centers": [
+            47.77,
+            66.12,
+            85.62,
+            105.12,
+            122.32,
+            140.675,
+            162.465,
+            186.55,
+            215.225,
+            249.635,
+            288.63,
+            334.505,
+            388.415,
+            451.495,
+            524.9,
+            569.63
+          ],
+          "units": "keV"
+        }
+      ],
+      "size": [
+        16
+      ],
+      "name": "mms1_epd_feeps_srvy_l2_electron_top_percent_error_sensorid_12",
+      "description": "MMS1 FEEPS top side survey mode electron count error statistics sensor 12",
+      "units": " ",
+      "type": "double",
+      "fill": "-1.0E31"
+    },
+    {
+      "bins": [
+        {
+          "name": "mms1_epd_feeps_srvy_l2_electron_bottom_energy_centroid_sensorid_1",
+          "centers": [
+            -2147483648.0,
+            -2147483648.0,
+            -2147483648.0,
+            -2147483648.0,
+            -2147483648.0,
+            -2147483648.0,
+            -2147483648.0,
+            -2147483648.0,
+            -2147483648.0,
+            -2147483648.0,
+            -2147483648.0,
+            -2147483648.0,
+            -2147483648.0,
+            -2147483648.0,
+            -2147483648.0,
+            -2147483648.0
+          ],
+          "units": "keV"
+        }
+      ],
+      "size": [
+        16
+      ],
+      "name": "mms1_epd_feeps_srvy_l2_electron_bottom_percent_error_sensorid_1",
+      "description": "MMS1 FEEPS bottom side survey mode electron count error statistics sensor 1",
+      "units": " ",
+      "type": "double",
+      "fill": "-1.0E31"
+    },
+    {
+      "bins": [
+        {
+          "name": "mms1_epd_feeps_srvy_l2_electron_bottom_energy_centroid_sensorid_2",
+          "centers": [
+            40.235,
+            57.92,
+            76.78,
+            95.645,
+            113.325,
+            132.19,
+            153.41,
+            178.165,
+            207.64,
+            240.645,
+            279.55,
+            325.53,
+            379.76,
+            443.42,
+            516.515,
+            564.85
+          ],
+          "units": "keV"
+        }
+      ],
+      "size": [
+        16
+      ],
+      "name": "mms1_epd_feeps_srvy_l2_electron_bottom_percent_error_sensorid_2",
+      "description": "MMS1 FEEPS bottom side survey mode electron count error statistics sensor 2",
+      "units": " ",
+      "type": "double",
+      "fill": "-1.0E31"
+    },
+    {
+      "bins": [
+        {
+          "name": "mms1_epd_feeps_srvy_l2_electron_bottom_energy_centroid_sensorid_3",
+          "centers": [
+            -2147483648.0,
+            -2147483648.0,
+            -2147483648.0,
+            -2147483648.0,
+            -2147483648.0,
+            -2147483648.0,
+            -2147483648.0,
+            -2147483648.0,
+            -2147483648.0,
+            -2147483648.0,
+            -2147483648.0,
+            -2147483648.0,
+            -2147483648.0,
+            -2147483648.0,
+            -2147483648.0,
+            -2147483648.0
+          ],
+          "units": "keV"
+        }
+      ],
+      "size": [
+        16
+      ],
+      "name": "mms1_epd_feeps_srvy_l2_electron_bottom_percent_error_sensorid_3",
+      "description": "MMS1 FEEPS bottom side survey mode electron count error statistics sensor 3",
+      "units": " ",
+      "type": "double",
+      "fill": "-1.0E31"
+    },
+    {
+      "bins": [
+        {
+          "name": "mms1_epd_feeps_srvy_l2_electron_bottom_energy_centroid_sensorid_4",
+          "centers": [
+            46.85,
+            65.43,
+            84.01,
+            103.82,
+            121.165,
+            138.5,
+            160.795,
+            185.565,
+            214.05,
+            248.73,
+            288.365,
+            334.19,
+            387.445,
+            449.37,
+            522.445,
+            585.605
+          ],
+          "units": "keV"
+        }
+      ],
+      "size": [
+        16
+      ],
+      "name": "mms1_epd_feeps_srvy_l2_electron_bottom_percent_error_sensorid_4",
+      "description": "MMS1 FEEPS bottom side survey mode electron count error statistics sensor 4",
+      "units": " ",
+      "type": "double",
+      "fill": "-1.0E31"
+    },
+    {
+      "bins": [
+        {
+          "name": "mms1_epd_feeps_srvy_l2_electron_bottom_energy_centroid_sensorid_5",
+          "centers": [
+            47.255,
+            66.415,
+            85.575,
+            103.535,
+            120.305,
+            139.46,
+            161.02,
+            184.965,
+            213.71,
+            247.235,
+            286.755,
+            333.46,
+            387.345,
+            449.61,
+            522.66,
+            574.15
+          ],
+          "units": "keV"
+        }
+      ],
+      "size": [
+        16
+      ],
+      "name": "mms1_epd_feeps_srvy_l2_electron_bottom_percent_error_sensorid_5",
+      "description": "MMS1 FEEPS bottom side survey mode electron count error statistics sensor 5",
+      "units": " ",
+      "type": "double",
+      "fill": "-1.0E31"
+    },
+    {
+      "bins": [
+        {
+          "name": "mms1_epd_feeps_srvy_l2_electron_bottom_energy_centroid_sensorid_9",
+          "centers": [
+            47.19,
+            65.865,
+            84.54,
+            103.22,
+            121.9,
+            139.33,
+            160.495,
+            185.395,
+            214.035,
+            247.655,
+            286.25,
+            332.32,
+            387.105,
+            450.605,
+            524.07,
+            585.08
+          ],
+          "units": "keV"
+        }
+      ],
+      "size": [
+        16
+      ],
+      "name": "mms1_epd_feeps_srvy_l2_electron_bottom_percent_error_sensorid_9",
+      "description": "MMS1 FEEPS bottom side survey mode electron count error statistics sensor 9",
+      "units": " ",
+      "type": "double",
+      "fill": "-1.0E31"
+    },
+    {
+      "bins": [
+        {
+          "name": "mms1_epd_feeps_srvy_l2_electron_bottom_energy_centroid_sensorid_10",
+          "centers": [
+            48.07,
+            66.565,
+            85.06,
+            103.56,
+            120.9,
+            139.395,
+            161.365,
+            185.64,
+            214.54,
+            248.065,
+            287.37,
+            333.61,
+            386.785,
+            449.22,
+            523.205,
+            567.13
+          ],
+          "units": "keV"
+        }
+      ],
+      "size": [
+        16
+      ],
+      "name": "mms1_epd_feeps_srvy_l2_electron_bottom_percent_error_sensorid_10",
+      "description": "MMS1 FEEPS bottom side survey mode electron count error statistics sensor 10",
+      "units": " ",
+      "type": "double",
+      "fill": "-1.0E31"
+    },
+    {
+      "bins": [
+        {
+          "name": "mms1_epd_feeps_srvy_l2_electron_bottom_energy_centroid_sensorid_11",
+          "centers": [
+            -2147483648.0,
+            -2147483648.0,
+            -2147483648.0,
+            -2147483648.0,
+            -2147483648.0,
+            -2147483648.0,
+            -2147483648.0,
+            -2147483648.0,
+            -2147483648.0,
+            -2147483648.0,
+            -2147483648.0,
+            -2147483648.0,
+            -2147483648.0,
+            -2147483648.0,
+            -2147483648.0,
+            -2147483648.0
+          ],
+          "units": "keV"
+        }
+      ],
+      "size": [
+        16
+      ],
+      "name": "mms1_epd_feeps_srvy_l2_electron_bottom_percent_error_sensorid_11",
+      "description": "MMS1 FEEPS bottom side survey mode electron count error statistics sensor 11",
+      "units": " ",
+      "type": "double",
+      "fill": "-1.0E31"
+    },
+    {
+      "bins": [
+        {
+          "name": "mms1_epd_feeps_srvy_l2_electron_bottom_energy_centroid_sensorid_12",
+          "centers": [
+            -2147483648.0,
+            -2147483648.0,
+            -2147483648.0,
+            -2147483648.0,
+            -2147483648.0,
+            -2147483648.0,
+            -2147483648.0,
+            -2147483648.0,
+            -2147483648.0,
+            -2147483648.0,
+            -2147483648.0,
+            -2147483648.0,
+            -2147483648.0,
+            -2147483648.0,
+            -2147483648.0,
+            -2147483648.0
+          ],
+          "units": "keV"
+        }
+      ],
+      "size": [
+        16
+      ],
+      "name": "mms1_epd_feeps_srvy_l2_electron_bottom_percent_error_sensorid_12",
+      "description": "MMS1 FEEPS bottom side survey mode electron count error statistics sensor 12",
+      "units": " ",
+      "type": "double",
+      "fill": "-1.0E31"
+    },
+    {
+      "bins": [
+        {
+          "name": "electron_sensor_pitch_angle_indices",
+          "centers": [
+            1,
+            2,
+            3,
+            4,
+            5,
+            9,
+            10,
+            11,
+            12,
+            -1,
+            -2,
+            -3,
+            -4,
+            -5,
+            -9,
+            -10,
+            -11,
+            -12
+          ],
+          "units": null
+        }
+      ],
+      "size": [
+        18
+      ],
+      "name": "mms1_epd_feeps_srvy_l2_electron_pitch_angle",
+      "description": "The angle formed by the normal vector of the sensor plane and the magnetic field (BField)",
+      "units": "deg",
+      "type": "double",
+      "fill": "-1.0E31"
+    },
+    {
+      "name": "mms1_epd_feeps_srvy_l2_electron_lat_gse",
+      "description": "Latitude",
+      "units": "deg",
+      "type": "double",
+      "fill": "-1.0E31"
+    }
+  ],
+  "startDate": "2015-09-01T00:00:00Z",
+  "stopDate": "2026-01-01T23:59:59Z",
+  "status": {
+    "code": 1200,
+    "message": "OK"
+  }
+}

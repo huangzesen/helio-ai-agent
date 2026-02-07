@@ -1,0 +1,82 @@
+{
+  "HAPI": "2.0",
+  "resourceURL": "https://cdaweb.gsfc.nasa.gov/misc/NotesS.html#SOLO_L2_EPD-HET-ASUN-BURST",
+  "contact": "J. Rodriguez-Pacheco @ Space Research Group, Universidad de Alcala",
+  "parameters": [
+    {
+      "name": "Time",
+      "length": 30,
+      "units": "UTC",
+      "type": "isotime",
+      "fill": null
+    },
+    {
+      "bins": [
+        {
+          "name": "He3_Bins_Low_Energy",
+          "centers": [
+            8.136,
+            8.422,
+            8.844,
+            9.597,
+            13.0,
+            18.73,
+            22.23,
+            28.57,
+            33.94
+          ],
+          "units": "MeV/n"
+        }
+      ],
+      "size": [
+        9
+      ],
+      "name": "He3_Flux",
+      "description": "Helium-3 flux",
+      "units": "particles / (s cm^2 sr MeV/n)",
+      "type": "double",
+      "fill": "-1.0E31"
+    },
+    {
+      "bins": [
+        {
+          "name": "He4_Bins_Low_Energy",
+          "centers": [
+            6.877,
+            7.113,
+            7.453,
+            8.15,
+            8.648,
+            9.823,
+            11.09,
+            16.38,
+            19.4,
+            23.02,
+            29.51,
+            35.24,
+            41.24,
+            49.02,
+            58.79,
+            76.35,
+            91.86
+          ],
+          "units": "MeV/n"
+        }
+      ],
+      "size": [
+        17
+      ],
+      "name": "He4_Flux",
+      "description": "Helium-4 flux",
+      "units": "particles / (s cm^2 sr MeV/n)",
+      "type": "double",
+      "fill": "-1.0E31"
+    }
+  ],
+  "startDate": "2020-06-15T12:22:28Z",
+  "stopDate": "2020-06-15T12:37:28Z",
+  "status": {
+    "code": 1200,
+    "message": "OK"
+  }
+}

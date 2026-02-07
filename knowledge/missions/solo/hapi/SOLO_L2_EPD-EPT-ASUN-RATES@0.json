@@ -1,0 +1,128 @@
+{
+  "HAPI": "2.0",
+  "resourceURL": "https://cdaweb.gsfc.nasa.gov/misc/NotesS.html#SOLO_L2_EPD-EPT-ASUN-RATES",
+  "contact": "J. Rodriguez-Pacheco @ Space Research Group, Universidad de Alcala",
+  "parameters": [
+    {
+      "name": "Time",
+      "length": 30,
+      "units": "UTC",
+      "type": "isotime",
+      "fill": null
+    },
+    {
+      "bins": [
+        {
+          "name": "Ion_Bins_Low_Energy",
+          "centers": [
+            0.04851,
+            0.05109,
+            0.05482,
+            0.05798,
+            0.06019,
+            0.06368,
+            0.0695,
+            0.07351,
+            0.07748,
+            0.08122,
+            0.08618,
+            0.09091,
+            0.09668,
+            0.1023,
+            0.109,
+            0.1164,
+            0.124,
+            0.1324,
+            0.1419,
+            0.1513,
+            0.1627,
+            0.1741,
+            0.1875,
+            0.2029,
+            0.2183,
+            0.2357,
+            0.2541,
+            0.2746,
+            0.2981,
+            0.3215,
+            0.3491,
+            0.3806,
+            0.4111,
+            0.4462,
+            0.4842,
+            0.5253,
+            0.5728,
+            0.6211,
+            0.6767,
+            0.7399,
+            0.8041,
+            0.8735,
+            0.9497,
+            1.034,
+            1.129,
+            1.224,
+            1.337,
+            1.464,
+            1.594,
+            1.737,
+            1.886,
+            2.052,
+            2.247,
+            2.437,
+            2.66,
+            2.92,
+            3.172,
+            3.46,
+            3.762,
+            4.099,
+            4.482,
+            4.87,
+            5.314,
+            5.832
+          ],
+          "units": "MeV"
+        }
+      ],
+      "size": [
+        64
+      ],
+      "name": "Ion_Flux",
+      "description": "Ion flux in magnet channel",
+      "units": "particles / (s cm^2 sr MeV)",
+      "type": "double",
+      "fill": "-1.0E31"
+    },
+    {
+      "bins": [
+        {
+          "name": "Alpha_Bins_Low_Energy",
+          "centers": [
+            6.373,
+            7.543,
+            8.989,
+            10.64,
+            12.69,
+            15.05,
+            17.93,
+            21.26
+          ],
+          "units": "MeV"
+        }
+      ],
+      "size": [
+        8
+      ],
+      "name": "Alpha_Flux",
+      "description": "Alpha particle flux in magnet channel",
+      "units": "particles / (s cm^2 sr MeV)",
+      "type": "double",
+      "fill": "-1.0E31"
+    }
+  ],
+  "startDate": "2020-05-13T00:00:03Z",
+  "stopDate": "2025-10-31T23:59:59Z",
+  "status": {
+    "code": 1200,
+    "message": "OK"
+  }
+}

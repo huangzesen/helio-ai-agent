@@ -1,0 +1,157 @@
+{
+  "HAPI": "2.0",
+  "resourceURL": "https://cdaweb.gsfc.nasa.gov/misc/NotesS.html#STA_L1_STE",
+  "contact": "Christina Lee @ UCB/SSL",
+  "parameters": [
+    {
+      "name": "Time",
+      "length": 24,
+      "units": "UTC",
+      "type": "isotime",
+      "fill": null
+    },
+    {
+      "bins": [
+        {
+          "name": "STE_Energy_vals",
+          "centers": [
+            1,
+            2,
+            3,
+            4,
+            5,
+            6,
+            7,
+            8,
+            9,
+            10,
+            11,
+            12,
+            13,
+            14,
+            15,
+            16,
+            17,
+            18,
+            19,
+            20,
+            21,
+            22,
+            23,
+            24,
+            25,
+            26,
+            27,
+            28,
+            29,
+            30,
+            31,
+            32
+          ],
+          "units": "Eband#"
+        },
+        {
+          "name": "STE_Detector_vals",
+          "centers": [
+            1,
+            2,
+            3,
+            4,
+            5,
+            6,
+            7,
+            8
+          ],
+          "units": "Detector#"
+        }
+      ],
+      "size": [
+        32,
+        8
+      ],
+      "name": "STE_spectra_f",
+      "description": "STE Electron Spectra [Values for detectors #1-4 are saturated and should not be used]",
+      "units": "cnts",
+      "type": "double",
+      "fill": "-1.0E31"
+    },
+    {
+      "name": "STE_mode",
+      "description": "STE Mode",
+      "units": null,
+      "type": "double",
+      "fill": "4.294967295E9"
+    },
+    {
+      "bins": [
+        {
+          "name": "STE_Energy_vals",
+          "centers": [
+            1,
+            2,
+            3,
+            4,
+            5,
+            6,
+            7,
+            8,
+            9,
+            10,
+            11,
+            12,
+            13,
+            14,
+            15,
+            16,
+            17,
+            18,
+            19,
+            20,
+            21,
+            22,
+            23,
+            24,
+            25,
+            26,
+            27,
+            28,
+            29,
+            30,
+            31,
+            32
+          ],
+          "units": "Eband#"
+        },
+        {
+          "name": "STE_Detector_vals",
+          "centers": [
+            1,
+            2,
+            3,
+            4,
+            5,
+            6,
+            7,
+            8
+          ],
+          "units": "Detector#"
+        }
+      ],
+      "size": [
+        32,
+        8
+      ],
+      "name": "STE_energy_f",
+      "description": "--> STE Maximum Energy Threshold",
+      "units": "keV",
+      "type": "double",
+      "fill": "-1.0E31"
+    }
+  ],
+  "startDate": "2006-11-01T16:59:49Z",
+  "stopDate": "2025-12-01T00:00:01Z",
+  "status": {
+    "code": 1200,
+    "message": "OK"
+  }
+}

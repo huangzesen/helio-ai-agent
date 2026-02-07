@@ -1,0 +1,44 @@
+{
+  "HAPI": "2.0",
+  "resourceURL": "https://cdaweb.gsfc.nasa.gov/misc/NotesA.html#AC_K1_MFI",
+  "contact": "N. Ness @ Bartol Research Institute",
+  "parameters": [
+    {
+      "name": "Time",
+      "length": 24,
+      "units": "UTC",
+      "type": "isotime",
+      "fill": null
+    },
+    {
+      "name": "dBrms",
+      "description": "[PRELIMINARY VALUES - BROWSE USE ONLY] RMS of Magnetic Field (16 sec period)",
+      "units": "nT",
+      "type": "double",
+      "fill": "-1.0E31"
+    },
+    {
+      "name": "Magnitude",
+      "description": "[PRELIMINARY VALUES - BROWSE USE ONLY] B-field magnitude",
+      "units": "nT",
+      "type": "double",
+      "fill": "-1.0E31"
+    },
+    {
+      "size": [
+        3
+      ],
+      "name": "BGSEc",
+      "description": "[PRELIMINARY VALUES - BROWSE USE ONLY] Magnetic Field, Cartesian GSE coord",
+      "units": "nT",
+      "type": "double",
+      "fill": "-1.0E31"
+    }
+  ],
+  "startDate": "2017-07-01T00:00:00Z",
+  "stopDate": "2026-01-31T23:59:44Z",
+  "status": {
+    "code": 1200,
+    "message": "OK"
+  }
+}

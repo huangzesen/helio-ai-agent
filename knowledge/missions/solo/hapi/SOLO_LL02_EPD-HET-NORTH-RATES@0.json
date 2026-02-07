@@ -1,0 +1,124 @@
+{
+  "HAPI": "2.0",
+  "resourceURL": "https://cdaweb.gsfc.nasa.gov/misc/NotesS.html#SOLO_LL02_EPD-HET-NORTH-RATES",
+  "contact": "J. Rodriguez-Pacheco @ Space Research Group, Universidad de Alcala",
+  "parameters": [
+    {
+      "name": "Time",
+      "length": 30,
+      "units": "UTC",
+      "type": "isotime",
+      "fill": null
+    },
+    {
+      "bins": [
+        {
+          "name": "Ele_Bins_Low_Energy",
+          "centers": [
+            0.4533,
+            1.053,
+            2.401,
+            5.993
+          ],
+          "units": "MeV"
+        }
+      ],
+      "size": [
+        4
+      ],
+      "name": "Ele_Flux",
+      "description": "Electron number flux as a function of energy",
+      "units": "particles / (s cm^2 sr MeV)",
+      "type": "double",
+      "fill": "-1.0E31"
+    },
+    {
+      "bins": [
+        {
+          "name": "Ele_Bins_Low_Energy",
+          "centers": [
+            0.4533,
+            1.053,
+            2.401,
+            5.993
+          ],
+          "units": "MeV"
+        }
+      ],
+      "size": [
+        4
+      ],
+      "name": "Ele_Flux_Sigma",
+      "description": "Electron number flux uncertainty",
+      "units": "particles / (s cm^2 sr MeV)",
+      "type": "double",
+      "fill": "-1.0E31"
+    },
+    {
+      "bins": [
+        {
+          "name": "H_Bins_Low_Energy",
+          "centers": [
+            6.946,
+            8.192,
+            10.75,
+            11.57,
+            13.68,
+            16.82,
+            22.1,
+            28.33,
+            36.39,
+            47.05,
+            63.11,
+            81.66
+          ],
+          "units": "MeV"
+        }
+      ],
+      "size": [
+        12
+      ],
+      "name": "H_Flux",
+      "description": "Hydrogen number flux as a function of energy",
+      "units": "particles / (s cm^2 sr MeV)",
+      "type": "double",
+      "fill": "-1.0E31"
+    },
+    {
+      "bins": [
+        {
+          "name": "H_Bins_Low_Energy",
+          "centers": [
+            6.946,
+            8.192,
+            10.75,
+            11.57,
+            13.68,
+            16.82,
+            22.1,
+            28.33,
+            36.39,
+            47.05,
+            63.11,
+            81.66
+          ],
+          "units": "MeV"
+        }
+      ],
+      "size": [
+        12
+      ],
+      "name": "H_Flux_Sigma",
+      "description": "Hydrogen number flux uncertainty",
+      "units": "particles / (s cm^2 sr MeV)",
+      "type": "double",
+      "fill": "-1.0E31"
+    }
+  ],
+  "startDate": "2020-06-03T14:22:45Z",
+  "stopDate": "2026-02-05T02:43:32Z",
+  "status": {
+    "code": 1200,
+    "message": "OK"
+  }
+}

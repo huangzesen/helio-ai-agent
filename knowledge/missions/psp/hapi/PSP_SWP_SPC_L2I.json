@@ -1,0 +1,80 @@
+{
+  "HAPI": "2.0",
+  "resourceURL": "https://cdaweb.gsfc.nasa.gov/misc/NotesP.html#PSP_SWP_SPC_L2I",
+  "contact": "Michael L. Stevens @ Center for Astrophysics, Harvard and Smithsonian",
+  "parameters": [
+    {
+      "name": "Time",
+      "length": 30,
+      "units": "UTC",
+      "type": "isotime",
+      "fill": null
+    },
+    {
+      "size": [
+        128
+      ],
+      "name": "a_current",
+      "description": "Current measured by sensor A, in picoAmperes",
+      "units": "pA",
+      "type": "double",
+      "fill": "-1.0E31"
+    },
+    {
+      "size": [
+        128
+      ],
+      "name": "b_current",
+      "description": "Current measured by sensor B, in picoAmperes",
+      "units": "pA",
+      "type": "double",
+      "fill": "-1.0E31"
+    },
+    {
+      "size": [
+        128
+      ],
+      "name": "c_current",
+      "description": "Current measured by sensor C, in picoAmperes",
+      "units": "pA",
+      "type": "double",
+      "fill": "-1.0E31"
+    },
+    {
+      "size": [
+        128
+      ],
+      "name": "d_current",
+      "description": "Current measured by sensor D, in picoAmperes",
+      "units": "pA",
+      "type": "double",
+      "fill": "-1.0E31"
+    },
+    {
+      "size": [
+        2
+      ],
+      "name": "flow_angle",
+      "description": "rough estimate angle of the mean flow into the cup, in radians, in SPC coordinates",
+      "units": "radian",
+      "type": "double",
+      "fill": "-1.0E31"
+    },
+    {
+      "size": [
+        128
+      ],
+      "name": "diff_charge_flux_density",
+      "description": "differential charge flux density, in pA*cm**-2",
+      "units": "pA*cm**-2",
+      "type": "double",
+      "fill": "-1.0E31"
+    }
+  ],
+  "startDate": "2018-10-30T23:59:59Z",
+  "stopDate": "2025-07-31T23:59:30Z",
+  "status": {
+    "code": 1200,
+    "message": "OK"
+  }
+}

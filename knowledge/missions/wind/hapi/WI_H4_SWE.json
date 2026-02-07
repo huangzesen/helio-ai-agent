@@ -1,0 +1,958 @@
+{
+  "HAPI": "2.0",
+  "resourceURL": "https://cdaweb.gsfc.nasa.gov/misc/NotesW.html#WI_H4_SWE",
+  "contact": "K. Ogilvie @ NASA/GSFC",
+  "parameters": [
+    {
+      "name": "Time",
+      "length": 24,
+      "units": "UTC",
+      "type": "isotime",
+      "fill": null
+    },
+    {
+      "bins": [
+        {
+          "name": "Echan_vals",
+          "centers": [
+            0,
+            1,
+            2,
+            3,
+            4,
+            5,
+            6,
+            7,
+            8,
+            9,
+            10,
+            11,
+            12,
+            13,
+            14,
+            15
+          ],
+          "units": null
+        }
+      ],
+      "size": [
+        16
+      ],
+      "name": "Ve",
+      "description": "Electron speed",
+      "units": "cm/s",
+      "type": "double",
+      "fill": "-1.0E31"
+    },
+    {
+      "bins": [
+        {
+          "name": "Echan_vals",
+          "centers": [
+            0,
+            1,
+            2,
+            3,
+            4,
+            5,
+            6,
+            7,
+            8,
+            9,
+            10,
+            11,
+            12,
+            13,
+            14,
+            15
+          ],
+          "units": null
+        }
+      ],
+      "size": [
+        16
+      ],
+      "name": "Ve_stack",
+      "description": "--> stack plot of all channels",
+      "units": "cm/s",
+      "type": "double",
+      "fill": "-1.0E31"
+    },
+    {
+      "bins": [
+        {
+          "name": "Echan_vals",
+          "centers": [
+            0,
+            1,
+            2,
+            3,
+            4,
+            5,
+            6,
+            7,
+            8,
+            9,
+            10,
+            11,
+            12,
+            13,
+            14,
+            15
+          ],
+          "units": null
+        }
+      ],
+      "size": [
+        16
+      ],
+      "name": "eV",
+      "description": "Electron energy",
+      "units": "eV",
+      "type": "double",
+      "fill": "-1.0E31"
+    },
+    {
+      "bins": [
+        {
+          "name": "Echan_vals",
+          "centers": [
+            0,
+            1,
+            2,
+            3,
+            4,
+            5,
+            6,
+            7,
+            8,
+            9,
+            10,
+            11,
+            12,
+            13,
+            14,
+            15
+          ],
+          "units": null
+        }
+      ],
+      "size": [
+        16
+      ],
+      "name": "eV_stack",
+      "description": "--> stack plot of all channels, by energy",
+      "units": "eV",
+      "type": "double",
+      "fill": "-1.0E31"
+    },
+    {
+      "bins": [
+        {
+          "name": "Pitch_Angle",
+          "centers": [
+            3.0,
+            9.0,
+            15.0,
+            21.0,
+            27.0,
+            33.0,
+            39.0,
+            45.0,
+            51.0,
+            57.0,
+            63.0,
+            69.0,
+            75.0,
+            81.0,
+            87.0,
+            93.0,
+            99.0,
+            105.0,
+            111.0,
+            117.0,
+            123.0,
+            129.0,
+            135.0,
+            141.0,
+            147.0,
+            153.0,
+            159.0,
+            165.0,
+            171.0,
+            177.0
+          ],
+          "units": "deg"
+        }
+      ],
+      "size": [
+        30
+      ],
+      "name": "f_pitch_E00",
+      "description": "Electron pitch-angle distributions (6 degrees/bin), energy chanel 00 (time-varying energy value)",
+      "units": "#/{cc*(cm/s)^3}",
+      "type": "double",
+      "fill": "-1.0E31"
+    },
+    {
+      "bins": [
+        {
+          "name": "Pitch_Angle",
+          "centers": [
+            3.0,
+            9.0,
+            15.0,
+            21.0,
+            27.0,
+            33.0,
+            39.0,
+            45.0,
+            51.0,
+            57.0,
+            63.0,
+            69.0,
+            75.0,
+            81.0,
+            87.0,
+            93.0,
+            99.0,
+            105.0,
+            111.0,
+            117.0,
+            123.0,
+            129.0,
+            135.0,
+            141.0,
+            147.0,
+            153.0,
+            159.0,
+            165.0,
+            171.0,
+            177.0
+          ],
+          "units": "deg"
+        }
+      ],
+      "size": [
+        30
+      ],
+      "name": "f_pitch_E01",
+      "description": "Electron pitch-angle distributions (6 degrees/bin), energy chanel 01 (time-varying energy value)",
+      "units": "#/{cc*(cm/s)^3}",
+      "type": "double",
+      "fill": "-1.0E31"
+    },
+    {
+      "bins": [
+        {
+          "name": "Pitch_Angle",
+          "centers": [
+            3.0,
+            9.0,
+            15.0,
+            21.0,
+            27.0,
+            33.0,
+            39.0,
+            45.0,
+            51.0,
+            57.0,
+            63.0,
+            69.0,
+            75.0,
+            81.0,
+            87.0,
+            93.0,
+            99.0,
+            105.0,
+            111.0,
+            117.0,
+            123.0,
+            129.0,
+            135.0,
+            141.0,
+            147.0,
+            153.0,
+            159.0,
+            165.0,
+            171.0,
+            177.0
+          ],
+          "units": "deg"
+        }
+      ],
+      "size": [
+        30
+      ],
+      "name": "f_pitch_E02",
+      "description": "Electron pitch-angle distributions (6 degrees/bin), energy chanel 02 (time-varying energy value)",
+      "units": "#/{cc*(cm/s)^3}",
+      "type": "double",
+      "fill": "-1.0E31"
+    },
+    {
+      "bins": [
+        {
+          "name": "Pitch_Angle",
+          "centers": [
+            3.0,
+            9.0,
+            15.0,
+            21.0,
+            27.0,
+            33.0,
+            39.0,
+            45.0,
+            51.0,
+            57.0,
+            63.0,
+            69.0,
+            75.0,
+            81.0,
+            87.0,
+            93.0,
+            99.0,
+            105.0,
+            111.0,
+            117.0,
+            123.0,
+            129.0,
+            135.0,
+            141.0,
+            147.0,
+            153.0,
+            159.0,
+            165.0,
+            171.0,
+            177.0
+          ],
+          "units": "deg"
+        }
+      ],
+      "size": [
+        30
+      ],
+      "name": "f_pitch_E03",
+      "description": "Electron pitch-angle distributions (6 degrees/bin), energy chanel 03 (time-varying energy value)",
+      "units": "#/{cc*(cm/s)^3}",
+      "type": "double",
+      "fill": "-1.0E31"
+    },
+    {
+      "bins": [
+        {
+          "name": "Pitch_Angle",
+          "centers": [
+            3.0,
+            9.0,
+            15.0,
+            21.0,
+            27.0,
+            33.0,
+            39.0,
+            45.0,
+            51.0,
+            57.0,
+            63.0,
+            69.0,
+            75.0,
+            81.0,
+            87.0,
+            93.0,
+            99.0,
+            105.0,
+            111.0,
+            117.0,
+            123.0,
+            129.0,
+            135.0,
+            141.0,
+            147.0,
+            153.0,
+            159.0,
+            165.0,
+            171.0,
+            177.0
+          ],
+          "units": "deg"
+        }
+      ],
+      "size": [
+        30
+      ],
+      "name": "f_pitch_E04",
+      "description": "Electron pitch-angle distributions (6 degrees/bin), energy chanel 04 (time-varying energy value)",
+      "units": "#/{cc*(cm/s)^3}",
+      "type": "double",
+      "fill": "-1.0E31"
+    },
+    {
+      "bins": [
+        {
+          "name": "Pitch_Angle",
+          "centers": [
+            3.0,
+            9.0,
+            15.0,
+            21.0,
+            27.0,
+            33.0,
+            39.0,
+            45.0,
+            51.0,
+            57.0,
+            63.0,
+            69.0,
+            75.0,
+            81.0,
+            87.0,
+            93.0,
+            99.0,
+            105.0,
+            111.0,
+            117.0,
+            123.0,
+            129.0,
+            135.0,
+            141.0,
+            147.0,
+            153.0,
+            159.0,
+            165.0,
+            171.0,
+            177.0
+          ],
+          "units": "deg"
+        }
+      ],
+      "size": [
+        30
+      ],
+      "name": "f_pitch_E05",
+      "description": "Electron pitch-angle distributions (6 degrees/bin), energy chanel 05 (time-varying energy value)",
+      "units": "#/{cc*(cm/s)^3}",
+      "type": "double",
+      "fill": "-1.0E31"
+    },
+    {
+      "bins": [
+        {
+          "name": "Pitch_Angle",
+          "centers": [
+            3.0,
+            9.0,
+            15.0,
+            21.0,
+            27.0,
+            33.0,
+            39.0,
+            45.0,
+            51.0,
+            57.0,
+            63.0,
+            69.0,
+            75.0,
+            81.0,
+            87.0,
+            93.0,
+            99.0,
+            105.0,
+            111.0,
+            117.0,
+            123.0,
+            129.0,
+            135.0,
+            141.0,
+            147.0,
+            153.0,
+            159.0,
+            165.0,
+            171.0,
+            177.0
+          ],
+          "units": "deg"
+        }
+      ],
+      "size": [
+        30
+      ],
+      "name": "f_pitch_E06",
+      "description": "Electron pitch-angle distributions (6 degrees/bin), energy chanel 06 (time-varying energy value)",
+      "units": "#/{cc*(cm/s)^3}",
+      "type": "double",
+      "fill": "-1.0E31"
+    },
+    {
+      "bins": [
+        {
+          "name": "Pitch_Angle",
+          "centers": [
+            3.0,
+            9.0,
+            15.0,
+            21.0,
+            27.0,
+            33.0,
+            39.0,
+            45.0,
+            51.0,
+            57.0,
+            63.0,
+            69.0,
+            75.0,
+            81.0,
+            87.0,
+            93.0,
+            99.0,
+            105.0,
+            111.0,
+            117.0,
+            123.0,
+            129.0,
+            135.0,
+            141.0,
+            147.0,
+            153.0,
+            159.0,
+            165.0,
+            171.0,
+            177.0
+          ],
+          "units": "deg"
+        }
+      ],
+      "size": [
+        30
+      ],
+      "name": "f_pitch_E07",
+      "description": "Electron pitch-angle distributions (6 degrees/bin), energy chanel 07 (time-varying energy value)",
+      "units": "#/{cc*(cm/s)^3}",
+      "type": "double",
+      "fill": "-1.0E31"
+    },
+    {
+      "bins": [
+        {
+          "name": "Pitch_Angle",
+          "centers": [
+            3.0,
+            9.0,
+            15.0,
+            21.0,
+            27.0,
+            33.0,
+            39.0,
+            45.0,
+            51.0,
+            57.0,
+            63.0,
+            69.0,
+            75.0,
+            81.0,
+            87.0,
+            93.0,
+            99.0,
+            105.0,
+            111.0,
+            117.0,
+            123.0,
+            129.0,
+            135.0,
+            141.0,
+            147.0,
+            153.0,
+            159.0,
+            165.0,
+            171.0,
+            177.0
+          ],
+          "units": "deg"
+        }
+      ],
+      "size": [
+        30
+      ],
+      "name": "f_pitch_E08",
+      "description": "Electron pitch-angle distributions (6 degrees/bin), energy chanel 08 (time-varying energy value)",
+      "units": "#/{cc*(cm/s)^3}",
+      "type": "double",
+      "fill": "-1.0E31"
+    },
+    {
+      "bins": [
+        {
+          "name": "Pitch_Angle",
+          "centers": [
+            3.0,
+            9.0,
+            15.0,
+            21.0,
+            27.0,
+            33.0,
+            39.0,
+            45.0,
+            51.0,
+            57.0,
+            63.0,
+            69.0,
+            75.0,
+            81.0,
+            87.0,
+            93.0,
+            99.0,
+            105.0,
+            111.0,
+            117.0,
+            123.0,
+            129.0,
+            135.0,
+            141.0,
+            147.0,
+            153.0,
+            159.0,
+            165.0,
+            171.0,
+            177.0
+          ],
+          "units": "deg"
+        }
+      ],
+      "size": [
+        30
+      ],
+      "name": "f_pitch_E09",
+      "description": "Electron pitch-angle distributions (6 degrees/bin), energy chanel 09 (time-varying energy value)",
+      "units": "#/{cc*(cm/s)^3}",
+      "type": "double",
+      "fill": "-1.0E31"
+    },
+    {
+      "bins": [
+        {
+          "name": "Pitch_Angle",
+          "centers": [
+            3.0,
+            9.0,
+            15.0,
+            21.0,
+            27.0,
+            33.0,
+            39.0,
+            45.0,
+            51.0,
+            57.0,
+            63.0,
+            69.0,
+            75.0,
+            81.0,
+            87.0,
+            93.0,
+            99.0,
+            105.0,
+            111.0,
+            117.0,
+            123.0,
+            129.0,
+            135.0,
+            141.0,
+            147.0,
+            153.0,
+            159.0,
+            165.0,
+            171.0,
+            177.0
+          ],
+          "units": "deg"
+        }
+      ],
+      "size": [
+        30
+      ],
+      "name": "f_pitch_E10",
+      "description": "Electron pitch-angle distributions (6 degrees/bin), energy chanel 10 (time-varying energy value)",
+      "units": "#/{cc*(cm/s)^3}",
+      "type": "double",
+      "fill": "-1.0E31"
+    },
+    {
+      "bins": [
+        {
+          "name": "Pitch_Angle",
+          "centers": [
+            3.0,
+            9.0,
+            15.0,
+            21.0,
+            27.0,
+            33.0,
+            39.0,
+            45.0,
+            51.0,
+            57.0,
+            63.0,
+            69.0,
+            75.0,
+            81.0,
+            87.0,
+            93.0,
+            99.0,
+            105.0,
+            111.0,
+            117.0,
+            123.0,
+            129.0,
+            135.0,
+            141.0,
+            147.0,
+            153.0,
+            159.0,
+            165.0,
+            171.0,
+            177.0
+          ],
+          "units": "deg"
+        }
+      ],
+      "size": [
+        30
+      ],
+      "name": "f_pitch_E11",
+      "description": "Electron pitch-angle distributions (6 degrees/bin), energy chanel 11 (time-varying energy value)",
+      "units": "#/{cc*(cm/s)^3}",
+      "type": "double",
+      "fill": "-1.0E31"
+    },
+    {
+      "bins": [
+        {
+          "name": "Pitch_Angle",
+          "centers": [
+            3.0,
+            9.0,
+            15.0,
+            21.0,
+            27.0,
+            33.0,
+            39.0,
+            45.0,
+            51.0,
+            57.0,
+            63.0,
+            69.0,
+            75.0,
+            81.0,
+            87.0,
+            93.0,
+            99.0,
+            105.0,
+            111.0,
+            117.0,
+            123.0,
+            129.0,
+            135.0,
+            141.0,
+            147.0,
+            153.0,
+            159.0,
+            165.0,
+            171.0,
+            177.0
+          ],
+          "units": "deg"
+        }
+      ],
+      "size": [
+        30
+      ],
+      "name": "f_pitch_E12",
+      "description": "Electron pitch-angle distributions (6 degrees/bin), energy chanel 12 (time-varying energy value)",
+      "units": "#/{cc*(cm/s)^3}",
+      "type": "double",
+      "fill": "-1.0E31"
+    },
+    {
+      "bins": [
+        {
+          "name": "Pitch_Angle",
+          "centers": [
+            3.0,
+            9.0,
+            15.0,
+            21.0,
+            27.0,
+            33.0,
+            39.0,
+            45.0,
+            51.0,
+            57.0,
+            63.0,
+            69.0,
+            75.0,
+            81.0,
+            87.0,
+            93.0,
+            99.0,
+            105.0,
+            111.0,
+            117.0,
+            123.0,
+            129.0,
+            135.0,
+            141.0,
+            147.0,
+            153.0,
+            159.0,
+            165.0,
+            171.0,
+            177.0
+          ],
+          "units": "deg"
+        }
+      ],
+      "size": [
+        30
+      ],
+      "name": "f_pitch_E13",
+      "description": "Electron pitch-angle distributions (6 degrees/bin), energy chanel 13 (time-varying energy value)",
+      "units": "#/{cc*(cm/s)^3}",
+      "type": "double",
+      "fill": "-1.0E31"
+    },
+    {
+      "bins": [
+        {
+          "name": "Pitch_Angle",
+          "centers": [
+            3.0,
+            9.0,
+            15.0,
+            21.0,
+            27.0,
+            33.0,
+            39.0,
+            45.0,
+            51.0,
+            57.0,
+            63.0,
+            69.0,
+            75.0,
+            81.0,
+            87.0,
+            93.0,
+            99.0,
+            105.0,
+            111.0,
+            117.0,
+            123.0,
+            129.0,
+            135.0,
+            141.0,
+            147.0,
+            153.0,
+            159.0,
+            165.0,
+            171.0,
+            177.0
+          ],
+          "units": "deg"
+        }
+      ],
+      "size": [
+        30
+      ],
+      "name": "f_pitch_E14",
+      "description": "Electron pitch-angle distributions (6 degrees/bin), energy chanel 14 (time-varying energy value)",
+      "units": "#/{cc*(cm/s)^3}",
+      "type": "double",
+      "fill": "-1.0E31"
+    },
+    {
+      "bins": [
+        {
+          "name": "Pitch_Angle",
+          "centers": [
+            3.0,
+            9.0,
+            15.0,
+            21.0,
+            27.0,
+            33.0,
+            39.0,
+            45.0,
+            51.0,
+            57.0,
+            63.0,
+            69.0,
+            75.0,
+            81.0,
+            87.0,
+            93.0,
+            99.0,
+            105.0,
+            111.0,
+            117.0,
+            123.0,
+            129.0,
+            135.0,
+            141.0,
+            147.0,
+            153.0,
+            159.0,
+            165.0,
+            171.0,
+            177.0
+          ],
+          "units": "deg"
+        }
+      ],
+      "size": [
+        30
+      ],
+      "name": "f_pitch_E15",
+      "description": "Electron pitch-angle distributions (6 degrees/bin), energy chanel 15 (time-varying energy value)",
+      "units": "#/{cc*(cm/s)^3}",
+      "type": "double",
+      "fill": "-1.0E31"
+    },
+    {
+      "bins": [
+        {
+          "name": "Echan_vals",
+          "centers": [
+            0,
+            1,
+            2,
+            3,
+            4,
+            5,
+            6,
+            7,
+            8,
+            9,
+            10,
+            11,
+            12,
+            13,
+            14,
+            15
+          ],
+          "units": null
+        }
+      ],
+      "size": [
+        16
+      ],
+      "name": "f_pitch_SPA",
+      "description": "Electron spin-averaged flux, binned by energy channel",
+      "units": "#/{cc*(cm/s)^3}",
+      "type": "double",
+      "fill": "-1.0E31"
+    }
+  ],
+  "startDate": "1994-11-30T00:00:20Z",
+  "stopDate": "2001-07-10T00:00:35Z",
+  "status": {
+    "code": 1200,
+    "message": "OK"
+  }
+}

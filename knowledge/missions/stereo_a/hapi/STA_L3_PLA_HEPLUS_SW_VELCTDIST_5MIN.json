@@ -1,0 +1,79 @@
+{
+  "HAPI": "2.0",
+  "resourceURL": "https://cdaweb.gsfc.nasa.gov/misc/NotesS.html#STA_L3_PLA_HEPLUS_SW_VELCTDIST_5MIN",
+  "contact": "Dr. Antoinette Galvin @ University of New Hampshire",
+  "parameters": [
+    {
+      "name": "Time",
+      "length": 24,
+      "units": "UTC",
+      "type": "isotime",
+      "fill": null
+    },
+    {
+      "name": "proton_bulk_speed",
+      "description": "Proton Bulk Speed. 1D Maxwellian Fit.",
+      "units": "km/s",
+      "type": "double",
+      "fill": "-1.0E31"
+    },
+    {
+      "name": "proton_number_density",
+      "description": "Proton Number Density. 1D Maxwellian Fit.",
+      "units": "1/cm3",
+      "type": "double",
+      "fill": "-1.0E31"
+    },
+    {
+      "name": "spacecraft_lon",
+      "description": "Spacecraft Ecliptic longitude.",
+      "units": "deg",
+      "type": "double",
+      "fill": "-1.0E31"
+    },
+    {
+      "name": "IMF",
+      "description": "Interplanetary Magnetic Field.",
+      "units": "nT",
+      "type": "double",
+      "fill": "-1.0E31"
+    },
+    {
+      "name": "theta",
+      "description": "IMF theta.",
+      "units": "deg",
+      "type": "double",
+      "fill": "-1.0E31"
+    },
+    {
+      "name": "phi",
+      "description": "IMF phi.",
+      "units": "deg",
+      "type": "double",
+      "fill": "-1.0E31"
+    },
+    {
+      "name": "cone_ang",
+      "description": "IMF cone angle.",
+      "units": "deg",
+      "type": "double",
+      "fill": "-1.0E31"
+    },
+    {
+      "size": [
+        69
+      ],
+      "name": "PUI_vel_ct_den",
+      "description": "PUI velocity count density.",
+      "units": " ",
+      "type": "double",
+      "fill": "-1.0E31"
+    }
+  ],
+  "startDate": "2007-02-14T00:00:00Z",
+  "stopDate": "2013-09-01T00:00:00Z",
+  "status": {
+    "code": 1200,
+    "message": "OK"
+  }
+}

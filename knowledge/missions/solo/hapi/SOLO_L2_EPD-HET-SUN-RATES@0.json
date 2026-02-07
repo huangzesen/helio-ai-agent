@@ -1,0 +1,74 @@
+{
+  "HAPI": "2.0",
+  "resourceURL": "https://cdaweb.gsfc.nasa.gov/misc/NotesS.html#SOLO_L2_EPD-HET-SUN-RATES",
+  "contact": "J. Rodriguez-Pacheco @ Space Research Group, Universidad de Alcala",
+  "parameters": [
+    {
+      "name": "Time",
+      "length": 30,
+      "units": "UTC",
+      "type": "isotime",
+      "fill": null
+    },
+    {
+      "bins": [
+        {
+          "name": "H_Bins_Low_Energy",
+          "centers": [
+            7.045,
+            7.354,
+            7.89,
+            8.484,
+            9.184,
+            10.6,
+            10.74,
+            10.98,
+            11.35,
+            11.8,
+            12.43,
+            13.68,
+            14.61,
+            15.65,
+            16.82,
+            18.2,
+            19.65,
+            21.24,
+            23.12,
+            25.09,
+            27.2,
+            29.44,
+            31.97,
+            34.88,
+            37.9,
+            41.18,
+            44.99,
+            49.07,
+            53.38,
+            58.03,
+            63.1,
+            68.97,
+            75.11,
+            81.64,
+            89.46,
+            97.63
+          ],
+          "units": "MeV"
+        }
+      ],
+      "size": [
+        36
+      ],
+      "name": "H_Flux",
+      "description": "Hydrogen flux",
+      "units": "particles / (s cm^2 sr MeV)",
+      "type": "double",
+      "fill": "-1.0E31"
+    }
+  ],
+  "startDate": "2020-05-13T00:00:03Z",
+  "stopDate": "2025-10-31T23:59:57Z",
+  "status": {
+    "code": 1200,
+    "message": "OK"
+  }
+}

@@ -1,0 +1,160 @@
+{
+  "HAPI": "2.0",
+  "resourceURL": "https://cdaweb.gsfc.nasa.gov/misc/NotesP.html#PSP_FLD_L2_DFB_DBM_VDC",
+  "contact": "Stuart D. Bale (bale@ssl.berkeley.edu) @ UC Berkeley Space Sciences Laboratory",
+  "parameters": [
+    {
+      "name": "Time",
+      "length": 30,
+      "units": "UTC",
+      "type": "isotime",
+      "fill": null
+    },
+    {
+      "name": "psp_fld_l2_dfb_dbm_vdc1_rms",
+      "description": "L2 DC Burst Single Ended Voltage from Sensor 1 rms value",
+      "units": "V",
+      "type": "double",
+      "fill": "-1.0E31"
+    },
+    {
+      "name": "psp_fld_l2_dfb_dbm_vdc1_max",
+      "description": "L2 DC Burst Single Ended Voltage from Sensor 1 max value",
+      "units": "V",
+      "type": "double",
+      "fill": "-1.0E31"
+    },
+    {
+      "name": "psp_fld_l2_dfb_dbm_vdc1_min",
+      "description": "L2 DC Burst Single Ended Voltage from Sensor 1 min value",
+      "units": "V",
+      "type": "double",
+      "fill": "-1.0E31"
+    },
+    {
+      "name": "psp_fld_l2_dfb_dbm_vdc1_median",
+      "description": "L2 DC Burst Single Ended Voltage from Sensor 1 median value",
+      "units": "V",
+      "type": "double",
+      "fill": "-1.0E31"
+    },
+    {
+      "name": "psp_fld_l2_dfb_dbm_vdc2_rms",
+      "description": "L2 DC Burst Single Ended Voltage from Sensor 2 rms value",
+      "units": "V",
+      "type": "double",
+      "fill": "-1.0E31"
+    },
+    {
+      "name": "psp_fld_l2_dfb_dbm_vdc2_max",
+      "description": "L2 DC Burst Single Ended Voltage from Sensor 2 max value",
+      "units": "V",
+      "type": "double",
+      "fill": "-1.0E31"
+    },
+    {
+      "name": "psp_fld_l2_dfb_dbm_vdc2_min",
+      "description": "L2 DC Burst Single Ended Voltage from Sensor 2 min value",
+      "units": "V",
+      "type": "double",
+      "fill": "-1.0E31"
+    },
+    {
+      "name": "psp_fld_l2_dfb_dbm_vdc2_median",
+      "description": "L2 DC Burst Single Ended Voltage from Sensor 2 median value",
+      "units": "V",
+      "type": "double",
+      "fill": "-1.0E31"
+    },
+    {
+      "name": "psp_fld_l2_dfb_dbm_vdc3_rms",
+      "description": "L2 DC Burst Single Ended Voltage from Sensor 3 rms value",
+      "units": "V",
+      "type": "double",
+      "fill": "-1.0E31"
+    },
+    {
+      "name": "psp_fld_l2_dfb_dbm_vdc3_max",
+      "description": "L2 DC Burst Single Ended Voltage from Sensor 3 max value",
+      "units": "V",
+      "type": "double",
+      "fill": "-1.0E31"
+    },
+    {
+      "name": "psp_fld_l2_dfb_dbm_vdc3_min",
+      "description": "L2 DC Burst Single Ended Voltage from Sensor 3 min value",
+      "units": "V",
+      "type": "double",
+      "fill": "-1.0E31"
+    },
+    {
+      "name": "psp_fld_l2_dfb_dbm_vdc3_median",
+      "description": "L2 DC Burst Single Ended Voltage from Sensor 3 median value",
+      "units": "V",
+      "type": "double",
+      "fill": "-1.0E31"
+    },
+    {
+      "name": "psp_fld_l2_dfb_dbm_vdc4_rms",
+      "description": "L2 DC Burst Single Ended Voltage from Sensor 4 rms value",
+      "units": "V",
+      "type": "double",
+      "fill": "-1.0E31"
+    },
+    {
+      "name": "psp_fld_l2_dfb_dbm_vdc4_max",
+      "description": "L2 DC Burst Single Ended Voltage from Sensor 4 max value",
+      "units": "V",
+      "type": "double",
+      "fill": "-1.0E31"
+    },
+    {
+      "name": "psp_fld_l2_dfb_dbm_vdc4_min",
+      "description": "L2 DC Burst Single Ended Voltage from Sensor 4 min value",
+      "units": "V",
+      "type": "double",
+      "fill": "-1.0E31"
+    },
+    {
+      "name": "psp_fld_l2_dfb_dbm_vdc4_median",
+      "description": "L2 DC Burst Single Ended Voltage from Sensor 4 median value",
+      "units": "V",
+      "type": "double",
+      "fill": "-1.0E31"
+    },
+    {
+      "name": "psp_fld_l2_dfb_dbm_vdc5_rms",
+      "description": "L2 DC Burst Single Ended Voltage from Sensor 5 rms value",
+      "units": "V",
+      "type": "double",
+      "fill": "-1.0E31"
+    },
+    {
+      "name": "psp_fld_l2_dfb_dbm_vdc5_max",
+      "description": "L2 DC Burst Single Ended Voltage from Sensor 5 max value",
+      "units": "V",
+      "type": "double",
+      "fill": "-1.0E31"
+    },
+    {
+      "name": "psp_fld_l2_dfb_dbm_vdc5_min",
+      "description": "L2 DC Burst Single Ended Voltage from Sensor 5 min value",
+      "units": "V",
+      "type": "double",
+      "fill": "-1.0E31"
+    },
+    {
+      "name": "psp_fld_l2_dfb_dbm_vdc5_median",
+      "description": "L2 DC Burst Single Ended Voltage from Sensor 5 median value",
+      "units": "V",
+      "type": "double",
+      "fill": "-1.0E31"
+    }
+  ],
+  "startDate": "2020-01-24T11:13:57Z",
+  "stopDate": "2024-07-02T19:19:33Z",
+  "status": {
+    "code": 1200,
+    "message": "OK"
+  }
+}

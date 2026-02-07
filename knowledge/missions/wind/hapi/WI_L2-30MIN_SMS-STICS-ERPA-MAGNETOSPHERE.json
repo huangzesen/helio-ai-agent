@@ -1,0 +1,294 @@
+{
+  "HAPI": "2.0",
+  "resourceURL": "https://cdaweb.gsfc.nasa.gov/misc/NotesW.html#WI_L2-30MIN_SMS-STICS-ERPA-MAGNETOSPHERE",
+  "contact": "S. T. Lepri @ U of Michigan",
+  "parameters": [
+    {
+      "name": "Time",
+      "length": 24,
+      "units": "UTC",
+      "type": "isotime",
+      "fill": null
+    },
+    {
+      "size": [
+        12,
+        32
+      ],
+      "name": "ERPA_tc_hplus",
+      "description": "Energy-resolved pitch-angle distributions triple coincidence H+",
+      "units": "s^3/km^6",
+      "type": "double",
+      "fill": "-1.0E31"
+    },
+    {
+      "size": [
+        12,
+        32
+      ],
+      "name": "ERPA_tc_hplus_sum",
+      "description": "Pitch-angle distributions triple coincidence H+ - summed over energy",
+      "units": "s^3/km^6",
+      "type": "double",
+      "fill": "-1.0E31"
+    },
+    {
+      "size": [
+        12,
+        32
+      ],
+      "name": "ERPA_tc_heplus",
+      "description": "Energy-resolved pitch-angle distributions triple coincidence He+",
+      "units": "s^3/km^6",
+      "type": "double",
+      "fill": "-1.0E31"
+    },
+    {
+      "size": [
+        12,
+        32
+      ],
+      "name": "ERPA_tc_heplus_sum",
+      "description": "Pitch-angle distributions triple coincidence He+ - summed over energy",
+      "units": "s^3/km^6",
+      "type": "double",
+      "fill": "-1.0E31"
+    },
+    {
+      "size": [
+        12,
+        32
+      ],
+      "name": "ERPA_tc_he2plus",
+      "description": "Energy-resolved pitch-angle distributions triple coincidence He2+",
+      "units": "s^3/km^6",
+      "type": "double",
+      "fill": "-1.0E31"
+    },
+    {
+      "size": [
+        12,
+        32
+      ],
+      "name": "ERPA_tc_he2plus_sum",
+      "description": "Pitch-angle distributions triple coincidence He2+ - summed over energy",
+      "units": "s^3/km^6",
+      "type": "double",
+      "fill": "-1.0E31"
+    },
+    {
+      "size": [
+        12,
+        32
+      ],
+      "name": "ERPA_tc_oplus",
+      "description": "Energy-resolved pitch-angle distributions triple coincidence O+",
+      "units": "s^3/km^6",
+      "type": "double",
+      "fill": "-1.0E31"
+    },
+    {
+      "size": [
+        12,
+        32
+      ],
+      "name": "ERPA_tc_oplus_sum",
+      "description": "Pitch-angle distributions triple coincidence O+ - summed over energy",
+      "units": "s^3/km^6",
+      "type": "double",
+      "fill": "-1.0E31"
+    },
+    {
+      "size": [
+        12,
+        32
+      ],
+      "name": "ERPA_tc_o6plus",
+      "description": "Energy-resolved pitch-angle distributions triple coincidence O6+",
+      "units": "s^3/km^6",
+      "type": "double",
+      "fill": "-1.0E31"
+    },
+    {
+      "size": [
+        12,
+        32
+      ],
+      "name": "ERPA_tc_o6plus_sum",
+      "description": "Pitch-angle distributions triple coincidence O6+ - summed over energy",
+      "units": "s^3/km^6",
+      "type": "double",
+      "fill": "-1.0E31"
+    },
+    {
+      "size": [
+        12,
+        32
+      ],
+      "name": "ERPA_tc_c5plus",
+      "description": "Energy-resolved pitch-angle distributions triple coincidence C5+",
+      "units": "s^3/km^6",
+      "type": "double",
+      "fill": "-1.0E31"
+    },
+    {
+      "size": [
+        12,
+        32
+      ],
+      "name": "ERPA_tc_c5plus_sum",
+      "description": "Pitch-angle distributions triple coincidence C5+ - summed over energy",
+      "units": "s^3/km^6",
+      "type": "double",
+      "fill": "-1.0E31"
+    },
+    {
+      "size": [
+        12,
+        32
+      ],
+      "name": "ERPA_tc_fe10plus",
+      "description": "Energy-resolved pitch-angle distributions triple coincidence Fe10+",
+      "units": "s^3/km^6",
+      "type": "double",
+      "fill": "-1.0E31"
+    },
+    {
+      "size": [
+        12,
+        32
+      ],
+      "name": "ERPA_tc_fe10plus_sum",
+      "description": "Pitch-angle distributions triple coincidence Fe10+ - summed over energy",
+      "units": "s^3/km^6",
+      "type": "double",
+      "fill": "-1.0E31"
+    },
+    {
+      "size": [
+        12,
+        32
+      ],
+      "name": "ERPA_dc_hplus",
+      "description": "Energy-resolved pitch-angle distributions double coincidence H+",
+      "units": "s^3/km^6",
+      "type": "double",
+      "fill": "-1.0E31"
+    },
+    {
+      "size": [
+        12,
+        32
+      ],
+      "name": "ERPA_dc_hplus_sum",
+      "description": "Pitch-angle distributions double coincidence H+ - summed over energy",
+      "units": "s^3/km^6",
+      "type": "double",
+      "fill": "-1.0E31"
+    },
+    {
+      "size": [
+        12,
+        32
+      ],
+      "name": "ERPA_dc_heplus",
+      "description": "Energy-resolved pitch-angle distributions double coincidence He+",
+      "units": "s^3/km^6",
+      "type": "double",
+      "fill": "-1.0E31"
+    },
+    {
+      "size": [
+        12,
+        32
+      ],
+      "name": "ERPA_dc_heplus_sum",
+      "description": "Pitch-angle distributions double coincidence He+ - summed over energy",
+      "units": "s^3/km^6",
+      "type": "double",
+      "fill": "-1.0E31"
+    },
+    {
+      "size": [
+        12,
+        32
+      ],
+      "name": "ERPA_dc_he2plus",
+      "description": "Energy-resolved pitch-angle distributions double coincidence He2+",
+      "units": "s^3/km^6",
+      "type": "double",
+      "fill": "-1.0E31"
+    },
+    {
+      "size": [
+        12,
+        32
+      ],
+      "name": "ERPA_dc_he2plus_sum",
+      "description": "Pitch-angle distributions double coincidence He2+ - summed over energy",
+      "units": "s^3/km^6",
+      "type": "double",
+      "fill": "-1.0E31"
+    },
+    {
+      "size": [
+        12,
+        32
+      ],
+      "name": "ERPA_dc_oplus",
+      "description": "Energy-resolved pitch-angle distributions double coincidence O+",
+      "units": "s^3/km^6",
+      "type": "double",
+      "fill": "-1.0E31"
+    },
+    {
+      "size": [
+        12,
+        32
+      ],
+      "name": "ERPA_dc_oplus_sum",
+      "description": "Pitch-angle distributions double coincidence O+ - summed over energy",
+      "units": "s^3/km^6",
+      "type": "double",
+      "fill": "-1.0E31"
+    },
+    {
+      "size": [
+        12,
+        32
+      ],
+      "name": "ERPA_dc_o6plus",
+      "description": "Energy-resolved pitch-angle distributions double coincidence O6+",
+      "units": "s^3/km^6",
+      "type": "double",
+      "fill": "-1.0E31"
+    },
+    {
+      "size": [
+        12,
+        32
+      ],
+      "name": "ERPA_dc_o6plus_sum",
+      "description": "Pitch-angle distributions double coincidence O6+ - summed over energy",
+      "units": "s^3/km^6",
+      "type": "double",
+      "fill": "-1.0E31"
+    },
+    {
+      "size": [
+        32
+      ],
+      "name": "eoq",
+      "description": "Energy per charge",
+      "units": "keV/e",
+      "type": "double",
+      "fill": "-1.0E31"
+    }
+  ],
+  "startDate": "1995-08-01T00:05:19Z",
+  "stopDate": "2004-04-28T23:37:06Z",
+  "status": {
+    "code": 1200,
+    "message": "OK"
+  }
+}

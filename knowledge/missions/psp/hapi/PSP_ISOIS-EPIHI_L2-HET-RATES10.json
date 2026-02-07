@@ -1,0 +1,718 @@
+{
+  "HAPI": "2.0",
+  "resourceURL": "https://cdaweb.gsfc.nasa.gov/misc/NotesP.html#PSP_ISOIS-EPIHI_L2-HET-RATES10",
+  "contact": "David McComas @ Princeton University",
+  "parameters": [
+    {
+      "name": "Time",
+      "length": 30,
+      "units": "UTC",
+      "type": "isotime",
+      "fill": null
+    },
+    {
+      "bins": [
+        {
+          "name": "Electrons_ENERGY",
+          "centers": [
+            0.5,
+            0.6,
+            0.8,
+            0.9,
+            1.1,
+            1.3,
+            1.5,
+            1.8,
+            2.2,
+            2.6,
+            3.1,
+            3.7,
+            4.4,
+            5.2,
+            6.2,
+            7.3,
+            8.7,
+            10.4
+          ],
+          "units": "MeV"
+        }
+      ],
+      "size": [
+        18
+      ],
+      "name": "A_Electrons",
+      "description": "Electrons counts side A",
+      "units": "counts",
+      "type": "integer",
+      "fill": "-2147483648"
+    },
+    {
+      "bins": [
+        {
+          "name": "H_ENERGY",
+          "centers": [
+            8.7,
+            10.4,
+            12.3,
+            14.7,
+            17.4,
+            20.7,
+            24.7,
+            29.3,
+            34.9,
+            41.5,
+            49.4,
+            58.7,
+            69.8
+          ],
+          "units": "MeV"
+        }
+      ],
+      "size": [
+        13
+      ],
+      "name": "A_H",
+      "description": "H counts side A",
+      "units": "counts",
+      "type": "integer",
+      "fill": "-2147483648"
+    },
+    {
+      "bins": [
+        {
+          "name": "He_ENERGY",
+          "centers": [
+            8.7,
+            10.4,
+            12.3,
+            14.7,
+            17.4,
+            20.7,
+            24.7,
+            29.3,
+            34.9,
+            41.5,
+            49.4,
+            58.7,
+            69.8,
+            83.0
+          ],
+          "units": "MeV/nuc"
+        }
+      ],
+      "size": [
+        14
+      ],
+      "name": "A_He",
+      "description": "He counts side A",
+      "units": "counts",
+      "type": "integer",
+      "fill": "-2147483648"
+    },
+    {
+      "bins": [
+        {
+          "name": "Electrons_ENERGY",
+          "centers": [
+            0.5,
+            0.6,
+            0.8,
+            0.9,
+            1.1,
+            1.3,
+            1.5,
+            1.8,
+            2.2,
+            2.6,
+            3.1,
+            3.7,
+            4.4,
+            5.2,
+            6.2,
+            7.3,
+            8.7,
+            10.4
+          ],
+          "units": "MeV"
+        }
+      ],
+      "size": [
+        18
+      ],
+      "name": "B_Electrons",
+      "description": "Electrons counts side B",
+      "units": "counts",
+      "type": "integer",
+      "fill": "-2147483648"
+    },
+    {
+      "bins": [
+        {
+          "name": "H_ENERGY",
+          "centers": [
+            8.7,
+            10.4,
+            12.3,
+            14.7,
+            17.4,
+            20.7,
+            24.7,
+            29.3,
+            34.9,
+            41.5,
+            49.4,
+            58.7,
+            69.8
+          ],
+          "units": "MeV"
+        }
+      ],
+      "size": [
+        13
+      ],
+      "name": "B_H",
+      "description": "H counts side B",
+      "units": "counts",
+      "type": "integer",
+      "fill": "-2147483648"
+    },
+    {
+      "bins": [
+        {
+          "name": "He_ENERGY",
+          "centers": [
+            8.7,
+            10.4,
+            12.3,
+            14.7,
+            17.4,
+            20.7,
+            24.7,
+            29.3,
+            34.9,
+            41.5,
+            49.4,
+            58.7,
+            69.8,
+            83.0
+          ],
+          "units": "MeV/nuc"
+        }
+      ],
+      "size": [
+        14
+      ],
+      "name": "B_He",
+      "description": "He counts side B",
+      "units": "counts",
+      "type": "integer",
+      "fill": "-2147483648"
+    },
+    {
+      "name": "HCI_R",
+      "description": "Heliocentric distance",
+      "units": "AU",
+      "type": "double",
+      "fill": "-1.0E31"
+    },
+    {
+      "name": "HCI_Lat",
+      "description": "HCI latitude",
+      "units": "degrees",
+      "type": "double",
+      "fill": "-1.0E31"
+    },
+    {
+      "name": "HCI_Lon",
+      "description": "HCI longitude",
+      "units": "degrees",
+      "type": "double",
+      "fill": "-1.0E31"
+    },
+    {
+      "name": "HGC_R",
+      "description": "Heliocentric distance",
+      "units": "AU",
+      "type": "double",
+      "fill": "-1.0E31"
+    },
+    {
+      "name": "HGC_Lat",
+      "description": "HGC latitude",
+      "units": "degrees",
+      "type": "double",
+      "fill": "-1.0E31"
+    },
+    {
+      "name": "HGC_Lon",
+      "description": "HGC longitude",
+      "units": "degrees",
+      "type": "double",
+      "fill": "-1.0E31"
+    },
+    {
+      "name": "HET_A_PA",
+      "description": "Pitch angle HETA",
+      "units": "degree",
+      "type": "double",
+      "fill": "-1.0E31"
+    },
+    {
+      "name": "HET_A_SA",
+      "description": "Nominal Parker Spiral angle HETA",
+      "units": "degree",
+      "type": "double",
+      "fill": "-1.0E31"
+    },
+    {
+      "size": [
+        3
+      ],
+      "name": "HET_A_RTN",
+      "description": "RTN flow direction HETA",
+      "units": " ",
+      "type": "double",
+      "fill": "-1.0E31"
+    },
+    {
+      "size": [
+        3
+      ],
+      "name": "HET_A_HCI",
+      "description": "HCI flow direction HETA",
+      "units": " ",
+      "type": "double",
+      "fill": "-1.0E31"
+    },
+    {
+      "name": "HET_B_PA",
+      "description": "Pitch angle HETB",
+      "units": "degree",
+      "type": "double",
+      "fill": "-1.0E31"
+    },
+    {
+      "name": "HET_B_SA",
+      "description": "Nominal Parker Spiral angle HETB",
+      "units": "degree",
+      "type": "double",
+      "fill": "-1.0E31"
+    },
+    {
+      "size": [
+        3
+      ],
+      "name": "HET_B_RTN",
+      "description": "RTN flow direction HETB",
+      "units": " ",
+      "type": "double",
+      "fill": "-1.0E31"
+    },
+    {
+      "size": [
+        3
+      ],
+      "name": "HET_B_HCI",
+      "description": "HCI flow direction HETB",
+      "units": " ",
+      "type": "double",
+      "fill": "-1.0E31"
+    },
+    {
+      "bins": [
+        {
+          "name": "Electrons_ENERGY",
+          "centers": [
+            0.5,
+            0.6,
+            0.8,
+            0.9,
+            1.1,
+            1.3,
+            1.5,
+            1.8,
+            2.2,
+            2.6,
+            3.1,
+            3.7,
+            4.4,
+            5.2,
+            6.2,
+            7.3,
+            8.7,
+            10.4
+          ],
+          "units": "MeV"
+        }
+      ],
+      "size": [
+        18
+      ],
+      "name": "A_Electrons_Rate",
+      "description": "Electrons count rate side A",
+      "units": "counts s!E-1!N",
+      "type": "double",
+      "fill": "-1.0E31"
+    },
+    {
+      "bins": [
+        {
+          "name": "Electrons_Inv_ENERGY",
+          "centers": [
+            0.5,
+            0.9,
+            1.3,
+            1.5,
+            1.8,
+            2.2,
+            2.6,
+            3.1,
+            3.7,
+            4.4,
+            5.2,
+            6.2,
+            7.3,
+            8.7,
+            10.4
+          ],
+          "units": "MeV"
+        }
+      ],
+      "size": [
+        15
+      ],
+      "name": "A_Electrons_Flux",
+      "description": "Electrons flux side A",
+      "units": "cm!E-2!Nsr!E-1!Nsec!E-1!NMeV!E-1!N",
+      "type": "double",
+      "fill": "-1.0E31"
+    },
+    {
+      "bins": [
+        {
+          "name": "H_ENERGY",
+          "centers": [
+            8.7,
+            10.4,
+            12.3,
+            14.7,
+            17.4,
+            20.7,
+            24.7,
+            29.3,
+            34.9,
+            41.5,
+            49.4,
+            58.7,
+            69.8
+          ],
+          "units": "MeV"
+        }
+      ],
+      "size": [
+        13
+      ],
+      "name": "A_H_Rate",
+      "description": "H count rate side A",
+      "units": "counts s!E-1!N",
+      "type": "double",
+      "fill": "-1.0E31"
+    },
+    {
+      "bins": [
+        {
+          "name": "H_ENERGY",
+          "centers": [
+            8.7,
+            10.4,
+            12.3,
+            14.7,
+            17.4,
+            20.7,
+            24.7,
+            29.3,
+            34.9,
+            41.5,
+            49.4,
+            58.7,
+            69.8
+          ],
+          "units": "MeV"
+        }
+      ],
+      "size": [
+        13
+      ],
+      "name": "A_H_Flux",
+      "description": "H flux side A",
+      "units": "cm!E-2!Nsr!E-1!Nsec!E-1!NMeV!E-1!N",
+      "type": "double",
+      "fill": "-1.0E31"
+    },
+    {
+      "bins": [
+        {
+          "name": "He_ENERGY",
+          "centers": [
+            8.7,
+            10.4,
+            12.3,
+            14.7,
+            17.4,
+            20.7,
+            24.7,
+            29.3,
+            34.9,
+            41.5,
+            49.4,
+            58.7,
+            69.8,
+            83.0
+          ],
+          "units": "MeV/nuc"
+        }
+      ],
+      "size": [
+        14
+      ],
+      "name": "A_He_Rate",
+      "description": "He count rate side A",
+      "units": "counts s!E-1!N",
+      "type": "double",
+      "fill": "-1.0E31"
+    },
+    {
+      "bins": [
+        {
+          "name": "He_ENERGY",
+          "centers": [
+            8.7,
+            10.4,
+            12.3,
+            14.7,
+            17.4,
+            20.7,
+            24.7,
+            29.3,
+            34.9,
+            41.5,
+            49.4,
+            58.7,
+            69.8,
+            83.0
+          ],
+          "units": "MeV/nuc"
+        }
+      ],
+      "size": [
+        14
+      ],
+      "name": "A_He_Flux",
+      "description": "He flux side A",
+      "units": "cm!E-2!Nsr!E-1!Nsec!E-1!N(MeV/nuc)!E-1!N",
+      "type": "double",
+      "fill": "-1.0E31"
+    },
+    {
+      "bins": [
+        {
+          "name": "Electrons_ENERGY",
+          "centers": [
+            0.5,
+            0.6,
+            0.8,
+            0.9,
+            1.1,
+            1.3,
+            1.5,
+            1.8,
+            2.2,
+            2.6,
+            3.1,
+            3.7,
+            4.4,
+            5.2,
+            6.2,
+            7.3,
+            8.7,
+            10.4
+          ],
+          "units": "MeV"
+        }
+      ],
+      "size": [
+        18
+      ],
+      "name": "B_Electrons_Rate",
+      "description": "Electrons count rate side B",
+      "units": "counts s!E-1!N",
+      "type": "double",
+      "fill": "-1.0E31"
+    },
+    {
+      "bins": [
+        {
+          "name": "Electrons_Inv_ENERGY",
+          "centers": [
+            0.5,
+            0.9,
+            1.3,
+            1.5,
+            1.8,
+            2.2,
+            2.6,
+            3.1,
+            3.7,
+            4.4,
+            5.2,
+            6.2,
+            7.3,
+            8.7,
+            10.4
+          ],
+          "units": "MeV"
+        }
+      ],
+      "size": [
+        15
+      ],
+      "name": "B_Electrons_Flux",
+      "description": "Electrons flux side B",
+      "units": "cm!E-2!Nsr!E-1!Nsec!E-1!NMeV!E-1!N",
+      "type": "double",
+      "fill": "-1.0E31"
+    },
+    {
+      "bins": [
+        {
+          "name": "H_ENERGY",
+          "centers": [
+            8.7,
+            10.4,
+            12.3,
+            14.7,
+            17.4,
+            20.7,
+            24.7,
+            29.3,
+            34.9,
+            41.5,
+            49.4,
+            58.7,
+            69.8
+          ],
+          "units": "MeV"
+        }
+      ],
+      "size": [
+        13
+      ],
+      "name": "B_H_Rate",
+      "description": "H count rate side B",
+      "units": "counts s!E-1!N",
+      "type": "double",
+      "fill": "-1.0E31"
+    },
+    {
+      "bins": [
+        {
+          "name": "H_ENERGY",
+          "centers": [
+            8.7,
+            10.4,
+            12.3,
+            14.7,
+            17.4,
+            20.7,
+            24.7,
+            29.3,
+            34.9,
+            41.5,
+            49.4,
+            58.7,
+            69.8
+          ],
+          "units": "MeV"
+        }
+      ],
+      "size": [
+        13
+      ],
+      "name": "B_H_Flux",
+      "description": "H flux side B",
+      "units": "cm!E-2!Nsr!E-1!Nsec!E-1!NMeV!E-1!N",
+      "type": "double",
+      "fill": "-1.0E31"
+    },
+    {
+      "bins": [
+        {
+          "name": "He_ENERGY",
+          "centers": [
+            8.7,
+            10.4,
+            12.3,
+            14.7,
+            17.4,
+            20.7,
+            24.7,
+            29.3,
+            34.9,
+            41.5,
+            49.4,
+            58.7,
+            69.8,
+            83.0
+          ],
+          "units": "MeV/nuc"
+        }
+      ],
+      "size": [
+        14
+      ],
+      "name": "B_He_Rate",
+      "description": "He count rate side B",
+      "units": "counts s!E-1!N",
+      "type": "double",
+      "fill": "-1.0E31"
+    },
+    {
+      "bins": [
+        {
+          "name": "He_ENERGY",
+          "centers": [
+            8.7,
+            10.4,
+            12.3,
+            14.7,
+            17.4,
+            20.7,
+            24.7,
+            29.3,
+            34.9,
+            41.5,
+            49.4,
+            58.7,
+            69.8,
+            83.0
+          ],
+          "units": "MeV/nuc"
+        }
+      ],
+      "size": [
+        14
+      ],
+      "name": "B_He_Flux",
+      "description": "He flux side B",
+      "units": "cm!E-2!Nsr!E-1!Nsec!E-1!N(MeV/nuc)!E-1!N",
+      "type": "double",
+      "fill": "-1.0E31"
+    }
+  ],
+  "startDate": "2018-09-28T00:00:01Z",
+  "stopDate": "2025-06-24T07:05:59Z",
+  "status": {
+    "code": 1200,
+    "message": "OK"
+  }
+}

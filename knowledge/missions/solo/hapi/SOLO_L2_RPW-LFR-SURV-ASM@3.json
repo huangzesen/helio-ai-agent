@@ -1,0 +1,27 @@
+{
+  "HAPI": "2.0",
+  "resourceURL": "https://cdaweb.gsfc.nasa.gov/misc/NotesS.html#SOLO_L2_RPW-LFR-SURV-ASM",
+  "contact": " @ ",
+  "parameters": [
+    {
+      "name": "Time",
+      "length": 30,
+      "units": "UTC",
+      "type": "isotime",
+      "fill": null
+    },
+    {
+      "name": "SURVEY_MODE",
+      "description": "LFR survey mode",
+      "units": " ",
+      "type": "integer",
+      "fill": "255"
+    }
+  ],
+  "startDate": "2020-06-15T01:05:14Z",
+  "stopDate": "2025-11-06T00:04:53Z",
+  "status": {
+    "code": 1200,
+    "message": "OK"
+  }
+}

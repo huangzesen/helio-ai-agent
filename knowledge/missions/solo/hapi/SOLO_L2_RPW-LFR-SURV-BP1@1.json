@@ -1,0 +1,182 @@
+{
+  "HAPI": "2.0",
+  "resourceURL": "https://cdaweb.gsfc.nasa.gov/misc/NotesS.html#SOLO_L2_RPW-LFR-SURV-BP1",
+  "contact": "M.Maksimovic @ LESIA, Observatoire de Paris-CNRS",
+  "parameters": [
+    {
+      "name": "Time",
+      "length": 30,
+      "units": "UTC",
+      "type": "isotime",
+      "fill": null
+    },
+    {
+      "size": [
+        13
+      ],
+      "name": "PE_N_F1",
+      "description": "Spectral power of E field in normal mode at F1",
+      "units": " ",
+      "type": "double",
+      "fill": "-1.0E31"
+    },
+    {
+      "size": [
+        13
+      ],
+      "name": "PB_N_F1",
+      "description": "Spectral power of B field in normal mode at F1",
+      "units": " ",
+      "type": "double",
+      "fill": "-1.0E31"
+    },
+    {
+      "bins": [
+        {
+          "name": "N_F1",
+          "centers": [
+            152.0,
+            280.0,
+            408.0,
+            536.0,
+            664.0,
+            792.0,
+            920.0,
+            1048.0,
+            1176.0,
+            1304.0,
+            1432.0,
+            1560.0,
+            1688.0
+          ],
+          "units": " "
+        },
+        {
+          "name": "Index",
+          "centers": [
+            1,
+            2,
+            3
+          ],
+          "units": " "
+        }
+      ],
+      "size": [
+        13,
+        3
+      ],
+      "name": "NVEC_N_F1",
+      "description": "Wave normal vector from magnetic field in normal mode at F1 in the SCM B1-B2-B3 axis system frame.",
+      "units": " ",
+      "type": "double",
+      "fill": "-1.0E31"
+    },
+    {
+      "bins": [
+        {
+          "name": "N_F1",
+          "centers": [
+            152.0,
+            280.0,
+            408.0,
+            536.0,
+            664.0,
+            792.0,
+            920.0,
+            1048.0,
+            1176.0,
+            1304.0,
+            1432.0,
+            1560.0,
+            1688.0
+          ],
+          "units": " "
+        },
+        {
+          "name": "Index",
+          "centers": [
+            1,
+            2,
+            3
+          ],
+          "units": " "
+        }
+      ],
+      "size": [
+        13,
+        3
+      ],
+      "name": "NVEC_N_F1_SRF",
+      "description": "Wave normal vector from magnetic field in normal mode at F1 in spacecraft reference frame (SRF).",
+      "units": " ",
+      "type": "double",
+      "fill": "-1.0E31"
+    },
+    {
+      "size": [
+        13
+      ],
+      "name": "ELLIP_N_F1",
+      "description": "Wave ellipticity from magnetic field in normal mode at F1",
+      "units": " ",
+      "type": "double",
+      "fill": "-1.0E31"
+    },
+    {
+      "size": [
+        13
+      ],
+      "name": "DOP_N_F1",
+      "description": "degree of polarization from magnetic field in normal mode at F1",
+      "units": " ",
+      "type": "double",
+      "fill": "-1.0E31"
+    },
+    {
+      "size": [
+        13
+      ],
+      "name": "SX_REA_N_F1",
+      "description": "Real part of the X component of the Poynting vector in normal mode at F1",
+      "units": " ",
+      "type": "double",
+      "fill": "-1.0E31"
+    },
+    {
+      "size": [
+        13
+      ],
+      "name": "SX_ARG_N_F1",
+      "description": "Argument bit = 0 if |ARG(SX)| < pi/4 or 3pi/4 < |ARG(SX)| < pi, bit arg = 1 elsewhere in normal mode at F1",
+      "units": " ",
+      "type": "integer",
+      "fill": "255"
+    },
+    {
+      "size": [
+        13
+      ],
+      "name": "VPHI_REA_N_F1",
+      "description": "Phase speed from the EM data stream in normal mode at F1",
+      "units": " ",
+      "type": "double",
+      "fill": "-1.0E31"
+    },
+    {
+      "size": [
+        13
+      ],
+      "name": "VPHI_ARG_N_F1",
+      "description": "Argument of VPHI in normal mode at F1",
+      "units": " ",
+      "type": "integer",
+      "fill": "255"
+    }
+  ],
+  "startDate": "2020-06-15T00:00:17Z",
+  "stopDate": "2025-11-06T00:05:09Z",
+  "status": {
+    "code": 1200,
+    "message": "OK"
+  }
+}

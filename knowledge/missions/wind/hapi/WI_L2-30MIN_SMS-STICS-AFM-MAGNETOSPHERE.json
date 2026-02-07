@@ -1,0 +1,548 @@
+{
+  "HAPI": "2.0",
+  "resourceURL": "https://cdaweb.gsfc.nasa.gov/misc/NotesW.html#WI_L2-30MIN_SMS-STICS-AFM-MAGNETOSPHERE",
+  "contact": "S. T. Lepri @ U of Michigan",
+  "parameters": [
+    {
+      "name": "Time",
+      "length": 24,
+      "units": "UTC",
+      "type": "isotime",
+      "fill": null
+    },
+    {
+      "bins": [
+        {
+          "name": "SECTOR_index",
+          "centers": [
+            1,
+            2,
+            3,
+            4,
+            5,
+            6,
+            7,
+            8,
+            9,
+            10,
+            11,
+            12,
+            13,
+            14,
+            15,
+            16
+          ],
+          "units": "sector index"
+        },
+        {
+          "name": "TELESCOPE_index",
+          "centers": [
+            1,
+            2,
+            3
+          ],
+          "units": " "
+        }
+      ],
+      "size": [
+        16,
+        3
+      ],
+      "name": "AFM_tc_hplus",
+      "description": "Angular flux map triple coincidence H+",
+      "units": "(cm^2 sr s)^-1",
+      "type": "double",
+      "fill": "-1.0E31"
+    },
+    {
+      "bins": [
+        {
+          "name": "SECTOR_index",
+          "centers": [
+            1,
+            2,
+            3,
+            4,
+            5,
+            6,
+            7,
+            8,
+            9,
+            10,
+            11,
+            12,
+            13,
+            14,
+            15,
+            16
+          ],
+          "units": "sector index"
+        },
+        {
+          "name": "TELESCOPE_index",
+          "centers": [
+            1,
+            2,
+            3
+          ],
+          "units": " "
+        }
+      ],
+      "size": [
+        16,
+        3
+      ],
+      "name": "AFM_tc_heplus",
+      "description": "Angular flux map triple coincidence He+",
+      "units": "(cm^2 sr s)^-1",
+      "type": "double",
+      "fill": "-1.0E31"
+    },
+    {
+      "bins": [
+        {
+          "name": "SECTOR_index",
+          "centers": [
+            1,
+            2,
+            3,
+            4,
+            5,
+            6,
+            7,
+            8,
+            9,
+            10,
+            11,
+            12,
+            13,
+            14,
+            15,
+            16
+          ],
+          "units": "sector index"
+        },
+        {
+          "name": "TELESCOPE_index",
+          "centers": [
+            1,
+            2,
+            3
+          ],
+          "units": " "
+        }
+      ],
+      "size": [
+        16,
+        3
+      ],
+      "name": "AFM_tc_he2plus",
+      "description": "Angular flux map triple coincidence He2+",
+      "units": "(cm^2 sr s)^-1",
+      "type": "double",
+      "fill": "-1.0E31"
+    },
+    {
+      "bins": [
+        {
+          "name": "SECTOR_index",
+          "centers": [
+            1,
+            2,
+            3,
+            4,
+            5,
+            6,
+            7,
+            8,
+            9,
+            10,
+            11,
+            12,
+            13,
+            14,
+            15,
+            16
+          ],
+          "units": "sector index"
+        },
+        {
+          "name": "TELESCOPE_index",
+          "centers": [
+            1,
+            2,
+            3
+          ],
+          "units": " "
+        }
+      ],
+      "size": [
+        16,
+        3
+      ],
+      "name": "AFM_tc_oplus",
+      "description": "Angular flux map triple coincidence O+",
+      "units": "(cm^2 sr s)^-1",
+      "type": "double",
+      "fill": "-1.0E31"
+    },
+    {
+      "bins": [
+        {
+          "name": "SECTOR_index",
+          "centers": [
+            1,
+            2,
+            3,
+            4,
+            5,
+            6,
+            7,
+            8,
+            9,
+            10,
+            11,
+            12,
+            13,
+            14,
+            15,
+            16
+          ],
+          "units": "sector index"
+        },
+        {
+          "name": "TELESCOPE_index",
+          "centers": [
+            1,
+            2,
+            3
+          ],
+          "units": " "
+        }
+      ],
+      "size": [
+        16,
+        3
+      ],
+      "name": "AFM_tc_o6plus",
+      "description": "Angular flux map triple coincidence O6+",
+      "units": "(cm^2 sr s)^-1",
+      "type": "double",
+      "fill": "-1.0E31"
+    },
+    {
+      "bins": [
+        {
+          "name": "SECTOR_index",
+          "centers": [
+            1,
+            2,
+            3,
+            4,
+            5,
+            6,
+            7,
+            8,
+            9,
+            10,
+            11,
+            12,
+            13,
+            14,
+            15,
+            16
+          ],
+          "units": "sector index"
+        },
+        {
+          "name": "TELESCOPE_index",
+          "centers": [
+            1,
+            2,
+            3
+          ],
+          "units": " "
+        }
+      ],
+      "size": [
+        16,
+        3
+      ],
+      "name": "AFM_tc_c5plus",
+      "description": "Angular flux map triple coincidence C5+",
+      "units": "(cm^2 sr s)^-1",
+      "type": "double",
+      "fill": "-1.0E31"
+    },
+    {
+      "bins": [
+        {
+          "name": "SECTOR_index",
+          "centers": [
+            1,
+            2,
+            3,
+            4,
+            5,
+            6,
+            7,
+            8,
+            9,
+            10,
+            11,
+            12,
+            13,
+            14,
+            15,
+            16
+          ],
+          "units": "sector index"
+        },
+        {
+          "name": "TELESCOPE_index",
+          "centers": [
+            1,
+            2,
+            3
+          ],
+          "units": " "
+        }
+      ],
+      "size": [
+        16,
+        3
+      ],
+      "name": "AFM_tc_fe10plus",
+      "description": "Angular flux map triple coincidence Fe10+",
+      "units": "(cm^2 sr s)^-1",
+      "type": "double",
+      "fill": "-1.0E31"
+    },
+    {
+      "bins": [
+        {
+          "name": "SECTOR_index",
+          "centers": [
+            1,
+            2,
+            3,
+            4,
+            5,
+            6,
+            7,
+            8,
+            9,
+            10,
+            11,
+            12,
+            13,
+            14,
+            15,
+            16
+          ],
+          "units": "sector index"
+        },
+        {
+          "name": "TELESCOPE_index",
+          "centers": [
+            1,
+            2,
+            3
+          ],
+          "units": " "
+        }
+      ],
+      "size": [
+        16,
+        3
+      ],
+      "name": "AFM_dc_hplus",
+      "description": "Angular flux map double coincidence H+",
+      "units": "(cm^2 sr s)^-1",
+      "type": "double",
+      "fill": "-1.0E31"
+    },
+    {
+      "bins": [
+        {
+          "name": "SECTOR_index",
+          "centers": [
+            1,
+            2,
+            3,
+            4,
+            5,
+            6,
+            7,
+            8,
+            9,
+            10,
+            11,
+            12,
+            13,
+            14,
+            15,
+            16
+          ],
+          "units": "sector index"
+        },
+        {
+          "name": "TELESCOPE_index",
+          "centers": [
+            1,
+            2,
+            3
+          ],
+          "units": " "
+        }
+      ],
+      "size": [
+        16,
+        3
+      ],
+      "name": "AFM_dc_heplus",
+      "description": "Angular flux map double coincidence He+",
+      "units": "(cm^2 sr s)^-1",
+      "type": "double",
+      "fill": "-1.0E31"
+    },
+    {
+      "bins": [
+        {
+          "name": "SECTOR_index",
+          "centers": [
+            1,
+            2,
+            3,
+            4,
+            5,
+            6,
+            7,
+            8,
+            9,
+            10,
+            11,
+            12,
+            13,
+            14,
+            15,
+            16
+          ],
+          "units": "sector index"
+        },
+        {
+          "name": "TELESCOPE_index",
+          "centers": [
+            1,
+            2,
+            3
+          ],
+          "units": " "
+        }
+      ],
+      "size": [
+        16,
+        3
+      ],
+      "name": "AFM_dc_he2plus",
+      "description": "Angular flux map double coincidence He2+",
+      "units": "(cm^2 sr s)^-1",
+      "type": "double",
+      "fill": "-1.0E31"
+    },
+    {
+      "bins": [
+        {
+          "name": "SECTOR_index",
+          "centers": [
+            1,
+            2,
+            3,
+            4,
+            5,
+            6,
+            7,
+            8,
+            9,
+            10,
+            11,
+            12,
+            13,
+            14,
+            15,
+            16
+          ],
+          "units": "sector index"
+        },
+        {
+          "name": "TELESCOPE_index",
+          "centers": [
+            1,
+            2,
+            3
+          ],
+          "units": " "
+        }
+      ],
+      "size": [
+        16,
+        3
+      ],
+      "name": "AFM_dc_oplus",
+      "description": "Angular flux map double coincidence O+",
+      "units": "(cm^2 sr s)^-1",
+      "type": "double",
+      "fill": "-1.0E31"
+    },
+    {
+      "bins": [
+        {
+          "name": "SECTOR_index",
+          "centers": [
+            1,
+            2,
+            3,
+            4,
+            5,
+            6,
+            7,
+            8,
+            9,
+            10,
+            11,
+            12,
+            13,
+            14,
+            15,
+            16
+          ],
+          "units": "sector index"
+        },
+        {
+          "name": "TELESCOPE_index",
+          "centers": [
+            1,
+            2,
+            3
+          ],
+          "units": " "
+        }
+      ],
+      "size": [
+        16,
+        3
+      ],
+      "name": "AFM_dc_o6plus",
+      "description": "Angular flux map double coincidence O6+",
+      "units": "(cm^2 sr s)^-1",
+      "type": "double",
+      "fill": "-1.0E31"
+    }
+  ],
+  "startDate": "1995-08-01T00:05:19Z",
+  "stopDate": "2004-04-28T23:37:06Z",
+  "status": {
+    "code": 1200,
+    "message": "OK"
+  }
+}

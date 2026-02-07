@@ -1,0 +1,316 @@
+{
+  "HAPI": "2.0",
+  "resourceURL": "https://cdaweb.gsfc.nasa.gov/misc/NotesW.html#WI_EPACT_STEP-DIRECTIONAL-DIFF-HE-FLUX-10MIN",
+  "contact": "Mihir Desai @ University of Texas, San Antonio",
+  "parameters": [
+    {
+      "name": "Time",
+      "length": 24,
+      "units": "UTC",
+      "type": "isotime",
+      "fill": null
+    },
+    {
+      "bins": [
+        {
+          "name": "HE_index",
+          "centers": [
+            1,
+            2,
+            3,
+            4,
+            5,
+            6,
+            7
+          ],
+          "units": "energy index"
+        }
+      ],
+      "size": [
+        7
+      ],
+      "name": "ENERGY_CENTER_T1",
+      "description": "HE energy center telescope 1",
+      "units": "MeV/nucleon",
+      "type": "double",
+      "fill": "-9.99E32"
+    },
+    {
+      "bins": [
+        {
+          "name": "HE_index",
+          "centers": [
+            1,
+            2,
+            3,
+            4,
+            5,
+            6,
+            7
+          ],
+          "units": "energy index"
+        }
+      ],
+      "size": [
+        7
+      ],
+      "name": "ENERGY_CENTER_T2",
+      "description": "HE energy center telescope 2",
+      "units": "MeV/nucleon",
+      "type": "double",
+      "fill": "-9.99E32"
+    },
+    {
+      "size": [
+        8,
+        7
+      ],
+      "name": "FLUX_T1",
+      "description": "HE flux Telescope 1 (as energy-pitch angle displays)",
+      "units": "particles/[cm^2*second*steradian*MeV/nucleon]",
+      "type": "double",
+      "fill": "-9.99E32"
+    },
+    {
+      "size": [
+        8,
+        7
+      ],
+      "name": "FLUX_T2",
+      "description": "HE flux Telescope 2 (as energy-pitch angle displays)",
+      "units": "particles/[cm^2*second*steradian*MeV/nucleon]",
+      "type": "double",
+      "fill": "-9.99E32"
+    },
+    {
+      "size": [
+        8,
+        7
+      ],
+      "name": "flux_t1_byE_atA",
+      "description": "HE flux for telescope 1 at 8 pitch angles as spectrograms by energy",
+      "units": "particles/[cm^2*second*steradian*MeV/nucleon]",
+      "type": "double",
+      "fill": "-9.99E32"
+    },
+    {
+      "size": [
+        8,
+        7
+      ],
+      "name": "flux_t2_byE_atA",
+      "description": "HE flux for telescope 2 at 8 pitch angles as spectrograms by energy",
+      "units": "particles/[cm^2*second*steradian*MeV/nucleon]",
+      "type": "double",
+      "fill": "-9.99E32"
+    },
+    {
+      "size": [
+        8,
+        7
+      ],
+      "name": "flux_t1_byA_atE",
+      "description": "HE flux for telescope 1 at 7 energies as spectrograms by pitch angle",
+      "units": "particles/[cm^2*second*steradian*MeV/nucleon]",
+      "type": "double",
+      "fill": "-9.99E32"
+    },
+    {
+      "size": [
+        8,
+        7
+      ],
+      "name": "flux_t2_byA_atE",
+      "description": "HE flux for telescope 2 at 7 energies as spectrograms by pitch angle",
+      "units": "particles/[cm^2*second*steradian*MeV/nucleon]",
+      "type": "double",
+      "fill": "-9.99E32"
+    },
+    {
+      "bins": [
+        {
+          "name": "TELESCOPE_index",
+          "centers": [
+            1,
+            2
+          ],
+          "units": " "
+        }
+      ],
+      "size": [
+        2
+      ],
+      "name": "B",
+      "description": "B",
+      "units": "nT",
+      "type": "double",
+      "fill": "-9.99E32"
+    },
+    {
+      "bins": [
+        {
+          "name": "TELESCOPE_index",
+          "centers": [
+            1,
+            2
+          ],
+          "units": " "
+        }
+      ],
+      "size": [
+        2
+      ],
+      "name": "Btheta",
+      "description": "Btheta",
+      "units": "deg",
+      "type": "double",
+      "fill": "-9.99E32"
+    },
+    {
+      "bins": [
+        {
+          "name": "TELESCOPE_index",
+          "centers": [
+            1,
+            2
+          ],
+          "units": " "
+        }
+      ],
+      "size": [
+        2
+      ],
+      "name": "Bphi",
+      "description": "Bphi",
+      "units": "deg",
+      "type": "double",
+      "fill": "-9.99E32"
+    },
+    {
+      "bins": [
+        {
+          "name": "TELESCOPE_index",
+          "centers": [
+            1,
+            2
+          ],
+          "units": " "
+        }
+      ],
+      "size": [
+        2
+      ],
+      "name": "Brms",
+      "description": "Brms",
+      "units": "nT",
+      "type": "double",
+      "fill": "-9.99E32"
+    },
+    {
+      "bins": [
+        {
+          "name": "TELESCOPE_index",
+          "centers": [
+            1,
+            2
+          ],
+          "units": " "
+        }
+      ],
+      "size": [
+        2
+      ],
+      "name": "R",
+      "description": "R",
+      "units": "Re",
+      "type": "double",
+      "fill": "-9.99E32"
+    },
+    {
+      "size": [
+        3
+      ],
+      "name": "xyzGSE_T1",
+      "description": "xyz gse telescope 1",
+      "units": "Re",
+      "type": "double",
+      "fill": "-9.99E32"
+    },
+    {
+      "size": [
+        3
+      ],
+      "name": "xyzGSE_T2",
+      "description": "xyz gse telescope 2",
+      "units": "Re",
+      "type": "double",
+      "fill": "-9.99E32"
+    },
+    {
+      "bins": [
+        {
+          "name": "TELESCOPE_index",
+          "centers": [
+            1,
+            2
+          ],
+          "units": " "
+        }
+      ],
+      "size": [
+        2
+      ],
+      "name": "Vsw",
+      "description": "Vsw",
+      "units": "km per sec",
+      "type": "double",
+      "fill": "-9.99E32"
+    },
+    {
+      "size": [
+        3
+      ],
+      "name": "velocity_T1",
+      "description": "velocity telescope 1",
+      "units": "km per sec",
+      "type": "double",
+      "fill": "-9.99E32"
+    },
+    {
+      "size": [
+        3
+      ],
+      "name": "velocity_T2",
+      "description": "velocity telescope 2",
+      "units": "km per sec",
+      "type": "double",
+      "fill": "-9.99E32"
+    },
+    {
+      "bins": [
+        {
+          "name": "TELESCOPE_index",
+          "centers": [
+            1,
+            2
+          ],
+          "units": " "
+        }
+      ],
+      "size": [
+        2
+      ],
+      "name": "Np",
+      "description": "Np",
+      "units": "per cc",
+      "type": "double",
+      "fill": "-9.99E32"
+    }
+  ],
+  "startDate": "1994-11-21T00:03:52Z",
+  "stopDate": "2026-01-02T15:02:23Z",
+  "status": {
+    "code": 1200,
+    "message": "OK"
+  }
+}

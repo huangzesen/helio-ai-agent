@@ -1,0 +1,67 @@
+{
+  "HAPI": "2.0",
+  "resourceURL": "https://cdaweb.gsfc.nasa.gov/misc/NotesW.html#WI_SFSP_3DP",
+  "contact": "R. Lin/S. Bale @ UC Berkeley",
+  "parameters": [
+    {
+      "name": "Time",
+      "length": 24,
+      "units": "UTC",
+      "type": "isotime",
+      "fill": null
+    },
+    {
+      "size": [
+        7
+      ],
+      "name": "FLUX",
+      "description": "Electron number flux 27 keV - 520 keV as a function of energy in 7 channels (spectrogram)",
+      "units": " #/cm2-ster-eV-sec",
+      "type": "double",
+      "fill": "NaN"
+    },
+    {
+      "size": [
+        7
+      ],
+      "name": "FLUX_STACKED",
+      "description": "---> As stacked plot",
+      "units": " #/cm2-ster-eV-sec",
+      "type": "double",
+      "fill": "NaN"
+    },
+    {
+      "size": [
+        7
+      ],
+      "name": "FLUX_SIMPLE",
+      "description": "---> As simple time series",
+      "units": " #/cm2-ster-eV-sec",
+      "type": "double",
+      "fill": "NaN"
+    },
+    {
+      "size": [
+        7
+      ],
+      "name": "ENERGY_filled",
+      "description": "---> Time-varying electron energies in 7 channels",
+      "units": "eV",
+      "type": "double",
+      "fill": "NaN"
+    },
+    {
+      "name": "TIME",
+      "description": "UNIX time; seconds since January 1, 1970",
+      "units": "sec since 1-1-70",
+      "type": "double",
+      "fill": "NaN"
+    }
+  ],
+  "startDate": "1994-11-15T12:56:18Z",
+  "stopDate": "2026-01-05T23:59:52Z",
+  "status": {
+    "code": 1200,
+    "message": "OK"
+  }
+}

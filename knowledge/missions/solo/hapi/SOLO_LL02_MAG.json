@@ -1,0 +1,40 @@
+{
+  "HAPI": "2.0",
+  "resourceURL": "https://cdaweb.gsfc.nasa.gov/misc/NotesS.html#SOLO_LL02_MAG",
+  "contact": "T. Horbury @ The Blackett Laboratory, Imperial College London",
+  "parameters": [
+    {
+      "name": "Time",
+      "length": 30,
+      "units": "UTC",
+      "type": "isotime",
+      "fill": null
+    },
+    {
+      "size": [
+        3
+      ],
+      "name": "B_RTN",
+      "description": "Magnetic field vector in RTN coordinates, 8 second resolution",
+      "units": "nT",
+      "type": "double",
+      "fill": "NaN"
+    },
+    {
+      "size": [
+        3
+      ],
+      "name": "B_SRF",
+      "description": "Magnetic field vector in spacecraft reference frame, 8 second resolution",
+      "units": "nT",
+      "type": "double",
+      "fill": "NaN"
+    }
+  ],
+  "startDate": "2020-06-03T14:28:15Z",
+  "stopDate": "2023-02-13T20:49:37Z",
+  "status": {
+    "code": 1200,
+    "message": "OK"
+  }
+}

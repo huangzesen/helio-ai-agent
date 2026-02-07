@@ -1,0 +1,346 @@
+{
+  "HAPI": "2.0",
+  "resourceURL": "https://cdaweb.gsfc.nasa.gov/misc/NotesM.html#MMS1_FPI_BRST_L2_DIS-MOMS",
+  "contact": "J.Burch; C.Pollock, B.Giles @ SwRI, NASA/GSFC",
+  "parameters": [
+    {
+      "name": "Time",
+      "length": 30,
+      "units": "UTC",
+      "type": "isotime",
+      "fill": null
+    },
+    {
+      "name": "mms1_dis_errorflags_brst",
+      "description": "MMS1 FPI/DIS 32-bit vector of data-quality indicators at burst-start time",
+      "units": "(0=Good)",
+      "type": "double",
+      "fill": "4.294967295E9"
+    },
+    {
+      "name": "mms1_dis_compressionloss_brst",
+      "description": "---> MMS1 FPI/DIS compression lossless/lossy indicator at survey-start time",
+      "units": "(0=lossless)",
+      "type": "integer",
+      "fill": "255"
+    },
+    {
+      "name": "mms1_dis_steptable_parity_brst",
+      "description": "---> MMS1 FPI/DIS step table parity, this burst",
+      "units": "0, 1",
+      "type": "integer",
+      "fill": "255"
+    },
+    {
+      "name": "mms1_dis_startdelphi_count_brst",
+      "description": "---> MMS1 FPI/DIS Del-Phi (obs spin-phase) count at burst-start time",
+      "units": "Count",
+      "type": "integer",
+      "fill": "65535"
+    },
+    {
+      "name": "mms1_dis_startdelphi_angle_brst",
+      "description": "---> MMS1 FPI/DIS Del-Phi (obs spin-phase) angle at burst-start time",
+      "units": "deg",
+      "type": "double",
+      "fill": "-1.0E31"
+    },
+    {
+      "name": "mms1_dis_sector_despinp_brst",
+      "description": "---> MMS1 FPI/DIS sector de-Spin P value, this burst",
+      "units": "00-32",
+      "type": "integer",
+      "fill": "255"
+    },
+    {
+      "size": [
+        32
+      ],
+      "name": "mms1_dis_energyspectr_px_brst",
+      "description": "MMS1 FPI/DIS ion energy spectrum \"near\" +X_DSC during this burst",
+      "units": null,
+      "type": "double",
+      "fill": "-1.0E31"
+    },
+    {
+      "size": [
+        32
+      ],
+      "name": "mms1_dis_energyspectr_mx_brst",
+      "description": "---> MMS1 FPI/DIS ion energy spectrum \"near\" -X_DSC during this burst",
+      "units": null,
+      "type": "double",
+      "fill": "-1.0E31"
+    },
+    {
+      "size": [
+        32
+      ],
+      "name": "mms1_dis_energyspectr_py_brst",
+      "description": "---> MMS1 FPI/DIS ion energy spectrum \"near\" +Y_DSC during this burst",
+      "units": null,
+      "type": "double",
+      "fill": "-1.0E31"
+    },
+    {
+      "size": [
+        32
+      ],
+      "name": "mms1_dis_energyspectr_my_brst",
+      "description": "---> MMS1 FPI/DIS ion energy spectrum \"near\" -Y_DSC during this burst",
+      "units": null,
+      "type": "double",
+      "fill": "-1.0E31"
+    },
+    {
+      "size": [
+        32
+      ],
+      "name": "mms1_dis_energyspectr_pz_brst",
+      "description": "---> MMS1 FPI/DIS ion energy spectrum \"near\" +Z_DSC during this burst",
+      "units": null,
+      "type": "double",
+      "fill": "-1.0E31"
+    },
+    {
+      "size": [
+        32
+      ],
+      "name": "mms1_dis_energyspectr_mz_brst",
+      "description": "---> MMS1 FPI/DIS ion energy spectrum \"near\" -Z_DSC during this burst",
+      "units": null,
+      "type": "double",
+      "fill": "-1.0E31"
+    },
+    {
+      "size": [
+        32
+      ],
+      "name": "mms1_dis_energyspectr_omni_brst",
+      "description": "MMS1 FPI/DIS omni-directional ion energy spectrum during this burst",
+      "units": "keV/(cm^2 s sr keV)",
+      "type": "double",
+      "fill": "-1.0E31"
+    },
+    {
+      "name": "mms1_dis_spectr_bg_brst",
+      "description": "MMS1 FPI/DIS ion background energy during this burst",
+      "units": "keV/(cm^2 s sr keV)",
+      "type": "double",
+      "fill": "-1.0E31"
+    },
+    {
+      "name": "mms1_dis_numberdensity_bg_brst",
+      "description": "MMS1 FPI/DIS ion background number density during this burst",
+      "units": "cm^-3",
+      "type": "double",
+      "fill": "-1.0E31"
+    },
+    {
+      "name": "mms1_dis_numberdensity_brst",
+      "description": "MMS1 FPI/DIS ion number density during this burst",
+      "units": "cm^-3",
+      "type": "double",
+      "fill": "-1.0E31"
+    },
+    {
+      "name": "mms1_dis_numberdensity_brst_noerr",
+      "description": "---> (no error bars displayed) MMS1 FPI/DIS ion number density during this burst",
+      "units": "cm^-3",
+      "type": "double",
+      "fill": "-1.0E31"
+    },
+    {
+      "name": "mms1_dis_numberdensity_err_brst",
+      "description": "---> MMS1 FPI/DIS ion number density error during this burst",
+      "units": "cm^-3",
+      "type": "double",
+      "fill": "-1.0E31"
+    },
+    {
+      "name": "mms1_dis_densityextrapolation_low_brst",
+      "description": "MMS1 FPI/DIS estimated (via extrapolation to 0) contribution to density integral below 10eV",
+      "units": "cm^-3",
+      "type": "double",
+      "fill": "-1.0E31"
+    },
+    {
+      "name": "mms1_dis_densityextrapolation_high_brst",
+      "description": "MMS1 FPI/DIS estimated (via extrapolation to infinity) contribution to density integral above 30keV",
+      "units": "cm^-3",
+      "type": "double",
+      "fill": "-1.0E31"
+    },
+    {
+      "size": [
+        3
+      ],
+      "name": "mms1_dis_bulkv_dbcs_brst",
+      "description": "MMS1 FPI/DIS ion bulk-velocity DBCS vector during this burst",
+      "units": "km/s",
+      "type": "double",
+      "fill": "-1.0E31"
+    },
+    {
+      "size": [
+        3
+      ],
+      "name": "mms1_dis_bulkv_spintone_dbcs_brst",
+      "description": "MMS1 FPI/DIS ion bulk-velocity estimated spintone vector in DBCS during this burst",
+      "units": "km/s",
+      "type": "double",
+      "fill": "-1.0E31"
+    },
+    {
+      "size": [
+        3
+      ],
+      "name": "mms1_dis_bulkv_dbcs_brst_noerr",
+      "description": "---> (no error bars displayed) MMS1 FPI/DIS ion bulk-velocity DBCS vector during this burst",
+      "units": "km/s",
+      "type": "double",
+      "fill": "-1.0E31"
+    },
+    {
+      "size": [
+        3
+      ],
+      "name": "mms1_dis_bulkv_gse_brst",
+      "description": "MMS1 FPI/DIS ion bulk-velocity GSE vector during this burst",
+      "units": "km/s",
+      "type": "double",
+      "fill": "-1.0E31"
+    },
+    {
+      "size": [
+        3
+      ],
+      "name": "mms1_dis_bulkv_spintone_gse_brst",
+      "description": "MMS1 FPI/DIS ion bulk-velocity estimated spintone vector in GSE during this burst",
+      "units": "km/s",
+      "type": "double",
+      "fill": "-1.0E31"
+    },
+    {
+      "size": [
+        3
+      ],
+      "name": "mms1_dis_bulkv_gse_brst_noerr",
+      "description": "---> (no error bars displayed) MMS1 FPI/DIS ion bulk-velocity GSE vector during this burst",
+      "units": "km/s",
+      "type": "double",
+      "fill": "-1.0E31"
+    },
+    {
+      "size": [
+        3
+      ],
+      "name": "mms1_dis_bulkv_spin_dbcs_brst",
+      "description": "MMS1 FPI/DIS ion bulk-velocity spintone vector in DBCS during this burst",
+      "units": "km/s",
+      "type": "double",
+      "fill": "-1.0E31"
+    },
+    {
+      "size": [
+        3
+      ],
+      "name": "mms1_dis_bulkv_spin_gse_brst",
+      "description": "MMS1 FPI/DIS ion bulk-velocity spintone vector in GSE during this burst",
+      "units": "km/s",
+      "type": "double",
+      "fill": "-1.0E31"
+    },
+    {
+      "size": [
+        3,
+        3
+      ],
+      "name": "mms1_dis_prestensor_dbcs_brst",
+      "description": "MMS1 FPI/DIS ion pressure tensor DBCS matrix during this burst",
+      "units": "nPa",
+      "type": "double",
+      "fill": "-1.0E31"
+    },
+    {
+      "size": [
+        3,
+        3
+      ],
+      "name": "mms1_dis_prestensor_gse_brst",
+      "description": "MMS1 FPI/DIS ion pressure tensor GSE matrix during this burst",
+      "units": "nPa",
+      "type": "double",
+      "fill": "-1.0E31"
+    },
+    {
+      "name": "mms1_dis_pres_bg_brst",
+      "description": "MMS1 FPI/DIS ion background pressure during this survey",
+      "units": "nPa",
+      "type": "double",
+      "fill": "-1.0E31"
+    },
+    {
+      "size": [
+        3,
+        3
+      ],
+      "name": "mms1_dis_temptensor_dbcs_brst",
+      "description": "MMS1 FPI/DIS ion temperature tensor DBCS matrix during this burst",
+      "units": "eV",
+      "type": "double",
+      "fill": "-1.0E31"
+    },
+    {
+      "size": [
+        3,
+        3
+      ],
+      "name": "mms1_dis_temptensor_gse_brst",
+      "description": "MMS1 FPI/DIS ion temperature tensor GSE matrix during this burst",
+      "units": "eV",
+      "type": "double",
+      "fill": "-1.0E31"
+    },
+    {
+      "size": [
+        3
+      ],
+      "name": "mms1_dis_heatq_dbcs_brst",
+      "description": "MMS1 FPI/DIS ion heat-flux DBCS vector during this burst",
+      "units": "mW/m^2",
+      "type": "double",
+      "fill": "-1.0E31"
+    },
+    {
+      "size": [
+        3
+      ],
+      "name": "mms1_dis_heatq_gse_brst",
+      "description": "MMS1 FPI/DIS ion heat-flux GSE vector during this burst",
+      "units": "mW/m^2",
+      "type": "double",
+      "fill": "-1.0E31"
+    },
+    {
+      "name": "mms1_dis_temppara_brst",
+      "description": "MMS1 FPI/DIS ion parallel temperature during this BP",
+      "units": "eV",
+      "type": "double",
+      "fill": "-1.0E31"
+    },
+    {
+      "name": "mms1_dis_tempperp_brst",
+      "description": "MMS1 FPI/DIS ion perpendicular temperature during this BP",
+      "units": "eV",
+      "type": "double",
+      "fill": "-1.0E31"
+    }
+  ],
+  "startDate": "2015-09-01T00:00:00Z",
+  "stopDate": "2025-09-03T21:07:22Z",
+  "status": {
+    "code": 1200,
+    "message": "OK"
+  }
+}

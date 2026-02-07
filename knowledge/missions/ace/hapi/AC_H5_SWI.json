@@ -1,0 +1,200 @@
+{
+  "HAPI": "2.0",
+  "resourceURL": "https://cdaweb.gsfc.nasa.gov/misc/NotesA.html#AC_H5_SWI",
+  "contact": "G. Gloeckler @ University of Maryland",
+  "parameters": [
+    {
+      "name": "Time",
+      "length": 24,
+      "units": "UTC",
+      "type": "isotime",
+      "fill": null
+    },
+    {
+      "size": [
+        3
+      ],
+      "name": "qdistC",
+      "description": "Carbon Solar Wind charge state distribution",
+      "units": " ",
+      "type": "double",
+      "fill": "-1.0E31"
+    },
+    {
+      "size": [
+        3
+      ],
+      "name": "qdistC_err",
+      "description": "Carbon Solar Wind charge state distribution statistical uncrtainty",
+      "units": " ",
+      "type": "double",
+      "fill": "-1.0E31"
+    },
+    {
+      "size": [
+        3
+      ],
+      "name": "qflagsC",
+      "description": "Quality Flags for Carbon charge state distribution",
+      "units": " ",
+      "type": "integer",
+      "fill": "-1"
+    },
+    {
+      "size": [
+        4
+      ],
+      "name": "qdistO",
+      "description": "Oxygen Solar Wind charge state distribution",
+      "units": " ",
+      "type": "double",
+      "fill": "-1.0E31"
+    },
+    {
+      "size": [
+        4
+      ],
+      "name": "qdistO_err",
+      "description": "Oxygen Solar Wind charge state distribution statistical uncertainty",
+      "units": " ",
+      "type": "double",
+      "fill": "-1.0E31"
+    },
+    {
+      "size": [
+        4
+      ],
+      "name": "qflagsO",
+      "description": "Quality Flags for Oxygen charge state distribution",
+      "units": " ",
+      "type": "integer",
+      "fill": "-1"
+    },
+    {
+      "size": [
+        2
+      ],
+      "name": "qdistNe",
+      "description": "Neon Solar Wind charge state distribution",
+      "units": " ",
+      "type": "double",
+      "fill": "-1.0E31"
+    },
+    {
+      "size": [
+        2
+      ],
+      "name": "qdistNe_err",
+      "description": "Neon Solar Wind charge state distribution statistical uncertainty",
+      "units": " ",
+      "type": "double",
+      "fill": "-1.0E31"
+    },
+    {
+      "size": [
+        2
+      ],
+      "name": "qflagsNe",
+      "description": "Quality Flags for Neon charge state distribution",
+      "units": " ",
+      "type": "integer",
+      "fill": "-1"
+    },
+    {
+      "size": [
+        7
+      ],
+      "name": "qdistMg",
+      "description": "Magnesium Solar Wind charge state distribution",
+      "units": " ",
+      "type": "double",
+      "fill": "-1.0E31"
+    },
+    {
+      "size": [
+        7
+      ],
+      "name": "qdistMg_err",
+      "description": "Magnesium Solar Wind charge state distribution statistical uncertainty",
+      "units": " ",
+      "type": "double",
+      "fill": "-1.0E31"
+    },
+    {
+      "size": [
+        7
+      ],
+      "name": "qflagsMg",
+      "description": "Quality Flags for Magnesium charge state distribution",
+      "units": " ",
+      "type": "integer",
+      "fill": "-1"
+    },
+    {
+      "size": [
+        7
+      ],
+      "name": "qdistSi",
+      "description": "Silicon Solar Wind charge state distribution",
+      "units": " ",
+      "type": "double",
+      "fill": "-1.0E31"
+    },
+    {
+      "size": [
+        7
+      ],
+      "name": "qdistSi_err",
+      "description": "Silicon Solar Wind charge state distribution statistical uncertainty",
+      "units": " ",
+      "type": "double",
+      "fill": "-1.0E31"
+    },
+    {
+      "size": [
+        7
+      ],
+      "name": "qflagsSi",
+      "description": "Quality Flags for Silicon charge state distribution",
+      "units": " ",
+      "type": "integer",
+      "fill": "-1"
+    },
+    {
+      "size": [
+        15
+      ],
+      "name": "qdistFe",
+      "description": "Iron Solar Wind charge state distribution",
+      "units": " ",
+      "type": "double",
+      "fill": "-1.0E31"
+    },
+    {
+      "size": [
+        15
+      ],
+      "name": "qdistFe_err",
+      "description": "Iron Solar Wind charge state distribution statistical uncertainty",
+      "units": " ",
+      "type": "double",
+      "fill": "-1.0E31"
+    },
+    {
+      "size": [
+        15
+      ],
+      "name": "qflagsFe",
+      "description": "Quality Flags for Iron charge state distribution",
+      "units": " ",
+      "type": "integer",
+      "fill": "-1"
+    }
+  ],
+  "startDate": "1998-02-04T00:09:16Z",
+  "stopDate": "2011-08-21T21:40:53Z",
+  "status": {
+    "code": 1200,
+    "message": "OK"
+  }
+}

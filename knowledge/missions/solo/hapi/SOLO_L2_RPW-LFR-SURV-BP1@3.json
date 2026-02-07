@@ -1,0 +1,27 @@
+{
+  "HAPI": "2.0",
+  "resourceURL": "https://cdaweb.gsfc.nasa.gov/misc/NotesS.html#SOLO_L2_RPW-LFR-SURV-BP1",
+  "contact": "M.Maksimovic @ LESIA, Observatoire de Paris-CNRS",
+  "parameters": [
+    {
+      "name": "Time",
+      "length": 30,
+      "units": "UTC",
+      "type": "isotime",
+      "fill": null
+    },
+    {
+      "name": "SURVEY_MODE",
+      "description": "LFR survey mode",
+      "units": " ",
+      "type": "integer",
+      "fill": "255"
+    }
+  ],
+  "startDate": "2020-06-15T00:00:17Z",
+  "stopDate": "2025-11-06T00:05:09Z",
+  "status": {
+    "code": 1200,
+    "message": "OK"
+  }
+}

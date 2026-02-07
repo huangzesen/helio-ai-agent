@@ -1,0 +1,61 @@
+{
+  "HAPI": "2.0",
+  "resourceURL": "https://cdaweb.gsfc.nasa.gov/misc/NotesS.html#STA_L3_PLA_HEPLUS_24HR",
+  "contact": "Dr. Antoinette Galvin @ University of New Hampshire",
+  "parameters": [
+    {
+      "name": "Time",
+      "length": 24,
+      "units": "UTC",
+      "type": "isotime",
+      "fill": null
+    },
+    {
+      "name": "proton_bulk_speed",
+      "description": "Proton Bulk Speed. 1D Maxwellian Fit.",
+      "units": "km/s",
+      "type": "double",
+      "fill": "-1.0E31"
+    },
+    {
+      "name": "proton_thermal_speed",
+      "description": "Proton Thermal Speed. 1D Maxwellian Fit.",
+      "units": "km/s",
+      "type": "double",
+      "fill": "-1.0E31"
+    },
+    {
+      "name": "proton_number_density",
+      "description": "Proton Number Density. 1D Maxwellian Fit.",
+      "units": "1/cm3",
+      "type": "double",
+      "fill": "-1.0E31"
+    },
+    {
+      "size": [
+        4
+      ],
+      "name": "he_plus_rel_energy_flux",
+      "description": "He+ Relative Energy Flux in 4 ranges of V/Vsw.",
+      "units": "cts/s (EffCorr,PropTo_DiffEFlux)",
+      "type": "double",
+      "fill": "-1.0E31"
+    },
+    {
+      "size": [
+        4
+      ],
+      "name": "he_plus_counts",
+      "description": "He+ Counts in 4 ranges of V/Vsw.",
+      "units": "Counts",
+      "type": "double",
+      "fill": "-1.0E31"
+    }
+  ],
+  "startDate": "2007-04-01T00:00:00Z",
+  "stopDate": "2017-07-31T00:00:00Z",
+  "status": {
+    "code": 1200,
+    "message": "OK"
+  }
+}

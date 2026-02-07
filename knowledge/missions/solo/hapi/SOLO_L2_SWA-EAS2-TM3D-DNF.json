@@ -1,0 +1,212 @@
+{
+  "HAPI": "2.0",
+  "resourceURL": "https://cdaweb.gsfc.nasa.gov/misc/NotesS.html#SOLO_L2_SWA-EAS2-TM3D-DNF",
+  "contact": "C. J. Owen @ MSSL-UCL, University College London, UK",
+  "parameters": [
+    {
+      "name": "Time",
+      "length": 30,
+      "units": "UTC",
+      "type": "isotime",
+      "fill": null
+    },
+    {
+      "bins": [
+        {
+          "name": "SWA_EAS_ELEVATION",
+          "centers": [
+            38.96,
+            28.25,
+            19.86,
+            13.0,
+            7.24,
+            2.34,
+            -1.95,
+            -5.8,
+            -9.39,
+            -12.86,
+            -16.34,
+            -19.98,
+            -23.97,
+            -28.58,
+            -34.16,
+            -41.16
+          ],
+          "units": "degree"
+        },
+        {
+          "name": "SWA_EAS2_ENERGY",
+          "centers": [
+            5291.6504,
+            4603.7251,
+            4005.2441,
+            3484.5549,
+            3031.5698,
+            2637.4675,
+            2294.5955,
+            1996.2891,
+            1736.776,
+            1510.9945,
+            1314.558,
+            1143.6703,
+            994.9932,
+            865.6463,
+            753.1111,
+            655.2062,
+            570.0274,
+            495.9239,
+            431.4493,
+            375.3625,
+            326.5667,
+            284.1099,
+            247.1726,
+            215.0437,
+            187.0847,
+            162.7651,
+            141.603,
+            123.1886,
+            107.1724,
+            93.2411,
+            81.1174,
+            70.5725,
+            61.4015,
+            53.4114,
+            46.4699,
+            40.4322,
+            35.1658,
+            30.5983,
+            26.6214,
+            23.1626,
+            20.1498,
+            17.5226,
+            15.2449,
+            13.2685,
+            11.5331,
+            10.0387,
+            8.7372,
+            7.5923,
+            6.6041,
+            5.7485,
+            5.0013,
+            4.3505,
+            3.7841,
+            3.29,
+            2.8562,
+            2.4826,
+            2.1692,
+            1.88,
+            1.639,
+            1.4221,
+            1.2413,
+            1.0726,
+            0.94,
+            0.8074
+          ],
+          "units": "eV"
+        },
+        {
+          "name": "SWA_EAS_AZIMUTH",
+          "centers": [
+            5.625,
+            16.875,
+            28.125,
+            39.375,
+            50.625,
+            61.875,
+            73.125,
+            84.375,
+            95.625,
+            106.875,
+            118.125,
+            129.375,
+            140.625,
+            151.875,
+            163.125,
+            174.375,
+            185.625,
+            196.875,
+            208.125,
+            219.375,
+            230.625,
+            241.875,
+            253.125,
+            264.375,
+            275.625,
+            286.875,
+            298.125,
+            309.375,
+            320.625,
+            331.875,
+            343.125,
+            354.375
+          ],
+          "units": "degree"
+        }
+      ],
+      "size": [
+        16,
+        64,
+        32
+      ],
+      "name": "SWA_EAS2_TM3D_DNF_DATA",
+      "description": "EAS2 3D electron distribution - Differential Number Flux (No Plot)",
+      "units": "m^-2 s^-1 sr^-1 eV^-1",
+      "type": "double",
+      "fill": "-1.0E30"
+    },
+    {
+      "size": [
+        16,
+        64,
+        32
+      ],
+      "name": "SWA_EAS2_TM3D_DNF_DATA_reorder",
+      "description": "EAS2 3D electron distribution - Differential Number Flux [varying with reordered elevation and energy (No Plot)]",
+      "units": "m^-2 s^-1 sr^-1 eV^-1",
+      "type": "double",
+      "fill": "-1.0E30"
+    },
+    {
+      "size": [
+        16,
+        64,
+        32
+      ],
+      "name": "SWA_EAS2_TM3D_DNF_DATA_spec1",
+      "description": "---> EAS2 3D electron distribution - Spectrograms around -20^o elevation and at selected azimuth bin #10, 20, 30. ",
+      "units": "m^-2 s^-1 sr^-1 eV^-1",
+      "type": "double",
+      "fill": "-1.0E30"
+    },
+    {
+      "size": [
+        16,
+        64,
+        32
+      ],
+      "name": "SWA_EAS2_TM3D_DNF_DATA_spec2",
+      "description": "---> EAS2 3D electron distribution - Spectrograms around 0^o elevation and at selected azimuth bin #10, 20, 30. ",
+      "units": "m^-2 s^-1 sr^-1 eV^-1",
+      "type": "double",
+      "fill": "-1.0E30"
+    },
+    {
+      "size": [
+        16,
+        64,
+        32
+      ],
+      "name": "SWA_EAS2_TM3D_DNF_DATA_spec3",
+      "description": "---> EAS2 3D electron distribution - Spectrograms around 20^o elevation and at selected azimuth bin #10, 20, 30. ",
+      "units": "m^-2 s^-1 sr^-1 eV^-1",
+      "type": "double",
+      "fill": "-1.0E30"
+    }
+  ],
+  "startDate": "2023-01-08T13:56:46Z",
+  "stopDate": "2025-04-23T23:36:07Z",
+  "status": {
+    "code": 1200,
+    "message": "OK"
+  }
+}

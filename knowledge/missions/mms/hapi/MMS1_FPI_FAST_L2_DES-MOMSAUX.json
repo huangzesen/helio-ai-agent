@@ -1,0 +1,638 @@
+{
+  "HAPI": "2.0",
+  "resourceURL": "https://cdaweb.gsfc.nasa.gov/misc/NotesM.html#MMS1_FPI_FAST_L2_DES-MOMSAUX",
+  "contact": "J. Burch, B. Giles @ SwRI, GSFC",
+  "parameters": [
+    {
+      "name": "Time",
+      "length": 30,
+      "units": "UTC",
+      "type": "isotime",
+      "fill": null
+    },
+    {
+      "name": "mms1_des_errorflags_fast",
+      "description": "MMS1 FPI/DES vector of data-quality indicators at survey-start time",
+      "units": "32-bit error flags",
+      "type": "double",
+      "fill": "4.294967295E9"
+    },
+    {
+      "size": [
+        32
+      ],
+      "name": "mms1_des_numberdensity_part_fast",
+      "description": "MMS1 FPI/DES partial electron number density during this survey",
+      "units": "cm^-3",
+      "type": "double",
+      "fill": "-1.0E31"
+    },
+    {
+      "size": [
+        32,
+        3
+      ],
+      "name": "mms1_des_bulkv_part_dbcs_fast",
+      "description": "MMS1 FPI/DES partial electron bulk-velocity vector in DBCS during this survey",
+      "units": "km/s",
+      "type": "double",
+      "fill": "-1.0E31"
+    },
+    {
+      "size": [
+        32,
+        3
+      ],
+      "name": "mms1_des_bulkv_part_gse_fast",
+      "description": "MMS1 FPI/DES partial electron bulk-velocity vector in GSE during this survey",
+      "units": "km/s",
+      "type": "double",
+      "fill": "-1.0E31"
+    },
+    {
+      "size": [
+        32,
+        3,
+        3
+      ],
+      "name": "mms1_des_prestensor_part_dbcs_fast",
+      "description": "MMS1 FPI/DES partial electron pressure tensor in DBCS during this survey",
+      "units": "nPa",
+      "type": "double",
+      "fill": "-1.0E31"
+    },
+    {
+      "size": [
+        32,
+        3,
+        3
+      ],
+      "name": "mms1_des_prestensor_part_gse_fast",
+      "description": "MMS1 FPI/DES partial electron pressure tensor in GSE during this survey",
+      "units": "nPa",
+      "type": "double",
+      "fill": "-1.0E31"
+    },
+    {
+      "size": [
+        32,
+        3,
+        3
+      ],
+      "name": "mms1_des_temptensor_part_dbcs_fast",
+      "description": "MMS1 FPI/DES partial electron temperature tensor in DBCS during this survey",
+      "units": "eV",
+      "type": "double",
+      "fill": "-1.0E31"
+    },
+    {
+      "size": [
+        32,
+        3,
+        3
+      ],
+      "name": "mms1_des_temptensor_part_gse_fast",
+      "description": "MMS1 FPI/DES partial electron temperature tensor in GSE during this survey",
+      "units": "eV",
+      "type": "double",
+      "fill": "-1.0E31"
+    },
+    {
+      "size": [
+        32
+      ],
+      "name": "mms1_des_temppara_part_fast",
+      "description": "MMS1 FPI/DES partial electron parallel temperature during this survey",
+      "units": "eV",
+      "type": "double",
+      "fill": "-1.0E31"
+    },
+    {
+      "size": [
+        32
+      ],
+      "name": "mms1_des_tempperp_part_fast",
+      "description": "MMS1 FPI/DES partial electron perpendicular temperature during this survey",
+      "units": "eV",
+      "type": "double",
+      "fill": "-1.0E31"
+    },
+    {
+      "name": "mms1_des_part_index_fast",
+      "description": "MMS1 FPI/DES recommended energy index for partial moments during this survey",
+      "units": "0-31",
+      "type": "integer",
+      "fill": "65535"
+    },
+    {
+      "name": "mms1_des_startdelphi_count_fast",
+      "description": "MMS1 FPI/DES Del-Phi (obs spin-phase) count at survey-start time",
+      "units": "del-phi counts",
+      "type": "integer",
+      "fill": "65535"
+    },
+    {
+      "name": "mms1_des_startdelphi_angle_fast",
+      "description": "MMS1 FPI/DES Del-Phi (obs spin-phase) angle at survey-start time",
+      "units": "deg",
+      "type": "double",
+      "fill": "-1.0E31"
+    },
+    {
+      "bins": [
+        {
+          "name": "mms1_des_alpha_fast",
+          "centers": [
+            3.0,
+            9.0,
+            15.0,
+            21.0,
+            27.0,
+            33.0,
+            39.0,
+            45.0,
+            51.0,
+            57.0,
+            63.0,
+            69.0,
+            75.0,
+            81.0,
+            87.0,
+            93.0,
+            99.0,
+            105.0,
+            111.0,
+            117.0,
+            123.0,
+            129.0,
+            135.0,
+            141.0,
+            147.0,
+            153.0,
+            159.0,
+            165.0,
+            171.0,
+            177.0
+          ],
+          "units": "deg"
+        }
+      ],
+      "size": [
+        30
+      ],
+      "name": "mms1_des_pitchangdist_lowen_fast",
+      "description": "MMS1 FPI/DES electron pitch-angle distribution for \"low\" energies during this survey",
+      "units": "keV/(cm^2 s sr keV)",
+      "type": "double",
+      "fill": "-1.0E31"
+    },
+    {
+      "bins": [
+        {
+          "name": "mms1_des_alpha_fast",
+          "centers": [
+            3.0,
+            9.0,
+            15.0,
+            21.0,
+            27.0,
+            33.0,
+            39.0,
+            45.0,
+            51.0,
+            57.0,
+            63.0,
+            69.0,
+            75.0,
+            81.0,
+            87.0,
+            93.0,
+            99.0,
+            105.0,
+            111.0,
+            117.0,
+            123.0,
+            129.0,
+            135.0,
+            141.0,
+            147.0,
+            153.0,
+            159.0,
+            165.0,
+            171.0,
+            177.0
+          ],
+          "units": "deg"
+        }
+      ],
+      "size": [
+        30
+      ],
+      "name": "mms1_des_pitchangdist_miden_fast",
+      "description": "MMS1 FPI/DES electron pitch-angle distribution for \"mid\" energies during this survey",
+      "units": "keV/(cm^2 s sr keV)",
+      "type": "double",
+      "fill": "-1.0E31"
+    },
+    {
+      "bins": [
+        {
+          "name": "mms1_des_alpha_fast",
+          "centers": [
+            3.0,
+            9.0,
+            15.0,
+            21.0,
+            27.0,
+            33.0,
+            39.0,
+            45.0,
+            51.0,
+            57.0,
+            63.0,
+            69.0,
+            75.0,
+            81.0,
+            87.0,
+            93.0,
+            99.0,
+            105.0,
+            111.0,
+            117.0,
+            123.0,
+            129.0,
+            135.0,
+            141.0,
+            147.0,
+            153.0,
+            159.0,
+            165.0,
+            171.0,
+            177.0
+          ],
+          "units": "deg"
+        }
+      ],
+      "size": [
+        30
+      ],
+      "name": "mms1_des_pitchangdist_highen_fast",
+      "description": "MMS1 FPI/DES electron pitch-angle distribution for \"high\" energies during this survey",
+      "units": "keV/(cm^2 s sr keV)",
+      "type": "double",
+      "fill": "-1.0E31"
+    },
+    {
+      "size": [
+        32
+      ],
+      "name": "mms1_des_energyspectr_px_fast",
+      "description": "MMS1 FPI/DES electron energy spectrum \"near\" +X_DBCS during this survey",
+      "units": "keV/(cm^2 s sr keV)",
+      "type": "double",
+      "fill": "-1.0E31"
+    },
+    {
+      "size": [
+        32
+      ],
+      "name": "mms1_des_energyspectr_mx_fast",
+      "description": "MMS1 FPI/DES electron energy spectrum \"near\" -X_DBCS during this survey",
+      "units": "keV/(cm^2 s sr keV)",
+      "type": "double",
+      "fill": "-1.0E31"
+    },
+    {
+      "size": [
+        32
+      ],
+      "name": "mms1_des_energyspectr_py_fast",
+      "description": "MMS1 FPI/DES electron energy spectrum \"near\" +Y_DBCS during this survey",
+      "units": "keV/(cm^2 s sr keV)",
+      "type": "double",
+      "fill": "-1.0E31"
+    },
+    {
+      "size": [
+        32
+      ],
+      "name": "mms1_des_energyspectr_my_fast",
+      "description": "MMS1 FPI/DES electron energy spectrum \"near\" -Y_DBCS during this survey",
+      "units": "keV/(cm^2 s sr keV)",
+      "type": "double",
+      "fill": "-1.0E31"
+    },
+    {
+      "size": [
+        32
+      ],
+      "name": "mms1_des_energyspectr_pz_fast",
+      "description": "MMS1 FPI/DES electron energy spectrum \"near\" +Z_DBCS during this survey",
+      "units": "keV/(cm^2 s sr keV)",
+      "type": "double",
+      "fill": "-1.0E31"
+    },
+    {
+      "size": [
+        32
+      ],
+      "name": "mms1_des_energyspectr_mz_fast",
+      "description": "MMS1 FPI/DES electron energy spectrum \"near\" -Z_DBCS during this survey",
+      "units": "keV/(cm^2 s sr keV)",
+      "type": "double",
+      "fill": "-1.0E31"
+    },
+    {
+      "size": [
+        32
+      ],
+      "name": "mms1_des_energyspectr_par_fast",
+      "description": "MMS1 FPI/DES electron energy parallel to the magnetic field direction during this survey",
+      "units": "keV/(cm^2 s sr keV)",
+      "type": "double",
+      "fill": "-1.0E31"
+    },
+    {
+      "size": [
+        32
+      ],
+      "name": "mms1_des_energyspectr_anti_fast",
+      "description": "MMS1 FPI/DES electron energy anti-parallel to the magnetic field direction during this survey",
+      "units": "keV/(cm^2 s sr keV)",
+      "type": "double",
+      "fill": "-1.0E31"
+    },
+    {
+      "size": [
+        32
+      ],
+      "name": "mms1_des_energyspectr_perp_fast",
+      "description": "MMS1 FPI/DES electron energy perpendicular to the magnetic field direction during this survey",
+      "units": "keV/(cm^2 s sr keV)",
+      "type": "double",
+      "fill": "-1.0E31"
+    },
+    {
+      "size": [
+        32
+      ],
+      "name": "mms1_des_energyspectr_omni_fast",
+      "description": "MMS1 FPI/DES omni-directional electron energy spectrum during this survey",
+      "units": "keV/(cm^2 s sr keV)",
+      "type": "double",
+      "fill": "-1.0E31"
+    },
+    {
+      "name": "mms1_des_numberdensity_fast",
+      "description": "MMS1 FPI/DES electron number density during this survey",
+      "units": "cm^-3",
+      "type": "double",
+      "fill": "-1.0E31"
+    },
+    {
+      "name": "mms1_des_densityextrapolation_low_fast",
+      "description": "MMS1 FPI/DES estimated (via extrapolation to 0) contribution to density integral below 10eV",
+      "units": "cm^-3",
+      "type": "double",
+      "fill": "-1.0E31"
+    },
+    {
+      "name": "mms1_des_densityextrapolation_high_fast",
+      "description": "MMS1 FPI/DES estimated (via extrapolation to infinity) contribution to density integral above 30keV",
+      "units": "cm^-3",
+      "type": "double",
+      "fill": "-1.0E31"
+    },
+    {
+      "size": [
+        3
+      ],
+      "name": "mms1_des_bulkv_dbcs_fast",
+      "description": "MMS1 FPI/DES electron bulk-velocity vector in DBCS during this survey",
+      "units": "km/s",
+      "type": "double",
+      "fill": "-1.0E31"
+    },
+    {
+      "size": [
+        3
+      ],
+      "name": "mms1_des_bulkv_spintone_dbcs_fast",
+      "description": "MMS1 FPI/DES electron bulk-velocity estimated spintone vector in DBCS during this survey",
+      "units": "km/s",
+      "type": "double",
+      "fill": "-1.0E31"
+    },
+    {
+      "size": [
+        3
+      ],
+      "name": "mms1_des_bulkv_gse_fast",
+      "description": "MMS1 FPI/DES electron bulk-velocity vector in GSE during this survey",
+      "units": "km/s",
+      "type": "double",
+      "fill": "-1.0E31"
+    },
+    {
+      "size": [
+        3
+      ],
+      "name": "mms1_des_bulkv_spintone_gse_fast",
+      "description": "MMS1 FPI/DES electron bulk-velocity estimated spintone vector in GSE during this survey",
+      "units": "km/s",
+      "type": "double",
+      "fill": "-1.0E31"
+    },
+    {
+      "size": [
+        3,
+        3
+      ],
+      "name": "mms1_des_prestensor_dbcs_fast",
+      "description": "MMS1 FPI/DES electron pressure tensor in DBCS during this survey",
+      "units": "nPa",
+      "type": "double",
+      "fill": "-1.0E31"
+    },
+    {
+      "size": [
+        3,
+        3
+      ],
+      "name": "mms1_des_prestensor_gse_fast",
+      "description": "MMS1 FPI/DES electron pressure tensor in GSE during this survey",
+      "units": "nPa",
+      "type": "double",
+      "fill": "-1.0E31"
+    },
+    {
+      "size": [
+        3,
+        3
+      ],
+      "name": "mms1_des_temptensor_dbcs_fast",
+      "description": "MMS1 FPI/DES electron temperature tensor in DBCS during this survey",
+      "units": "eV",
+      "type": "double",
+      "fill": "-1.0E31"
+    },
+    {
+      "size": [
+        3,
+        3
+      ],
+      "name": "mms1_des_temptensor_gse_fast",
+      "description": "MMS1 FPI/DES electron temperature tensor in GSE during this survey",
+      "units": "eV",
+      "type": "double",
+      "fill": "-1.0E31"
+    },
+    {
+      "size": [
+        3
+      ],
+      "name": "mms1_des_heatq_dbcs_fast",
+      "description": "MMS1 FPI/DES electron heat-flux vector in DBCS during this survey",
+      "units": "mW/m^2",
+      "type": "double",
+      "fill": "-1.0E31"
+    },
+    {
+      "size": [
+        3
+      ],
+      "name": "mms1_des_heatq_gse_fast",
+      "description": "MMS1 FPI/DES electron heat-flux vector in GSE during this survey",
+      "units": "mW/m^2",
+      "type": "double",
+      "fill": "-1.0E31"
+    },
+    {
+      "name": "mms1_des_temppara_fast",
+      "description": "MMS1 FPI/DES electron parallel temperature during this BP",
+      "units": "eV",
+      "type": "double",
+      "fill": "-1.0E31"
+    },
+    {
+      "name": "mms1_des_tempperp_fast",
+      "description": "MMS1 FPI/DES electron perpendicular temperature during this BP",
+      "units": "eV",
+      "type": "double",
+      "fill": "-1.0E31"
+    },
+    {
+      "name": "mms1_des_scpot_mean_fast",
+      "description": "MMS1 FPI/DES S/C potential mean",
+      "units": "V",
+      "type": "double",
+      "fill": "-1.0E31"
+    },
+    {
+      "name": "mms1_des_scpot_max_fast",
+      "description": "MMS1 FPI/DES S/C potential max",
+      "units": "V",
+      "type": "double",
+      "fill": "-1.0E31"
+    },
+    {
+      "size": [
+        4
+      ],
+      "name": "mms1_des_fpibentpipe_dsc_fast",
+      "description": "MMS1 FPI/DES Mag data X,Y,Z,Norm DSC  components [nT] at survey-start time",
+      "units": "nT",
+      "type": "double",
+      "fill": "-1.0E31"
+    },
+    {
+      "size": [
+        4
+      ],
+      "name": "mms1_des_fpib_gse_srvy_fast",
+      "description": "Magnetic field vector X,Y,Z, and magnitude B",
+      "units": "nT",
+      "type": "double",
+      "fill": "-1.0E31"
+    },
+    {
+      "size": [
+        4
+      ],
+      "name": "mms1_des_fpib_dmpa_srvy_fast",
+      "description": "Magnetic field vector X,Y,Z, and magnitude B",
+      "units": "nT",
+      "type": "double",
+      "fill": "-1.0E31"
+    },
+    {
+      "size": [
+        3
+      ],
+      "name": "mms1_des_pos_gse_fast",
+      "description": "Position in GSE coordinates, 30 second",
+      "units": "km",
+      "type": "double",
+      "fill": "-1.0E31"
+    },
+    {
+      "size": [
+        3
+      ],
+      "name": "mms1_des_pos_gsm_fast",
+      "description": "Position in GSM coordinates, 30 second",
+      "units": "km",
+      "type": "double",
+      "fill": "-1.0E31"
+    },
+    {
+      "size": [
+        32
+      ],
+      "name": "mms1_des_numberdensity_int_fast",
+      "description": "MMS1 number density integrands",
+      "units": "cm^-3",
+      "type": "double",
+      "fill": "-1.0E31"
+    },
+    {
+      "size": [
+        32,
+        3
+      ],
+      "name": "mms1_des_numberflux_int_dbcs_fast",
+      "description": "number flux",
+      "units": "km/s * cm^-3",
+      "type": "double",
+      "fill": "-1.0E31"
+    },
+    {
+      "size": [
+        32,
+        3,
+        3
+      ],
+      "name": "mms1_des_prestensor_int_dbcs_fast",
+      "description": "MMS1 pressure tensor integrands",
+      "units": "erg/cm^3",
+      "type": "double",
+      "fill": "-1.0E31"
+    },
+    {
+      "size": [
+        32
+      ],
+      "name": "mms1_des_ugrid_int_fast",
+      "description": "Normalized energies (E/(E+E0)) used in numerical integration of plasma moments",
+      "units": "eV/eV",
+      "type": "double",
+      "fill": "-1.0E31"
+    }
+  ],
+  "startDate": "2015-09-01T00:00:01Z",
+  "stopDate": "2025-12-27T17:59:47Z",
+  "status": {
+    "code": 1200,
+    "message": "OK"
+  }
+}

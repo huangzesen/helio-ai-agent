@@ -1,0 +1,80 @@
+{
+  "HAPI": "2.0",
+  "resourceURL": "https://cdaweb.gsfc.nasa.gov/misc/NotesP.html#PSP_FLD_L2_DFB_AC_XSPEC_SCMDLFHG_SCMELFHG",
+  "contact": "Stuart D. Bale (bale@ssl.berkeley.edu) @ UC Berkeley Space Sciences Laboratory",
+  "parameters": [
+    {
+      "name": "Time",
+      "length": 30,
+      "units": "UTC",
+      "type": "isotime",
+      "fill": null
+    },
+    {
+      "size": [
+        43
+      ],
+      "name": "psp_fld_l2_dfb_ac_xspec_power_ch1_SCMdlfhg",
+      "description": "L2 XSpectra Power for channel SCMDLFHG",
+      "units": "nT^2/Hz",
+      "type": "double",
+      "fill": "-1.0E31"
+    },
+    {
+      "size": [
+        43
+      ],
+      "name": "psp_fld_l2_dfb_ac_xspec_power_ch2_SCMelfhg",
+      "description": "L2 XSpectra Power for channel SCMELFHG",
+      "units": "nT^2/Hz",
+      "type": "double",
+      "fill": "-1.0E31"
+    },
+    {
+      "size": [
+        43
+      ],
+      "name": "psp_fld_l2_dfb_ac_xspec_coh_SCMdlfhg_SCMelfhg",
+      "description": "L2 XSpectra Coherence between channel SCMDLFHG and channel SCMELFHG",
+      "units": " ",
+      "type": "double",
+      "fill": "-1.0E31"
+    },
+    {
+      "size": [
+        43
+      ],
+      "name": "psp_fld_l2_dfb_ac_xspec_phase_SCMdlfhg_SCMelfhg",
+      "description": "L2 XSpectra Phase of channel SCMELFHG relative to channel SCMDLFHG",
+      "units": "Degrees",
+      "type": "double",
+      "fill": "-1.0E31"
+    },
+    {
+      "size": [
+        43
+      ],
+      "name": "psp_fld_l2_dfb_ac_xspec_crossterm_Real_SCMdlfhg_SCMelfhg",
+      "description": "L2 XSpectra Real Part of Crossterm (FT_1 x FT_2^*) for channel SCMDLFHG and SCMELFHG",
+      "units": "nT^2/Hz",
+      "type": "double",
+      "fill": "-1.0E31"
+    },
+    {
+      "size": [
+        43
+      ],
+      "name": "psp_fld_l2_dfb_ac_xspec_crossterm_Imag_SCMdlfhg_SCMelfhg",
+      "description": "L2 XSpectra Imag Part of Crossterm (FT_1 x FT_2^*) for channel SCMDLFHG and SCMELFHG",
+      "units": "nT^2/Hz",
+      "type": "double",
+      "fill": "-1.0E31"
+    }
+  ],
+  "startDate": "2018-10-03T06:59:10Z",
+  "stopDate": "2018-11-11T22:40:54Z",
+  "status": {
+    "code": 1200,
+    "message": "OK"
+  }
+}

@@ -1,0 +1,41 @@
+{
+  "HAPI": "2.0",
+  "resourceURL": "https://cdaweb.gsfc.nasa.gov/misc/NotesP.html#PSP_FLD_L2_MAG_SC",
+  "contact": "Stuart D. Bale (bale@berkeley.edu) @ UC Berkeley Space Sciences Laboratory",
+  "parameters": [
+    {
+      "name": "Time",
+      "length": 30,
+      "units": "UTC",
+      "type": "isotime",
+      "fill": null
+    },
+    {
+      "bins": [
+        {
+          "name": "component_index_SC",
+          "centers": [
+            1,
+            2,
+            3
+          ],
+          "units": " "
+        }
+      ],
+      "size": [
+        3
+      ],
+      "name": "psp_fld_l2_mag_SC",
+      "description": "Magnetic field in SC coordinates (full cadence)",
+      "units": "nT",
+      "type": "double",
+      "fill": "-1.0E31"
+    }
+  ],
+  "startDate": "2018-10-02T03:48:17Z",
+  "stopDate": "2025-07-31T23:59:59Z",
+  "status": {
+    "code": 1200,
+    "message": "OK"
+  }
+}

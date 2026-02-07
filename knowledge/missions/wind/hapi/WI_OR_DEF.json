@@ -1,0 +1,145 @@
+{
+  "HAPI": "2.0",
+  "resourceURL": "https://cdaweb.gsfc.nasa.gov/misc/NotesW.html#WI_OR_DEF",
+  "contact": " @ ",
+  "parameters": [
+    {
+      "name": "Time",
+      "length": 24,
+      "units": "UTC",
+      "type": "isotime",
+      "fill": null
+    },
+    {
+      "size": [
+        3
+      ],
+      "name": "GCI_POS",
+      "description": "J2000 GCI Cartesian Position                  ",
+      "units": "km",
+      "type": "double",
+      "fill": "-1.0E31"
+    },
+    {
+      "size": [
+        3
+      ],
+      "name": "GCI_VEL",
+      "description": "J2000 GCI Cartesian Velocity                  ",
+      "units": "km/sec",
+      "type": "double",
+      "fill": "-1.0E31"
+    },
+    {
+      "size": [
+        3
+      ],
+      "name": "GSE_POS",
+      "description": "GSE Cartesian Position                  ",
+      "units": "km",
+      "type": "double",
+      "fill": "-1.0E31"
+    },
+    {
+      "size": [
+        3
+      ],
+      "name": "GSE_VEL",
+      "description": "GSE Cartesian Velocity                  ",
+      "units": "km/sec",
+      "type": "double",
+      "fill": "-1.0E31"
+    },
+    {
+      "size": [
+        3
+      ],
+      "name": "GSM_POS",
+      "description": "GSM Cartesian Position                  ",
+      "units": "km",
+      "type": "double",
+      "fill": "-1.0E31"
+    },
+    {
+      "size": [
+        3
+      ],
+      "name": "GSM_VEL",
+      "description": "GSM Cartesian Velocity                  ",
+      "units": "km/sec",
+      "type": "double",
+      "fill": "-1.0E31"
+    },
+    {
+      "size": [
+        3
+      ],
+      "name": "SUN_VECTOR",
+      "description": "J2000 GCI Sun Position Vector",
+      "units": "km",
+      "type": "double",
+      "fill": "-1.0E31"
+    },
+    {
+      "size": [
+        3
+      ],
+      "name": "HEC_POS",
+      "description": "HEC Cartesian Position [available starting around 1995/05/01]                 ",
+      "units": "km",
+      "type": "double",
+      "fill": "-1.0E31"
+    },
+    {
+      "size": [
+        3
+      ],
+      "name": "HEC_VEL",
+      "description": "HEC Cartesian Velocity [available starting around 1995/05/01]                 ",
+      "units": "km/sec",
+      "type": "double",
+      "fill": "-1.0E31"
+    },
+    {
+      "name": "CRN_EARTH",
+      "description": "Carrington Rotation Number [available starting after 1996/03/01]",
+      "units": " ",
+      "type": "integer",
+      "fill": "-2147483648"
+    },
+    {
+      "name": "LONG_EARTH",
+      "description": "Heliographic Long of Earth [available starting around 1995/05/01]         ",
+      "units": "rad",
+      "type": "double",
+      "fill": "-1.0E31"
+    },
+    {
+      "name": "LAT_EARTH",
+      "description": "Heliographic Lat of Earth [available starting around 1995/05/01]          ",
+      "units": "rad",
+      "type": "double",
+      "fill": "-1.0E31"
+    },
+    {
+      "name": "LONG_SPACE",
+      "description": "Heliographic Long of Craft [available starting around 1995/05/01]              ",
+      "units": "rad",
+      "type": "double",
+      "fill": "-1.0E31"
+    },
+    {
+      "name": "LAT_SPACE",
+      "description": "Heliographic Lat of Craft [available starting around 1995/05/01]          ",
+      "units": "rad",
+      "type": "double",
+      "fill": "-1.0E31"
+    }
+  ],
+  "startDate": "1994-11-01T11:00:00Z",
+  "stopDate": "1997-07-01T23:50:00Z",
+  "status": {
+    "code": 1200,
+    "message": "OK"
+  }
+}
