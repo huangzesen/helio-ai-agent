@@ -15,13 +15,13 @@ from .tasks import (
     Task, TaskPlan, TaskStatus, PlanStatus,
     get_task_store, create_task, create_plan,
 )
-from .planner import is_complex_request, create_plan_from_request, format_plan_for_display
+from .planner import create_plan_from_request, format_plan_for_display
 from .mission_agent import MissionAgent
 from .logging import (
     setup_logging, get_logger, log_error, log_tool_call,
     log_tool_result, log_plan_event, log_session_end,
 )
-from knowledge.catalog import search_by_keywords, match_spacecraft
+from knowledge.catalog import search_by_keywords
 from knowledge.hapi_client import list_parameters as hapi_list_parameters, get_dataset_time_range
 from autoplot_bridge.commands import get_commands
 from data_ops.store import get_store, DataEntry
@@ -478,6 +478,27 @@ class AutoplotAgent:
                 "file_size_bytes": file_size,
             }
 
+        # --- Routing ---
+
+        elif tool_name == "delegate_to_mission":
+            mission_id = tool_args["mission_id"]
+            request = tool_args["request"]
+            if self.verbose:
+                print(f"  [Router] Delegating to {mission_id} specialist")
+            try:
+                agent = self._get_or_create_mission_agent(mission_id)
+                sub_result = agent.process_request(request)
+                return {
+                    "status": "success",
+                    "mission": mission_id,
+                    "result": sub_result,
+                }
+            except (KeyError, FileNotFoundError):
+                return {
+                    "status": "error",
+                    "message": f"Unknown mission '{mission_id}'. Check the supported missions table.",
+                }
+
         else:
             result = {"status": "error", "message": f"Unknown tool: {tool_name}"}
             log_error(
@@ -709,9 +730,15 @@ class AutoplotAgent:
             self._track_usage(response)
 
             text_parts = []
-            for part in response.candidates[0].content.parts:
-                if hasattr(part, "text") and part.text:
-                    text_parts.append(part.text)
+            parts = (
+                response.candidates[0].content.parts
+                if response.candidates and response.candidates[0].content
+                else None
+            )
+            if parts:
+                for part in parts:
+                    if hasattr(part, "text") and part.text:
+                        text_parts.append(part.text)
 
             return "\n".join(text_parts) if text_parts else plan.progress_summary()
 
@@ -907,54 +934,17 @@ class AutoplotAgent:
 
         # Extract text response
         text_parts = []
-        for part in response.candidates[0].content.parts:
-            if hasattr(part, "text") and part.text:
-                text_parts.append(part.text)
+        parts = (
+            response.candidates[0].content.parts
+            if response.candidates and response.candidates[0].content
+            else None
+        )
+        if parts:
+            for part in parts:
+                if hasattr(part, "text") and part.text:
+                    text_parts.append(part.text)
 
         return "\n".join(text_parts) if text_parts else "Done."
-
-    @staticmethod
-    def _is_general_request(text: str) -> bool:
-        """Check if a request should be handled by the main agent directly.
-
-        General requests include meta questions, plot follow-ups, and
-        capability inquiries that don't target a specific mission.
-
-        Args:
-            text: The user's input
-
-        Returns:
-            True if the request is general (no delegation needed).
-        """
-        import re
-        text_lower = text.lower().strip()
-
-        # Meta questions about capabilities
-        meta_patterns = [
-            r"\b(help|what can you do|what missions|capabilities)\b",
-            r"\b(how do|how does|how to)\b",
-            r"\bhello\b",
-            r"\bhi\b",
-            r"\bthanks?\b",
-        ]
-        for pattern in meta_patterns:
-            if re.search(pattern, text_lower):
-                return True
-
-        # Plot follow-ups that operate on the current shared Autoplot state
-        followup_patterns = [
-            r"\bzoom\b",
-            r"\bexport\b",
-            r"\bsave.*(plot|png|image)\b",
-            r"\bchange.*(time|range)\b",
-            r"\bwhat.*(plot|showing|displayed)",
-            r"\bget.*(plot|info)\b",
-        ]
-        for pattern in followup_patterns:
-            if re.search(pattern, text_lower):
-                return True
-
-        return False
 
     def _get_or_create_mission_agent(self, mission_id: str) -> MissionAgent:
         """Get a cached mission agent or create a new one.
@@ -977,49 +967,17 @@ class AutoplotAgent:
                 print(f"  [Router] Created {mission_id} mission agent")
         return self._mission_agents[mission_id]
 
-    def _process_mission_request(self, user_message: str, mission_id: str) -> str:
-        """Delegate a request to a mission-specific sub-agent.
-
-        The sub-agent handles data operations (discovery, fetch, compute).
-        Its result is then fed to the main agent, which decides whether
-        to plot and formulates the final response to the user.
-
-        Args:
-            user_message: The user's input
-            mission_id: Spacecraft ID to delegate to
-
-        Returns:
-            The main agent's response after processing the sub-agent's result
-        """
-        if self.verbose:
-            print(f"  [Router] Delegating to {mission_id} specialist")
-
-        try:
-            agent = self._get_or_create_mission_agent(mission_id)
-            sub_result = agent.process_request(user_message)
-
-            # Feed sub-agent results to main agent for potential plotting
-            followup = (
-                f"The {mission_id} data specialist completed the user's request "
-                f'"{user_message}" and reported:\n\n{sub_result}\n\n'
-                f"Based on this result, take any appropriate follow-up actions "
-                f"(such as plotting the data) and provide a response to the user."
-            )
-            return self._process_single_message(followup)
-
-        except KeyError:
-            if self.verbose:
-                print(f"  [Router] Unknown mission '{mission_id}', falling back to main agent")
-            return self._process_single_message(user_message)
-
     def process_message(self, user_message: str) -> str:
         """Process a user message and return the agent's response.
 
-        Routing order:
-        1. General requests (help, plot follow-ups) -> main agent
-        2. Complex multi-mission requests -> planner -> mission sub-agents
-        3. Single-mission requests -> mission sub-agent
-        4. No mission detected -> main agent (may ask for clarification)
+        Every message goes to the main agent, which decides what to do:
+        - Direct tool calls for plotting, zooming, exporting, etc.
+        - delegate_to_mission tool call for mission-specific data requests
+        - Chain multiple tool calls for multi-step requests (fetch → plot)
+        - Text response for greetings, questions, summaries
+
+        The main agent's tool-calling loop (up to 10 iterations) naturally
+        handles multi-step requests without a separate planner.
 
         Args:
             user_message: The user's input
@@ -1027,22 +985,6 @@ class AutoplotAgent:
         Returns:
             The agent's text response
         """
-        # 1. General requests -> main agent directly
-        if self._is_general_request(user_message):
-            if self.verbose:
-                print(f"  [Router] General request -> main agent")
-            return self._process_single_message(user_message)
-
-        # 2. Complex multi-mission requests -> planner
-        if is_complex_request(user_message):
-            return self._process_complex_request(user_message)
-
-        # 3. Detect mission from keywords -> delegate to sub-agent
-        mission_id = match_spacecraft(user_message)
-        if mission_id:
-            return self._process_mission_request(user_message, mission_id)
-
-        # 4. No mission detected -> main agent handles
         return self._process_single_message(user_message)
 
     def reset(self):

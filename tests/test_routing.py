@@ -1,70 +1,15 @@
 """
-Tests for the always-delegate routing logic in core.py and tool filtering.
+Tests for routing, tool filtering, and the delegate_to_mission tool.
 
-Tests _is_general_request() heuristics, mission detection routing,
-and tool category filtering without requiring a Gemini API key.
+Tests tool category filtering and LLM-driven routing architecture
+without requiring a Gemini API key.
 
 Run with: python -m pytest tests/test_routing.py -v
 """
 
 import pytest
-from agent.core import AutoplotAgent
 from agent.tools import get_tool_schemas
-
-
-class TestIsGeneralRequest:
-    """Test the _is_general_request() static method."""
-
-    # Meta questions
-    @pytest.mark.parametrize("text", [
-        "help",
-        "what can you do",
-        "what can you do?",
-        "What missions do you support?",
-        "what missions are available",
-        "how do I use this?",
-        "how does the time range work?",
-        "hello",
-        "hi",
-        "Hi there!",
-        "thanks",
-        "thank you",
-        "Thanks for the help!",
-    ])
-    def test_meta_questions_are_general(self, text):
-        assert AutoplotAgent._is_general_request(text) is True
-
-    # Plot follow-ups
-    @pytest.mark.parametrize("text", [
-        "zoom in to last 3 days",
-        "zoom into January",
-        "export this as png",
-        "export the plot",
-        "save the plot as output.png",
-        "change the time range to last month",
-        "change time to 2024-01-15",
-        "what is currently plotted?",
-        "what's showing?",
-        "get plot info",
-    ])
-    def test_plot_followups_are_general(self, text):
-        assert AutoplotAgent._is_general_request(text) is True
-
-    # Mission-specific requests should NOT be general
-    @pytest.mark.parametrize("text", [
-        "show me PSP magnetic field data",
-        "plot ACE solar wind for last week",
-        "fetch OMNI data",
-        "parker probe magnetic field",
-        "compare PSP and ACE",
-        "what data does Solar Orbiter have?",
-        "show wind plasma data",
-        "MMS magnetopause crossing",
-        "show me the magnetic field magnitude",
-        "fetch and plot density data",
-    ])
-    def test_mission_requests_are_not_general(self, text):
-        assert AutoplotAgent._is_general_request(text) is False
+from agent.mission_agent import MISSION_TOOL_CATEGORIES
 
 
 class TestToolCategoryFiltering:
@@ -74,16 +19,19 @@ class TestToolCategoryFiltering:
 
     def test_no_filter_returns_all_tools(self):
         all_tools = get_tool_schemas()
-        assert len(all_tools) == 14
+        assert len(all_tools) == 15
         names = {t["name"] for t in all_tools}
         assert "plot_data" in names
         assert "fetch_data" in names
+        assert "delegate_to_mission" in names
 
-    def test_mission_categories_exclude_plotting(self):
-        mission_tools = get_tool_schemas(categories=["discovery", "data_ops", "conversation"])
+    def test_mission_categories_exclude_plotting_and_routing(self):
+        mission_tools = get_tool_schemas(categories=MISSION_TOOL_CATEGORIES)
         names = {t["name"] for t in mission_tools}
         # Should not include any plotting tools
         assert names.isdisjoint(self.PLOTTING_TOOLS), f"Unexpected plotting tools: {names & self.PLOTTING_TOOLS}"
+        # Should not include routing tools (no recursive delegation)
+        assert "delegate_to_mission" not in names
         # Should include data tools
         assert "fetch_data" in names
         assert "search_datasets" in names
@@ -103,8 +51,32 @@ class TestToolCategoryFiltering:
         assert get_tool_schemas(categories=[]) == []
 
 
+class TestDelegateToMissionTool:
+    """Test that the delegate_to_mission tool is properly configured."""
+
+    def test_tool_exists(self):
+        names = {t["name"] for t in get_tool_schemas()}
+        assert "delegate_to_mission" in names
+
+    def test_tool_has_routing_category(self):
+        tool = next(t for t in get_tool_schemas() if t["name"] == "delegate_to_mission")
+        assert tool["category"] == "routing"
+
+    def test_tool_not_in_mission_agent_tools(self):
+        """Sub-agents should NOT have delegate_to_mission (no recursive delegation)."""
+        mission_tools = get_tool_schemas(categories=MISSION_TOOL_CATEGORIES)
+        names = {t["name"] for t in mission_tools}
+        assert "delegate_to_mission" not in names
+
+    def test_tool_requires_mission_id_and_request(self):
+        tool = next(t for t in get_tool_schemas() if t["name"] == "delegate_to_mission")
+        assert "mission_id" in tool["parameters"]["properties"]
+        assert "request" in tool["parameters"]["properties"]
+        assert tool["parameters"]["required"] == ["mission_id", "request"]
+
+
 class TestMissionAgentImportAndInterface:
-    """Verify the new process_request method exists on MissionAgent."""
+    """Verify MissionAgent interface."""
 
     def test_process_request_method_exists(self):
         from agent.mission_agent import MissionAgent

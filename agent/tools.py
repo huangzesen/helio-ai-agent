@@ -326,6 +326,37 @@ If no filename is given, one is auto-generated from the label.""",
             "required": ["label"]
         }
     },
+
+    # --- Routing ---
+    {
+        "category": "routing",
+        "name": "delegate_to_mission",
+        "description": """Delegate a data request to a mission-specific specialist agent. Use this when:
+- The user asks about a specific spacecraft's data (e.g., "show me ACE magnetic field data")
+- The user wants to fetch, compute, or describe data from a specific mission
+- You need mission-specific knowledge (dataset IDs, parameter names, analysis patterns)
+
+Do NOT delegate:
+- Plot follow-ups (zoom, export, time range changes) — handle these directly
+- Requests to plot already-loaded data — use plot_computed_data directly
+- General questions about capabilities
+
+The specialist will search datasets, fetch data, run computations, and report back what was done. You then decide whether to plot the results.""",
+        "parameters": {
+            "type": "object",
+            "properties": {
+                "mission_id": {
+                    "type": "string",
+                    "description": "Spacecraft mission ID from the supported missions table (e.g., 'PSP', 'ACE', 'SolO', 'OMNI', 'WIND', 'DSCOVR', 'MMS', 'STEREO_A')"
+                },
+                "request": {
+                    "type": "string",
+                    "description": "The data request to send to the specialist (e.g., 'fetch magnetic field data for last week')"
+                }
+            },
+            "required": ["mission_id", "request"]
+        }
+    },
 ]
 
 
@@ -335,7 +366,7 @@ def get_tool_schemas(categories: list[str] | None = None) -> list[dict]:
     Args:
         categories: Optional list of categories to filter by.
             If None, returns all tools. Valid categories:
-            "discovery", "plotting", "data_ops", "conversation".
+            "discovery", "plotting", "data_ops", "conversation", "routing".
 
     Returns:
         List of tool schema dicts.

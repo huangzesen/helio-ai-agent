@@ -17,11 +17,9 @@ main.py  (readline CLI, --verbose flag, token usage on exit)
   |  - Checks for incomplete plans on startup
   |
   v
-agent/core.py  AutoplotAgent  (always-delegate orchestrator)
-  |  - Routes: general requests -> main agent
-  |            single-mission -> mission sub-agent
-  |            complex multi-mission -> planner -> sub-agents
-  |  - _is_general_request() regex heuristics for meta/followup detection
+agent/core.py  AutoplotAgent  (LLM-driven orchestrator)
+  |  - LLM decides: handle directly OR delegate via delegate_to_mission tool
+  |  - Complex multi-mission requests -> planner -> sub-agents
   |  - Mission agent cache (reused across session)
   |  - Token usage tracking (input/output/api_calls, includes sub-agents)
   |
@@ -63,7 +61,7 @@ agent/core.py  AutoplotAgent  (always-delegate orchestrator)
           generate_mission_data.py  Auto-populate JSON from CDAWeb HAPI catalog
 ```
 
-## Tools (14 total)
+## Tools (15 total)
 
 ### Dataset Discovery
 | Tool | Purpose |
@@ -94,6 +92,11 @@ agent/core.py  AutoplotAgent  (always-delegate orchestrator)
 | Tool | Purpose |
 |------|---------|
 | `ask_clarification` | Ask user when request is ambiguous |
+
+### Routing
+| Tool | Purpose |
+|------|---------|
+| `delegate_to_mission` | LLM-driven delegation to a mission specialist sub-agent |
 
 ## Supported Spacecraft
 
@@ -139,22 +142,18 @@ All times are UTC. Outputs `TimeRange` objects with `start`/`end` datetimes. Con
 - Loop continues until Gemini produces a text response (or 10 iterations).
 - Token usage accumulated from `response.usage_metadata` (prompt_token_count, candidates_token_count).
 
-### Always-Delegate Architecture (`agent/core.py`, `agent/mission_agent.py`)
-- **Routing**: `_is_general_request()` detects meta questions and plot follow-ups. Single-mission requests are delegated to `MissionAgent.process_request()`. Complex multi-mission requests go through the planner.
-- **Mission sub-agents**: Each spacecraft has a data specialist with rich system prompt (tiered datasets, data ops docs, analysis patterns). Agents are cached per session. Sub-agents have **data-only tools** (discovery, data_ops, conversation) — no plotting tools.
-- **Tool separation**: Tools have a `category` field (`discovery`, `plotting`, `data_ops`, `conversation`). `get_tool_schemas(categories=...)` filters tools by category. Sub-agents get `["discovery", "data_ops", "conversation"]`.
-- **Post-delegation plotting**: After a sub-agent reports results, the main agent decides whether to plot using `plot_data` or `plot_computed_data`. This keeps plotting centralized in the orchestrator.
-- **Slim main agent**: System prompt contains a routing table (mission names + capabilities) plus post-delegation instructions. No dataset IDs or analysis tips — those live in mission sub-agents.
+### LLM-Driven Routing (`agent/core.py`, `agent/mission_agent.py`)
+- **Routing**: The main agent (LLM) decides whether to handle a request directly or delegate via the `delegate_to_mission` tool. No regex-based routing — the LLM uses conversation context and the routing table to decide. Complex multi-mission requests go through the planner.
+- **Mission sub-agents**: Each spacecraft has a data specialist with rich system prompt (tiered datasets, data ops docs, analysis patterns). Agents are cached per session. Sub-agents have **data-only tools** (discovery, data_ops, conversation) — no plotting or routing tools.
+- **Tool separation**: Tools have a `category` field (`discovery`, `plotting`, `data_ops`, `conversation`, `routing`). `get_tool_schemas(categories=...)` filters tools by category. Sub-agents get `["discovery", "data_ops", "conversation"]`.
+- **Post-delegation plotting**: After `delegate_to_mission` returns, the main agent decides whether to plot using `plot_computed_data`. This keeps plotting centralized in the orchestrator.
+- **Slim main agent**: System prompt contains a routing table (mission names + capabilities) plus after-delegation instructions. No dataset IDs or analysis tips — those live in mission sub-agents.
 
-### Multi-Step Task Handling (`agent/planner.py`, `agent/tasks.py`)
-- **Complexity detection**: Regex patterns identify requests needing decomposition (multiple "and"s, "compare", "then", multiple spacecraft mentions).
-- **Planning**: Complex requests are sent to Gemini with JSON schema output to generate a task list. Tasks are tagged with mission IDs and inter-task dependencies.
-- **Mission dispatch**: Mission-tagged tasks are executed by cached `MissionAgent` instances. Cross-mission tasks use the main agent.
-- **Dependencies**: Tasks declare which other tasks they depend on. Tasks with failed dependencies are skipped.
-- **Execution**: Tasks execute sequentially; each task gets its own Gemini chat session.
-- **Persistence**: Plans are saved to `~/.helio-agent/tasks/*.json` for crash recovery.
-- **Error handling**: Failed tasks are recorded but don't stop subsequent tasks. Summary explains what succeeded/failed.
-- **CLI commands**: `status` (show progress), `retry` (retry failed task), `cancel` (skip remaining tasks).
+### Multi-Step Requests
+- The main agent naturally chains tool calls in its conversation loop (up to 10 iterations)
+- "Compare PSP and ACE" → `delegate_to_mission("PSP", ...)` → `delegate_to_mission("ACE", ...)` → `plot_computed_data(both labels)` — all in one `process_message` call
+- No separate planner needed; the LLM decides the sequence based on context
+- Legacy planner infrastructure (`agent/planner.py`, `agent/tasks.py`) is retained for programmatic use but not auto-invoked
 
 ### Per-Mission JSON Knowledge (`knowledge/missions/*.json`)
 - **8 JSON files**: One per mission (psp.json, ace.json, etc.) with HAPI-derived metadata + hand-curated profiles.

@@ -160,10 +160,14 @@ class TestBuildSystemPrompt:
         assert "## Workflow" in prompt
         assert "## Time Range Handling" in prompt
 
-    def test_contains_post_delegation_section(self):
+    def test_contains_after_delegation_section(self):
         prompt = build_system_prompt()
-        assert "## Post-Delegation Actions" in prompt
+        assert "## After Delegation" in prompt
         assert "plot_computed_data" in prompt
+
+    def test_contains_delegate_to_mission_instructions(self):
+        prompt = build_system_prompt()
+        assert "delegate_to_mission" in prompt
 
     def test_contains_routing_table(self):
         prompt = build_system_prompt()
