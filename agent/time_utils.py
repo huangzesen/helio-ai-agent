@@ -83,7 +83,8 @@ def _parse_single_datetime(s: str) -> datetime:
         ValueError: If none of the formats match.
     """
     s = s.strip()
-    for fmt in ("%Y-%m-%dT%H:%M:%S", "%Y-%m-%dT%H:%M", "%Y-%m-%d"):
+    for fmt in ("%Y-%m-%dT%H:%M:%S", "%Y-%m-%dT%H:%M",
+                "%Y-%m-%d %H:%M:%S", "%Y-%m-%d %H:%M", "%Y-%m-%d"):
         try:
             dt = datetime.strptime(s, fmt)
             return dt.replace(tzinfo=timezone.utc)

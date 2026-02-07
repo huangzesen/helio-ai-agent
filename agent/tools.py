@@ -186,7 +186,7 @@ The data is stored in memory with a label like 'AC_H2_MFI.BGSEc' for later refer
                 },
                 "time_range": {
                     "type": "string",
-                    "description": "Time range (same formats as plot_data)"
+                    "description": "Time range. Use 'YYYY-MM-DD to YYYY-MM-DD' for date ranges (e.g., '2024-01-15 to 2024-01-20'), 'last week'/'last 3 days' for relative, 'January 2024' for a month, or '2024-01-15T06:00 to 2024-01-15T18:00' for sub-day precision. Do NOT use '/' as a separator."
                 }
             },
             "required": ["dataset_id", "parameter_id", "time_range"]

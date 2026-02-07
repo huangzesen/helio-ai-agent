@@ -69,6 +69,23 @@ def fetch_hapi_data(
             f"in range {time_min} to {time_max}"
         )
 
+    # HAPI returns JSON (not CSV) when there's no data or an error,
+    # even with format=csv and HTTP 200. Detect and handle this.
+    if text.startswith("{"):
+        import json
+        try:
+            hapi_resp = json.loads(text)
+            status = hapi_resp.get("status", {})
+            msg = status.get("message", "Unknown HAPI error")
+            code = status.get("code", 0)
+        except json.JSONDecodeError:
+            msg = "Unexpected non-CSV response from HAPI server"
+            code = 0
+        raise ValueError(
+            f"No data for {dataset_id}/{parameter_id} "
+            f"in range {time_min} to {time_max}: {msg} (HAPI {code})"
+        )
+
     # Parse CSV with pandas: column 0 = ISO timestamp, columns 1+ = data
     df = pd.read_csv(
         io.StringIO(text),

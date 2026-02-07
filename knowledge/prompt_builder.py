@@ -220,7 +220,7 @@ def build_mission_prompt(mission_id: str) -> str:
     lines.append("## Data Operations Workflow")
     lines.append("")
     lines.append("1. **`list_parameters`** — Discover available parameters for a dataset")
-    lines.append("2. **`fetch_data`** — Pull data from CDAWeb HAPI into memory. Label: `DATASET.PARAM`")
+    lines.append("2. **`fetch_data`** — Pull data from CDAWeb HAPI into memory. Label: `DATASET.PARAM`. Time range format: `'2024-01-15 to 2024-01-20'` (use ` to ` separator, NOT `/`). Also accepts `'last week'`, `'January 2024'`, etc.")
     lines.append("3. **`custom_operation`** — Transform data using pandas/numpy code on `df`, assign to `result`")
     lines.append("4. **`describe_data`** — Get statistics (min, max, mean, std, percentiles, NaN count)")
     lines.append("5. **`save_data`** — Export to CSV with ISO 8601 timestamps")
