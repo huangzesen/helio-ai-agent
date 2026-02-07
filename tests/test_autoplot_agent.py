@@ -28,12 +28,12 @@ class TestAutoplotAgentToolFiltering:
         names = {t["name"] for t in tools}
         assert "list_fetched_data" in names
 
-    def test_autoplot_tools_count_is_3(self):
+    def test_autoplot_tools_count_is_2(self):
         tools = get_tool_schemas(
             categories=AUTOPLOT_TOOL_CATEGORIES,
             extra_names=AUTOPLOT_EXTRA_TOOLS,
         )
-        assert len(tools) == 3
+        assert len(tools) == 2  # execute_autoplot + list_fetched_data
 
     def test_autoplot_tools_exclude_routing(self):
         tools = get_tool_schemas(

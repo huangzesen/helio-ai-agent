@@ -27,6 +27,7 @@ from .logging import (
     log_tool_result, log_plan_event, log_session_end,
 )
 from autoplot_bridge.registry import get_method, validate_args
+from rendering.plotly_renderer import PlotlyRenderer
 from knowledge.catalog import search_by_keywords
 from knowledge.hapi_client import list_parameters as hapi_list_parameters, get_dataset_time_range
 from autoplot_bridge.commands import get_commands
@@ -34,9 +35,10 @@ from data_ops.store import get_store, DataEntry
 from data_ops.fetch import fetch_hapi_data
 from data_ops.custom_ops import run_custom_operation
 
-# Orchestrator sees discovery, data_ops, conversation, and routing tools
-# (NOT autoplot — that's handled by the AutoplotAgent sub-agent)
-ORCHESTRATOR_CATEGORIES = ["discovery", "data_ops", "conversation", "routing"]
+# Orchestrator sees discovery, conversation, and routing tools
+# (NOT autoplot or data_ops — handled by sub-agents)
+ORCHESTRATOR_CATEGORIES = ["discovery", "conversation", "routing"]
+ORCHESTRATOR_EXTRA_TOOLS = ["list_fetched_data"]
 
 DEFAULT_MODEL = "gemini-2.5-flash"
 
@@ -65,7 +67,7 @@ class OrchestratorAgent:
 
         # Build function declarations for Gemini (orchestrator tools only)
         function_declarations = []
-        for tool_schema in get_tool_schemas(categories=ORCHESTRATOR_CATEGORIES):
+        for tool_schema in get_tool_schemas(categories=ORCHESTRATOR_CATEGORIES, extra_names=ORCHESTRATOR_EXTRA_TOOLS):
             fd = types.FunctionDeclaration(
                 name=tool_schema["name"],
                 description=tool_schema["description"],
@@ -89,8 +91,11 @@ class OrchestratorAgent:
             config=self.config
         )
 
-        # Autoplot commands (lazy-initialized on first plot)
+        # Autoplot commands (lazy-initialized on first plot — kept for future use)
         self._autoplot = None
+
+        # Plotly renderer (replaces Autoplot canvas for visualization)
+        self._renderer = PlotlyRenderer(verbose=self.verbose, gui_mode=self.gui_mode)
 
         # Token usage tracking
         self._total_input_tokens = 0
@@ -112,6 +117,10 @@ class OrchestratorAgent:
         if self._autoplot is None:
             self._autoplot = get_commands(verbose=self.verbose, gui_mode=self.gui_mode)
         return self._autoplot
+
+    def get_plotly_figure(self):
+        """Return the current Plotly figure (or None)."""
+        return self._renderer.get_figure()
 
     def _track_usage(self, response):
         """Accumulate token usage from a Gemini response."""
@@ -228,41 +237,41 @@ class OrchestratorAgent:
 
         # --- Simple passthroughs ---
         if method == "reset":
-            return self.autoplot.reset()
+            return self._renderer.reset()
 
         elif method == "set_title":
-            return self.autoplot.set_plot_title(args["title"])
+            return self._renderer.set_plot_title(args["title"])
 
         elif method == "set_axis_label":
-            return self.autoplot.set_axis_label(args["axis"], args["label"])
+            return self._renderer.set_axis_label(args["axis"], args["label"])
 
         elif method == "toggle_log_scale":
-            return self.autoplot.toggle_log_scale(args["axis"], args["enabled"])
+            return self._renderer.toggle_log_scale(args["axis"], args["enabled"])
 
         elif method == "set_axis_range":
-            return self.autoplot.set_axis_range(args["axis"], args["min"], args["max"])
+            return self._renderer.set_axis_range(args["axis"], args["min"], args["max"])
 
         elif method == "save_session":
-            return self.autoplot.save_session(args["filepath"])
+            return self._renderer.save_session(args["filepath"])
 
         elif method == "load_session":
-            return self.autoplot.load_session(args["filepath"])
+            return self._renderer.load_session(args["filepath"])
 
         elif method == "get_plot_state":
-            return self.autoplot.get_current_state()
+            return self._renderer.get_current_state()
 
         # --- New methods ---
         elif method == "set_render_type":
-            return self.autoplot.set_render_type(
+            return self._renderer.set_render_type(
                 render_type=args["render_type"],
                 index=args.get("index", 0),
             )
 
         elif method == "set_color_table":
-            return self.autoplot.set_color_table(args["name"])
+            return self._renderer.set_color_table(args["name"])
 
         elif method == "set_canvas_size":
-            return self.autoplot.set_canvas_size(args["width"], args["height"])
+            return self._renderer.set_canvas_size(args["width"], args["height"])
 
         # --- Methods with pre/post-processing ---
         elif method == "plot_cdaweb":
@@ -289,7 +298,7 @@ class OrchestratorAgent:
             )
             if validation and validation.startswith("No data available"):
                 return {"status": "error", "message": validation}
-            result = self.autoplot.plot_cdaweb(
+            result = self._renderer.plot_cdaweb(
                 dataset_id=args["dataset_id"],
                 parameter_id=args["parameter_id"],
                 time_range=time_range,
@@ -308,7 +317,7 @@ class OrchestratorAgent:
                     return {"status": "error", "message": f"Label '{label}' not found in memory"}
                 entries.append(entry)
             try:
-                result = self.autoplot.plot_dataset(
+                result = self._renderer.plot_dataset(
                     entries=entries,
                     title=args.get("title", ""),
                     filename=args.get("filename", ""),
@@ -323,13 +332,13 @@ class OrchestratorAgent:
                 time_range = parse_time_range(args["time_range"])
             except TimeRangeError as e:
                 return {"status": "error", "message": str(e)}
-            return self.autoplot.set_time_range(time_range)
+            return self._renderer.set_time_range(time_range)
 
         elif method == "export_png":
             filename = args["filename"]
             if not filename.endswith(".png"):
                 filename += ".png"
-            result = self.autoplot.export_png(filename)
+            result = self._renderer.export_png(filename)
 
             # Auto-open the exported file in default viewer (skip in GUI mode)
             if result.get("status") == "success" and not self.gui_mode and not self.web_mode:
@@ -354,7 +363,7 @@ class OrchestratorAgent:
             return result
 
         elif method == "export_pdf":
-            return self.autoplot.export_pdf(args["filename"])
+            return self._renderer.export_pdf(args["filename"])
 
         else:
             return {"status": "error", "message": f"Unknown autoplot method: {method}"}
@@ -433,7 +442,7 @@ class OrchestratorAgent:
             return self._dispatch_autoplot_method(method, args)
 
         elif tool_name == "autoplot_script":
-            return self.autoplot.execute_script(tool_args["code"])
+            return self._renderer.execute_script(tool_args["code"])
 
         # --- Data Operations Tools ---
 
@@ -703,7 +712,7 @@ class OrchestratorAgent:
                         name=t["name"],
                         description=t["description"],
                         parameters=t["parameters"],
-                    ) for t in get_tool_schemas(categories=ORCHESTRATOR_CATEGORIES)
+                    ) for t in get_tool_schemas(categories=ORCHESTRATOR_CATEGORIES, extra_names=ORCHESTRATOR_EXTRA_TOOLS)
                 ])],
                 tool_config=types.ToolConfig(
                     function_calling_config=types.FunctionCallingConfig(mode="ANY")
@@ -1077,6 +1086,7 @@ class OrchestratorAgent:
         self._current_plan = None
         self._mission_agents.clear()
         self._autoplot_agent = None
+        self._renderer.reset()
 
     def get_current_plan(self) -> Optional[TaskPlan]:
         """Get the currently executing plan, if any."""

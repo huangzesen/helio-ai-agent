@@ -82,15 +82,13 @@ class TestAutoplotPromptGUIMode:
     def test_default_no_gui_section(self):
         from knowledge.prompt_builder import build_autoplot_prompt
         prompt = build_autoplot_prompt(gui_mode=False)
-        assert "Interactive GUI Mode" not in prompt
+        assert "Interactive Mode" not in prompt
 
     def test_gui_mode_appends_section(self):
         from knowledge.prompt_builder import build_autoplot_prompt
         prompt = build_autoplot_prompt(gui_mode=True)
-        assert "Interactive GUI Mode" in prompt
+        assert "Interactive Mode" in prompt
         assert "reset" in prompt
-        assert "save_session" in prompt
-        assert "load_session" in prompt
 
     def test_autoplot_prompt_has_method_catalog(self):
         from knowledge.prompt_builder import build_autoplot_prompt
@@ -237,16 +235,17 @@ class TestExportPNGGUIMode:
             agent = OrchestratorAgent.__new__(OrchestratorAgent)
             agent.verbose = False
             agent.gui_mode = True
+            agent.web_mode = False
             agent.logger = MagicMock()
 
-            # Mock autoplot
-            mock_autoplot = MagicMock()
-            mock_autoplot.export_png.return_value = {
+            # Mock renderer
+            mock_renderer = MagicMock()
+            mock_renderer.export_png.return_value = {
                 "status": "success",
                 "filepath": "/tmp/test.png",
                 "size_bytes": 1000,
             }
-            agent._autoplot = mock_autoplot
+            agent._renderer = mock_renderer
 
             result = agent._dispatch_autoplot_method("export_png", {"filename": "test.png"})
 

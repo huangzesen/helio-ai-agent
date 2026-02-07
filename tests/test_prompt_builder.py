@@ -309,11 +309,11 @@ class TestBuildAutoplotPrompt:
 
     def test_no_gui_section_by_default(self):
         prompt = build_autoplot_prompt(gui_mode=False)
-        assert "Interactive GUI Mode" not in prompt
+        assert "Interactive Mode" not in prompt
 
     def test_gui_mode_appends_section(self):
         prompt = build_autoplot_prompt(gui_mode=True)
-        assert "Interactive GUI Mode" in prompt
+        assert "Interactive Mode" in prompt
 
     def test_has_visualization_specialist_identity(self):
         prompt = build_autoplot_prompt()
@@ -324,23 +324,15 @@ class TestBuildAutoplotPrompt:
         assert "## Time Range Format" in prompt
         assert "NOT '/'" in prompt
 
-    def test_has_plot_method_decision_rule(self):
+    def test_has_plot_method_in_workflow(self):
         prompt = build_autoplot_prompt()
         assert "plot_stored_data" in prompt
-        assert "Decision rule" in prompt
-
-    def test_has_to_qdataset_in_namespace(self):
-        prompt = build_autoplot_prompt()
-        assert "to_qdataset" in prompt
 
     def test_has_panel_index_example(self):
         prompt = build_autoplot_prompt()
         assert '"index": 1' in prompt or '"index": 1' in prompt
 
-    def test_has_to_qdataset_script_example(self):
+    def test_has_not_supported_notes(self):
         prompt = build_autoplot_prompt()
-        assert "to_qdataset('ACE_Bmag')" in prompt
-
-    def test_has_panel_targeted_guidance(self):
-        prompt = build_autoplot_prompt()
-        assert "Panel-targeted" in prompt or "panel-targeted" in prompt or "specific panel" in prompt
+        assert "plot_cdaweb is not supported" in prompt
+        assert "Session save/load" in prompt

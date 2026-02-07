@@ -280,7 +280,7 @@ If no filename is given, one is auto-generated from the label.""",
     },
 
     {
-        "category": "autoplot",
+        "category": "_legacy",  # hidden from active tool sets
         "name": "autoplot_script",
         "description": """Execute custom ScriptContext/DOM code for advanced Autoplot visualization.
 

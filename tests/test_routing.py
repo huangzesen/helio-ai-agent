@@ -11,7 +11,7 @@ import pytest
 from agent.tools import get_tool_schemas
 from agent.mission_agent import MISSION_TOOL_CATEGORIES
 from agent.autoplot_agent import AUTOPLOT_TOOL_CATEGORIES, AUTOPLOT_EXTRA_TOOLS
-from agent.core import ORCHESTRATOR_CATEGORIES
+from agent.core import ORCHESTRATOR_CATEGORIES, ORCHESTRATOR_EXTRA_TOOLS
 
 
 class TestToolCategoryFiltering:
@@ -43,7 +43,7 @@ class TestToolCategoryFiltering:
     def test_autoplot_category_only(self):
         autoplot_tools = get_tool_schemas(categories=AUTOPLOT_TOOL_CATEGORIES)
         names = {t["name"] for t in autoplot_tools}
-        assert names == {"execute_autoplot", "autoplot_script"}
+        assert names == {"execute_autoplot"}  # autoplot_script moved to _legacy
 
     def test_autoplot_with_extras(self):
         tools = get_tool_schemas(
@@ -51,17 +51,21 @@ class TestToolCategoryFiltering:
             extra_names=AUTOPLOT_EXTRA_TOOLS,
         )
         names = {t["name"] for t in tools}
-        assert names == {"execute_autoplot", "autoplot_script", "list_fetched_data"}
+        assert names == {"execute_autoplot", "list_fetched_data"}  # autoplot_script is _legacy
 
     def test_orchestrator_categories(self):
-        orch_tools = get_tool_schemas(categories=ORCHESTRATOR_CATEGORIES)
+        orch_tools = get_tool_schemas(categories=ORCHESTRATOR_CATEGORIES, extra_names=ORCHESTRATOR_EXTRA_TOOLS)
         names = {t["name"] for t in orch_tools}
         # Should include routing
         assert "delegate_to_mission" in names
         assert "delegate_to_autoplot" in names
-        # Should include discovery and data ops
+        # Should include discovery
         assert "search_datasets" in names
-        assert "fetch_data" in names
+        # Should include list_fetched_data (extra tool)
+        assert "list_fetched_data" in names
+        # Should NOT include data_ops (delegated to mission agents)
+        assert "fetch_data" not in names
+        assert "custom_operation" not in names
         # Should NOT include autoplot
         assert "execute_autoplot" not in names
 
