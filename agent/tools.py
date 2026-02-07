@@ -327,6 +327,90 @@ If no filename is given, one is auto-generated from the label.""",
         }
     },
 
+    # --- GUI-mode Interactive Tools ---
+    {
+        "category": "plotting",
+        "name": "reset_plot",
+        "description": "Reset the Autoplot canvas, clearing all plots and data. Use when the user wants to start fresh or clear the current display.",
+        "parameters": {"type": "object", "properties": {}, "required": []}
+    },
+    {
+        "category": "plotting",
+        "name": "set_plot_title",
+        "description": "Set or change the title of the current plot.",
+        "parameters": {
+            "type": "object",
+            "properties": {
+                "title": {"type": "string", "description": "The title text to display above the plot"}
+            },
+            "required": ["title"]
+        }
+    },
+    {
+        "category": "plotting",
+        "name": "set_axis_label",
+        "description": "Set a label on an axis of the current plot. Only y and z axes are supported (x-axis labels are auto-managed for time-series data).",
+        "parameters": {
+            "type": "object",
+            "properties": {
+                "axis": {"type": "string", "description": "Which axis: 'y' or 'z'"},
+                "label": {"type": "string", "description": "The text label to set"}
+            },
+            "required": ["axis", "label"]
+        }
+    },
+    {
+        "category": "plotting",
+        "name": "toggle_log_scale",
+        "description": "Enable or disable logarithmic scale on a plot axis.",
+        "parameters": {
+            "type": "object",
+            "properties": {
+                "axis": {"type": "string", "description": "Which axis: 'y' or 'z'"},
+                "enabled": {"type": "boolean", "description": "True for log, False for linear"}
+            },
+            "required": ["axis", "enabled"]
+        }
+    },
+    {
+        "category": "plotting",
+        "name": "set_axis_range",
+        "description": "Manually set the range of a plot axis. Useful when the user wants to zoom into a specific value range.",
+        "parameters": {
+            "type": "object",
+            "properties": {
+                "axis": {"type": "string", "description": "Which axis: 'y' or 'z'"},
+                "min": {"type": "number", "description": "Minimum value for the axis"},
+                "max": {"type": "number", "description": "Maximum value for the axis"}
+            },
+            "required": ["axis", "min", "max"]
+        }
+    },
+    {
+        "category": "plotting",
+        "name": "save_session",
+        "description": "Save the current Autoplot session to a .vap file for later restoration.",
+        "parameters": {
+            "type": "object",
+            "properties": {
+                "filepath": {"type": "string", "description": "Output .vap file path"}
+            },
+            "required": ["filepath"]
+        }
+    },
+    {
+        "category": "plotting",
+        "name": "load_session",
+        "description": "Load a previously saved Autoplot session from a .vap file, restoring all plots and settings.",
+        "parameters": {
+            "type": "object",
+            "properties": {
+                "filepath": {"type": "string", "description": "Path to the .vap file to load"}
+            },
+            "required": ["filepath"]
+        }
+    },
+
     # --- Routing ---
     {
         "category": "routing",

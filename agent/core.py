@@ -32,13 +32,15 @@ from data_ops.custom_ops import run_custom_operation
 class AutoplotAgent:
     """Main agent class that handles conversation and tool execution."""
 
-    def __init__(self, verbose: bool = False):
+    def __init__(self, verbose: bool = False, gui_mode: bool = False):
         """Initialize the agent.
 
         Args:
             verbose: If True, print debug info about tool calls.
+            gui_mode: If True, launch Autoplot with visible GUI window.
         """
         self.verbose = verbose
+        self.gui_mode = gui_mode
 
         # Initialize logging
         self.logger = setup_logging(verbose=verbose)
@@ -63,7 +65,7 @@ class AutoplotAgent:
         # Store model name and config
         self.model_name = "gemini-3-flash-preview"
         self.config = types.GenerateContentConfig(
-            system_instruction=get_system_prompt(),
+            system_instruction=get_system_prompt(gui_mode=gui_mode),
             tools=[tool],
         )
 
@@ -91,7 +93,7 @@ class AutoplotAgent:
     def autoplot(self):
         """Lazy initialization of Autoplot commands."""
         if self._autoplot is None:
-            self._autoplot = get_commands(verbose=self.verbose)
+            self._autoplot = get_commands(verbose=self.verbose, gui_mode=self.gui_mode)
         return self._autoplot
 
     def _track_usage(self, response):
@@ -262,8 +264,9 @@ class AutoplotAgent:
                 filename += ".png"
             result = self.autoplot.export_png(filename)
 
-            # Auto-open the exported file in default viewer
-            if result.get("status") == "success":
+            # Auto-open the exported file in default viewer (skip in GUI mode —
+            # the user can already see the plot in the Autoplot window)
+            if result.get("status") == "success" and not self.gui_mode:
                 try:
                     import os
                     import platform
@@ -286,6 +289,31 @@ class AutoplotAgent:
 
         elif tool_name == "get_plot_info":
             return self.autoplot.get_current_state()
+
+        # --- GUI-mode Interactive Tools ---
+
+        elif tool_name == "reset_plot":
+            return self.autoplot.reset()
+
+        elif tool_name == "set_plot_title":
+            return self.autoplot.set_plot_title(tool_args["title"])
+
+        elif tool_name == "set_axis_label":
+            return self.autoplot.set_axis_label(tool_args["axis"], tool_args["label"])
+
+        elif tool_name == "toggle_log_scale":
+            return self.autoplot.toggle_log_scale(tool_args["axis"], tool_args["enabled"])
+
+        elif tool_name == "set_axis_range":
+            return self.autoplot.set_axis_range(
+                tool_args["axis"], tool_args["min"], tool_args["max"]
+            )
+
+        elif tool_name == "save_session":
+            return self.autoplot.save_session(tool_args["filepath"])
+
+        elif tool_name == "load_session":
+            return self.autoplot.load_session(tool_args["filepath"])
 
         elif tool_name == "ask_clarification":
             # Return the question to show to user
@@ -567,7 +595,7 @@ class AutoplotAgent:
             # Create a fresh chat session for task execution with forced function calling
             # This avoids context pollution from the planning phase
             task_config = types.GenerateContentConfig(
-                system_instruction=get_system_prompt(),
+                system_instruction=get_system_prompt(gui_mode=self.gui_mode),
                 tools=[types.Tool(function_declarations=[
                     types.FunctionDeclaration(
                         name=t["name"],
@@ -1154,13 +1182,14 @@ class AutoplotAgent:
         return f"Discarded plan: {plan.user_request[:50]}..."
 
 
-def create_agent(verbose: bool = False) -> AutoplotAgent:
+def create_agent(verbose: bool = False, gui_mode: bool = False) -> AutoplotAgent:
     """Factory function to create a new agent instance.
 
     Args:
         verbose: If True, print debug info about tool calls.
+        gui_mode: If True, launch Autoplot with visible GUI window.
 
     Returns:
         Configured AutoplotAgent instance.
     """
-    return AutoplotAgent(verbose=verbose)
+    return AutoplotAgent(verbose=verbose, gui_mode=gui_mode)

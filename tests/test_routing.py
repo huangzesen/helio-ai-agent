@@ -15,11 +15,15 @@ from agent.mission_agent import MISSION_TOOL_CATEGORIES
 class TestToolCategoryFiltering:
     """Test get_tool_schemas() category filtering."""
 
-    PLOTTING_TOOLS = {"plot_data", "change_time_range", "export_plot", "get_plot_info", "plot_computed_data"}
+    PLOTTING_TOOLS = {
+        "plot_data", "change_time_range", "export_plot", "get_plot_info", "plot_computed_data",
+        "reset_plot", "set_plot_title", "set_axis_label", "toggle_log_scale",
+        "set_axis_range", "save_session", "load_session",
+    }
 
     def test_no_filter_returns_all_tools(self):
         all_tools = get_tool_schemas()
-        assert len(all_tools) == 15
+        assert len(all_tools) == 22
         names = {t["name"] for t in all_tools}
         assert "plot_data" in names
         assert "fetch_data" in names

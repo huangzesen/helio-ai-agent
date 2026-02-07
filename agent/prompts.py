@@ -14,9 +14,31 @@ from knowledge.prompt_builder import build_system_prompt
 _SYSTEM_PROMPT_TEMPLATE = build_system_prompt()
 
 
-def get_system_prompt() -> str:
-    """Return the system prompt with current date."""
-    return _SYSTEM_PROMPT_TEMPLATE.replace("{today}", datetime.now().strftime("%Y-%m-%d"))
+_GUI_MODE_SECTION = """
+
+## Interactive GUI Mode
+
+The Autoplot window is visible to the user. Plots appear immediately in the GUI
+when you call plot_data or plot_computed_data. Key differences:
+- The user can already see the plot — do NOT suggest exporting to PNG for viewing
+- Changes like zoom (change_time_range), axis labels, log scale, and title are reflected instantly
+- Use reset_plot to clear the canvas when starting a new analysis
+- Use save_session/load_session to let the user save and restore workspaces
+- Say "The plot is now showing in the Autoplot window" rather than suggesting export
+- The user may request interactive refinements: "make y-axis log", "label the axis", "set title", "zoom y to 0-100", "reset"
+"""
+
+
+def get_system_prompt(gui_mode: bool = False) -> str:
+    """Return the system prompt with current date.
+
+    Args:
+        gui_mode: If True, append GUI-mode instructions for the LLM.
+    """
+    prompt = _SYSTEM_PROMPT_TEMPLATE.replace("{today}", datetime.now().strftime("%Y-%m-%d"))
+    if gui_mode:
+        prompt += _GUI_MODE_SECTION
+    return prompt
 
 
 def format_search_result(result: dict) -> str:

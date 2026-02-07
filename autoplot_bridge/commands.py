@@ -29,11 +29,12 @@ if TYPE_CHECKING:
 class AutoplotCommands:
     """Wrapper around Autoplot ScriptContext with state tracking."""
 
-    def __init__(self, verbose: bool = False):
+    def __init__(self, verbose: bool = False, gui_mode: bool = False):
         self._ctx = None
         self._current_uri = None
         self._current_time_range = None
         self.verbose = verbose
+        self.gui_mode = gui_mode
         self._label_colors: dict = {}  # label → java.awt.Color
 
     def _log(self, msg: str):
@@ -71,7 +72,10 @@ class AutoplotCommands:
         """Lazy-initialize ScriptContext on first access."""
         if self._ctx is None:
             self._log("Initializing ScriptContext...")
-            self._ctx = get_script_context(verbose=self.verbose)
+            self._ctx = get_script_context(
+                verbose=self.verbose,
+                headless=not self.gui_mode,
+            )
         return self._ctx
 
     def plot_cdaweb(self, dataset_id: str, parameter_id: str, time_range: TimeRange) -> dict:
@@ -108,6 +112,7 @@ class AutoplotCommands:
             "dataset_id": dataset_id,
             "parameter_id": parameter_id,
             "time_range": tr_str,
+            "display": "gui_window" if self.gui_mode else "headless",
         }
 
     def set_time_range(self, time_range: TimeRange) -> dict:
@@ -334,6 +339,7 @@ class AutoplotCommands:
             "status": "success",
             "labels": [lbl for lbl, _ in datasets],
             "num_series": n_series,
+            "display": "gui_window" if self.gui_mode else "headless",
         }
 
         # Export to PNG if requested
@@ -347,6 +353,142 @@ class AutoplotCommands:
                 result["export_warning"] = export_result.get("message", "Export failed")
 
         return result
+
+    # --- GUI-mode interactive methods ---
+
+    def reset(self) -> dict:
+        """Reset the Autoplot canvas, clearing all plots and state.
+
+        Returns:
+            dict with status.
+        """
+        self._log("Resetting canvas...")
+        self.ctx.reset()
+        self.ctx.waitUntilIdle()
+        self._current_uri = None
+        self._current_time_range = None
+        self._label_colors.clear()
+        return {"status": "success", "message": "Canvas reset."}
+
+    def set_plot_title(self, title: str) -> dict:
+        """Set or change the title of the current plot.
+
+        Args:
+            title: The title text.
+
+        Returns:
+            dict with status.
+        """
+        self._log(f"Setting plot title: {title}")
+        dom = self.ctx.getDocumentModel()
+        dom.getPlots(0).setTitle(title)
+        self.ctx.waitUntilIdle()
+        return {"status": "success", "title": title}
+
+    def set_axis_label(self, axis: str, label: str) -> dict:
+        """Set a label on an axis of the current plot.
+
+        Args:
+            axis: Which axis — 'y' or 'z'.
+            label: The text label.
+
+        Returns:
+            dict with status.
+        """
+        self._log(f"Setting {axis}-axis label: {label}")
+        dom = self.ctx.getDocumentModel()
+        plot = dom.getPlots(0)
+        if axis.lower() == "y":
+            plot.getYaxis().setLabel(label)
+        elif axis.lower() == "z":
+            plot.getZaxis().setLabel(label)
+        else:
+            return {"status": "error", "message": f"Unsupported axis '{axis}'. Use 'y' or 'z'."}
+        self.ctx.waitUntilIdle()
+        return {"status": "success", "axis": axis, "label": label}
+
+    def toggle_log_scale(self, axis: str, enabled: bool) -> dict:
+        """Enable or disable logarithmic scale on an axis.
+
+        Args:
+            axis: Which axis — 'y' or 'z'.
+            enabled: True for log scale, False for linear.
+
+        Returns:
+            dict with status.
+        """
+        self._log(f"Setting {axis}-axis log scale: {enabled}")
+        dom = self.ctx.getDocumentModel()
+        plot = dom.getPlots(0)
+        if axis.lower() == "y":
+            plot.getYaxis().setLog(enabled)
+        elif axis.lower() == "z":
+            plot.getZaxis().setLog(enabled)
+        else:
+            return {"status": "error", "message": f"Unsupported axis '{axis}'. Use 'y' or 'z'."}
+        self.ctx.waitUntilIdle()
+        return {"status": "success", "axis": axis, "log_scale": enabled}
+
+    def set_axis_range(self, axis: str, min_val: float, max_val: float) -> dict:
+        """Manually set the range of a plot axis.
+
+        Args:
+            axis: Which axis — 'y' or 'z'.
+            min_val: Minimum value.
+            max_val: Maximum value.
+
+        Returns:
+            dict with status.
+        """
+        self._log(f"Setting {axis}-axis range: {min_val} to {max_val}")
+        dom = self.ctx.getDocumentModel()
+        plot = dom.getPlots(0)
+        DatumRange = jpype.JClass("org.das2.datum.DatumRange")
+        Units = jpype.JClass("org.das2.datum.Units")
+        dr = DatumRange(min_val, max_val, Units.dimensionless)
+        if axis.lower() == "y":
+            plot.getYaxis().setRange(dr)
+        elif axis.lower() == "z":
+            plot.getZaxis().setRange(dr)
+        else:
+            return {"status": "error", "message": f"Unsupported axis '{axis}'. Use 'y' or 'z'."}
+        self.ctx.waitUntilIdle()
+        return {"status": "success", "axis": axis, "min": min_val, "max": max_val}
+
+    def save_session(self, filepath: str) -> dict:
+        """Save the current Autoplot session to a .vap file.
+
+        Args:
+            filepath: Output file path (.vap extension).
+
+        Returns:
+            dict with status and filepath.
+        """
+        if not filepath.endswith(".vap"):
+            filepath += ".vap"
+        filepath_normalized = filepath.replace("\\", "/")
+        self._log(f"Saving session to {filepath_normalized}...")
+        self.ctx.save(filepath_normalized)
+        return {"status": "success", "filepath": filepath}
+
+    def load_session(self, filepath: str) -> dict:
+        """Load a previously saved Autoplot session from a .vap file.
+
+        Args:
+            filepath: Path to the .vap file.
+
+        Returns:
+            dict with status and filepath.
+        """
+        filepath_normalized = filepath.replace("\\", "/")
+        self._log(f"Loading session from {filepath_normalized}...")
+        self.ctx.load(filepath_normalized)
+        self.ctx.waitUntilIdle()
+        # Clear tracked state since the loaded session has its own
+        self._current_uri = None
+        self._current_time_range = None
+        self._label_colors.clear()
+        return {"status": "success", "filepath": filepath}
 
     def get_current_state(self) -> dict:
         """
@@ -366,9 +508,22 @@ class AutoplotCommands:
 _commands = None
 
 
-def get_commands(verbose: bool = False) -> AutoplotCommands:
-    """Get the singleton AutoplotCommands instance."""
+def get_commands(verbose: bool = False, gui_mode: bool = False) -> AutoplotCommands:
+    """Get the singleton AutoplotCommands instance.
+
+    Args:
+        verbose: If True, print debug info.
+        gui_mode: If True, launch Autoplot with visible GUI window.
+
+    Raises:
+        RuntimeError: If called with a different gui_mode than the existing instance.
+    """
     global _commands
     if _commands is None:
-        _commands = AutoplotCommands(verbose=verbose)
+        _commands = AutoplotCommands(verbose=verbose, gui_mode=gui_mode)
+    elif _commands.gui_mode != gui_mode:
+        raise RuntimeError(
+            f"AutoplotCommands already created with gui_mode={_commands.gui_mode}, "
+            f"cannot change to gui_mode={gui_mode} (JVM mode is set at startup)."
+        )
     return _commands

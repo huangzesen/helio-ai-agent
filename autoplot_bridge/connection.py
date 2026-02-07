@@ -22,8 +22,25 @@ def _find_jvm() -> str:
     return jpype.getDefaultJVMPath()
 
 
-def init_autoplot(verbose: bool = False):
-    """Initialize JVM with Autoplot on classpath. Returns ScriptContext class."""
+# Module-level headless mode flag (set once when JVM starts, read via is_headless())
+_headless_mode: bool = True
+
+
+def is_headless() -> bool:
+    """Return True if Autoplot is running in headless mode (no GUI window)."""
+    return _headless_mode
+
+
+def init_autoplot(verbose: bool = False, headless: bool = True):
+    """Initialize JVM with Autoplot on classpath. Returns ScriptContext class.
+
+    Args:
+        verbose: If True, print debug info.
+        headless: If True (default), run without GUI. If False, the Autoplot
+                  Swing window will appear when plotting.
+    """
+    global _headless_mode
+
     if not jpype.isJVMStarted():
         jar_path = Path(AUTOPLOT_JAR).expanduser().resolve()
         if not jar_path.exists():
@@ -33,7 +50,14 @@ def init_autoplot(verbose: bool = False):
         if verbose:
             print(f"  [Autoplot] Starting JVM: {jvm_path}")
             print(f"  [Autoplot] JAR: {jar_path}")
-        jpype.startJVM(jvm_path, '-Djava.awt.headless=true', classpath=[str(jar_path)])
+            print(f"  [Autoplot] Headless: {headless}")
+
+        jvm_args = [jvm_path]
+        if headless:
+            jvm_args.append('-Djava.awt.headless=true')
+        jpype.startJVM(*jvm_args, classpath=[str(jar_path)])
+        _headless_mode = headless
+
         if verbose:
             print("  [Autoplot] JVM started.")
     elif verbose:
@@ -43,11 +67,12 @@ def init_autoplot(verbose: bool = False):
         print("  [Autoplot] Loading ScriptContext class...")
     ScriptContext = jpype.JClass("org.autoplot.ScriptContext")
 
-    # Create a headless application model so plot() doesn't try to create a GUI.
-    # Without this, plot() hangs on macOS because Swing needs the main thread.
+    # Create the application model. In headless mode this avoids GUI creation;
+    # in GUI mode this creates the visible Swing window.
     if not ScriptContext.isModelInitialized():
         if verbose:
-            print("  [Autoplot] Creating headless application model...")
+            mode_str = "headless" if headless else "GUI"
+            print(f"  [Autoplot] Creating {mode_str} application model...")
         ScriptContext.createApplicationModel('')
         if verbose:
             print("  [Autoplot] Application model ready.")
@@ -57,20 +82,31 @@ def init_autoplot(verbose: bool = False):
     return ScriptContext
 
 
-def get_script_context(verbose: bool = False):
-    """Get the Autoplot ScriptContext for issuing commands."""
-    return init_autoplot(verbose=verbose)
+def get_script_context(verbose: bool = False, headless: bool = True):
+    """Get the Autoplot ScriptContext for issuing commands.
+
+    Args:
+        verbose: If True, print debug info.
+        headless: If True (default), run without GUI.
+    """
+    return init_autoplot(verbose=verbose, headless=headless)
 
 
 if __name__ == "__main__":
+    import argparse as _ap
+    _parser = _ap.ArgumentParser(description="Test Autoplot connection")
+    _parser.add_argument("--gui", action="store_true", help="Launch with GUI (non-headless)")
+    _cli_args = _parser.parse_args()
+
     print("Testing Autoplot connection...")
     print(f"JAVA_HOME:    {JAVA_HOME}")
     print(f"AUTOPLOT_JAR: {AUTOPLOT_JAR}")
     print(f"JVM path:     {_find_jvm()}")
+    print(f"Headless:     {not _cli_args.gui}")
     print()
 
     try:
-        ctx = get_script_context()
+        ctx = get_script_context(headless=not _cli_args.gui)
 
         System = jpype.JClass("java.lang.System")
         java_version = str(System.getProperty("java.version"))

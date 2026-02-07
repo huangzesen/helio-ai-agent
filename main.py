@@ -137,6 +137,11 @@ def main():
         help="Show tool execution details",
     )
     parser.add_argument(
+        "--gui",
+        action="store_true",
+        help="Launch Autoplot with visible GUI window for interactive plots",
+    )
+    parser.add_argument(
         "command",
         nargs="?",
         default=None,
@@ -158,7 +163,7 @@ def main():
         sys.exit(1)
 
     try:
-        agent = create_agent(verbose=args.verbose)
+        agent = create_agent(verbose=args.verbose, gui_mode=args.gui)
     except Exception as e:
         print(f"Error initializing agent: {e}")
         print()
@@ -183,6 +188,10 @@ def main():
         sys.stdout.flush()
         import os
         os._exit(0)
+
+    if args.gui:
+        print("GUI Mode: Autoplot window will appear when plotting.")
+        print()
 
     # Check for incomplete plans from previous sessions
     check_incomplete_plans(agent, args.verbose)
