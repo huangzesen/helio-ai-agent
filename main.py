@@ -142,6 +142,11 @@ def main():
         help="Launch Autoplot with visible GUI window for interactive plots",
     )
     parser.add_argument(
+        "--model", "-m",
+        default=None,
+        help="Gemini model name (default: gemini-2.5-flash)",
+    )
+    parser.add_argument(
         "command",
         nargs="?",
         default=None,
@@ -163,7 +168,7 @@ def main():
         sys.exit(1)
 
     try:
-        agent = create_agent(verbose=args.verbose, gui_mode=args.gui)
+        agent = create_agent(verbose=args.verbose, gui_mode=args.gui, model=args.model)
     except Exception as e:
         print(f"Error initializing agent: {e}")
         print()
@@ -191,7 +196,9 @@ def main():
 
     if args.gui:
         print("GUI Mode: Autoplot window will appear when plotting.")
-        print()
+
+    print(f"Model: {agent.model_name}")
+    print()
 
     # Check for incomplete plans from previous sessions
     check_incomplete_plans(agent, args.verbose)

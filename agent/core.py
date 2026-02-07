@@ -38,16 +38,19 @@ from data_ops.custom_ops import run_custom_operation
 # (NOT autoplot — that's handled by the AutoplotAgent sub-agent)
 ORCHESTRATOR_CATEGORIES = ["discovery", "data_ops", "conversation", "routing"]
 
+DEFAULT_MODEL = "gemini-2.5-flash"
+
 
 class OrchestratorAgent:
     """Main orchestrator agent that routes to mission and autoplot sub-agents."""
 
-    def __init__(self, verbose: bool = False, gui_mode: bool = False):
+    def __init__(self, verbose: bool = False, gui_mode: bool = False, model: str | None = None):
         """Initialize the orchestrator agent.
 
         Args:
             verbose: If True, print debug info about tool calls.
             gui_mode: If True, launch Autoplot with visible GUI window.
+            model: Gemini model name (default: DEFAULT_MODEL).
         """
         self.verbose = verbose
         self.gui_mode = gui_mode
@@ -73,7 +76,7 @@ class OrchestratorAgent:
         tool = types.Tool(function_declarations=function_declarations)
 
         # Store model name and config
-        self.model_name = "gemini-3-flash-preview"
+        self.model_name = model or DEFAULT_MODEL
         self.config = types.GenerateContentConfig(
             system_instruction=get_system_prompt(gui_mode=gui_mode),
             tools=[tool],
@@ -1172,14 +1175,15 @@ class OrchestratorAgent:
         return f"Discarded plan: {plan.user_request[:50]}..."
 
 
-def create_agent(verbose: bool = False, gui_mode: bool = False) -> OrchestratorAgent:
+def create_agent(verbose: bool = False, gui_mode: bool = False, model: str | None = None) -> OrchestratorAgent:
     """Factory function to create a new agent instance.
 
     Args:
         verbose: If True, print debug info about tool calls.
         gui_mode: If True, launch Autoplot with visible GUI window.
+        model: Gemini model name (default: gemini-2.5-flash).
 
     Returns:
         Configured OrchestratorAgent instance.
     """
-    return OrchestratorAgent(verbose=verbose, gui_mode=gui_mode)
+    return OrchestratorAgent(verbose=verbose, gui_mode=gui_mode, model=model)

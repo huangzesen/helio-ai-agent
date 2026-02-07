@@ -79,7 +79,7 @@ def cmd_serve(args):
     # Initialize agent
     print("Initializing agent...")
     from agent.core import create_agent
-    agent = create_agent(verbose=args.verbose)
+    agent = create_agent(verbose=args.verbose, model=args.model)
     print("Agent ready.")
 
     # Bind socket
@@ -381,6 +381,7 @@ def main():
     # serve
     p_serve = subparsers.add_parser("serve", help="Start the agent server")
     p_serve.add_argument("--verbose", "-v", action="store_true", help="Enable verbose output")
+    p_serve.add_argument("--model", "-m", default=None, help="Gemini model name (default: gemini-2.5-flash)")
     p_serve.add_argument("--port", type=int, default=0, help="Port (default: auto)")
     p_serve.set_defaults(func=cmd_serve)
 
