@@ -40,7 +40,7 @@ agent/core.py  OrchestratorAgent  (LLM-driven orchestrator)
   |
   +---> agent/prompts.py           Prompt formatting + tool result formatters
   |       get_system_prompt()      Dynamic system prompt with {today} date
-  |       format_tool_result()     Format tool outputs for Gemini conversation
+  |       format_tool_result()     Format tool outputs for display (legacy, currently unused)
   |
   +---> agent/planner.py          Task planning
   |       is_complex_request()    Regex heuristics for complexity detection
@@ -158,12 +158,13 @@ The `autoplot_script` tool provides direct access to Autoplot's ScriptContext an
 ## Time Range Parsing
 
 Handled by `agent/time_utils.py`. Accepts:
-- Relative: `"last week"`, `"last 3 days"`, `"last month"`
+- Relative: `"last week"`, `"last 3 days"`, `"last month"`, `"last year"`
 - Month+year: `"January 2024"`
 - Single date: `"2024-01-15"` (full day)
 - Date range: `"2024-01-15 to 2024-01-20"`
 - Datetime range: `"2024-01-15T06:00 to 2024-01-15T18:00"`
 - Space-separated datetime: `"2024-01-15 12:00:00 to 2024-01-16"`
+- Single datetime: `"2024-01-15T06:00"` (1-hour window)
 
 All times are UTC. Outputs `TimeRange` objects with `start`/`end` datetimes. Converts to Autoplot format via `to_autoplot_string()`.
 
@@ -189,8 +190,8 @@ All times are UTC. Outputs `TimeRange` objects with `start`/`end` datetimes. Con
 - **Vector decomposition**: (n,3) arrays are split into 3 scalar series (`.x`, `.y`, `.z`) because rank-2 QDataSets render as spectrograms.
 - **Overplot**: `setLayoutOverplot(n)` + `plot(idx, ds)` for multiple series on one panel.
 - **Color management**: Golden ratio HSB color generation on first plot, cached per label. New additions to existing plots default to black. Colors persist across `plot_dataset` calls via `_label_colors` dict.
-- **Render types**: `set_render_type()` switches between series, scatter, spectrogram, fill_to_zero, staircase_plus, digital.
-- **Color tables**: `set_color_table()` for viridis, plasma, jet, etc. (spectrograms and 2D plots).
+- **Render types**: `set_render_type()` switches between series, scatter, spectrogram, fill_to_zero, staircase, color_scatter, digital, image, pitch_angle_distribution, events_bar, orbit.
+- **Color tables**: `set_color_table()` for apl_rainbow_black0, black_blue_green_yellow_white, black_green, black_red, blue_white_red, color_wedge, grayscale, matlab_jet, rainbow, reverse_rainbow, wrapped_color_wedge (spectrograms and 2D plots).
 - **Canvas sizing**: `set_canvas_size()` for custom width/height.
 - **PDF export**: `export_pdf()` mirrors the export_png pattern.
 

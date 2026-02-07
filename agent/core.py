@@ -54,6 +54,7 @@ class OrchestratorAgent:
         """
         self.verbose = verbose
         self.gui_mode = gui_mode
+        self.web_mode = False  # Set True by gradio_app.py to suppress auto-open
 
         # Initialize logging
         self.logger = setup_logging(verbose=verbose)
@@ -331,7 +332,7 @@ class OrchestratorAgent:
             result = self.autoplot.export_png(filename)
 
             # Auto-open the exported file in default viewer (skip in GUI mode)
-            if result.get("status") == "success" and not self.gui_mode:
+            if result.get("status") == "success" and not self.gui_mode and not self.web_mode:
                 try:
                     import os
                     import platform

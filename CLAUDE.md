@@ -59,6 +59,20 @@ python -m pytest tests/test_store.py tests/test_custom_ops.py  # Data ops tests
 python -m pytest tests/                                         # All tests
 ```
 
+## Gradio Web UI
+
+`gradio_app.py` provides a browser-based chat interface for the agent. It wraps the same `OrchestratorAgent` used by `main.py` with inline plot display, a data table sidebar, and token usage tracking.
+
+```bash
+python gradio_app.py                # Launch on localhost:7860
+python gradio_app.py --share        # Generate a public Gradio URL
+python gradio_app.py --port 8080    # Custom port
+python gradio_app.py --verbose      # Show tool call details
+python gradio_app.py --model gemini-2.5-pro  # Override model
+```
+
+The app uses `concurrency_limit=1` (single-user singleton) and exports plot snapshots to a temp directory after each message. Plot changes are detected via MD5 hash and displayed both inline in the chat and in the sidebar. The agent's `web_mode` flag suppresses auto-opening exported files in the OS viewer.
+
 ## Interactive Agent Testing
 
 Use `scripts/agent_server.py` to drive multi-turn conversations with the agent programmatically. It keeps an `OrchestratorAgent` alive in a background process and accepts commands over a TCP socket — this is the primary way to test interactive agent behavior without a human at the terminal.
