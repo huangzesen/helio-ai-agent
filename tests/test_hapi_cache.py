@@ -18,6 +18,7 @@ from knowledge.hapi_client import (
     get_dataset_info,
     list_parameters,
     list_cached_datasets,
+    browse_datasets,
     clear_cache,
 )
 
@@ -218,3 +219,51 @@ class TestListCachedDatasets:
             assert "stop_date" in ds
             assert "parameter_count" in ds
             assert "instrument" in ds
+
+
+class TestBrowseDatasets:
+    def test_browse_datasets_no_exclusion_file_returns_all(self, fake_missions_dir):
+        """Without an exclusion file, browse_datasets returns all datasets."""
+        with patch("knowledge.hapi_client._MISSIONS_DIR", fake_missions_dir):
+            datasets = browse_datasets("PSP")
+            assert datasets is not None
+            assert len(datasets) == 2  # All datasets from SAMPLE_INDEX
+
+    def test_browse_datasets_filters_calibration(self, fake_missions_dir):
+        """browse_datasets filters out datasets matching exclusion IDs."""
+        # Create exclusion file
+        exclude_path = fake_missions_dir / "psp" / "hapi" / "_calibration_exclude.json"
+        exclude_data = {
+            "description": "Test exclusions",
+            "patterns": [],
+            "ids": ["PSP_FLD_L2_MAG_RTN_1MIN"],
+        }
+        exclude_path.write_text(json.dumps(exclude_data), encoding="utf-8")
+
+        with patch("knowledge.hapi_client._MISSIONS_DIR", fake_missions_dir):
+            datasets = browse_datasets("PSP")
+            assert datasets is not None
+            assert len(datasets) == 1
+            assert datasets[0]["id"] == "PSP_SWP_SPC_L3I"
+
+    def test_browse_datasets_pattern_matching(self, fake_missions_dir):
+        """browse_datasets filters out datasets matching glob patterns."""
+        exclude_path = fake_missions_dir / "psp" / "hapi" / "_calibration_exclude.json"
+        exclude_data = {
+            "description": "Test pattern exclusions",
+            "patterns": ["PSP_FLD_*"],
+            "ids": [],
+        }
+        exclude_path.write_text(json.dumps(exclude_data), encoding="utf-8")
+
+        with patch("knowledge.hapi_client._MISSIONS_DIR", fake_missions_dir):
+            datasets = browse_datasets("PSP")
+            assert datasets is not None
+            assert len(datasets) == 1
+            assert datasets[0]["id"] == "PSP_SWP_SPC_L3I"
+
+    def test_browse_datasets_returns_none_for_missing_mission(self, fake_missions_dir):
+        """browse_datasets returns None when no _index.json exists."""
+        with patch("knowledge.hapi_client._MISSIONS_DIR", fake_missions_dir):
+            result = browse_datasets("NONEXISTENT")
+            assert result is None

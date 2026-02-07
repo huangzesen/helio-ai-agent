@@ -19,7 +19,7 @@ class TestToolCategoryFiltering:
 
     def test_no_filter_returns_all_tools(self):
         all_tools = get_tool_schemas()
-        assert len(all_tools) == 13
+        assert len(all_tools) == 14
         names = {t["name"] for t in all_tools}
         assert "execute_autoplot" in names
         assert "fetch_data" in names

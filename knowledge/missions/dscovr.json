@@ -1,12 +1,20 @@
 {
   "id": "DSCOVR",
   "name": "Deep Space Climate Observatory",
-  "keywords": ["dscovr", "deep space", "climate observatory"],
+  "keywords": [
+    "dscovr",
+    "deep space",
+    "climate observatory"
+  ],
   "profile": {
     "description": "NOAA L1 real-time solar wind monitor (successor to ACE for space weather)",
-    "coordinate_systems": ["GSE"],
+    "coordinate_systems": [
+      "GSE"
+    ],
     "typical_cadence": "1-minute",
-    "data_caveats": ["Real-time data may have quality flags; check for fill values"],
+    "data_caveats": [
+      "Real-time data may have quality flags; check for fill values"
+    ],
     "analysis_patterns": [
       "Real-time space weather monitoring",
       "Compare with ACE for cross-validation at L1"
@@ -15,10 +23,15 @@
   "instruments": {
     "MAG": {
       "name": "Fluxgate Magnetometer",
-      "keywords": ["magnetic", "field", "mag", "b-field", "imf"],
+      "keywords": [
+        "magnetic",
+        "field",
+        "mag",
+        "b-field",
+        "imf"
+      ],
       "datasets": {
         "DSCOVR_H0_MAG": {
-          "tier": "primary",
           "description": "1-second magnetic field in GSE coordinates",
           "parameters": []
         }
@@ -26,10 +39,16 @@
     },
     "FC": {
       "name": "Faraday Cup",
-      "keywords": ["plasma", "solar wind", "proton", "density", "velocity", "faraday"],
+      "keywords": [
+        "plasma",
+        "solar wind",
+        "proton",
+        "density",
+        "velocity",
+        "faraday"
+      ],
       "datasets": {
         "DSCOVR_H1_FC": {
-          "tier": "primary",
           "description": "1-minute solar wind proton moments",
           "parameters": []
         }

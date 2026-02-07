@@ -1,0 +1,7 @@
+{
+  "description": "Datasets excluded from browse results (redundant cadences)",
+  "patterns": [],
+  "ids": [
+    "OMNI_COHO1HR_MERGED_MAG_PLASMA"
+  ]
+}

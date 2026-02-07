@@ -1,0 +1,8 @@
+{
+  "description": "Datasets excluded from browse results (attitude, orbit, predicted data)",
+  "patterns": [
+    "DSCOVR_AT_*",
+    "DSCOVR_ORBIT_*"
+  ],
+  "ids": []
+}

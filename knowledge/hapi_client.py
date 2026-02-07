@@ -9,6 +9,7 @@ knowledge/missions/{mission}/hapi/{dataset_id}.json, it is loaded instantly
 without a network request.
 """
 
+import fnmatch
 import json
 import requests
 from pathlib import Path
@@ -173,6 +174,57 @@ def list_cached_datasets(mission_id: str) -> Optional[dict]:
     if not index_path.exists():
         return None
     return json.loads(index_path.read_text(encoding="utf-8"))
+
+
+def _load_calibration_exclusions(mission_id: str) -> tuple[list[str], list[str]]:
+    """Load calibration exclusion patterns and IDs for a mission.
+
+    Reads from knowledge/missions/{mission}/hapi/_calibration_exclude.json.
+
+    Args:
+        mission_id: Mission identifier (case-insensitive).
+
+    Returns:
+        Tuple of (patterns, ids). Returns ([], []) if no exclusion file exists.
+    """
+    exclude_path = _MISSIONS_DIR / mission_id.lower() / "hapi" / "_calibration_exclude.json"
+    if not exclude_path.exists():
+        return [], []
+    data = json.loads(exclude_path.read_text(encoding="utf-8"))
+    return data.get("patterns", []), data.get("ids", [])
+
+
+def browse_datasets(mission_id: str) -> Optional[list[dict]]:
+    """Return non-calibration datasets from _index.json.
+
+    Filters out datasets matching calibration exclusion patterns/IDs.
+    Returns None if no _index.json exists for the mission.
+
+    Args:
+        mission_id: Mission identifier (e.g., 'PSP', 'ACE'). Case-insensitive.
+
+    Returns:
+        List of dataset summary dicts, or None if no index file exists.
+    """
+    index = list_cached_datasets(mission_id)
+    if index is None:
+        return None
+
+    patterns, excluded_ids = _load_calibration_exclusions(mission_id)
+    excluded_id_set = set(excluded_ids)
+
+    result = []
+    for ds in index.get("datasets", []):
+        ds_id = ds.get("id", "")
+        # Check exact ID exclusion
+        if ds_id in excluded_id_set:
+            continue
+        # Check pattern exclusion
+        if any(fnmatch.fnmatch(ds_id, pat) for pat in patterns):
+            continue
+        result.append(ds)
+
+    return result
 
 
 def clear_cache():

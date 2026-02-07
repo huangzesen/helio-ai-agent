@@ -116,9 +116,17 @@ class TestBuildMissionPrompt:
         assert "custom_operation" in prompt
         assert "Magnitude" in prompt
 
-    def test_mission_prompt_has_tiered_datasets(self):
+    def test_mission_prompt_has_recommended_datasets(self):
         prompt = build_mission_prompt("PSP")
-        assert "## Primary Datasets" in prompt
+        assert "## Recommended Datasets" in prompt
+
+    def test_mission_prompt_mentions_browse_datasets(self):
+        prompt = build_mission_prompt("PSP")
+        assert "browse_datasets" in prompt
+
+    def test_mission_prompt_has_no_advanced_section(self):
+        prompt = build_mission_prompt("PSP")
+        assert "## Advanced Datasets" not in prompt
 
     def test_mission_prompt_has_analysis_patterns(self):
         prompt = build_mission_prompt("PSP")
@@ -195,7 +203,7 @@ class TestBuildMissionPrompt:
             clear_cache()
             prompt = build_mission_prompt("PSP")
             # Prompt should still work, just without parameter summaries
-            assert "## Primary Datasets" in prompt
+            assert "## Recommended Datasets" in prompt
             assert "PSP_FLD_L2_MAG_RTN_1MIN" in prompt
 
 

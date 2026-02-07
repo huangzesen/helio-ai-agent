@@ -71,6 +71,27 @@ Returns the earliest and latest available dates for the dataset.""",
         }
     },
     {
+        "category": "discovery",
+        "name": "browse_datasets",
+        "description": """Browse all available science datasets for a mission. Use this when:
+- User asks "what datasets are available?" or "what else can I plot?"
+- You need to find a dataset not in the recommended list
+- User asks about a specific instrument or data type you don't have in your prompt
+
+Returns a filtered list excluding calibration/housekeeping/ephemeris data.
+Each entry has: id, description, start_date, stop_date, parameter_count, instrument.""",
+        "parameters": {
+            "type": "object",
+            "properties": {
+                "mission_id": {
+                    "type": "string",
+                    "description": "Mission ID (e.g., 'PSP', 'ACE', 'SolO', 'OMNI', 'WIND', 'DSCOVR', 'MMS', 'STEREO_A')"
+                }
+            },
+            "required": ["mission_id"]
+        }
+    },
+    {
         "category": "conversation",
         "name": "ask_clarification",
         "description": """Ask the user a clarifying question when the request is ambiguous. Use this when:

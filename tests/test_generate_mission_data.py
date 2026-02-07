@@ -24,8 +24,8 @@ from generate_mission_data import (
 class TestMergeDatasetInfo:
     """Test the merge logic for combining HAPI data with existing JSON."""
 
-    def test_new_dataset_defaults_to_advanced(self):
-        """A new dataset (no existing entry) should get tier='advanced'."""
+    def test_new_dataset_has_no_tier(self):
+        """A new dataset (no existing entry) should not have a tier field."""
         hapi_info = {
             "description": "New dataset from HAPI",
             "startDate": "2020-01-01",
@@ -36,7 +36,7 @@ class TestMergeDatasetInfo:
             ],
         }
         result = merge_dataset_info(None, hapi_info, "NEW_DATASET_ID")
-        assert result["tier"] == "advanced"
+        assert "tier" not in result
         assert result["description"] == "New dataset from HAPI"
         assert result["start_date"] == "2020-01-01"
         assert result["stop_date"] == "2025-01-01"
@@ -44,10 +44,9 @@ class TestMergeDatasetInfo:
         assert len(result["parameters"]) == 1
         assert result["parameters"][0]["name"] == "Bx"
 
-    def test_preserves_existing_tier_primary(self):
-        """If existing dataset has tier='primary', preserve it."""
+    def test_merge_has_no_tier_field(self):
+        """Merged dataset should not contain a tier field."""
         existing = {
-            "tier": "primary",
             "description": "Old description",
             "parameters": [],
         }
@@ -61,15 +60,9 @@ class TestMergeDatasetInfo:
             ],
         }
         result = merge_dataset_info(existing, hapi_info, "TEST_DS")
-        assert result["tier"] == "primary"  # Preserved!
+        assert "tier" not in result
         assert result["description"] == "Updated description from HAPI"  # Overwritten
         assert len(result["parameters"]) == 1  # Time filtered
-
-    def test_preserves_existing_tier_advanced(self):
-        existing = {"tier": "advanced", "parameters": []}
-        hapi_info = {"description": "test", "parameters": []}
-        result = merge_dataset_info(existing, hapi_info, "TEST_DS")
-        assert result["tier"] == "advanced"
 
     def test_overwrites_dates(self):
         existing = {
@@ -113,7 +106,7 @@ class TestMergeDatasetInfo:
 
     def test_empty_hapi_info(self):
         result = merge_dataset_info(None, {"parameters": []}, "TEST_DS")
-        assert result["tier"] == "advanced"
+        assert "tier" not in result
         assert result["parameters"] == []
         assert result["description"] == ""
 

@@ -67,7 +67,7 @@ class TestLoadMission:
             assert isinstance(datasets, dict)
             for ds_id, ds_info in datasets.items():
                 assert isinstance(ds_id, str)
-                assert "tier" in ds_info
+                assert isinstance(ds_info, dict)
 
 
 class TestLoadAllMissions:
@@ -123,14 +123,9 @@ class TestGetMissionDatasets:
         assert "PSP_FLD_L2_MAG_RTN_1MIN" in datasets
         assert "PSP_SWP_SPC_L3I" in datasets
 
-    def test_psp_primary_only(self):
-        datasets = get_mission_datasets("PSP", tier="primary")
+    def test_returns_all_datasets(self):
+        datasets = get_mission_datasets("PSP")
         assert len(datasets) >= 2
-        assert "PSP_FLD_L2_MAG_RTN_1MIN" in datasets
-
-    def test_psp_advanced_empty_initially(self):
-        datasets = get_mission_datasets("PSP", tier="advanced")
-        assert len(datasets) == 0  # No advanced datasets in initial JSON
 
     def test_nonexistent_mission_raises(self):
         with pytest.raises(FileNotFoundError):
@@ -156,12 +151,12 @@ class TestJsonFileIntegrity:
             assert "_meta" in data
             assert "hapi_server" in data["_meta"]
 
-    def test_all_datasets_have_tier(self):
+    def test_no_datasets_have_tier(self):
+        """Tier field has been removed from all dataset entries."""
         for filepath in _MISSIONS_DIR.glob("*.json"):
             with open(filepath, "r", encoding="utf-8") as f:
                 data = json.load(f)
             for inst in data["instruments"].values():
                 for ds_id, ds_info in inst["datasets"].items():
-                    assert "tier" in ds_info, f"{data['id']}/{ds_id} missing tier"
-                    assert ds_info["tier"] in ("primary", "advanced"), \
-                        f"{data['id']}/{ds_id} has invalid tier: {ds_info['tier']}"
+                    assert "tier" not in ds_info, \
+                        f"{data['id']}/{ds_id} still has tier field"

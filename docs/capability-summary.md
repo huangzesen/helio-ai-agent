@@ -34,7 +34,7 @@ agent/core.py  OrchestratorAgent  (LLM-driven orchestrator)
   |       MissionAgent            Focused Gemini session per spacecraft mission
   |       execute_task()          Forced function calling for plan tasks (max 3 iter)
   |       process_request()       Full conversational mode (max 10 iter)
-  |                               Rich system prompt with data ops docs + tiered datasets
+  |                               Rich system prompt with data ops docs + recommended datasets
   |                               No plotting tools — reports results to orchestrator
   |
   +---> agent/planner.py          Task planning
@@ -48,10 +48,10 @@ agent/core.py  OrchestratorAgent  (LLM-driven orchestrator)
   |
   +---> knowledge/                Dataset discovery + prompt generation
   |       missions/*.json          Per-mission JSON files (8 files, HAPI-derived + hand-curated)
-  |       mission_loader.py        Lazy-loading cache, routing table, tier-filtered dataset access
+  |       mission_loader.py        Lazy-loading cache, routing table, dataset access
   |       catalog.py               Thin routing layer (loads from JSON, backward-compat SPACECRAFT dict)
   |       prompt_builder.py        Slim system prompt (routing table only) + rich mission/autoplot prompts
-  |       hapi_client.py           CDAWeb HAPI /info endpoint (parameter metadata, cached)
+  |       hapi_client.py           CDAWeb HAPI /info endpoint (parameter metadata, cached, browse_datasets)
   |
   +---> data_ops/                 Python-side data pipeline (pandas-backed)
   |       fetch.py                  HAPI /data endpoint -> pandas DataFrames (pd.read_csv)
@@ -74,12 +74,13 @@ agent/core.py  OrchestratorAgent  (LLM-driven orchestrator)
           generate_mission_data.py  Auto-populate JSON from CDAWeb HAPI catalog
 ```
 
-## Tools (13 tool schemas)
+## Tools (14 tool schemas)
 
 ### Dataset Discovery
 | Tool | Purpose |
 |------|---------|
 | `search_datasets` | Keyword search across spacecraft/instruments (local catalog) |
+| `browse_datasets` | Browse all science datasets for a mission (filtered by calibration exclusion lists) |
 | `list_parameters` | List plottable parameters for a dataset (HAPI /info) |
 | `get_data_availability` | Check available time range for a dataset (HAPI /info) |
 
@@ -123,7 +124,7 @@ The `autoplot_script` tool provides direct access to Autoplot's ScriptContext an
 ### MissionAgent (agent/mission_agent.py)
 - Sees tools: discovery, data_ops, conversation (NOT autoplot or routing)
 - One agent per spacecraft, cached per session
-- Rich system prompt with tiered datasets, data ops docs, analysis patterns
+- Rich system prompt with recommended datasets, data ops docs, analysis patterns
 
 ### AutoplotAgent (agent/autoplot_agent.py)
 - Sees tools: `execute_autoplot` + `autoplot_script` + `list_fetched_data` (3 tools total)
@@ -212,9 +213,10 @@ All times are UTC. Outputs `TimeRange` objects with `start`/`end` datetimes. Con
 
 ### Per-Mission JSON Knowledge (`knowledge/missions/*.json`)
 - **8 JSON files**: One per mission (psp.json, ace.json, etc.) with HAPI-derived metadata + hand-curated profiles.
-- **Tiered datasets**: `primary` (default, shown prominently) and `advanced` (higher-res, specialized). Tier is hand-curated, preserved on auto-generation.
-- **Auto-generation**: `scripts/generate_mission_data.py` queries CDAWeb HAPI to populate parameters, dates, descriptions. Preserves profile and tier values.
-- **Loader**: `knowledge/mission_loader.py` provides lazy-loading cache, routing table, and tier-filtered dataset access.
+- **Recommended datasets**: All datasets in the instrument section are shown as recommended. Additional datasets are discoverable via `browse_datasets`.
+- **Calibration exclusion lists**: Per-mission `_calibration_exclude.json` files filter out calibration, housekeeping, and ephemeris datasets from browse results. Uses glob patterns and exact IDs.
+- **Auto-generation**: `scripts/generate_mission_data.py` queries CDAWeb HAPI to populate parameters, dates, descriptions.
+- **Loader**: `knowledge/mission_loader.py` provides lazy-loading cache, routing table, and dataset access.
 
 ## Configuration
 

@@ -1,13 +1,19 @@
 {
   "id": "MMS",
   "name": "Magnetospheric Multiscale",
-  "keywords": ["mms", "magnetospheric multiscale"],
+  "keywords": [
+    "mms",
+    "magnetospheric multiscale"
+  ],
   "profile": {
     "description": "Four-spacecraft constellation studying magnetic reconnection in Earth's magnetosphere",
-    "coordinate_systems": ["GSE", "GSM"],
+    "coordinate_systems": [
+      "GSE",
+      "GSM"
+    ],
     "typical_cadence": "Survey: 4.5s (FGM), Fast: 30ms (burst)",
     "data_caveats": [
-      "Magnetospheric orbit \u2014 not solar wind data",
+      "Magnetospheric orbit — not solar wind data",
       "Very high cadence burst data available for reconnection events"
     ],
     "analysis_patterns": [
@@ -19,10 +25,15 @@
   "instruments": {
     "FGM": {
       "name": "Fluxgate Magnetometer",
-      "keywords": ["magnetic", "field", "mag", "b-field", "fgm"],
+      "keywords": [
+        "magnetic",
+        "field",
+        "mag",
+        "b-field",
+        "fgm"
+      ],
       "datasets": {
         "MMS1_FGM_SRVY_L2": {
-          "tier": "primary",
           "description": "Survey-mode magnetic field from MMS1",
           "parameters": []
         }
@@ -30,10 +41,15 @@
     },
     "FPI-DIS": {
       "name": "Fast Plasma (Ion)",
-      "keywords": ["plasma", "ion", "density", "velocity", "fpi"],
+      "keywords": [
+        "plasma",
+        "ion",
+        "density",
+        "velocity",
+        "fpi"
+      ],
       "datasets": {
         "MMS1_FPI_FAST_L2_DIS-MOMS": {
-          "tier": "primary",
           "description": "Fast survey ion distribution moments from MMS1",
           "parameters": []
         }

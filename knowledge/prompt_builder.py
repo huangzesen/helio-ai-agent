@@ -77,7 +77,7 @@ def generate_dataset_quick_reference() -> str:
 def generate_planner_dataset_reference() -> str:
     """Generate the dataset reference block for the planner prompt.
 
-    Only includes primary-tier datasets from JSON files.
+    Lists all instrument-level datasets from JSON files.
     """
     missions = load_all_missions()
     lines = []
@@ -92,8 +92,7 @@ def generate_planner_dataset_reference() -> str:
             else:
                 kind = "combined"
             for ds_id, ds_info in inst.get("datasets", {}).items():
-                if ds_info.get("tier") == "primary":
-                    parts.append(f"dataset={ds_id} ({kind})")
+                parts.append(f"dataset={ds_id} ({kind})")
         lines.append(f"- {mission['name']}: {'; '.join(parts)}")
     return "\n".join(lines)
 
@@ -234,37 +233,20 @@ def build_mission_prompt(mission_id: str) -> str:
                 lines.append(f"- {tip}")
         lines.append("")
 
-    # --- Primary Datasets ---
-    lines.append("## Primary Datasets")
+    # --- Recommended Datasets ---
+    lines.append("## Recommended Datasets")
     lines.append("")
-    lines.append("Use these datasets by default. Parameter names are listed below — use them directly with fetch_data.")
+    lines.append("These are the most commonly used datasets. For additional datasets, use `browse_datasets`.")
     lines.append("")
     for inst_id, inst in mission.get("instruments", {}).items():
         lines.append(f"### {inst['name']} ({inst_id})")
         for ds_id, ds_info in inst.get("datasets", {}).items():
-            if ds_info.get("tier") == "primary":
-                desc = ds_info.get("description", "")
-                lines.append(f"- **{ds_id}**: {desc}" if desc else f"- **{ds_id}**")
-                # Add parameter summary from local cache
-                param_summary = _format_parameter_summary(ds_id)
-                if param_summary:
-                    lines.append(param_summary)
-        lines.append("")
-
-    # --- Advanced Datasets (if any) ---
-    advanced = []
-    for inst_id, inst in mission.get("instruments", {}).items():
-        for ds_id, ds_info in inst.get("datasets", {}).items():
-            if ds_info.get("tier") == "advanced":
-                desc = ds_info.get("description", "")
-                advanced.append((inst["name"], ds_id, desc))
-    if advanced:
-        lines.append("## Advanced Datasets")
-        lines.append("")
-        lines.append("Higher-resolution or specialized data. Use when the user requests specific cadences or advanced analysis.")
-        lines.append("")
-        for inst_name, ds_id, desc in advanced:
-            lines.append(f"- **{ds_id}** ({inst_name}): {desc}" if desc else f"- **{ds_id}** ({inst_name})")
+            desc = ds_info.get("description", "")
+            lines.append(f"- **{ds_id}**: {desc}" if desc else f"- **{ds_id}**")
+            # Add parameter summary from local cache
+            param_summary = _format_parameter_summary(ds_id)
+            if param_summary:
+                lines.append(param_summary)
         lines.append("")
 
     # --- Data Operations Documentation ---
@@ -623,6 +605,7 @@ Your job is to decompose complex user requests into a sequence of discrete tasks
 ## Available Tools (with required parameters)
 
 - search_datasets(query): Find spacecraft/instrument datasets by keyword
+- browse_datasets(mission_id): Browse all available science datasets for a mission (filtered, no calibration/housekeeping)
 - list_parameters(dataset_id): Get available parameters for a dataset
 - fetch_data(dataset_id, parameter_id, time_range): Pull data into memory. Result stored with label "DATASET.PARAM" format. Time range can be "last week", "last 3 days", or "2024-01-15 to 2024-01-20".
 - custom_operation(source_label, pandas_code, output_label, description): Apply any pandas/numpy operation. Code operates on `df` (DataFrame) and assigns to `result`. Examples: magnitude, smoothing, resampling, arithmetic, derivatives, normalization, clipping.

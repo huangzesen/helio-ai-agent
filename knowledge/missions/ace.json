@@ -1,12 +1,19 @@
 {
   "id": "ACE",
   "name": "Advanced Composition Explorer",
-  "keywords": ["ace", "advanced composition"],
+  "keywords": [
+    "ace",
+    "advanced composition"
+  ],
   "profile": {
     "description": "L1 monitor for solar wind and interplanetary magnetic field since 1997",
-    "coordinate_systems": ["GSE"],
+    "coordinate_systems": [
+      "GSE"
+    ],
     "typical_cadence": "1-minute (16-second available)",
-    "data_caveats": ["GSE coordinates; long baseline ideal for solar cycle studies"],
+    "data_caveats": [
+      "GSE coordinates; long baseline ideal for solar cycle studies"
+    ],
     "analysis_patterns": [
       "IMF sector structure: check Bx sign for toward/away",
       "Solar wind speed categorization: slow (<400) vs fast (>600) km/s",
@@ -16,10 +23,15 @@
   "instruments": {
     "MAG": {
       "name": "Magnetometer",
-      "keywords": ["magnetic", "field", "mag", "b-field", "imf"],
+      "keywords": [
+        "magnetic",
+        "field",
+        "mag",
+        "b-field",
+        "imf"
+      ],
       "datasets": {
         "AC_H2_MFI": {
-          "tier": "primary",
           "description": "16-second magnetic field in GSE coordinates",
           "parameters": []
         }
@@ -27,10 +39,16 @@
     },
     "SWEPAM": {
       "name": "Solar Wind Plasma",
-      "keywords": ["plasma", "solar wind", "proton", "density", "velocity", "temperature"],
+      "keywords": [
+        "plasma",
+        "solar wind",
+        "proton",
+        "density",
+        "velocity",
+        "temperature"
+      ],
       "datasets": {
         "AC_H0_SWE": {
-          "tier": "primary",
           "description": "64-second solar wind ion moments",
           "parameters": []
         }

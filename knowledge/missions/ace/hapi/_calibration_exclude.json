@@ -1,0 +1,9 @@
+{
+  "description": "Datasets excluded from browse results (key parameter/browse products, redundant cadences)",
+  "patterns": [
+    "AC_K0_*",
+    "AC_K1_*",
+    "AC_K2_*"
+  ],
+  "ids": []
+}

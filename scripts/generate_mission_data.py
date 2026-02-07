@@ -5,8 +5,7 @@ Auto-generate/update per-mission JSON files from CDAWeb HAPI metadata.
 Queries the HAPI /catalog and /info endpoints to populate datasets and
 parameters in knowledge/missions/*.json files.
 
-Hand-curated fields (profile, keywords, tier) are preserved on merge.
-New datasets default to tier="advanced".
+Hand-curated fields (profile, keywords) are preserved on merge.
 
 Usage:
     python scripts/generate_mission_data.py              # Update all missions
@@ -134,14 +133,10 @@ def merge_dataset_info(
 ) -> dict:
     """Merge HAPI /info data into an existing dataset entry.
 
-    Preserves: tier (hand-curated)
     Overwrites: description, start_date, stop_date, parameters, _meta
     """
     if existing_ds is None:
-        existing_ds = {"tier": "advanced"}
-
-    # Preserve tier
-    tier = existing_ds.get("tier", "advanced")
+        existing_ds = {}
 
     # Extract info from HAPI response
     description = hapi_info.get("description", existing_ds.get("description", ""))
@@ -166,7 +161,6 @@ def merge_dataset_info(
         parameters.append(param_entry)
 
     return {
-        "tier": tier,
         "description": description,
         "start_date": start_date,
         "stop_date": stop_date,

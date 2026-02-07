@@ -393,6 +393,14 @@ class OrchestratorAgent:
                 "stop": time_range["stop"],
             }
 
+        elif tool_name == "browse_datasets":
+            from knowledge.hapi_client import browse_datasets as hapi_browse
+            datasets = hapi_browse(tool_args["mission_id"])
+            if datasets is None:
+                return {"status": "error", "message": f"No dataset index for '{tool_args['mission_id']}'."}
+            return {"status": "success", "mission_id": tool_args["mission_id"],
+                    "dataset_count": len(datasets), "datasets": datasets}
+
         elif tool_name == "ask_clarification":
             # Return the question to show to user
             return {

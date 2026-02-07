@@ -8,7 +8,6 @@ and dataset information without loading everything into memory upfront.
 
 import json
 from pathlib import Path
-from typing import Optional
 
 
 # Directory containing per-mission JSON files
@@ -111,13 +110,11 @@ def get_routing_table() -> list[dict]:
     return table
 
 
-def get_mission_datasets(mission_id: str, tier: Optional[str] = None) -> list[str]:
-    """Get dataset IDs for a mission, optionally filtered by tier.
+def get_mission_datasets(mission_id: str) -> list[str]:
+    """Get all dataset IDs for a mission.
 
     Args:
         mission_id: Mission identifier (e.g., "PSP").
-        tier: If provided, only return datasets with this tier
-              ("primary" or "advanced"). If None, return all.
 
     Returns:
         List of dataset ID strings.
@@ -125,9 +122,8 @@ def get_mission_datasets(mission_id: str, tier: Optional[str] = None) -> list[st
     mission = load_mission(mission_id)
     dataset_ids = []
     for inst in mission.get("instruments", {}).values():
-        for ds_id, ds_info in inst.get("datasets", {}).items():
-            if tier is None or ds_info.get("tier") == tier:
-                dataset_ids.append(ds_id)
+        for ds_id in inst.get("datasets", {}):
+            dataset_ids.append(ds_id)
     return dataset_ids
 
 

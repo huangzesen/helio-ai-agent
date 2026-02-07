@@ -1,0 +1,26 @@
+{
+  "description": "Datasets excluded from browse results (ephemeris, sub-dataset variants, burst-mode duplicates, distribution functions, auxiliary moments)",
+  "patterns": [
+    "MMS1_MEC_*",
+    "MMS1_EDI_BRST_*",
+    "MMS1_EDI_SRVY_L2_AMB*",
+    "MMS1_EDI_SRVY_L2_Q0*",
+    "MMS1_FGM_BRST_L2@*",
+    "MMS1_FGM_SRVY_L2@*",
+    "MMS1_FPI_BRST_L2_*-DIST",
+    "MMS1_FPI_BRST_L2_*-PARTMOMS",
+    "MMS1_FPI_FAST_L2_*-DIST",
+    "MMS1_FPI_FAST_L2_*-MOMSAUX",
+    "MMS1_FPI_FAST_L2_*-PARTMOMS",
+    "MMS1_FPI_SLOW_L2_*-DIST",
+    "MMS1_FPI_SLOW_L2_*-MOMSAUX",
+    "MMS1_EDP_BRST_L2_HMFE",
+    "MMS1_HPCA_BRST_L2_ION",
+    "MMS1_HPCA_SRVY_L2_ION",
+    "MMS1_HPCA_SRVY_L2_TOF-COUNTS",
+    "MMS1_SCM_BRST_L2_SCHB"
+  ],
+  "ids": [
+    "MMS1_ASPOC_SRVY_L2"
+  ]
+}
