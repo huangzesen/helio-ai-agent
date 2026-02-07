@@ -24,15 +24,17 @@ Future development plan for the helio-ai-agent project.
 | Cross-platform | Done | Windows + macOS |
 | Token Tracking | Done | Per-session usage statistics |
 
-### Tools (14 Total)
+### Tools (12 Tool Schemas)
 
 **Dataset Discovery**: `search_datasets`, `list_parameters`, `get_data_availability`
 
-**Visualization**: `plot_data`, `change_time_range`, `export_plot`, `get_plot_info`
+**Autoplot Visualization**: `execute_autoplot` (dispatches to 16 registry methods)
 
-**Data Operations**: `fetch_data`, `list_fetched_data`, `custom_operation`, `plot_computed_data`, `describe_data`, `save_data`
+**Data Operations**: `fetch_data`, `list_fetched_data`, `custom_operation`, `describe_data`, `save_data`
 
 **Conversation**: `ask_clarification`
+
+**Routing**: `delegate_to_mission`, `delegate_to_autoplot`
 
 ### Supported Spacecraft (8)
 
@@ -40,13 +42,16 @@ PSP, Solar Orbiter, ACE, OMNI, Wind, DSCOVR, MMS, STEREO-A
 
 ---
 
-## Next: Mission-Specific Agent Architecture
+## Completed: Multi-Agent Architecture
 
-See `docs/mission-agent-architecture.md` for the full 3-phase plan.
-
-- **Phase 1** (foundation): Rich mission profiles in catalog, dynamic prompt generation from catalog, eliminate hardcoded prompt duplication
-- **Phase 2**: Mission sub-agents with specialized prompts, task dispatch by mission
-- **Phase 3**: Parallel execution with dependency tracking
+- [x] **Mission sub-agents**: Per-spacecraft data specialists with rich prompts, tiered datasets
+- [x] **Autoplot sub-agent**: Visualization specialist with method registry (16 operations)
+- [x] **OrchestratorAgent**: LLM-driven routing to mission + autoplot sub-agents
+- [x] **Method registry**: Structured data describing all Autoplot capabilities (extensible)
+- [x] **Render type switching**: series, scatter, spectrogram, fill_to_zero, staircase_plus, digital
+- [x] **Color tables**: viridis, plasma, jet, etc. for spectrograms
+- [x] **Canvas sizing**: Custom width/height for exports
+- [x] **PDF export**: Alongside existing PNG export
 
 ---
 
@@ -85,9 +90,9 @@ See `docs/mission-agent-architecture.md` for the full 3-phase plan.
 - [ ] Histogram/distribution plots
 
 ### Styling
-- [ ] Custom color scales (jet, viridis, plasma, etc.)
-- [ ] Configurable axis labels and titles
-- [ ] Log/linear scale toggle
+- [x] Custom color scales (jet, viridis, plasma, etc.) — via `set_color_table`
+- [x] Configurable axis labels and titles — via `set_axis_label`, `set_title`
+- [x] Log/linear scale toggle — via `toggle_log_scale`
 - [ ] Grid and tick customization
 
 ### Annotations
@@ -185,18 +190,24 @@ See `docs/mission-agent-architecture.md` for the full 3-phase plan.
 
 ### Adding New Spacecraft
 
-1. Add entry to `knowledge/catalog.py`
-2. Add test case in `tests/test_catalog.py`
-3. Verify HAPI parameters load correctly
-4. Update system prompt in `agent/prompts.py`
+1. Create JSON file in `knowledge/missions/` (copy existing template)
+2. Run `python scripts/generate_mission_data.py --mission <id>` to populate HAPI metadata
+3. The catalog, prompts, and routing table are auto-generated from JSON
 
-### Adding New Tools
+### Adding New Autoplot Capabilities
+
+1. Add entry to `autoplot_bridge/registry.py` (method definition)
+2. Implement bridge method in `autoplot_bridge/commands.py`
+3. Add dispatch handler in `agent/core.py:_dispatch_autoplot_method()`
+4. Update `docs/capability-summary.md`
+5. No tool schema changes needed — the registry is the single source of truth
+
+### Adding New Non-Autoplot Tools
 
 1. Add schema to `agent/tools.py`
-2. Add handler to `agent/core.py` `_execute_tool()`
-3. Update system prompt in `agent/prompts.py`
-4. Update `docs/capability-summary.md`
-5. Add tests
+2. Add handler to `agent/core.py:_execute_tool()`
+3. Update `docs/capability-summary.md`
+4. Add tests
 
 ---
 

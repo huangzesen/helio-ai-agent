@@ -12,9 +12,12 @@ helio-ai-agent is an AI-powered natural language interface for [Autoplot](https:
 
 The system has four layers:
 
-1. **Agent layer** (`agent/`) — Gemini 2.5-Flash with function calling decides which tools to invoke based on user input. `core.py` orchestrates the conversation loop and tool execution. Tools are defined declaratively in `tools.py` as JSON schemas (15 tools total). Token usage is tracked per session. For multi-mission requests, `mission_agent.py` provides specialized sub-agents with focused system prompts per spacecraft mission.
+1. **Agent layer** (`agent/`) — Gemini 2.5-Flash with function calling. Three agent types:
+   - `core.py` **OrchestratorAgent** — routes to sub-agents, handles data ops directly. Tools defined in `tools.py` (12 tool schemas).
+   - `mission_agent.py` **MissionAgent** — per-spacecraft data specialists (discovery + data_ops tools only).
+   - `autoplot_agent.py` **AutoplotAgent** — visualization specialist using registry-driven dispatch via a single `execute_autoplot` tool + method catalog in prompt.
 
-2. **Autoplot bridge** (`autoplot_bridge/`) — Python-to-Java bridge via JPype. `connection.py` starts the JVM with the Autoplot JAR on the classpath. `commands.py` wraps Autoplot's `ScriptContext` API (plot, set time range, export PNG, plot computed data as QDataSets). Uses a singleton pattern to maintain plot state and color assignments across the session.
+2. **Autoplot bridge** (`autoplot_bridge/`) — Python-to-Java bridge via JPype. `connection.py` starts the JVM with the Autoplot JAR on the classpath. `commands.py` wraps Autoplot's `ScriptContext` API (plot, set time range, export PNG/PDF, render types, color tables, canvas sizing). `registry.py` describes 16 Autoplot methods as structured data — the single source of truth for visualization capabilities. Uses a singleton pattern to maintain plot state and color assignments across the session.
 
 3. **Knowledge base** (`knowledge/`) — Static dataset catalog (`catalog.py`) with mission profiles for keyword-based spacecraft/instrument search. Prompt builder (`prompt_builder.py`) generates system and planner prompts dynamically from the catalog — single source of truth. HAPI client (`hapi_client.py`) for fetching parameter metadata from CDAWeb.
 
@@ -58,7 +61,7 @@ python -m pytest tests/                                         # All tests
 
 ## Interactive Agent Testing
 
-Use `scripts/agent_server.py` to drive multi-turn conversations with the agent programmatically. It keeps an `AutoplotAgent` alive in a background process and accepts commands over a TCP socket — this is the primary way to test interactive agent behavior without a human at the terminal.
+Use `scripts/agent_server.py` to drive multi-turn conversations with the agent programmatically. It keeps an `OrchestratorAgent` alive in a background process and accepts commands over a TCP socket — this is the primary way to test interactive agent behavior without a human at the terminal.
 
 ```bash
 # Start the server (initializes JVM + agent, listens on localhost)
@@ -77,7 +80,7 @@ python scripts/run_agent_tests.py --test 4     # single scenario
 python scripts/run_agent_tests.py --no-server  # use already-running server
 ```
 
-The server uses `agent.core.create_agent()` directly (same `AutoplotAgent` as `main.py`). Responses include the agent's text reply, tool calls made, timing, and token usage. Session logs are saved to `~/.helio-agent/sessions/`.
+The server uses `agent.core.create_agent()` directly (same `OrchestratorAgent` as `main.py`). Responses include the agent's text reply, tool calls made, timing, and token usage. Session logs are saved to `~/.helio-agent/sessions/`.
 
 ## Configuration
 
@@ -99,7 +102,7 @@ Time ranges use `YYYY-MM-DD to YYYY-MM-DD` format. The agent accepts flexible in
 
 - Read `docs/capability-summary.md` first to understand what has been implemented.
 - Read `docs/roadmap.md` for planned future development.
-- When adding new tools: add schema in `agent/tools.py`, handler in `agent/core.py`, and update `docs/capability-summary.md`. The system prompt is auto-generated from the catalog.
+- When adding new Autoplot capabilities: add entry to `autoplot_bridge/registry.py`, implement bridge method in `commands.py`, add handler in `core.py:_dispatch_autoplot_method()`. No tool schema changes needed. For non-Autoplot tools: add schema in `tools.py`, handler in `core.py:_execute_tool()`. Update `docs/capability-summary.md` either way.
 - When adding new spacecraft: create a JSON file in `knowledge/missions/` (copy an existing one as template). Include `id`, `name`, `keywords`, `profile`, and `instruments` with `datasets` dict. Then run `python scripts/generate_mission_data.py --mission <id>` to populate HAPI metadata. The catalog, prompts, and routing table are all auto-generated from the JSON files.
 - Data operations (`data_ops/operations.py`) are pure numpy functions with no side effects — easy to test.
 - Plotting always goes through Autoplot (`autoplot_bridge/commands.py`), not matplotlib.
