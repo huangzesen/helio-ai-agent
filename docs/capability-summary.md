@@ -34,11 +34,12 @@ agent/core.py  AutoplotAgent  (always-delegate orchestrator)
   |       Task, TaskPlan         Data structures (mission, depends_on fields)
   |       TaskStore              JSON persistence to ~/.helio-agent/tasks/
   |
-  +---> agent/mission_agent.py  Mission sub-agents
+  +---> agent/mission_agent.py  Mission sub-agents (data-only tools)
   |       MissionAgent           Focused Gemini session per spacecraft mission
   |       execute_task()         Forced function calling for plan tasks (max 3 iter)
   |       process_request()      Full conversational mode for delegated requests (max 10 iter)
   |                              Rich system prompt with data ops docs + tiered datasets
+  |                              No plotting tools — reports results to main agent for plotting
   |
   +---> knowledge/         Dataset discovery + prompt generation
   |       missions/*.json    Per-mission JSON files (8 files, HAPI-derived + hand-curated)
@@ -140,8 +141,10 @@ All times are UTC. Outputs `TimeRange` objects with `start`/`end` datetimes. Con
 
 ### Always-Delegate Architecture (`agent/core.py`, `agent/mission_agent.py`)
 - **Routing**: `_is_general_request()` detects meta questions and plot follow-ups. Single-mission requests are delegated to `MissionAgent.process_request()`. Complex multi-mission requests go through the planner.
-- **Mission sub-agents**: Each spacecraft has a specialist with rich system prompt (tiered datasets, data ops docs, analysis patterns). Agents are cached per session.
-- **Slim main agent**: System prompt contains only a routing table (mission names + capabilities). No dataset IDs or analysis tips — those live in mission sub-agents.
+- **Mission sub-agents**: Each spacecraft has a data specialist with rich system prompt (tiered datasets, data ops docs, analysis patterns). Agents are cached per session. Sub-agents have **data-only tools** (discovery, data_ops, conversation) — no plotting tools.
+- **Tool separation**: Tools have a `category` field (`discovery`, `plotting`, `data_ops`, `conversation`). `get_tool_schemas(categories=...)` filters tools by category. Sub-agents get `["discovery", "data_ops", "conversation"]`.
+- **Post-delegation plotting**: After a sub-agent reports results, the main agent decides whether to plot using `plot_data` or `plot_computed_data`. This keeps plotting centralized in the orchestrator.
+- **Slim main agent**: System prompt contains a routing table (mission names + capabilities) plus post-delegation instructions. No dataset IDs or analysis tips — those live in mission sub-agents.
 
 ### Multi-Step Task Handling (`agent/planner.py`, `agent/tasks.py`)
 - **Complexity detection**: Regex patterns identify requests needing decomposition (multiple "and"s, "compare", "then", multiple spacecraft mentions).

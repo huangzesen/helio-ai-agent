@@ -19,6 +19,9 @@ from .tasks import Task, TaskStatus
 from .logging import log_error, log_tool_call, log_tool_result
 from knowledge.prompt_builder import build_mission_prompt
 
+# Mission sub-agents only get data tools — plotting is handled by the main agent
+MISSION_TOOL_CATEGORIES = ["discovery", "data_ops", "conversation"]
+
 
 class MissionAgent:
     """A Gemini session specialized for one spacecraft mission.
@@ -55,9 +58,9 @@ class MissionAgent:
         # Build mission-focused system prompt from catalog
         self.system_prompt = build_mission_prompt(mission_id)
 
-        # Build function declarations
+        # Build function declarations (data tools only — no plotting)
         function_declarations = []
-        for tool_schema in get_tool_schemas():
+        for tool_schema in get_tool_schemas(categories=MISSION_TOOL_CATEGORIES):
             fd = types.FunctionDeclaration(
                 name=tool_schema["name"],
                 description=tool_schema["description"],
@@ -114,7 +117,7 @@ class MissionAgent:
             print(f"  [{self.mission_id} Agent] Processing request: {user_message[:80]}...")
 
         try:
-            # Conversational config: no forced function calling
+            # Conversational config: no forced function calling, data tools only
             conv_config = types.GenerateContentConfig(
                 system_instruction=self.system_prompt,
                 tools=[types.Tool(function_declarations=[
@@ -122,7 +125,7 @@ class MissionAgent:
                         name=t["name"],
                         description=t["description"],
                         parameters=t["parameters"],
-                    ) for t in get_tool_schemas()
+                    ) for t in get_tool_schemas(categories=MISSION_TOOL_CATEGORIES)
                 ])],
             )
             chat = self.client.chats.create(

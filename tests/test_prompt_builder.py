@@ -124,6 +124,26 @@ class TestBuildMissionPrompt:
         assert "## Analysis Patterns" in prompt
         assert "Switchback" in prompt
 
+    def test_mission_prompt_forbids_plotting(self):
+        prompt = build_mission_prompt("PSP")
+        assert "Do NOT attempt to plot" in prompt
+
+    def test_mission_prompt_workflow_excludes_plot_computed_data(self):
+        prompt = build_mission_prompt("PSP")
+        # plot_computed_data should not appear in the workflow steps
+        workflow_start = prompt.index("## Data Operations Workflow")
+        workflow_end = prompt.index("## Reporting Results")
+        workflow_section = prompt[workflow_start:workflow_end]
+        assert "plot_computed_data" not in workflow_section
+
+    def test_mission_prompt_has_reporting_section(self):
+        prompt = build_mission_prompt("PSP")
+        assert "## Reporting Results" in prompt
+
+    def test_mission_prompt_has_data_specialist_identity(self):
+        prompt = build_mission_prompt("PSP")
+        assert "data specialist agent" in prompt.lower()
+
 
 class TestBuildSystemPrompt:
     def test_contains_today_placeholder(self):
@@ -139,6 +159,11 @@ class TestBuildSystemPrompt:
         prompt = build_system_prompt()
         assert "## Workflow" in prompt
         assert "## Time Range Handling" in prompt
+
+    def test_contains_post_delegation_section(self):
+        prompt = build_system_prompt()
+        assert "## Post-Delegation Actions" in prompt
+        assert "plot_computed_data" in prompt
 
     def test_contains_routing_table(self):
         prompt = build_system_prompt()
@@ -189,3 +214,8 @@ class TestBuildPlanningPrompt:
         prompt = build_planning_prompt()
         assert "PSP" in prompt
         assert "ACE" in prompt
+
+    def test_plotting_tasks_use_null_mission(self):
+        prompt = build_planning_prompt()
+        assert "Plotting tasks" in prompt
+        assert "mission=null" in prompt

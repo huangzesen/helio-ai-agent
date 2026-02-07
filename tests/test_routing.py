@@ -1,14 +1,15 @@
 """
-Tests for the always-delegate routing logic in core.py.
+Tests for the always-delegate routing logic in core.py and tool filtering.
 
-Tests _is_general_request() heuristics and mission detection routing
-without requiring a Gemini API key.
+Tests _is_general_request() heuristics, mission detection routing,
+and tool category filtering without requiring a Gemini API key.
 
 Run with: python -m pytest tests/test_routing.py -v
 """
 
 import pytest
 from agent.core import AutoplotAgent
+from agent.tools import get_tool_schemas
 
 
 class TestIsGeneralRequest:
@@ -64,6 +65,42 @@ class TestIsGeneralRequest:
     ])
     def test_mission_requests_are_not_general(self, text):
         assert AutoplotAgent._is_general_request(text) is False
+
+
+class TestToolCategoryFiltering:
+    """Test get_tool_schemas() category filtering."""
+
+    PLOTTING_TOOLS = {"plot_data", "change_time_range", "export_plot", "get_plot_info", "plot_computed_data"}
+
+    def test_no_filter_returns_all_tools(self):
+        all_tools = get_tool_schemas()
+        assert len(all_tools) == 14
+        names = {t["name"] for t in all_tools}
+        assert "plot_data" in names
+        assert "fetch_data" in names
+
+    def test_mission_categories_exclude_plotting(self):
+        mission_tools = get_tool_schemas(categories=["discovery", "data_ops", "conversation"])
+        names = {t["name"] for t in mission_tools}
+        # Should not include any plotting tools
+        assert names.isdisjoint(self.PLOTTING_TOOLS), f"Unexpected plotting tools: {names & self.PLOTTING_TOOLS}"
+        # Should include data tools
+        assert "fetch_data" in names
+        assert "search_datasets" in names
+        assert "custom_operation" in names
+        assert "ask_clarification" in names
+
+    def test_plotting_category_only(self):
+        plot_tools = get_tool_schemas(categories=["plotting"])
+        names = {t["name"] for t in plot_tools}
+        assert names == self.PLOTTING_TOOLS
+
+    def test_every_tool_has_category(self):
+        for tool in get_tool_schemas():
+            assert "category" in tool, f"Tool '{tool['name']}' missing category field"
+
+    def test_empty_categories_returns_nothing(self):
+        assert get_tool_schemas(categories=[]) == []
 
 
 class TestMissionAgentImportAndInterface:

@@ -169,7 +169,7 @@ def build_mission_prompt(mission_id: str) -> str:
     profile = mission.get("profile", {})
 
     lines = [
-        f"You are a specialist agent for {mission['name']} ({mission_id}) data.",
+        f"You are a data specialist agent for {mission['name']} ({mission_id}) data.",
         "",
     ]
 
@@ -222,9 +222,17 @@ def build_mission_prompt(mission_id: str) -> str:
     lines.append("1. **`list_parameters`** — Discover available parameters for a dataset")
     lines.append("2. **`fetch_data`** — Pull data from CDAWeb HAPI into memory. Label: `DATASET.PARAM`")
     lines.append("3. **`custom_operation`** — Transform data using pandas/numpy code on `df`, assign to `result`")
-    lines.append("4. **`plot_computed_data`** — Display labeled timeseries in the Autoplot canvas")
-    lines.append("5. **`describe_data`** — Get statistics (min, max, mean, std, percentiles, NaN count)")
-    lines.append("6. **`save_data`** — Export to CSV with ISO 8601 timestamps")
+    lines.append("4. **`describe_data`** — Get statistics (min, max, mean, std, percentiles, NaN count)")
+    lines.append("5. **`save_data`** — Export to CSV with ISO 8601 timestamps")
+    lines.append("")
+    lines.append("## Reporting Results")
+    lines.append("")
+    lines.append("After completing data operations, report back with:")
+    lines.append("- What data was fetched (labels, time range, number of points)")
+    lines.append("- What computations were performed (output labels)")
+    lines.append("- A suggestion of what to plot (e.g., \"The data is ready to plot: labels 'ACE_Bmag' and 'ACE_smooth'\")")
+    lines.append("")
+    lines.append("Do NOT attempt to plot data — plotting is handled by the orchestrator.")
     lines.append("")
     lines.append("### Common Computation Patterns")
     lines.append("")
@@ -272,9 +280,18 @@ When a request involves a specific spacecraft's data, delegate to the appropriat
 ## Workflow
 
 1. **Identify the mission**: Match the user's request to a spacecraft from the table above
-2. **Delegate**: The mission specialist will search for datasets, list parameters, fetch data, and plot
-3. **Follow-up actions**: Use `change_time_range`, `export_plot`, or `get_plot_info` as needed
-4. **Multi-mission comparisons**: The planner decomposes these into per-mission tasks
+2. **Delegate**: The mission specialist will search for datasets, list parameters, and fetch data
+3. **Plot**: After the specialist reports back, use plotting tools to visualize if appropriate
+4. **Follow-up actions**: Use `change_time_range`, `export_plot`, or `get_plot_info` as needed
+5. **Multi-mission comparisons**: The planner decomposes these into per-mission tasks
+
+## Post-Delegation Actions
+
+When a mission specialist reports back with data results:
+- If the user asked to "show", "plot", or "display" data, use `plot_data` or `plot_computed_data` to visualize
+- If the specialist fetched data into memory (labels like "DATASET.PARAM"), use `plot_computed_data` with those labels
+- If the specialist only described or saved data, summarize the results without plotting
+- Always relay the specialist's findings to the user in your response
 
 ## Time Range Handling
 
@@ -401,6 +418,7 @@ Tag each task with the spacecraft mission it belongs to using the "mission" fiel
 - Use spacecraft IDs: PSP, SolO, ACE, OMNI, WIND, DSCOVR, MMS, STEREO_A
 - Set mission=null for cross-mission tasks (e.g., comparison plots, combined analyses)
 - Tasks that list_parameters or fetch_data for a specific spacecraft should be tagged with that mission
+- Plotting tasks (plot_data, plot_computed_data, export_plot) should always use mission=null since plotting is handled by the main agent
 
 ## Task Dependencies
 Use "depends_on" to declare which tasks must complete before another can start:

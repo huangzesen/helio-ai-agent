@@ -7,6 +7,7 @@ Tools are executed by the agent core based on LLM decisions.
 
 TOOLS = [
     {
+        "category": "discovery",
         "name": "search_datasets",
         "description": """Search for spacecraft datasets by keyword. Use this when:
 - User mentions a spacecraft (Parker, ACE, Solar Orbiter, OMNI, Wind, DSCOVR, MMS, STEREO)
@@ -26,6 +27,7 @@ Returns matching spacecraft, instrument, and dataset information.""",
         }
     },
     {
+        "category": "discovery",
         "name": "list_parameters",
         "description": """List plottable parameters for a specific dataset. Use this after search_datasets to find what parameters can be plotted.
 
@@ -42,6 +44,7 @@ Returns list of 1D numeric parameters with names, units, and descriptions.""",
         }
     },
     {
+        "category": "discovery",
         "name": "get_data_availability",
         "description": """Check the available time range for a CDAWeb dataset. Use this to:
 - Verify data exists for a requested time range before fetching or plotting
@@ -61,6 +64,7 @@ Returns the earliest and latest available dates for the dataset.""",
         }
     },
     {
+        "category": "plotting",
         "name": "plot_data",
         "description": """Load and display spacecraft data from CDAWeb. Use this when you have:
 - A specific dataset ID
@@ -88,6 +92,7 @@ The plot will appear in an Autoplot window.""",
         }
     },
     {
+        "category": "plotting",
         "name": "change_time_range",
         "description": """Change the time range of the current plot. Use this when user wants to:
 - Zoom in or out
@@ -105,6 +110,7 @@ The plot will appear in an Autoplot window.""",
         }
     },
     {
+        "category": "plotting",
         "name": "export_plot",
         "description": "Export the current plot to a PNG image file.",
         "parameters": {
@@ -119,6 +125,7 @@ The plot will appear in an Autoplot window.""",
         }
     },
     {
+        "category": "plotting",
         "name": "get_plot_info",
         "description": "Get information about what is currently plotted, including dataset, parameter, and time range.",
         "parameters": {
@@ -128,6 +135,7 @@ The plot will appear in an Autoplot window.""",
         }
     },
     {
+        "category": "conversation",
         "name": "ask_clarification",
         "description": """Ask the user a clarifying question when the request is ambiguous. Use this when:
 - Multiple datasets could match the request
@@ -159,6 +167,7 @@ Do NOT guess - ask instead.""",
 
     # --- Data Operations Tools ---
     {
+        "category": "data_ops",
         "name": "fetch_data",
         "description": """Fetch timeseries data from CDAWeb HAPI into memory for Python-side operations.
 Use this instead of plot_data when the user wants to compute on data (magnitude, averages, differences, etc.).
@@ -184,6 +193,7 @@ The data is stored in memory with a label like 'AC_H2_MFI.BGSEc' for later refer
         }
     },
     {
+        "category": "data_ops",
         "name": "list_fetched_data",
         "description": "Show all timeseries currently held in memory. Returns labels, shapes, units, and time ranges.",
         "parameters": {
@@ -193,6 +203,7 @@ The data is stored in memory with a label like 'AC_H2_MFI.BGSEc' for later refer
         }
     },
     {
+        "category": "plotting",
         "name": "plot_computed_data",
         "description": """Display one or more in-memory timeseries in the Autoplot canvas.
 Use this to visualize data fetched with fetch_data or results from compute operations.
@@ -218,6 +229,7 @@ Multiple labels are overlaid on the same plot. The result appears in the Autoplo
         }
     },
     {
+        "category": "data_ops",
         "name": "custom_operation",
         "description": """Apply a pandas/numpy operation to an in-memory timeseries. This is the universal compute tool — use it for ALL data transformations after fetching data with fetch_data.
 
@@ -270,6 +282,7 @@ Do NOT call this tool when the request cannot be expressed as a pandas/numpy ope
 
     # --- Describe & Export Tools ---
     {
+        "category": "data_ops",
         "name": "describe_data",
         "description": """Get statistical summary of an in-memory timeseries. Use this when:
 - User asks "what does the data look like?" or "summarize the data"
@@ -289,6 +302,7 @@ Returns statistics (min, max, mean, std, percentiles, NaN count) and the LLM can
         }
     },
     {
+        "category": "data_ops",
         "name": "save_data",
         "description": """Export an in-memory timeseries to a CSV file. Use this when:
 - User asks to save, export, or download data
@@ -315,6 +329,17 @@ If no filename is given, one is auto-generated from the label.""",
 ]
 
 
-def get_tool_schemas() -> list[dict]:
-    """Return tool schemas for Gemini function calling."""
-    return TOOLS
+def get_tool_schemas(categories: list[str] | None = None) -> list[dict]:
+    """Return tool schemas for Gemini function calling.
+
+    Args:
+        categories: Optional list of categories to filter by.
+            If None, returns all tools. Valid categories:
+            "discovery", "plotting", "data_ops", "conversation".
+
+    Returns:
+        List of tool schema dicts.
+    """
+    if categories is None:
+        return TOOLS
+    return [t for t in TOOLS if t.get("category") in categories]

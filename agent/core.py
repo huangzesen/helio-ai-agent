@@ -980,26 +980,32 @@ class AutoplotAgent:
     def _process_mission_request(self, user_message: str, mission_id: str) -> str:
         """Delegate a request to a mission-specific sub-agent.
 
+        The sub-agent handles data operations (discovery, fetch, compute).
+        Its result is then fed to the main agent, which decides whether
+        to plot and formulates the final response to the user.
+
         Args:
             user_message: The user's input
             mission_id: Spacecraft ID to delegate to
 
         Returns:
-            The mission agent's text response
+            The main agent's response after processing the sub-agent's result
         """
         if self.verbose:
             print(f"  [Router] Delegating to {mission_id} specialist")
 
         try:
             agent = self._get_or_create_mission_agent(mission_id)
-            result = agent.process_request(user_message)
+            sub_result = agent.process_request(user_message)
 
-            # Aggregate token usage
-            usage = agent.get_token_usage()
-            # Usage is cumulative on the agent, so we just track API calls
-            # (total tokens are aggregated at session end)
-
-            return result
+            # Feed sub-agent results to main agent for potential plotting
+            followup = (
+                f"The {mission_id} data specialist completed the user's request "
+                f'"{user_message}" and reported:\n\n{sub_result}\n\n'
+                f"Based on this result, take any appropriate follow-up actions "
+                f"(such as plotting the data) and provide a response to the user."
+            )
+            return self._process_single_message(followup)
 
         except KeyError:
             if self.verbose:

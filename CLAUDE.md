@@ -38,6 +38,10 @@ python -m venv venv
 source venv/bin/activate       # macOS/Linux
 pip install -r requirements.txt
 
+# On Windows, use the venv Python directly:
+#   venv/Scripts/python.exe -m pytest tests/
+#   venv/Scripts/python.exe main.py
+
 # Run the agent
 python main.py                 # Normal mode
 python main.py --verbose       # Show tool calls, timing, errors
