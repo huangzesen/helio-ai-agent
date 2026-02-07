@@ -1,5 +1,9 @@
 """
 Core agent logic - orchestrates Gemini calls and tool execution.
+
+The OrchestratorAgent routes requests to:
+- MissionAgent sub-agents for data operations (per spacecraft)
+- AutoplotAgent sub-agent for all visualization
 """
 
 from typing import Optional
@@ -17,10 +21,12 @@ from .tasks import (
 )
 from .planner import create_plan_from_request, format_plan_for_display
 from .mission_agent import MissionAgent
+from .autoplot_agent import AutoplotAgent
 from .logging import (
     setup_logging, get_logger, log_error, log_tool_call,
     log_tool_result, log_plan_event, log_session_end,
 )
+from autoplot_bridge.registry import get_method, validate_args
 from knowledge.catalog import search_by_keywords
 from knowledge.hapi_client import list_parameters as hapi_list_parameters, get_dataset_time_range
 from autoplot_bridge.commands import get_commands
@@ -28,12 +34,16 @@ from data_ops.store import get_store, DataEntry
 from data_ops.fetch import fetch_hapi_data
 from data_ops.custom_ops import run_custom_operation
 
+# Orchestrator sees discovery, data_ops, conversation, and routing tools
+# (NOT autoplot — that's handled by the AutoplotAgent sub-agent)
+ORCHESTRATOR_CATEGORIES = ["discovery", "data_ops", "conversation", "routing"]
 
-class AutoplotAgent:
-    """Main agent class that handles conversation and tool execution."""
+
+class OrchestratorAgent:
+    """Main orchestrator agent that routes to mission and autoplot sub-agents."""
 
     def __init__(self, verbose: bool = False, gui_mode: bool = False):
-        """Initialize the agent.
+        """Initialize the orchestrator agent.
 
         Args:
             verbose: If True, print debug info about tool calls.
@@ -44,14 +54,14 @@ class AutoplotAgent:
 
         # Initialize logging
         self.logger = setup_logging(verbose=verbose)
-        self.logger.info("Initializing AutoplotAgent")
+        self.logger.info("Initializing OrchestratorAgent")
 
         # Initialize Gemini client
         self.client = genai.Client(api_key=GOOGLE_API_KEY)
 
-        # Build function declarations for Gemini
+        # Build function declarations for Gemini (orchestrator tools only)
         function_declarations = []
-        for tool_schema in get_tool_schemas():
+        for tool_schema in get_tool_schemas(categories=ORCHESTRATOR_CATEGORIES):
             fd = types.FunctionDeclaration(
                 name=tool_schema["name"],
                 description=tool_schema["description"],
@@ -89,6 +99,9 @@ class AutoplotAgent:
         # Cache of mission sub-agents, reused across requests in the session
         self._mission_agents: dict[str, MissionAgent] = {}
 
+        # Cached autoplot sub-agent
+        self._autoplot_agent: Optional[AutoplotAgent] = None
+
     @property
     def autoplot(self):
         """Lazy initialization of Autoplot commands."""
@@ -113,6 +126,13 @@ class AutoplotAgent:
         # Include usage from cached mission agents
         for agent in self._mission_agents.values():
             usage = agent.get_token_usage()
+            input_tokens += usage["input_tokens"]
+            output_tokens += usage["output_tokens"]
+            api_calls += usage["api_calls"]
+
+        # Include usage from autoplot agent
+        if self._autoplot_agent:
+            usage = self._autoplot_agent.get_token_usage()
             input_tokens += usage["input_tokens"]
             output_tokens += usage["output_tokens"]
             api_calls += usage["api_calls"]
@@ -183,6 +203,143 @@ class AutoplotAgent:
 
         return None  # fully valid
 
+    def _dispatch_autoplot_method(self, method: str, args: dict) -> dict:
+        """Dispatch an execute_autoplot call to the appropriate bridge method.
+
+        Consolidates all Autoplot command handling in one place. Simple methods
+        are passthroughs; complex ones (plot_cdaweb, export_png, etc.) have
+        pre/post-processing logic.
+
+        Args:
+            method: Method name from the registry
+            args: Arguments dict
+
+        Returns:
+            Result dict from the bridge method
+        """
+        # Validate against registry
+        errors = validate_args(method, args)
+        if errors:
+            return {"status": "error", "message": "; ".join(errors)}
+
+        # --- Simple passthroughs ---
+        if method == "reset":
+            return self.autoplot.reset()
+
+        elif method == "set_title":
+            return self.autoplot.set_plot_title(args["title"])
+
+        elif method == "set_axis_label":
+            return self.autoplot.set_axis_label(args["axis"], args["label"])
+
+        elif method == "toggle_log_scale":
+            return self.autoplot.toggle_log_scale(args["axis"], args["enabled"])
+
+        elif method == "set_axis_range":
+            return self.autoplot.set_axis_range(args["axis"], args["min"], args["max"])
+
+        elif method == "save_session":
+            return self.autoplot.save_session(args["filepath"])
+
+        elif method == "load_session":
+            return self.autoplot.load_session(args["filepath"])
+
+        elif method == "get_plot_state":
+            return self.autoplot.get_current_state()
+
+        # --- New methods ---
+        elif method == "set_render_type":
+            return self.autoplot.set_render_type(
+                render_type=args["render_type"],
+                index=args.get("index", 0),
+            )
+
+        elif method == "set_color_table":
+            return self.autoplot.set_color_table(args["name"])
+
+        elif method == "set_canvas_size":
+            return self.autoplot.set_canvas_size(args["width"], args["height"])
+
+        # --- Methods with pre/post-processing ---
+        elif method == "plot_cdaweb":
+            try:
+                time_range = parse_time_range(args["time_range"])
+            except TimeRangeError as e:
+                return {"status": "error", "message": str(e)}
+            validation = self._validate_time_range(
+                args["dataset_id"], time_range.start, time_range.end
+            )
+            if validation and validation.startswith("No data available"):
+                return {"status": "error", "message": validation}
+            result = self.autoplot.plot_cdaweb(
+                dataset_id=args["dataset_id"],
+                parameter_id=args["parameter_id"],
+                time_range=time_range,
+            )
+            if validation:
+                result["warning"] = validation
+            return result
+
+        elif method == "plot_stored_data":
+            store = get_store()
+            labels = [l.strip() for l in args["labels"].split(",")]
+            entries = []
+            for label in labels:
+                entry = store.get(label)
+                if entry is None:
+                    return {"status": "error", "message": f"Label '{label}' not found in memory"}
+                entries.append(entry)
+            try:
+                result = self.autoplot.plot_dataset(
+                    entries=entries,
+                    title=args.get("title", ""),
+                    filename=args.get("filename", ""),
+                )
+            except Exception as e:
+                return {"status": "error", "message": str(e)}
+            return result
+
+        elif method == "set_time_range":
+            try:
+                time_range = parse_time_range(args["time_range"])
+            except TimeRangeError as e:
+                return {"status": "error", "message": str(e)}
+            return self.autoplot.set_time_range(time_range)
+
+        elif method == "export_png":
+            filename = args["filename"]
+            if not filename.endswith(".png"):
+                filename += ".png"
+            result = self.autoplot.export_png(filename)
+
+            # Auto-open the exported file in default viewer (skip in GUI mode)
+            if result.get("status") == "success" and not self.gui_mode:
+                try:
+                    import os
+                    import platform
+                    filepath = result["filepath"]
+                    if platform.system() == "Windows":
+                        os.startfile(filepath)
+                    elif platform.system() == "Darwin":
+                        import subprocess
+                        subprocess.Popen(["open", filepath])
+                    else:
+                        import subprocess
+                        subprocess.Popen(["xdg-open", filepath])
+                    result["auto_opened"] = True
+                except Exception as e:
+                    if self.verbose:
+                        print(f"  [Export] Could not auto-open: {e}")
+                    result["auto_opened"] = False
+
+            return result
+
+        elif method == "export_pdf":
+            return self.autoplot.export_pdf(args["filename"])
+
+        else:
+            return {"status": "error", "message": f"Unknown autoplot method: {method}"}
+
     def _execute_tool(self, tool_name: str, tool_args: dict) -> dict:
         """Execute a tool and return the result.
 
@@ -232,89 +389,6 @@ class AutoplotAgent:
                 "stop": time_range["stop"],
             }
 
-        elif tool_name == "plot_data":
-            try:
-                time_range = parse_time_range(tool_args["time_range"])
-            except TimeRangeError as e:
-                return {"status": "error", "message": str(e)}
-            validation = self._validate_time_range(
-                tool_args["dataset_id"], time_range.start, time_range.end
-            )
-            if validation and validation.startswith("No data available"):
-                return {"status": "error", "message": validation}
-            result = self.autoplot.plot_cdaweb(
-                dataset_id=tool_args["dataset_id"],
-                parameter_id=tool_args["parameter_id"],
-                time_range=time_range,
-            )
-            if validation:
-                result["warning"] = validation
-            return result
-
-        elif tool_name == "change_time_range":
-            try:
-                time_range = parse_time_range(tool_args["time_range"])
-            except TimeRangeError as e:
-                return {"status": "error", "message": str(e)}
-            return self.autoplot.set_time_range(time_range)
-
-        elif tool_name == "export_plot":
-            filename = tool_args["filename"]
-            if not filename.endswith(".png"):
-                filename += ".png"
-            result = self.autoplot.export_png(filename)
-
-            # Auto-open the exported file in default viewer (skip in GUI mode —
-            # the user can already see the plot in the Autoplot window)
-            if result.get("status") == "success" and not self.gui_mode:
-                try:
-                    import os
-                    import platform
-                    filepath = result["filepath"]
-                    if platform.system() == "Windows":
-                        os.startfile(filepath)
-                    elif platform.system() == "Darwin":
-                        import subprocess
-                        subprocess.Popen(["open", filepath])
-                    else:
-                        import subprocess
-                        subprocess.Popen(["xdg-open", filepath])
-                    result["auto_opened"] = True
-                except Exception as e:
-                    if self.verbose:
-                        print(f"  [Export] Could not auto-open: {e}")
-                    result["auto_opened"] = False
-
-            return result
-
-        elif tool_name == "get_plot_info":
-            return self.autoplot.get_current_state()
-
-        # --- GUI-mode Interactive Tools ---
-
-        elif tool_name == "reset_plot":
-            return self.autoplot.reset()
-
-        elif tool_name == "set_plot_title":
-            return self.autoplot.set_plot_title(tool_args["title"])
-
-        elif tool_name == "set_axis_label":
-            return self.autoplot.set_axis_label(tool_args["axis"], tool_args["label"])
-
-        elif tool_name == "toggle_log_scale":
-            return self.autoplot.toggle_log_scale(tool_args["axis"], tool_args["enabled"])
-
-        elif tool_name == "set_axis_range":
-            return self.autoplot.set_axis_range(
-                tool_args["axis"], tool_args["min"], tool_args["max"]
-            )
-
-        elif tool_name == "save_session":
-            return self.autoplot.save_session(tool_args["filepath"])
-
-        elif tool_name == "load_session":
-            return self.autoplot.load_session(tool_args["filepath"])
-
         elif tool_name == "ask_clarification":
             # Return the question to show to user
             return {
@@ -323,6 +397,13 @@ class AutoplotAgent:
                 "options": tool_args.get("options", []),
                 "context": tool_args.get("context", ""),
             }
+
+        # --- Autoplot visualization (registry-driven dispatch) ---
+
+        elif tool_name == "execute_autoplot":
+            method = tool_args["method"]
+            args = tool_args.get("args", {})
+            return self._dispatch_autoplot_method(method, args)
 
         # --- Data Operations Tools ---
 
@@ -366,27 +447,6 @@ class AutoplotAgent:
             store = get_store()
             entries = store.list_entries()
             return {"status": "success", "entries": entries, "count": len(entries)}
-
-        elif tool_name == "plot_computed_data":
-            store = get_store()
-            labels = [l.strip() for l in tool_args["labels"].split(",")]
-            entries = []
-            for label in labels:
-                entry = store.get(label)
-                if entry is None:
-                    return {"status": "error", "message": f"Label '{label}' not found in memory"}
-                entries.append(entry)
-            try:
-                result = self.autoplot.plot_dataset(
-                    entries=entries,
-                    title=tool_args.get("title", ""),
-                    filename=tool_args.get("filename", ""),
-                )
-            except Exception as e:
-                return {"status": "error", "message": str(e)}
-            if self.verbose:
-                print(f"  [DataOps] Plotted {len(entries)} series via Autoplot")
-            return result
 
         elif tool_name == "custom_operation":
             store = get_store()
@@ -527,6 +587,19 @@ class AutoplotAgent:
                     "message": f"Unknown mission '{mission_id}'. Check the supported missions table.",
                 }
 
+        elif tool_name == "delegate_to_autoplot":
+            request = tool_args["request"]
+            context = tool_args.get("context", "")
+            if self.verbose:
+                print(f"  [Router] Delegating to Autoplot specialist")
+            agent = self._get_or_create_autoplot_agent()
+            full_request = f"{request}\n\nContext: {context}" if context else request
+            sub_result = agent.process_request(full_request)
+            return {
+                "status": "success",
+                "result": sub_result,
+            }
+
         else:
             result = {"status": "error", "message": f"Unknown tool: {tool_name}"}
             log_error(
@@ -593,7 +666,6 @@ class AutoplotAgent:
 
         try:
             # Create a fresh chat session for task execution with forced function calling
-            # This avoids context pollution from the planning phase
             task_config = types.GenerateContentConfig(
                 system_instruction=get_system_prompt(gui_mode=self.gui_mode),
                 tools=[types.Tool(function_declarations=[
@@ -601,7 +673,7 @@ class AutoplotAgent:
                         name=t["name"],
                         description=t["description"],
                         parameters=t["parameters"],
-                    ) for t in get_tool_schemas()
+                    ) for t in get_tool_schemas(categories=ORCHESTRATOR_CATEGORIES)
                 ])],
                 tool_config=types.ToolConfig(
                     function_calling_config=types.FunctionCallingConfig(mode="ANY")
@@ -710,17 +782,7 @@ class AutoplotAgent:
             return f"Error: {e}"
 
     def _summarize_plan_execution(self, plan: TaskPlan) -> str:
-        """Generate a summary of the completed plan execution.
-
-        Asks Gemini to summarize what was accomplished based on the
-        task results.
-
-        Args:
-            plan: The completed plan
-
-        Returns:
-            Natural language summary of the execution
-        """
+        """Generate a summary of the completed plan execution."""
         # Build context from completed tasks
         summary_parts = [f"I just executed a multi-step plan for: \"{plan.user_request}\""]
         summary_parts.append("")
@@ -733,7 +795,6 @@ class AutoplotAgent:
             for task in completed:
                 summary_parts.append(f"  - {task.description}")
                 if task.result:
-                    # Truncate long results
                     result_preview = task.result[:100] + "..." if len(task.result) > 100 else task.result
                     summary_parts.append(f"    Result: {result_preview}")
 
@@ -777,21 +838,10 @@ class AutoplotAgent:
             return plan.progress_summary()
 
     def _process_complex_request(self, user_message: str) -> str:
-        """Process a complex multi-step request.
-
-        Creates a plan, creates mission-specific agents for tagged tasks,
-        and executes each task sequentially (parallel in Phase 3).
-
-        Args:
-            user_message: The user's complex request
-
-        Returns:
-            Summary of what was accomplished
-        """
+        """Process a complex multi-step request."""
         if self.verbose:
             print(f"  [Planner] Detected complex request, creating plan...")
 
-        # Create a plan using Gemini
         plan = create_plan_from_request(
             client=self.client,
             model_name=self.model_name,
@@ -799,13 +849,11 @@ class AutoplotAgent:
             verbose=self.verbose,
         )
 
-        # If planning fails or request is actually simple, fall back to direct execution
         if plan is None:
             if self.verbose:
                 print(f"  [Planner] Falling back to direct execution")
             return self._process_single_message(user_message)
 
-        # Store the plan
         self._current_plan = plan
         plan.status = PlanStatus.EXECUTING
         store = get_task_store()
@@ -816,28 +864,25 @@ class AutoplotAgent:
         if self.verbose:
             print(format_plan_for_display(plan))
 
-        # Get or create mission agents for each unique mission in the plan
+        # Get or create agents for each unique mission in the plan
         mission_agents = {}
         for task in plan.tasks:
-            if task.mission and task.mission not in mission_agents:
+            if task.mission and task.mission != "__autoplot__" and task.mission not in mission_agents:
                 try:
                     mission_agents[task.mission] = self._get_or_create_mission_agent(task.mission)
                 except (KeyError, FileNotFoundError):
                     if self.verbose:
                         print(f"  [Plan] Unknown mission '{task.mission}', will use main agent")
 
-        # Build a lookup of completed task IDs for dependency checking
         completed_task_ids = set()
 
-        # Execute each task sequentially (parallel dispatch in Phase 3)
         for i, task in enumerate(plan.tasks):
             plan.current_task_index = i
             store.save(plan)
 
-            # Check dependencies — skip if any dependency failed
+            # Check dependencies
             unmet_deps = [dep for dep in task.depends_on if dep not in completed_task_ids]
             if unmet_deps:
-                # Find if any dependency actually failed (vs just not yet reached)
                 dep_tasks = {t.id: t for t in plan.tasks}
                 failed_deps = [d for d in unmet_deps if dep_tasks.get(d) and dep_tasks[d].status == TaskStatus.FAILED]
                 if failed_deps:
@@ -852,8 +897,10 @@ class AutoplotAgent:
                 mission_tag = f" [{task.mission}]" if task.mission else ""
                 print(f"\n  [Plan] Step {i+1}/{len(plan.tasks)}{mission_tag}: {task.description}")
 
-            # Dispatch to mission agent or main agent
-            if task.mission and task.mission in mission_agents:
+            # Route to appropriate agent
+            if task.mission == "__autoplot__":
+                self._get_or_create_autoplot_agent().execute_task(task)
+            elif task.mission and task.mission in mission_agents:
                 mission_agents[task.mission].execute_task(task)
             else:
                 self._execute_task(task)
@@ -862,9 +909,6 @@ class AutoplotAgent:
                 completed_task_ids.add(task.id)
 
             store.save(plan)
-
-        # Token usage from cached mission agents is aggregated at session end
-        # via get_token_usage() which sums across all agents
 
         # Mark plan as complete
         if plan.get_failed_tasks():
@@ -875,25 +919,13 @@ class AutoplotAgent:
             log_plan_event("completed", plan.id, plan.progress_summary())
         store.save(plan)
 
-        # Generate summary
         summary = self._summarize_plan_execution(plan)
-
         self._current_plan = None
 
         return summary
 
     def _process_single_message(self, user_message: str) -> str:
-        """Process a single (non-complex) user message.
-
-        This is the original process_message logic, extracted to its own method.
-
-        Args:
-            user_message: The user's input
-
-        Returns:
-            The agent's text response
-        """
-        # Send message to Gemini
+        """Process a single (non-complex) user message."""
         if self.verbose:
             print(f"  [Gemini] Sending message to model...")
         response = self.chat.send_message(message=user_message)
@@ -901,28 +933,23 @@ class AutoplotAgent:
         if self.verbose:
             print(f"  [Gemini] Response received.")
 
-        # Process tool calls in a loop
-        max_iterations = 10  # Safety limit
+        max_iterations = 10
         iteration = 0
 
         while iteration < max_iterations:
             iteration += 1
 
-            # Check if response has parts
             if not response.candidates or not response.candidates[0].content.parts:
                 break
 
-            # Look for function calls
             function_calls = []
             for part in response.candidates[0].content.parts:
                 if hasattr(part, "function_call") and part.function_call and part.function_call.name:
                     function_calls.append(part.function_call)
 
             if not function_calls:
-                # No function calls - extract text and return
                 break
 
-            # Execute each function call
             function_responses = []
             for fc in function_calls:
                 tool_name = fc.name
@@ -944,7 +971,6 @@ class AutoplotAgent:
                         )
                     return question
 
-                # Create function response using types.Part
                 function_responses.append(
                     types.Part.from_function_response(
                         name=tool_name,
@@ -952,7 +978,6 @@ class AutoplotAgent:
                     )
                 )
 
-            # Send function results back to the model
             if self.verbose:
                 print(f"  [Gemini] Sending {len(function_responses)} tool result(s) back to model...")
             response = self.chat.send_message(message=function_responses)
@@ -975,14 +1000,7 @@ class AutoplotAgent:
         return "\n".join(text_parts) if text_parts else "Done."
 
     def _get_or_create_mission_agent(self, mission_id: str) -> MissionAgent:
-        """Get a cached mission agent or create a new one.
-
-        Args:
-            mission_id: Spacecraft ID (e.g., "PSP", "ACE")
-
-        Returns:
-            MissionAgent instance for the given mission.
-        """
+        """Get a cached mission agent or create a new one."""
         if mission_id not in self._mission_agents:
             self._mission_agents[mission_id] = MissionAgent(
                 mission_id=mission_id,
@@ -995,62 +1013,58 @@ class AutoplotAgent:
                 print(f"  [Router] Created {mission_id} mission agent")
         return self._mission_agents[mission_id]
 
+    def _get_or_create_autoplot_agent(self) -> AutoplotAgent:
+        """Get the cached autoplot agent or create a new one."""
+        if self._autoplot_agent is None:
+            self._autoplot_agent = AutoplotAgent(
+                client=self.client,
+                model_name=self.model_name,
+                tool_executor=self._execute_tool_safe,
+                verbose=self.verbose,
+                gui_mode=self.gui_mode,
+            )
+            if self.verbose:
+                print(f"  [Router] Created Autoplot agent")
+        return self._autoplot_agent
+
     def process_message(self, user_message: str) -> str:
         """Process a user message and return the agent's response.
 
-        Every message goes to the main agent, which decides what to do:
-        - Direct tool calls for plotting, zooming, exporting, etc.
-        - delegate_to_mission tool call for mission-specific data requests
-        - Chain multiple tool calls for multi-step requests (fetch → plot)
+        Every message goes to the orchestrator, which decides what to do:
+        - delegate_to_mission for data requests
+        - delegate_to_autoplot for visualization requests
+        - Direct tool calls for discovery, data ops
         - Text response for greetings, questions, summaries
-
-        The main agent's tool-calling loop (up to 10 iterations) naturally
-        handles multi-step requests without a separate planner.
-
-        Args:
-            user_message: The user's input
-
-        Returns:
-            The agent's text response
         """
         return self._process_single_message(user_message)
 
     def reset(self):
-        """Reset conversation history and mission agent cache."""
+        """Reset conversation history, mission agent cache, and autoplot agent."""
         self.chat = self.client.chats.create(
             model=self.model_name,
             config=self.config
         )
         self._current_plan = None
         self._mission_agents.clear()
+        self._autoplot_agent = None
 
     def get_current_plan(self) -> Optional[TaskPlan]:
         """Get the currently executing plan, if any."""
         return self._current_plan
 
     def get_plan_status(self) -> Optional[str]:
-        """Get a formatted status of the current plan.
-
-        Returns:
-            Formatted plan status string, or None if no plan is active
-        """
+        """Get a formatted status of the current plan."""
         if self._current_plan is None:
-            # Check for incomplete plans in storage
             store = get_task_store()
             incomplete = store.get_incomplete_plans()
             if incomplete:
-                # Return status of the most recent incomplete plan
                 plan = sorted(incomplete, key=lambda p: p.created_at, reverse=True)[0]
                 return format_plan_for_display(plan)
             return None
         return format_plan_for_display(self._current_plan)
 
     def cancel_plan(self) -> str:
-        """Cancel the current plan and mark remaining tasks as skipped.
-
-        Returns:
-            Status message about what was cancelled
-        """
+        """Cancel the current plan and mark remaining tasks as skipped."""
         if self._current_plan is None:
             return "No active plan to cancel."
 
@@ -1072,13 +1086,8 @@ class AutoplotAgent:
         return f"Plan cancelled. {completed} task(s) completed, {skipped_count} skipped."
 
     def retry_failed_task(self) -> str:
-        """Retry the first failed task in the current plan.
-
-        Returns:
-            Result of retrying the task, or error message
-        """
+        """Retry the first failed task in the current plan."""
         if self._current_plan is None:
-            # Check for failed plans in storage
             store = get_task_store()
             incomplete = store.get_incomplete_plans()
             failed_plans = [p for p in incomplete if p.get_failed_tasks()]
@@ -1107,7 +1116,6 @@ class AutoplotAgent:
         result = self._execute_task(task)
         store.save(plan)
 
-        # Check if plan is now complete
         if plan.is_complete():
             if plan.get_failed_tasks():
                 plan.status = PlanStatus.FAILED
@@ -1118,14 +1126,7 @@ class AutoplotAgent:
         return f"Retried: {task.description}\nResult: {result}"
 
     def resume_plan(self, plan: TaskPlan) -> str:
-        """Resume an incomplete plan from storage.
-
-        Args:
-            plan: The plan to resume
-
-        Returns:
-            Summary of execution after resuming
-        """
+        """Resume an incomplete plan from storage."""
         self._current_plan = plan
         plan.status = PlanStatus.EXECUTING
         store = get_task_store()
@@ -1134,15 +1135,12 @@ class AutoplotAgent:
             print(f"  [Resume] Resuming plan: {plan.user_request[:50]}...")
             print(format_plan_for_display(plan))
 
-        # Find the first pending task
         pending = plan.get_pending_tasks()
         if not pending:
-            # All tasks already processed
             plan.status = PlanStatus.COMPLETED if not plan.get_failed_tasks() else PlanStatus.FAILED
             store.save(plan)
             return self._summarize_plan_execution(plan)
 
-        # Execute remaining tasks
         for i, task in enumerate(plan.tasks):
             if task.status != TaskStatus.PENDING:
                 continue
@@ -1156,7 +1154,6 @@ class AutoplotAgent:
             self._execute_task(task)
             store.save(plan)
 
-        # Mark plan as complete
         if plan.get_failed_tasks():
             plan.status = PlanStatus.FAILED
         else:
@@ -1169,20 +1166,13 @@ class AutoplotAgent:
         return summary
 
     def discard_plan(self, plan: TaskPlan) -> str:
-        """Discard an incomplete plan.
-
-        Args:
-            plan: The plan to discard
-
-        Returns:
-            Confirmation message
-        """
+        """Discard an incomplete plan."""
         store = get_task_store()
         store.delete(plan.id)
         return f"Discarded plan: {plan.user_request[:50]}..."
 
 
-def create_agent(verbose: bool = False, gui_mode: bool = False) -> AutoplotAgent:
+def create_agent(verbose: bool = False, gui_mode: bool = False) -> OrchestratorAgent:
     """Factory function to create a new agent instance.
 
     Args:
@@ -1190,6 +1180,6 @@ def create_agent(verbose: bool = False, gui_mode: bool = False) -> AutoplotAgent
         gui_mode: If True, launch Autoplot with visible GUI window.
 
     Returns:
-        Configured AutoplotAgent instance.
+        Configured OrchestratorAgent instance.
     """
-    return AutoplotAgent(verbose=verbose, gui_mode=gui_mode)
+    return OrchestratorAgent(verbose=verbose, gui_mode=gui_mode)

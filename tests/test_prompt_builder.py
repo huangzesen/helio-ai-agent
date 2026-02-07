@@ -17,6 +17,7 @@ from knowledge.prompt_builder import (
     build_mission_prompt,
     build_system_prompt,
     build_planning_prompt,
+    build_autoplot_prompt,
 )
 
 
@@ -160,10 +161,9 @@ class TestBuildSystemPrompt:
         assert "## Workflow" in prompt
         assert "## Time Range Handling" in prompt
 
-    def test_contains_after_delegation_section(self):
+    def test_contains_delegate_to_autoplot_instructions(self):
         prompt = build_system_prompt()
-        assert "## After Delegation" in prompt
-        assert "plot_computed_data" in prompt
+        assert "delegate_to_autoplot" in prompt
 
     def test_contains_delegate_to_mission_instructions(self):
         prompt = build_system_prompt()
@@ -174,11 +174,13 @@ class TestBuildSystemPrompt:
         assert "## Supported Missions" in prompt
         assert "Capabilities" in prompt
 
-    def test_slim_prompt_has_no_dataset_ids(self):
+    def test_slim_prompt_routing_table_has_no_dataset_ids(self):
         prompt = build_system_prompt()
-        # Dataset IDs should NOT be in the main agent prompt
-        assert "PSP_FLD_L2_MAG_RTN_1MIN" not in prompt
-        assert "AC_H2_MFI" not in prompt
+        # The routing table section should NOT list dataset IDs
+        # (they may appear in examples, but not in the mission table)
+        routing_section = prompt.split("## Supported Missions")[1].split("## Workflow")[0]
+        assert "PSP_FLD_L2_MAG_RTN_1MIN" not in routing_section
+        assert "AC_H2_MFI" not in routing_section
 
     def test_slim_prompt_has_no_mission_profiles(self):
         prompt = build_system_prompt()
@@ -219,7 +221,39 @@ class TestBuildPlanningPrompt:
         assert "PSP" in prompt
         assert "ACE" in prompt
 
-    def test_plotting_tasks_use_null_mission(self):
+    def test_plotting_tasks_use_autoplot_mission(self):
         prompt = build_planning_prompt()
-        assert "Plotting tasks" in prompt
-        assert "mission=null" in prompt
+        assert "__autoplot__" in prompt
+        assert 'mission="__autoplot__"' in prompt
+
+
+class TestBuildAutoplotPrompt:
+    """Test the autoplot agent's system prompt builder."""
+
+    def test_contains_method_catalog(self):
+        prompt = build_autoplot_prompt()
+        assert "## Available Methods" in prompt
+        assert "plot_cdaweb" in prompt
+        assert "set_render_type" in prompt
+        assert "export_png" in prompt
+
+    def test_contains_render_type_guidance(self):
+        prompt = build_autoplot_prompt()
+        assert "scatter" in prompt
+        assert "spectrogram" in prompt
+
+    def test_contains_workflow(self):
+        prompt = build_autoplot_prompt()
+        assert "list_fetched_data" in prompt
+
+    def test_no_gui_section_by_default(self):
+        prompt = build_autoplot_prompt(gui_mode=False)
+        assert "Interactive GUI Mode" not in prompt
+
+    def test_gui_mode_appends_section(self):
+        prompt = build_autoplot_prompt(gui_mode=True)
+        assert "Interactive GUI Mode" in prompt
+
+    def test_has_visualization_specialist_identity(self):
+        prompt = build_autoplot_prompt()
+        assert "visualization" in prompt.lower()

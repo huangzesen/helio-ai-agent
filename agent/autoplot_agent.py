@@ -1,66 +1,71 @@
 """
-Mission-specific sub-agent for executing tasks within a single mission's context.
+Autoplot visualization sub-agent.
 
-Phase 2 of the mission-agent architecture. Each MissionAgent gets a focused
-system prompt (via build_mission_prompt) and its own Gemini chat session,
-so it has deep knowledge of one mission's data products without context
-pollution from other missions.
+Owns all Autoplot visualization operations via a single `execute_autoplot`
+tool backed by the method registry. The orchestrator delegates visualization
+requests here, keeping data operations in mission agents.
 
-See docs/mission-agent-architecture.md for the full plan.
+Follows the same patterns as MissionAgent: fresh chat per request,
+forced function calling for task execution, token tracking.
 """
-
-from typing import Optional
 
 from google import genai
 from google.genai import types
 
 from .tools import get_tool_schemas
 from .tasks import Task, TaskStatus
-from .logging import log_error, log_tool_call, log_tool_result
-from knowledge.prompt_builder import build_mission_prompt
+from .logging import log_error
+from knowledge.prompt_builder import build_autoplot_prompt
 
-# Mission sub-agents only get data tools — plotting is handled by the main agent
-MISSION_TOOL_CATEGORIES = ["discovery", "data_ops", "conversation"]
+# Autoplot agent gets its own tool category + list_fetched_data from data_ops
+AUTOPLOT_TOOL_CATEGORIES = ["autoplot"]
+AUTOPLOT_EXTRA_TOOLS = ["list_fetched_data"]
 
 
-class MissionAgent:
-    """A Gemini session specialized for one spacecraft mission.
+class AutoplotAgent:
+    """A Gemini session specialized for Autoplot visualization.
+
+    Uses a single `execute_autoplot` tool with a method catalog in the
+    system prompt, plus `list_fetched_data` to discover available data.
 
     Attributes:
-        mission_id: Spacecraft key (e.g., "PSP", "ACE")
         verbose: Whether to print debug info
+        gui_mode: Whether Autoplot is running in GUI mode
     """
 
     def __init__(
         self,
-        mission_id: str,
         client: genai.Client,
         model_name: str,
         tool_executor,
         verbose: bool = False,
+        gui_mode: bool = False,
     ):
-        """Initialize a mission-specific agent.
+        """Initialize the Autoplot visualization agent.
 
         Args:
-            mission_id: Spacecraft key in the catalog (e.g., "PSP", "ACE")
-            client: Initialized Gemini client (shared with main agent)
+            client: Initialized Gemini client (shared with orchestrator)
             model_name: Model to use (e.g., "gemini-2.5-flash")
             tool_executor: Callable(tool_name, tool_args) -> dict that executes tools.
                            Typically OrchestratorAgent._execute_tool_safe.
             verbose: If True, print debug info about tool calls.
+            gui_mode: If True, include GUI-mode instructions in the prompt.
         """
-        self.mission_id = mission_id
         self.client = client
         self.model_name = model_name
         self.tool_executor = tool_executor
         self.verbose = verbose
+        self.gui_mode = gui_mode
 
-        # Build mission-focused system prompt from catalog
-        self.system_prompt = build_mission_prompt(mission_id)
+        # Build visualization-focused system prompt with method catalog
+        self.system_prompt = build_autoplot_prompt(gui_mode=gui_mode)
 
-        # Build function declarations (data tools only — no plotting)
+        # Build function declarations (autoplot + list_fetched_data)
         function_declarations = []
-        for tool_schema in get_tool_schemas(categories=MISSION_TOOL_CATEGORIES):
+        for tool_schema in get_tool_schemas(
+            categories=AUTOPLOT_TOOL_CATEGORIES,
+            extra_names=AUTOPLOT_EXTRA_TOOLS,
+        ):
             fd = types.FunctionDeclaration(
                 name=tool_schema["name"],
                 description=tool_schema["description"],
@@ -68,7 +73,7 @@ class MissionAgent:
             )
             function_declarations.append(fd)
 
-        # Create Gemini chat with mission-specific context and forced function calling
+        # Config for forced function calling (task execution)
         self.config = types.GenerateContentConfig(
             system_instruction=self.system_prompt,
             tools=[types.Tool(function_declarations=function_declarations)],
@@ -90,7 +95,7 @@ class MissionAgent:
         self._api_calls += 1
 
     def get_token_usage(self) -> dict:
-        """Return cumulative token usage for this mission agent."""
+        """Return cumulative token usage for this autoplot agent."""
         return {
             "input_tokens": self._total_input_tokens,
             "output_tokens": self._total_output_tokens,
@@ -99,25 +104,23 @@ class MissionAgent:
         }
 
     def process_request(self, user_message: str) -> str:
-        """Process a user request in this mission's context.
-
-        Unlike execute_task() (forced function calling, max 3 iterations),
-        this is a full conversational method that allows the agent to respond
-        with text or call tools as needed.
+        """Process a visualization request conversationally.
 
         Creates a fresh chat per request to avoid cross-request context pollution.
+        Allows the agent to respond with text or call tools as needed (no forced
+        function calling).
 
         Args:
-            user_message: The user's natural language request.
+            user_message: The visualization request.
 
         Returns:
             The text response from Gemini after processing.
         """
         if self.verbose:
-            print(f"  [{self.mission_id} Agent] Processing request: {user_message[:80]}...")
+            print(f"  [Autoplot Agent] Processing: {user_message[:80]}...")
 
         try:
-            # Conversational config: no forced function calling, data tools only
+            # Conversational config: no forced function calling
             conv_config = types.GenerateContentConfig(
                 system_instruction=self.system_prompt,
                 tools=[types.Tool(function_declarations=[
@@ -125,7 +128,10 @@ class MissionAgent:
                         name=t["name"],
                         description=t["description"],
                         parameters=t["parameters"],
-                    ) for t in get_tool_schemas(categories=MISSION_TOOL_CATEGORIES)
+                    ) for t in get_tool_schemas(
+                        categories=AUTOPLOT_TOOL_CATEGORIES,
+                        extra_names=AUTOPLOT_EXTRA_TOOLS,
+                    )
                 ])],
             )
             chat = self.client.chats.create(
@@ -165,23 +171,12 @@ class MissionAgent:
                     tool_args = dict(fc.args) if fc.args else {}
 
                     if self.verbose:
-                        print(f"  [{self.mission_id} Agent] Tool: {tool_name}({tool_args})")
+                        print(f"  [Autoplot Agent] Tool: {tool_name}({tool_args})")
 
                     result = self.tool_executor(tool_name, tool_args)
 
-                    # Handle clarification — return immediately
-                    if result.get("status") == "clarification_needed":
-                        question = result["question"]
-                        if result.get("context"):
-                            question = f"{result['context']}\n\n{question}"
-                        if result.get("options"):
-                            question += "\n\nOptions:\n" + "\n".join(
-                                f"  {i+1}. {opt}" for i, opt in enumerate(result["options"])
-                            )
-                        return question
-
                     if self.verbose and result.get("status") == "error":
-                        print(f"  [{self.mission_id} Agent] Tool error: {result.get('message', '')}")
+                        print(f"  [Autoplot Agent] Tool error: {result.get('message', '')}")
 
                     function_responses.append(
                         types.Part.from_function_response(
@@ -191,7 +186,7 @@ class MissionAgent:
                     )
 
                 if self.verbose:
-                    print(f"  [{self.mission_id} Agent] Sending {len(function_responses)} tool result(s) back...")
+                    print(f"  [Autoplot Agent] Sending {len(function_responses)} tool result(s) back...")
                 response = chat.send_message(message=function_responses)
                 self._track_usage(response)
 
@@ -211,19 +206,18 @@ class MissionAgent:
 
         except Exception as e:
             log_error(
-                f"Mission agent request failed",
+                "Autoplot agent request failed",
                 exc=e,
-                context={"mission": self.mission_id, "request": user_message[:200]}
+                context={"request": user_message[:200]}
             )
             if self.verbose:
-                print(f"  [{self.mission_id} Agent] Failed: {e}")
-            return f"Error processing request: {e}"
+                print(f"  [Autoplot Agent] Failed: {e}")
+            return f"Error processing visualization request: {e}"
 
     def execute_task(self, task: Task) -> str:
-        """Execute a single task in this mission's context.
+        """Execute a single visualization task.
 
-        Creates a fresh chat session for each task to avoid context pollution.
-        Uses forced function calling (mode="ANY") to ensure tools are invoked.
+        Creates a fresh chat session with forced function calling (mode="ANY").
 
         Args:
             task: The task to execute
@@ -235,10 +229,10 @@ class MissionAgent:
         task.tool_calls = []
 
         if self.verbose:
-            print(f"  [{self.mission_id} Agent] Executing: {task.description}")
+            print(f"  [Autoplot Agent] Executing: {task.description}")
 
         try:
-            # Fresh chat per task
+            # Fresh chat per task with forced function calling
             chat = self.client.chats.create(
                 model=self.model_name,
                 config=self.config,
@@ -265,12 +259,6 @@ class MissionAgent:
                 if not function_calls:
                     break
 
-                # Skip clarification requests (not supported in task execution)
-                if any(fc.name == "ask_clarification" for fc in function_calls):
-                    if self.verbose:
-                        print(f"  [{self.mission_id} Agent] Skipping clarification request")
-                    break
-
                 # Detect duplicate tool calls
                 call_keys = set()
                 for fc in function_calls:
@@ -278,7 +266,7 @@ class MissionAgent:
                     call_keys.add((fc.name, args_str))
                 if call_keys and call_keys.issubset(previous_calls):
                     if self.verbose:
-                        print(f"  [{self.mission_id} Agent] Duplicate tool call detected, stopping")
+                        print(f"  [Autoplot Agent] Duplicate tool call detected, stopping")
                     break
 
                 # Execute tools via the shared executor
@@ -291,7 +279,7 @@ class MissionAgent:
                     result = self.tool_executor(tool_name, tool_args)
 
                     if self.verbose and result.get("status") == "error":
-                        print(f"  [{self.mission_id} Agent] Tool error: {result.get('message', '')}")
+                        print(f"  [Autoplot Agent] Tool error: {result.get('message', '')}")
 
                     function_responses.append(
                         types.Part.from_function_response(
@@ -304,18 +292,9 @@ class MissionAgent:
                     previous_calls.add((tool_name, args_str))
 
                 if self.verbose:
-                    print(f"  [{self.mission_id} Agent] Sending {len(function_responses)} tool result(s) back...")
+                    print(f"  [Autoplot Agent] Sending {len(function_responses)} tool result(s) back...")
                 response = chat.send_message(message=function_responses)
                 self._track_usage(response)
-
-            # Warn if no tools were called
-            if not task.tool_calls:
-                log_error(
-                    f"Mission task completed without tool calls: {task.description}",
-                    context={"mission": self.mission_id, "task_instruction": task.instruction}
-                )
-                if self.verbose:
-                    print(f"  [{self.mission_id} Agent] WARNING: No tools were called")
 
             # Extract text response
             text_parts = []
@@ -330,7 +309,7 @@ class MissionAgent:
             task.result = result_text
 
             if self.verbose:
-                print(f"  [{self.mission_id} Agent] Completed: {task.description}")
+                print(f"  [Autoplot Agent] Completed: {task.description}")
 
             return result_text
 
@@ -338,10 +317,10 @@ class MissionAgent:
             task.status = TaskStatus.FAILED
             task.error = str(e)
             log_error(
-                f"Mission agent task failed",
+                "Autoplot agent task failed",
                 exc=e,
-                context={"mission": self.mission_id, "task": task.description}
+                context={"task": task.description}
             )
             if self.verbose:
-                print(f"  [{self.mission_id} Agent] Failed: {task.description} - {e}")
+                print(f"  [Autoplot Agent] Failed: {task.description} - {e}")
             return f"Error: {e}"

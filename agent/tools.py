@@ -3,6 +3,13 @@ Tool definitions for Gemini function calling.
 
 Each tool schema defines what the LLM can call and what parameters it needs.
 Tools are executed by the agent core based on LLM decisions.
+
+Categories:
+- "discovery": dataset search and parameter listing
+- "data_ops": data fetching, computation, statistics, export
+- "autoplot": execute_autoplot (registry-driven Autoplot operations)
+- "conversation": ask_clarification
+- "routing": delegate_to_mission, delegate_to_autoplot
 """
 
 TOOLS = [
@@ -61,77 +68,6 @@ Returns the earliest and latest available dates for the dataset.""",
                 }
             },
             "required": ["dataset_id"]
-        }
-    },
-    {
-        "category": "plotting",
-        "name": "plot_data",
-        "description": """Load and display spacecraft data from CDAWeb. Use this when you have:
-- A specific dataset ID
-- A parameter name to plot
-- A time range
-
-The plot will appear in an Autoplot window.""",
-        "parameters": {
-            "type": "object",
-            "properties": {
-                "dataset_id": {
-                    "type": "string",
-                    "description": "CDAWeb dataset ID (e.g., 'AC_H2_MFI', 'PSP_FLD_L2_MAG_RTN_1MIN')"
-                },
-                "parameter_id": {
-                    "type": "string",
-                    "description": "Parameter to plot (e.g., 'Magnitude', 'psp_fld_l2_mag_RTN_1min')"
-                },
-                "time_range": {
-                    "type": "string",
-                    "description": "Time range. Accepts: relative ('last week', 'last 3 days', 'last month'), month+year ('January 2024'), date range ('YYYY-MM-DD to YYYY-MM-DD'), or datetime range with sub-day precision ('YYYY-MM-DDTHH:MM to YYYY-MM-DDTHH:MM')"
-                }
-            },
-            "required": ["dataset_id", "parameter_id", "time_range"]
-        }
-    },
-    {
-        "category": "plotting",
-        "name": "change_time_range",
-        "description": """Change the time range of the current plot. Use this when user wants to:
-- Zoom in or out
-- Look at a different time period
-- Narrow down to specific dates""",
-        "parameters": {
-            "type": "object",
-            "properties": {
-                "time_range": {
-                    "type": "string",
-                    "description": "New time range. Accepts: relative ('last week', 'last 3 days', 'last month'), month+year ('January 2024'), date range ('YYYY-MM-DD to YYYY-MM-DD'), or datetime range with sub-day precision ('YYYY-MM-DDTHH:MM to YYYY-MM-DDTHH:MM')"
-                }
-            },
-            "required": ["time_range"]
-        }
-    },
-    {
-        "category": "plotting",
-        "name": "export_plot",
-        "description": "Export the current plot to a PNG image file.",
-        "parameters": {
-            "type": "object",
-            "properties": {
-                "filename": {
-                    "type": "string",
-                    "description": "Output filename (will be saved as PNG, extension added if missing)"
-                }
-            },
-            "required": ["filename"]
-        }
-    },
-    {
-        "category": "plotting",
-        "name": "get_plot_info",
-        "description": "Get information about what is currently plotted, including dataset, parameter, and time range.",
-        "parameters": {
-            "type": "object",
-            "properties": {},
-            "required": []
         }
     },
     {
@@ -200,32 +136,6 @@ The data is stored in memory with a label like 'AC_H2_MFI.BGSEc' for later refer
             "type": "object",
             "properties": {},
             "required": []
-        }
-    },
-    {
-        "category": "plotting",
-        "name": "plot_computed_data",
-        "description": """Display one or more in-memory timeseries in the Autoplot canvas.
-Use this to visualize data fetched with fetch_data or results from compute operations.
-
-Multiple labels are overlaid on the same plot. The result appears in the Autoplot window and can be further manipulated with change_time_range or exported with export_plot.""",
-        "parameters": {
-            "type": "object",
-            "properties": {
-                "labels": {
-                    "type": "string",
-                    "description": "Comma-separated labels of data to plot (e.g., 'Bmag' or 'AC_H2_MFI.BGSEc,Bmag')"
-                },
-                "title": {
-                    "type": "string",
-                    "description": "Optional plot title"
-                },
-                "filename": {
-                    "type": "string",
-                    "description": "Optional output filename (auto-generated if omitted)"
-                }
-            },
-            "required": ["labels"]
         }
     },
     {
@@ -327,87 +237,24 @@ If no filename is given, one is auto-generated from the label.""",
         }
     },
 
-    # --- GUI-mode Interactive Tools ---
+    # --- Autoplot Visualization ---
     {
-        "category": "plotting",
-        "name": "reset_plot",
-        "description": "Reset the Autoplot canvas, clearing all plots and data. Use when the user wants to start fresh or clear the current display.",
-        "parameters": {"type": "object", "properties": {}, "required": []}
-    },
-    {
-        "category": "plotting",
-        "name": "set_plot_title",
-        "description": "Set or change the title of the current plot.",
+        "category": "autoplot",
+        "name": "execute_autoplot",
+        "description": "Execute an Autoplot visualization method. See the method catalog in the system prompt for available methods and their parameters.",
         "parameters": {
             "type": "object",
             "properties": {
-                "title": {"type": "string", "description": "The title text to display above the plot"}
+                "method": {
+                    "type": "string",
+                    "description": "Method name from the catalog (e.g., 'plot_cdaweb', 'set_render_type', 'export_png')"
+                },
+                "args": {
+                    "type": "object",
+                    "description": "Arguments as described in the method catalog"
+                }
             },
-            "required": ["title"]
-        }
-    },
-    {
-        "category": "plotting",
-        "name": "set_axis_label",
-        "description": "Set a label on an axis of the current plot. Only y and z axes are supported (x-axis labels are auto-managed for time-series data).",
-        "parameters": {
-            "type": "object",
-            "properties": {
-                "axis": {"type": "string", "description": "Which axis: 'y' or 'z'"},
-                "label": {"type": "string", "description": "The text label to set"}
-            },
-            "required": ["axis", "label"]
-        }
-    },
-    {
-        "category": "plotting",
-        "name": "toggle_log_scale",
-        "description": "Enable or disable logarithmic scale on a plot axis.",
-        "parameters": {
-            "type": "object",
-            "properties": {
-                "axis": {"type": "string", "description": "Which axis: 'y' or 'z'"},
-                "enabled": {"type": "boolean", "description": "True for log, False for linear"}
-            },
-            "required": ["axis", "enabled"]
-        }
-    },
-    {
-        "category": "plotting",
-        "name": "set_axis_range",
-        "description": "Manually set the range of a plot axis. Useful when the user wants to zoom into a specific value range.",
-        "parameters": {
-            "type": "object",
-            "properties": {
-                "axis": {"type": "string", "description": "Which axis: 'y' or 'z'"},
-                "min": {"type": "number", "description": "Minimum value for the axis"},
-                "max": {"type": "number", "description": "Maximum value for the axis"}
-            },
-            "required": ["axis", "min", "max"]
-        }
-    },
-    {
-        "category": "plotting",
-        "name": "save_session",
-        "description": "Save the current Autoplot session to a .vap file for later restoration.",
-        "parameters": {
-            "type": "object",
-            "properties": {
-                "filepath": {"type": "string", "description": "Output .vap file path"}
-            },
-            "required": ["filepath"]
-        }
-    },
-    {
-        "category": "plotting",
-        "name": "load_session",
-        "description": "Load a previously saved Autoplot session from a .vap file, restoring all plots and settings.",
-        "parameters": {
-            "type": "object",
-            "properties": {
-                "filepath": {"type": "string", "description": "Path to the .vap file to load"}
-            },
-            "required": ["filepath"]
+            "required": ["method"]
         }
     },
 
@@ -421,11 +268,11 @@ If no filename is given, one is auto-generated from the label.""",
 - You need mission-specific knowledge (dataset IDs, parameter names, analysis patterns)
 
 Do NOT delegate:
-- Plot follow-ups (zoom, export, time range changes) — handle these directly
-- Requests to plot already-loaded data — use plot_computed_data directly
+- Visualization requests (plotting, zoom, export, render changes) — use delegate_to_autoplot
+- Requests to plot already-loaded data — use delegate_to_autoplot
 - General questions about capabilities
 
-The specialist will search datasets, fetch data, run computations, and report back what was done. You then decide whether to plot the results.""",
+The specialist will search datasets, fetch data, run computations, and report back what was done. You then decide whether to visualize the results.""",
         "parameters": {
             "type": "object",
             "properties": {
@@ -441,20 +288,60 @@ The specialist will search datasets, fetch data, run computations, and report ba
             "required": ["mission_id", "request"]
         }
     },
+    {
+        "category": "routing",
+        "name": "delegate_to_autoplot",
+        "description": """Delegate a visualization request to the Autoplot specialist agent. Use this when:
+- The user asks to plot, display, or visualize data
+- The user wants to change plot appearance (render type, colors, axis labels, title, log scale)
+- The user wants to zoom, export (PNG/PDF), or save/load sessions
+- The user wants to resize the canvas
+
+Do NOT delegate:
+- Data requests (fetch, compute, describe) — use delegate_to_mission
+- Dataset search or parameter listing — handle directly
+
+The specialist has access to all Autoplot visualization methods and can see what data is in memory.""",
+        "parameters": {
+            "type": "object",
+            "properties": {
+                "request": {
+                    "type": "string",
+                    "description": "The visualization request (e.g., 'plot ACE_Bmag and PSP_Bmag together', 'switch to scatter plot', 'export as PDF')"
+                },
+                "context": {
+                    "type": "string",
+                    "description": "Optional context about what data is available or what was just done"
+                }
+            },
+            "required": ["request"]
+        }
+    },
 ]
 
 
-def get_tool_schemas(categories: list[str] | None = None) -> list[dict]:
+def get_tool_schemas(
+    categories: list[str] | None = None,
+    extra_names: list[str] | None = None,
+) -> list[dict]:
     """Return tool schemas for Gemini function calling.
 
     Args:
         categories: Optional list of categories to filter by.
             If None, returns all tools. Valid categories:
-            "discovery", "plotting", "data_ops", "conversation", "routing".
+            "discovery", "autoplot", "data_ops", "conversation", "routing".
+        extra_names: Optional list of tool names to include regardless of category.
+            Useful for giving a sub-agent access to specific tools outside its categories.
 
     Returns:
         List of tool schema dicts.
     """
-    if categories is None:
+    if categories is None and extra_names is None:
         return TOOLS
-    return [t for t in TOOLS if t.get("category") in categories]
+    if categories is None:
+        categories = []
+    extra = set(extra_names) if extra_names else set()
+    return [
+        t for t in TOOLS
+        if t.get("category") in categories or t.get("name") in extra
+    ]

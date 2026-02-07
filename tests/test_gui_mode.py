@@ -5,8 +5,8 @@ Run with: python -m pytest tests/test_gui_mode.py
 
 Tests cover:
 - Headless flag presence/absence in JVM startup
-- System prompt GUI-mode content
-- Tool schema count (22 total)
+- Autoplot agent prompt GUI-mode content
+- Tool schema count (14 total)
 - AutoplotCommands.reset() clears internal state
 - Singleton guard for conflicting gui_mode
 - waitUntilIdle() calls on DOM-mutating operations
@@ -76,52 +76,47 @@ class TestConnectionHeadless:
         assert conn.is_headless() is False
 
 
-class TestSystemPromptGUIMode:
-    """Test that system prompt includes GUI-mode instructions when active."""
+class TestAutoplotPromptGUIMode:
+    """Test that the autoplot agent prompt includes GUI-mode instructions."""
 
     def test_default_no_gui_section(self):
-        from agent.prompts import get_system_prompt
-        prompt = get_system_prompt(gui_mode=False)
+        from knowledge.prompt_builder import build_autoplot_prompt
+        prompt = build_autoplot_prompt(gui_mode=False)
         assert "Interactive GUI Mode" not in prompt
 
     def test_gui_mode_appends_section(self):
-        from agent.prompts import get_system_prompt
-        prompt = get_system_prompt(gui_mode=True)
+        from knowledge.prompt_builder import build_autoplot_prompt
+        prompt = build_autoplot_prompt(gui_mode=True)
         assert "Interactive GUI Mode" in prompt
-        assert "reset_plot" in prompt
+        assert "reset" in prompt
         assert "save_session" in prompt
         assert "load_session" in prompt
-        assert "do NOT suggest exporting to PNG" in prompt
+
+    def test_autoplot_prompt_has_method_catalog(self):
+        from knowledge.prompt_builder import build_autoplot_prompt
+        prompt = build_autoplot_prompt(gui_mode=False)
+        assert "Available Methods" in prompt
+        assert "plot_cdaweb" in prompt
 
 
 class TestToolSchemaCount:
     """Test that the correct number of tool schemas are registered."""
 
-    def test_total_tool_count_is_22(self):
+    def test_total_tool_count_is_12(self):
         from agent.tools import get_tool_schemas
         schemas = get_tool_schemas()
-        assert len(schemas) == 22
+        assert len(schemas) == 12
 
-    def test_gui_tools_present(self):
+    def test_autoplot_tools_present(self):
         from agent.tools import get_tool_schemas
         names = {t["name"] for t in get_tool_schemas()}
-        gui_tools = {
-            "reset_plot", "set_plot_title", "set_axis_label",
-            "toggle_log_scale", "set_axis_range",
-            "save_session", "load_session",
-        }
-        assert gui_tools.issubset(names)
+        assert "execute_autoplot" in names
+        assert "delegate_to_autoplot" in names
 
-    def test_gui_tools_are_plotting_category(self):
+    def test_execute_autoplot_is_autoplot_category(self):
         from agent.tools import get_tool_schemas
-        gui_tool_names = {
-            "reset_plot", "set_plot_title", "set_axis_label",
-            "toggle_log_scale", "set_axis_range",
-            "save_session", "load_session",
-        }
-        for tool in get_tool_schemas():
-            if tool["name"] in gui_tool_names:
-                assert tool["category"] == "plotting"
+        tool = next(t for t in get_tool_schemas() if t["name"] == "execute_autoplot")
+        assert tool["category"] == "autoplot"
 
 
 class TestAutoplotCommandsReset:
@@ -228,19 +223,18 @@ class TestDOMMutationsCallWaitUntilIdle:
         mock_ctx.waitUntilIdle.assert_called()
 
 
-class TestExportPlotGUIMode:
-    """Test that export_plot skips auto-open in GUI mode."""
+class TestExportPNGGUIMode:
+    """Test that export_png skips auto-open in GUI mode via dispatch."""
 
-    @patch("autoplot_bridge.commands.get_commands")
-    def test_gui_mode_skips_auto_open(self, mock_get_commands):
-        """In GUI mode, export_plot should not auto-open the file."""
-        from agent.core import AutoplotAgent
+    def test_gui_mode_skips_auto_open(self):
+        """In GUI mode, export_png should not auto-open the file."""
+        from agent.core import OrchestratorAgent
 
         # Create agent with gui_mode=True, mocking out Gemini
         with patch("agent.core.genai"), \
              patch("agent.core.get_system_prompt", return_value="test"), \
              patch("agent.core.get_tool_schemas", return_value=[]):
-            agent = AutoplotAgent.__new__(AutoplotAgent)
+            agent = OrchestratorAgent.__new__(OrchestratorAgent)
             agent.verbose = False
             agent.gui_mode = True
             agent.logger = MagicMock()
@@ -254,7 +248,7 @@ class TestExportPlotGUIMode:
             }
             agent._autoplot = mock_autoplot
 
-            result = agent._execute_tool("export_plot", {"filename": "test.png"})
+            result = agent._dispatch_autoplot_method("export_png", {"filename": "test.png"})
 
         assert result["status"] == "success"
         # auto_opened should not be set because gui_mode skips it

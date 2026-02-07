@@ -2,7 +2,7 @@
 """
 Interactive Agent Server for Multi-Turn Testing
 
-Keeps an AutoplotAgent alive in a background process so Claude Code (or any
+Keeps an OrchestratorAgent alive in a background process so Claude Code (or any
 client) can drive multi-turn conversations over a TCP socket.
 
 Usage:

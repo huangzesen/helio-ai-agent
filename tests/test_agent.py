@@ -180,7 +180,7 @@ class TestAgentToolExecution:
 
     def test_search_datasets_tool(self):
         """Test that search_datasets calls catalog.search_by_keywords."""
-        from agent.core import AutoplotAgent
+        from agent.core import OrchestratorAgent
 
         with patch("agent.core.genai"):
             with patch("agent.core.search_by_keywords") as mock_search:
@@ -192,7 +192,7 @@ class TestAgentToolExecution:
                     "datasets": ["PSP_FLD_L2_MAG_RTN_1MIN"],
                 }
 
-                agent = AutoplotAgent.__new__(AutoplotAgent)
+                agent = OrchestratorAgent.__new__(OrchestratorAgent)
                 agent.verbose = False
                 agent._autoplot = None
 
@@ -203,7 +203,7 @@ class TestAgentToolExecution:
 
     def test_list_parameters_tool(self):
         """Test that list_parameters calls HAPI client."""
-        from agent.core import AutoplotAgent
+        from agent.core import OrchestratorAgent
 
         with patch("agent.core.genai"):
             with patch("agent.core.hapi_list_parameters") as mock_list:
@@ -211,7 +211,7 @@ class TestAgentToolExecution:
                     {"name": "Magnitude", "units": "nT", "size": [1], "description": "", "dataset_id": "AC_H2_MFI"},
                 ]
 
-                agent = AutoplotAgent.__new__(AutoplotAgent)
+                agent = OrchestratorAgent.__new__(OrchestratorAgent)
                 agent.verbose = False
                 agent._autoplot = None
 
@@ -222,10 +222,10 @@ class TestAgentToolExecution:
 
     def test_ask_clarification_tool(self):
         """Test that ask_clarification returns question data."""
-        from agent.core import AutoplotAgent
+        from agent.core import OrchestratorAgent
 
         with patch("agent.core.genai"):
-            agent = AutoplotAgent.__new__(AutoplotAgent)
+            agent = OrchestratorAgent.__new__(OrchestratorAgent)
             agent.verbose = False
             agent._autoplot = None
 

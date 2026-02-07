@@ -490,6 +490,109 @@ class AutoplotCommands:
         self._label_colors.clear()
         return {"status": "success", "filepath": filepath}
 
+    def set_render_type(self, render_type: str, index: int = 0) -> dict:
+        """Change how data is rendered in the plot.
+
+        Args:
+            render_type: Render type name (e.g., 'series', 'scatter', 'spectrogram').
+            index: Plot element index (0-based).
+
+        Returns:
+            dict with status.
+        """
+        self._log(f"Setting render type to '{render_type}' for plot element {index}")
+        try:
+            dom = self.ctx.getDocumentModel()
+            pele = dom.getPlotElements(index)
+            RenderType = jpype.JClass("org.autoplot.RenderType")
+            rt = RenderType.valueOf(render_type)
+            pele.setRenderType(rt)
+            self.ctx.waitUntilIdle()
+            return {"status": "success", "render_type": render_type, "index": index}
+        except Exception as e:
+            return {"status": "error", "message": f"Failed to set render type: {e}"}
+
+    def set_color_table(self, name: str) -> dict:
+        """Set the color table (colormap) for the current plot.
+
+        Args:
+            name: Color table name (e.g., 'matlab_jet', 'grayscale').
+
+        Returns:
+            dict with status.
+        """
+        self._log(f"Setting color table to '{name}'")
+        try:
+            dom = self.ctx.getDocumentModel()
+            DasColorBar = jpype.JClass("org.das2.graph.DasColorBar")
+            Type = DasColorBar.Type
+            ct = Type.parse(name)
+            dom.getPlots(0).getZaxis().setColortable(ct)
+            self.ctx.waitUntilIdle()
+            return {"status": "success", "color_table": name}
+        except Exception as e:
+            return {"status": "error", "message": f"Failed to set color table: {e}"}
+
+    def set_canvas_size(self, width: int, height: int) -> dict:
+        """Set the canvas (image) size in pixels.
+
+        Args:
+            width: Width in pixels.
+            height: Height in pixels.
+
+        Returns:
+            dict with status.
+        """
+        self._log(f"Setting canvas size to {width}x{height}")
+        try:
+            self.ctx.setCanvasSize(width, height)
+            self.ctx.waitUntilIdle()
+            return {"status": "success", "width": width, "height": height}
+        except Exception as e:
+            return {"status": "error", "message": f"Failed to set canvas size: {e}"}
+
+    def export_pdf(self, filepath: str) -> dict:
+        """Export current plot to a PDF file.
+
+        Args:
+            filepath: Output file path (.pdf extension added if missing)
+
+        Returns:
+            dict with status and file path
+        """
+        if not filepath.endswith(".pdf"):
+            filepath += ".pdf"
+        filepath_normalized = filepath.replace("\\", "/")
+
+        # Ensure parent directory exists
+        parent = Path(filepath).parent
+        if parent and not parent.exists():
+            parent.mkdir(parents=True, exist_ok=True)
+
+        self._log(f"Exporting PDF to {filepath_normalized}...")
+        try:
+            self.ctx.waitUntilIdle()
+        except Exception:
+            return {
+                "status": "error",
+                "message": "No plot to export. Plot data first before exporting.",
+            }
+        self._run_with_elapsed("Exporting PDF", self.ctx.writeToPdf, filepath_normalized)
+
+        # Verify file was created
+        path_obj = Path(filepath)
+        if path_obj.exists() and path_obj.stat().st_size > 0:
+            return {
+                "status": "success",
+                "filepath": str(path_obj.resolve()),
+                "size_bytes": path_obj.stat().st_size,
+            }
+        else:
+            return {
+                "status": "error",
+                "message": f"PDF file not created or is empty: {filepath}",
+            }
+
     def get_current_state(self) -> dict:
         """
         Get the current plot state.
