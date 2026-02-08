@@ -24,7 +24,7 @@
 
 ---
 
-## Priority 1: Full CDAWeb Catalog Access
+## Priority 1: Full CDAWeb Catalog Access [DONE]
 
 **Effort:** ~4-6 hours | **Impact:** Highest — turns "8 missions" into "all of NASA heliophysics"
 

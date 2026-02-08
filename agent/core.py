@@ -485,6 +485,28 @@ class OrchestratorAgent:
                     result["resource_url"] = docs["resource_url"]
                 return result
 
+        elif tool_name == "search_full_catalog":
+            query = tool_args["query"]
+            max_results = int(tool_args.get("max_results", 20))
+            self.logger.debug(f"[Catalog] Full catalog search: {query}")
+            results = search_full_cdaweb_catalog(query, max_results=max_results)
+            if results:
+                return {
+                    "status": "success",
+                    "query": query,
+                    "count": len(results),
+                    "datasets": results,
+                    "note": "Use fetch_data with any dataset ID above. Use list_parameters to see available parameters.",
+                }
+            else:
+                return {
+                    "status": "success",
+                    "query": query,
+                    "count": 0,
+                    "datasets": [],
+                    "message": f"No datasets found matching '{query}'. Try broader search terms.",
+                }
+
         elif tool_name == "google_search":
             self.logger.debug(f"[Search] Query: {tool_args['query']}")
             return self._google_search(tool_args["query"])

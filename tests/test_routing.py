@@ -20,7 +20,7 @@ class TestToolCategoryFiltering:
 
     def test_no_filter_returns_all_tools(self):
         all_tools = get_tool_schemas()
-        assert len(all_tools) == 17  # 16 + google_search
+        assert len(all_tools) == 18  # 17 + search_full_catalog
         names = {t["name"] for t in all_tools}
         assert "execute_visualization" in names
         assert "custom_visualization" in names

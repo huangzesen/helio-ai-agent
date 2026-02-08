@@ -19,7 +19,7 @@ from knowledge.catalog import (
 class TestListSpacecraft:
     def test_returns_all_spacecraft(self):
         spacecraft = list_spacecraft()
-        assert len(spacecraft) == 8
+        assert len(spacecraft) >= 8  # 8 curated + auto-generated missions
         ids = [s["id"] for s in spacecraft]
         assert "PSP" in ids
         assert "SolO" in ids
@@ -40,7 +40,7 @@ class TestListSpacecraft:
 class TestListInstruments:
     def test_psp_instruments(self):
         instruments = list_instruments("PSP")
-        assert len(instruments) == 5
+        assert len(instruments) >= 5  # 5 curated + possible General
         ids = [i["id"] for i in instruments]
         assert "FIELDS/MAG" in ids
         assert "SWEAP" in ids
@@ -50,7 +50,7 @@ class TestListInstruments:
 
     def test_ace_instruments(self):
         instruments = list_instruments("ACE")
-        assert len(instruments) == 2
+        assert len(instruments) >= 2  # 2 curated + possible General
         ids = [i["id"] for i in instruments]
         assert "MAG" in ids
         assert "SWEPAM" in ids

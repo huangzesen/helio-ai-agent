@@ -1,0 +1,172 @@
+{
+  "id": "CSSWE",
+  "name": "CSSWE",
+  "keywords": [
+    "csswe"
+  ],
+  "profile": {
+    "description": "CSSWE spacecraft data from CDAWeb.",
+    "coordinate_systems": [],
+    "typical_cadence": "",
+    "data_caveats": [],
+    "analysis_patterns": []
+  },
+  "instruments": {
+    "General": {
+      "name": "General",
+      "keywords": [],
+      "datasets": {
+        "CSSWE_REPTILE_6SEC-COUNTS-L1": {
+          "description": "",
+          "start_date": "2012-09-14T00:28:03Z",
+          "stop_date": "2014-08-20T20:27:56Z",
+          "parameters": [
+            {
+              "name": "E1counts",
+              "type": "double",
+              "units": "cts/6-sec",
+              "description": "Counts for electrons E=0.58-1.63 MeV"
+            },
+            {
+              "name": "E2counts",
+              "type": "double",
+              "units": "cts/6-sec",
+              "description": "Counts for electrons E=1.63-3.8 MeV"
+            },
+            {
+              "name": "E3counts",
+              "type": "double",
+              "units": "cts/6-sec",
+              "description": "Counts for electrons E>3.8 MeV"
+            },
+            {
+              "name": "P1counts",
+              "type": "double",
+              "units": "cts/6-sec",
+              "description": "Counts for protons E=9-18 MeV"
+            },
+            {
+              "name": "P2counts",
+              "type": "double",
+              "units": "cts/6-sec",
+              "description": "Counts for protons E=18-30 MeV"
+            },
+            {
+              "name": "P3counts",
+              "type": "double",
+              "units": "cts/6-sec",
+              "description": "Counts for protons E=30-40 MeV"
+            },
+            {
+              "name": "L",
+              "type": "double",
+              "units": " ",
+              "description": "L value, calculated using the IGRF magnetic field model"
+            },
+            {
+              "name": "Latitude",
+              "type": "double",
+              "units": "deg",
+              "description": "Geographic Latitude"
+            },
+            {
+              "name": "Longitude",
+              "type": "double",
+              "units": "deg",
+              "description": "Geographic Longitude"
+            },
+            {
+              "name": "Altitude",
+              "type": "double",
+              "units": "km",
+              "description": "Altitude"
+            },
+            {
+              "name": "Valid",
+              "type": "integer",
+              "units": "(0=OK)",
+              "description": "Valid Flag"
+            }
+          ]
+        },
+        "CSSWE_REPTILE_6SEC-FLUX-L2": {
+          "description": "",
+          "start_date": "2012-09-14T00:28:03Z",
+          "stop_date": "2014-08-20T20:27:56Z",
+          "parameters": [
+            {
+              "name": "E1flux",
+              "type": "double",
+              "units": "#/MeV/s/sr/cm^2",
+              "description": "Flux for electrons E=0.58-1.63 MeV"
+            },
+            {
+              "name": "E2flux",
+              "type": "double",
+              "units": "#/MeV/s/sr/cm^2",
+              "description": "Flux for electrons E=1.63-3.8 MeV"
+            },
+            {
+              "name": "E3flux",
+              "type": "double",
+              "units": "#/s/sr/cm^2",
+              "description": "Flux for electrons E>3.8 MeV"
+            },
+            {
+              "name": "P1flux",
+              "type": "double",
+              "units": "#/MeV/s/sr/cm^2",
+              "description": "Flux for protons E=9-18 MeV"
+            },
+            {
+              "name": "P2flux",
+              "type": "double",
+              "units": "#/MeV/s/sr/cm^2",
+              "description": "Flux for protons E=18-30 MeV"
+            },
+            {
+              "name": "P3flux",
+              "type": "double",
+              "units": "#/MeV/s/sr/cm^2",
+              "description": "Flux for protons E=30-40 MeV"
+            },
+            {
+              "name": "L",
+              "type": "double",
+              "units": " ",
+              "description": "L value, calculated using the IGRF magnetic field model"
+            },
+            {
+              "name": "Latitude",
+              "type": "double",
+              "units": "deg",
+              "description": "Geographic Latitude"
+            },
+            {
+              "name": "Longitude",
+              "type": "double",
+              "units": "deg",
+              "description": "Geographic Longitude"
+            },
+            {
+              "name": "Altitude",
+              "type": "double",
+              "units": "km",
+              "description": "Altitude"
+            },
+            {
+              "name": "Valid",
+              "type": "integer",
+              "units": "(0=OK)",
+              "description": "Valid Flag"
+            }
+          ]
+        }
+      }
+    }
+  },
+  "_meta": {
+    "generated_at": "2026-02-08T09:24:39Z",
+    "hapi_server": "https://cdaweb.gsfc.nasa.gov/hapi"
+  }
+}

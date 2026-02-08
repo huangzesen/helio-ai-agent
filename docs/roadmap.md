@@ -27,9 +27,9 @@ Future development plan for the helio-ai-agent project.
 | Gradio Web UI | Done | Browser-based chat with inline Plotly plots, data sidebar |
 | Google Search | Done | Web search grounding via isolated Gemini API call |
 
-### Tools (17 Tool Schemas)
+### Tools (18 Tool Schemas)
 
-**Dataset Discovery**: `search_datasets`, `browse_datasets`, `list_parameters`, `get_data_availability`, `get_dataset_docs`, `google_search`
+**Dataset Discovery**: `search_datasets`, `browse_datasets`, `list_parameters`, `get_data_availability`, `get_dataset_docs`, `search_full_catalog`, `google_search`
 
 **Visualization**: `execute_visualization` (dispatches to 5 core registry methods), `custom_visualization` (free-form Plotly sandbox)
 
@@ -39,9 +39,9 @@ Future development plan for the helio-ai-agent project.
 
 **Routing**: `delegate_to_mission`, `delegate_to_data_ops`, `delegate_to_visualization`
 
-### Supported Spacecraft (8)
+### Supported Spacecraft (8 curated + full CDAWeb catalog)
 
-PSP, Solar Orbiter, ACE, OMNI, Wind, DSCOVR, MMS, STEREO-A
+PSP, Solar Orbiter, ACE, OMNI, Wind, DSCOVR, MMS, STEREO-A (curated with rich prompts) + all 2000+ CDAWeb datasets searchable via `search_full_catalog`
 
 ---
 
@@ -69,10 +69,10 @@ PSP, Solar Orbiter, ACE, OMNI, Wind, DSCOVR, MMS, STEREO-A
 ## Data Source Expansion
 
 ### New Spacecraft
-- [ ] Cluster — Multi-spacecraft magnetospheric mission
-- [ ] Voyager 1/2 — Heliospheric boundary
-- [ ] STEREO-B — Off-Sun-Earth-line (if data available)
-- [ ] Ulysses — High-latitude heliosphere
+- [x] Full CDAWeb catalog access — all 2000+ datasets searchable via `search_full_catalog`
+- [x] Shared prefix map — 40+ mission groups mapped via `knowledge/mission_prefixes.py`
+- [x] Auto-generated mission skeletons — `scripts/generate_mission_data.py --create-new`
+- [x] Cluster, Voyager, STEREO-B, Ulysses, THEMIS, GOES, Van Allen Probes, and more
 
 ### New Data Sources
 - [ ] Local CDF file loading (no network required)
@@ -81,10 +81,10 @@ PSP, Solar Orbiter, ACE, OMNI, Wind, DSCOVR, MMS, STEREO-A
 - [ ] Real-time data feeds
 
 ### Catalog Improvements
+- [x] Full CDAWeb catalog access (2000+ datasets via `search_full_catalog`)
 - [ ] Fuzzy matching for spacecraft/instrument names
 - [ ] Dataset recommendations based on time range
 - [ ] Automatic parameter suggestions
-- [ ] Full CDAWeb catalog access (2000+ datasets beyond the curated 8 missions)
 
 ---
 

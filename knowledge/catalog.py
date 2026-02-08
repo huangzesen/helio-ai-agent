@@ -7,6 +7,7 @@ HAPI API is used separately to fetch parameter metadata.
 Data is loaded from per-mission JSON files in knowledge/missions/.
 """
 
+import re
 from typing import Optional
 
 from .mission_loader import load_all_missions
@@ -95,8 +96,20 @@ def get_datasets(spacecraft: str, instrument: str) -> list[str]:
     return inst["datasets"]
 
 
+def _keyword_in_query(kw: str, query: str) -> bool:
+    """Check if a keyword appears in query as a whole word (word-boundary match).
+
+    This prevents short keywords like 'co' (Cassini) from matching inside
+    unrelated words like 'dscovr'.
+    """
+    return bool(re.search(r'\b' + re.escape(kw) + r'\b', query))
+
+
 def match_spacecraft(query: str) -> Optional[str]:
     """Match a query string to a spacecraft using keywords.
+
+    Uses word-boundary matching and prefers longer keyword matches to avoid
+    false positives from short prefixes (e.g., 'co' matching inside 'dscovr').
 
     Args:
         query: User's search query
@@ -106,16 +119,30 @@ def match_spacecraft(query: str) -> Optional[str]:
     """
     query_lower = query.lower()
 
-    for sc_id, info in SPACECRAFT.items():
-        # Check exact match on ID
+    # First pass: exact ID match
+    for sc_id in SPACECRAFT:
         if query_lower == sc_id.lower():
             return sc_id
-        # Check keywords
-        for kw in info["keywords"]:
-            if kw in query_lower:
-                return sc_id
 
-    return None
+    # Second pass: check if any spacecraft ID or name appears as a word in the query
+    # This catches "ace solar wind" → ACE (the ID "ace" is in the query)
+    for sc_id, info in SPACECRAFT.items():
+        if _keyword_in_query(sc_id.lower(), query_lower):
+            return sc_id
+        name_lower = info["name"].lower()
+        if _keyword_in_query(name_lower, query_lower):
+            return sc_id
+
+    # Third pass: keyword match with word boundaries, prefer longest match
+    best_match = None
+    best_kw_len = 0
+    for sc_id, info in SPACECRAFT.items():
+        for kw in info["keywords"]:
+            if len(kw) > best_kw_len and _keyword_in_query(kw, query_lower):
+                best_match = sc_id
+                best_kw_len = len(kw)
+
+    return best_match
 
 
 def match_instrument(spacecraft: str, query: str) -> Optional[str]:
@@ -144,13 +171,16 @@ def match_instrument(spacecraft: str, query: str) -> Optional[str]:
             if kw == query_lower:
                 return inst_id
 
-    # Second pass: substring keyword matches
+    # Second pass: word-boundary keyword matches, prefer longest
+    best_match = None
+    best_kw_len = 0
     for inst_id, info in sc["instruments"].items():
         for kw in info["keywords"]:
-            if kw in query_lower:
-                return inst_id
+            if len(kw) > best_kw_len and _keyword_in_query(kw, query_lower):
+                best_match = inst_id
+                best_kw_len = len(kw)
 
-    return None
+    return best_match
 
 
 def search_by_keywords(query: str) -> Optional[dict]:

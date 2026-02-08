@@ -339,6 +339,35 @@ Do NOT use imports — only fig, go, and np are available.""",
         }
     },
 
+    # --- Full Catalog Search ---
+    {
+        "category": "discovery",
+        "name": "search_full_catalog",
+        "description": """Search the full CDAWeb HAPI catalog (2000+ datasets) by keyword. Use this when:
+- User asks about a spacecraft or instrument NOT in the supported missions table
+- User wants to browse broadly across all available data (e.g., "what magnetospheric data is available?")
+- User asks about a mission you don't have a specialist agent for (Cluster, THEMIS, Voyager, GOES, etc.)
+- User wants to search by physical quantity across all missions (e.g., "proton density datasets")
+
+Returns matching dataset IDs and titles. Any dataset found can be fetched with fetch_data — you do NOT need a mission agent for uncurated missions.
+
+Do NOT use this for missions already in the routing table (PSP, ACE, etc.) — use delegate_to_mission instead.""",
+        "parameters": {
+            "type": "object",
+            "properties": {
+                "query": {
+                    "type": "string",
+                    "description": "Search terms (spacecraft name, instrument, physical quantity, e.g., 'cluster magnetic field', 'voyager 2', 'proton density')"
+                },
+                "max_results": {
+                    "type": "integer",
+                    "description": "Maximum results to return (default 20)"
+                }
+            },
+            "required": ["query"]
+        }
+    },
+
     # --- Search ---
     {
         "category": "discovery",

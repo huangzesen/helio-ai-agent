@@ -32,7 +32,7 @@ def load_mission(mission_id: str) -> dict:
         FileNotFoundError: If no JSON file exists for this mission.
         json.JSONDecodeError: If the JSON file is malformed.
     """
-    cache_key = mission_id.lower()
+    cache_key = mission_id.lower().replace("-", "_")
 
     if cache_key not in _mission_cache:
         filepath = _MISSIONS_DIR / f"{cache_key}.json"

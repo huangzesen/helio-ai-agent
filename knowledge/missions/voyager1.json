@@ -1,0 +1,1788 @@
+{
+  "id": "VOYAGER1",
+  "name": "Voyager 1",
+  "keywords": [
+    "vg1",
+    "voyager",
+    "voyager-1",
+    "voyager1"
+  ],
+  "profile": {
+    "description": "Voyager 1 spacecraft data from CDAWeb.",
+    "coordinate_systems": [],
+    "typical_cadence": "",
+    "data_caveats": [],
+    "analysis_patterns": []
+  },
+  "instruments": {
+    "General": {
+      "name": "General",
+      "keywords": [],
+      "datasets": {
+        "VG1_PWS_LR": {
+          "description": "",
+          "start_date": "1977-09-05T14:20:39Z",
+          "stop_date": "2026-02-01T14:06:11Z",
+          "parameters": [
+            {
+              "name": "electric_field",
+              "type": "double",
+              "units": "V/m",
+              "description": "Electric Field (spectrogram)",
+              "size": [
+                16
+              ]
+            },
+            {
+              "name": "electric_field_stack",
+              "type": "double",
+              "units": "V/m",
+              "description": "---> Electric Field (stacked plots)",
+              "size": [
+                16
+              ]
+            },
+            {
+              "name": "electric_field_timeseries",
+              "type": "double",
+              "units": "V/m",
+              "description": "---> Electric Field (time series)",
+              "size": [
+                16
+              ]
+            }
+          ]
+        },
+        "VG1_PWS_WF@0": {
+          "description": "",
+          "start_date": "1978-08-21T05:41:36Z",
+          "stop_date": "2025-04-21T17:03:59Z",
+          "parameters": [
+            {
+              "name": "Waveform",
+              "type": "integer",
+              "units": " ",
+              "description": "Raw Values, Centered/Scaled (RAW*2 - 15) - spectrogram",
+              "size": [
+                1600
+              ]
+            }
+          ]
+        },
+        "VG1_PWS_WF@1": {
+          "description": "",
+          "start_date": "1978-08-21T05:41:36Z",
+          "stop_date": "2025-04-21T17:03:59Z",
+          "parameters": [
+            {
+              "name": "Waveform_time",
+              "type": "integer",
+              "units": " ",
+              "description": "Raw Values, Centered/Scaled (RAW*2 - 15) - very high res. time-series",
+              "size": [
+                1600
+              ]
+            }
+          ]
+        },
+        "VOYAGER-1_LECP_ELEC-BGND-COR-1D": {
+          "description": "",
+          "start_date": "2002-01-01T00:00:00Z",
+          "stop_date": "2012-08-27T00:00:00Z",
+          "parameters": [
+            {
+              "name": "EB01_fav",
+              "type": "double",
+              "units": "electrons/cm^2-s-sr-MeV",
+              "description": "EB01 Flux, electrons 26-37 keV"
+            },
+            {
+              "name": "EB01_favu",
+              "type": "double",
+              "units": "electrons/cm^2-s-sr-MeV",
+              "description": "Stat. Uncertainty of EB01 FAV"
+            },
+            {
+              "name": "EB02_fav",
+              "type": "double",
+              "units": "electrons/cm^2-s-sr-MeV",
+              "description": "EB02 Flux, electrons 37-70 keV"
+            },
+            {
+              "name": "EB02_favu",
+              "type": "double",
+              "units": "electrons/cm^2-s-sr-MeV",
+              "description": "Stat. Uncertainty of EB02 FAV"
+            }
+          ]
+        },
+        "VOYAGER1_10S_MAG@0": {
+          "description": "",
+          "start_date": "1977-09-05T14:19:47Z",
+          "stop_date": "1991-12-27T00:00:42Z",
+          "parameters": [
+            {
+              "name": "B_error",
+              "type": "double",
+              "units": "nT",
+              "description": "V1 Fixed B Error"
+            },
+            {
+              "name": "F1",
+              "type": "double",
+              "units": "nT",
+              "description": "B-Magnitude by Method 1 (F1): 9.6 second average of 1.92 second magnitudes"
+            },
+            {
+              "name": "F2",
+              "type": "double",
+              "units": "nT",
+              "description": "B-Magnitude by Method 2 (F2): average derived from 9.6 second component averages=sqrt(B1^2+B2^2+B3^2)"
+            },
+            {
+              "name": "B1",
+              "type": "double",
+              "units": "nT",
+              "description": "BR (B1): 9.6 second average of 1.92 second averages of the B-radial component in HG coords"
+            },
+            {
+              "name": "B2",
+              "type": "double",
+              "units": "nT",
+              "description": "BT (B2): 9.6 second average of 1.92 second averages of the B-tangential component in HG coords"
+            },
+            {
+              "name": "B3",
+              "type": "double",
+              "units": "nT",
+              "description": "BN (B3): 9.6 second average of 1.92 second averages of the B-normal component in HG coords"
+            },
+            {
+              "name": "F1_100nt",
+              "type": "double",
+              "units": "nT",
+              "description": "[100 nT Plot Scale] B-Magnitude by Method 1 (F1): 9.6 second average of 1.92 second magnitudes"
+            },
+            {
+              "name": "F2_100nt",
+              "type": "double",
+              "units": "nT",
+              "description": "B-Magnitude by Method 2 (F2): average derived from 9.6 second component averages=sqrt(B1^2+B2^2+B3^2)"
+            },
+            {
+              "name": "B1_100nt",
+              "type": "double",
+              "units": "nT",
+              "description": "BR (B1): 9.6 second average of 1.92 second averages of the B-radial component in HG coords"
+            },
+            {
+              "name": "B2_100nt",
+              "type": "double",
+              "units": "nT",
+              "description": "BT (B2): 9.6 second average of 1.92 second averages of the B-tangential component in HG coords"
+            },
+            {
+              "name": "B3_100nt",
+              "type": "double",
+              "units": "nT",
+              "description": "BN (B3): 9.6 second average of 1.92 second averages of the B-normal component in HG coords"
+            },
+            {
+              "name": "F1_10nt",
+              "type": "double",
+              "units": "nT",
+              "description": "[10nT Plot Scale] B-Magnitude by Method 1 (F1): 9.6 second average of 1.92 second magnitudes"
+            },
+            {
+              "name": "F2_10nt",
+              "type": "double",
+              "units": "nT",
+              "description": "B-Magnitude by Method 2 (F2): average derived from 9.6 second component averages=sqrt(B1^2+B2^2+B3^2)"
+            },
+            {
+              "name": "B1_10nt",
+              "type": "double",
+              "units": "nT",
+              "description": "BR (B1): 9.6 second average of 1.92 second averages of the B-radial component in HG coords"
+            },
+            {
+              "name": "B2_10nt",
+              "type": "double",
+              "units": "nT",
+              "description": "BT (B2): 9.6 second average of 1.92 second averages of the B-tangential component in HG coords"
+            },
+            {
+              "name": "B3_10nt",
+              "type": "double",
+              "units": "nT",
+              "description": "BN (B3): 9.6 second average of 1.92 second averages of the B-normal component in HG coords"
+            },
+            {
+              "name": "F1_1nt",
+              "type": "double",
+              "units": "nT",
+              "description": "[1nT Plot Scale] B-Magnitude by Method 1 (F1): 9.6 second average of 1.92 second magnitudes"
+            },
+            {
+              "name": "F2_1nt",
+              "type": "double",
+              "units": "nT",
+              "description": "B-Magnitude by Method 2 (F2): average derived from 9.6 second component averages=sqrt(B1^2+B2^2+B3^2)"
+            },
+            {
+              "name": "B1_1nt",
+              "type": "double",
+              "units": "nT",
+              "description": "BR (B1): 9.6 second average of 1.92 second averages of the B-radial component in HG coords"
+            },
+            {
+              "name": "B2_1nt",
+              "type": "double",
+              "units": "nT",
+              "description": "BT (B2): 9.6 second average of 1.92 second averages of the B-tangential component in HG coords"
+            },
+            {
+              "name": "B3_1nt",
+              "type": "double",
+              "units": "nT",
+              "description": "BN (B3): 9.6 second average of 1.92 second averages of the B-normal component in HG coords"
+            },
+            {
+              "name": "F1_dot1nt",
+              "type": "double",
+              "units": "nT",
+              "description": "[0.1nT Plot Scale] B-Magnitude by Method 1 (F1): 9.6 second average of 1.92 second magnitudes"
+            },
+            {
+              "name": "F2_dot1nt",
+              "type": "double",
+              "units": "nT",
+              "description": "B-Magnitude by Method 2 (F2): average derived from 9.6 second component averages=sqrt(B1^2+B2^2+B3^2)"
+            },
+            {
+              "name": "B1_dot1nt",
+              "type": "double",
+              "units": "nT",
+              "description": "BR (B1): 9.6 second average of 1.92 second averages of the B-radial component in HG coords"
+            },
+            {
+              "name": "B2_dot1nt",
+              "type": "double",
+              "units": "nT",
+              "description": "BT (B2): 9.6 second average of 1.92 second averages of the B-tangential component in HG coords"
+            },
+            {
+              "name": "B3_dot1nt",
+              "type": "double",
+              "units": "nT",
+              "description": "BN (B3): 9.6 second average of 1.92 second averages of the B-normal component in HG coords"
+            },
+            {
+              "name": "RMSB1",
+              "type": "double",
+              "units": "nT",
+              "description": "RMS of B Radial"
+            },
+            {
+              "name": "RMSB2",
+              "type": "double",
+              "units": "nT",
+              "description": "RMS of B Tangential"
+            },
+            {
+              "name": "RMSB3",
+              "type": "double",
+              "units": "nT",
+              "description": "RMS of B Normal"
+            }
+          ]
+        },
+        "VOYAGER1_10S_MAG@1": {
+          "description": "",
+          "start_date": "1977-09-05T14:19:47Z",
+          "stop_date": "1991-12-27T00:00:42Z",
+          "parameters": [
+            {
+              "name": "x",
+              "type": "double",
+              "units": "AU",
+              "description": "V1 X position in IHG coords"
+            },
+            {
+              "name": "y",
+              "type": "double",
+              "units": "AU",
+              "description": "V1 Y position in IHG coords"
+            },
+            {
+              "name": "z",
+              "type": "double",
+              "units": "AU",
+              "description": "V1 Z position in IHG coords"
+            },
+            {
+              "name": "xvel",
+              "type": "double",
+              "units": "km/s",
+              "description": "V1 X velocity in IHG coords"
+            },
+            {
+              "name": "yvel",
+              "type": "double",
+              "units": "km/s",
+              "description": "V1 Y velocity in IHG coords"
+            },
+            {
+              "name": "zvel",
+              "type": "double",
+              "units": "km/s",
+              "description": "V1 Z velocity in IHG coords"
+            },
+            {
+              "name": "scDistance",
+              "type": "double",
+              "units": "Au",
+              "description": "V1 distance from the Sun"
+            },
+            {
+              "name": "scLon",
+              "type": "double",
+              "units": "radians",
+              "description": "V1 longitude in IHG coords = asin(Z/R)"
+            },
+            {
+              "name": "scLat",
+              "type": "double",
+              "units": "radians",
+              "description": "V1 latitude in IHG coords = asin(Z/R)"
+            },
+            {
+              "name": "matrix1",
+              "type": "double",
+              "units": " ",
+              "description": "Matrix1: transforms 3-element vector from Inertial Heliographic (IHG) to Heliographic (HG)coordinates.",
+              "size": [
+                9
+              ]
+            },
+            {
+              "name": "matrix2",
+              "type": "double",
+              "units": " ",
+              "description": "Matrix2: transforms 3-element vector from Earth Mean ecliptic, Equinox of 1950 (EME 50) to Heliographic (HG) coordinates.",
+              "size": [
+                9
+              ]
+            },
+            {
+              "name": "matrix3",
+              "type": "double",
+              "units": " ",
+              "description": "Matrix3: transforms 3-element vector from payload coordinates to Heliographic (HG) coordinates.",
+              "size": [
+                9
+              ]
+            }
+          ]
+        },
+        "VOYAGER1_1HR_MAG": {
+          "description": "",
+          "start_date": "1990-01-01T17:00:00Z",
+          "stop_date": "1990-12-31T08:59:59Z",
+          "parameters": [
+            {
+              "name": "Spacecraft",
+              "type": "integer",
+              "units": " ",
+              "description": "Spacecraft id, 1 for voyager1, 2 for voyager2"
+            },
+            {
+              "name": "F1Mag",
+              "type": "double",
+              "units": "nT",
+              "description": "Magnetic field strength from hourly average of high-resolution magnitudes"
+            },
+            {
+              "name": "elevation",
+              "type": "double",
+              "units": "degrees ",
+              "description": "The elevation angle  in heliographic (RTN) coordinates"
+            },
+            {
+              "name": "azimuth",
+              "type": "double",
+              "units": "degrees",
+              "description": "The azimuthal angle in heliographic (RTN) coordinates"
+            },
+            {
+              "name": "F2Mag",
+              "type": "double",
+              "units": "nT",
+              "description": "Magnetic field strength from magnitude of the hourly averaged vector field"
+            }
+          ]
+        },
+        "VOYAGER1_2S_MAG": {
+          "description": "",
+          "start_date": "1977-09-08T00:00:35Z",
+          "stop_date": "1991-12-27T00:00:42Z",
+          "parameters": [
+            {
+              "name": "F1_100nt",
+              "type": "double",
+              "units": "nT",
+              "description": "[100nT Plot Scale] B-Magnitude by Method 1 (F1): 1.92 second averge of detail magnitudes"
+            },
+            {
+              "name": "F2_100nt",
+              "type": "double",
+              "units": "nT",
+              "description": "---> B-Magnitude by Method 2 (F2): average derived from 1.92 second component averages=sqrt(B1**2+B2**2+B3**2)"
+            },
+            {
+              "name": "B1_100nt",
+              "type": "double",
+              "units": "nT",
+              "description": "---> BR (B1): 1.92 second averge of detail averages of the B-radial component in HG coords"
+            },
+            {
+              "name": "B2_100nt",
+              "type": "double",
+              "units": "nT",
+              "description": "---> BT (B2): 1.92 second averge of detail averages of the B-tangential component in HG coords"
+            },
+            {
+              "name": "B3_100nt",
+              "type": "double",
+              "units": "nT",
+              "description": "---> BN (B3): 1.92 second averge of detail averages of the B-normal component in HG coords"
+            },
+            {
+              "name": "F1_10nt",
+              "type": "double",
+              "units": "nT",
+              "description": "[10nT Plot Scale] B-Magnitude by Method 1 (F1): 1.92 second averge of detail magnitudes"
+            },
+            {
+              "name": "F2_10nt",
+              "type": "double",
+              "units": "nT",
+              "description": "---> B-Magnitude by Method 2 (F2): average derived from 1.92 second component averages=sqrt(B1**2+B2**2+B3**2)"
+            },
+            {
+              "name": "B1_10nt",
+              "type": "double",
+              "units": "nT",
+              "description": "---> BR (B1): 1.92 second averge of detail averages of the B-radial component in HG coords"
+            },
+            {
+              "name": "B2_10nt",
+              "type": "double",
+              "units": "nT",
+              "description": "---> BT (B2): 1.92 second averge of detail averages of the B-tangential component in HG coords"
+            },
+            {
+              "name": "B3_10nt",
+              "type": "double",
+              "units": "nT",
+              "description": "---> BN (B3): 1.92 second averge of detail averages of the B-normal component in HG coords"
+            },
+            {
+              "name": "F1_1nt",
+              "type": "double",
+              "units": "nT",
+              "description": "[1nT Plot Scale] B-Magnitude by Method 1 (F1): 1.92 second averge of detail magnitudes"
+            },
+            {
+              "name": "F2_1nt",
+              "type": "double",
+              "units": "nT",
+              "description": "---> B-Magnitude by Method 2 (F2): average derived from 1.92 second component averages=sqrt(B1**2+B2**2+B3**2)"
+            },
+            {
+              "name": "B1_1nt",
+              "type": "double",
+              "units": "nT",
+              "description": "---> BR (B1): 1.92 second averge of detail averages of the B-radial component in HG coords"
+            },
+            {
+              "name": "B2_1nt",
+              "type": "double",
+              "units": "nT",
+              "description": "---> BT (B2): 1.92 second averge of detail averages of the B-tangential component in HG coords"
+            },
+            {
+              "name": "B3_1nt",
+              "type": "double",
+              "units": "nT",
+              "description": "---> BN (B3): 1.92 second averge of detail averages of the B-normal component in HG coords"
+            },
+            {
+              "name": "F1_dot1nt",
+              "type": "double",
+              "units": "nT",
+              "description": "[0.1nT Plot Scale] B-Magnitude by Method 1 (F1): 1.92 second averge of detail magnitudes"
+            },
+            {
+              "name": "F2_dot1nt",
+              "type": "double",
+              "units": "nT",
+              "description": "---> B-Magnitude by Method 2 (F2): average derived from 1.92 second component averages=sqrt(B1**2+B2**2+B3**2)"
+            },
+            {
+              "name": "B1_dot1nt",
+              "type": "double",
+              "units": "nT",
+              "description": "---> BR (B1): 1.92 second averge of detail averages of the B-radial component in HG coords"
+            },
+            {
+              "name": "B2_dot1nt",
+              "type": "double",
+              "units": "nT",
+              "description": "---> BT (B2): 1.92 second averge of detail averages of the B-tangential component in HG coords"
+            },
+            {
+              "name": "B3_dot1nt",
+              "type": "double",
+              "units": "nT",
+              "description": "---> BN (B3): 1.92 second averge of detail averages of the B-normal component in HG coords"
+            }
+          ]
+        },
+        "VOYAGER1_48S_MAG": {
+          "description": "",
+          "start_date": "1977-09-05T14:19:47Z",
+          "stop_date": "1991-12-27T00:00:42Z",
+          "parameters": [
+            {
+              "name": "F1",
+              "type": "double",
+              "units": "nT",
+              "description": "B-Magnitude by Method 1 (F1): 48 second average of 9.6 second magnitudes"
+            },
+            {
+              "name": "F2",
+              "type": "double",
+              "units": "nT",
+              "description": "B-Magnitude by Method 2 (F2): average derived from 48 second component averages=sqrt(B1**2+B2**2+B3**2)"
+            },
+            {
+              "name": "B1",
+              "type": "double",
+              "units": "nT",
+              "description": "BR (B1): 48 second average of 9.6 second averages of the B-radial component in HG coords"
+            },
+            {
+              "name": "B2",
+              "type": "double",
+              "units": "nT",
+              "description": "---> BT (B2): 48 second average of 9.6 second averages of the B-tangential component in HG coords"
+            },
+            {
+              "name": "B3",
+              "type": "double",
+              "units": "nT",
+              "description": "---> BN (B3): 48 second average of 9.6 second averages of the B-normal component in HG coords"
+            },
+            {
+              "name": "F1_100nt",
+              "type": "double",
+              "units": "nT",
+              "description": "[100nT plot scale] B-Magnitude by Method 1 (F1): 48 second average of 9.6 second magnitudes"
+            },
+            {
+              "name": "F2_100nt",
+              "type": "double",
+              "units": "nT",
+              "description": "---> B-Magnitude by Method 2 (F2): average derived from 48 second component averages=sqrt(B1**2+B2**2+B3**2)"
+            },
+            {
+              "name": "B1_100nt",
+              "type": "double",
+              "units": "nT",
+              "description": "---> BR (B1): 48 second average of 9.6 second averages of the B-radial component in HG coords"
+            },
+            {
+              "name": "B2_100nt",
+              "type": "double",
+              "units": "nT",
+              "description": "---> BT (B2): 48 second average of 9.6 second averages of the B-tangential component in HG coords"
+            },
+            {
+              "name": "B3_100nt",
+              "type": "double",
+              "units": "nT",
+              "description": "---> BN (B3): 48 second average of 9.6 second averages of the B-normal component in HG coords"
+            },
+            {
+              "name": "F1_10nt",
+              "type": "double",
+              "units": "nT",
+              "description": "[10nT plot scale] B-Magnitude by Method 1 (F1): 48 second average of 9.6 second magnitudes"
+            },
+            {
+              "name": "F2_10nt",
+              "type": "double",
+              "units": "nT",
+              "description": "---> B-Magnitude by Method 2 (F2): average derived from 48 second component averages=sqrt(B1**2+B2**2+B3**2)"
+            },
+            {
+              "name": "B1_10nt",
+              "type": "double",
+              "units": "nT",
+              "description": "---> BR (B1): 48 second average of 9.6 second averages of the B-radial component in HG coords"
+            },
+            {
+              "name": "B2_10nt",
+              "type": "double",
+              "units": "nT",
+              "description": "---> BT (B2): 48 second average of 9.6 second averages of the B-tangential component in HG coords"
+            },
+            {
+              "name": "B3_10nt",
+              "type": "double",
+              "units": "nT",
+              "description": "---> BN (B3): 48 second average of 9.6 second averages of the B-normal component in HG coords"
+            },
+            {
+              "name": "F1_1nt",
+              "type": "double",
+              "units": "nT",
+              "description": "[1nT plot scale] B-Magnitude by Method 1 (F1): 48 second average of 9.6 second magnitudes"
+            },
+            {
+              "name": "F2_1nt",
+              "type": "double",
+              "units": "nT",
+              "description": "---> B-Magnitude by Method 2 (F2): average derived from 48 second component averages=sqrt(B1**2+B2**2+B3**2)"
+            },
+            {
+              "name": "B1_1nt",
+              "type": "double",
+              "units": "nT",
+              "description": "---> BR (B1): 48 second average of 9.6 second averages of the B-radial component in HG coords"
+            },
+            {
+              "name": "B2_1nt",
+              "type": "double",
+              "units": "nT",
+              "description": "---> BT (B2): 48 second average of 9.6 second averages of the B-tangential component in HG coords"
+            },
+            {
+              "name": "B3_1nt",
+              "type": "double",
+              "units": "nT",
+              "description": "---> BN (B3): 48 second average of 9.6 second averages of the B-normal component in HG coords"
+            },
+            {
+              "name": "F1_dot1nt",
+              "type": "double",
+              "units": "nT",
+              "description": "[0.1nT plot scale] B-Magnitude by Method 1 (F1): 48 second average of 9.6 second magnitudes"
+            },
+            {
+              "name": "F2_dot1nt",
+              "type": "double",
+              "units": "nT",
+              "description": "---> B-Magnitude by Method 2 (F2): average derived from 48 second component averages=sqrt(B1**2+B2**2+B3**2)"
+            },
+            {
+              "name": "B1_dot1nt",
+              "type": "double",
+              "units": "nT",
+              "description": "---> BR (B1): 48 second average of 9.6 second averages of the B-radial component in HG coords"
+            },
+            {
+              "name": "B2_dot1nt",
+              "type": "double",
+              "units": "nT",
+              "description": "---> BT (B2): 48 second average of 9.6 second averages of the B-tangential component in HG coords"
+            },
+            {
+              "name": "B3_dot1nt",
+              "type": "double",
+              "units": "nT",
+              "description": "---> BN (B3): 48 second average of 9.6 second averages of the B-normal component in HG coords"
+            },
+            {
+              "name": "RMSB1",
+              "type": "double",
+              "units": "nT",
+              "description": "RMS of BR"
+            },
+            {
+              "name": "RMSB2",
+              "type": "double",
+              "units": "nT",
+              "description": "---> RMS of BT"
+            },
+            {
+              "name": "RMSB3",
+              "type": "double",
+              "units": "nT",
+              "description": "---> RMS of BN"
+            },
+            {
+              "name": "x",
+              "type": "double",
+              "units": "AU",
+              "description": "V1 X position in IHG coords"
+            },
+            {
+              "name": "y",
+              "type": "double",
+              "units": "AU",
+              "description": "---> V1 Y position in IHG coords"
+            },
+            {
+              "name": "z",
+              "type": "double",
+              "units": "AU",
+              "description": "---> V1 Z position in IHG coords"
+            },
+            {
+              "name": "xvel",
+              "type": "double",
+              "units": "km/s",
+              "description": "V1 X velocity in IHG coords"
+            },
+            {
+              "name": "yvel",
+              "type": "double",
+              "units": "km/s",
+              "description": "---> V1 Y velocity in IHG coords"
+            },
+            {
+              "name": "zvel",
+              "type": "double",
+              "units": "km/s",
+              "description": "---> V1 Z velocity in IHG coords"
+            },
+            {
+              "name": "scDistance",
+              "type": "double",
+              "units": "Au",
+              "description": "V1 distance from the Sun"
+            },
+            {
+              "name": "scLon",
+              "type": "double",
+              "units": "radians",
+              "description": "---> V1 longitude in IHG coords = asin(Z/R)"
+            },
+            {
+              "name": "scLat",
+              "type": "double",
+              "units": "radians",
+              "description": "---> V1 latitude in IHG coords = asin(Z/R)"
+            },
+            {
+              "name": "matrix1",
+              "type": "double",
+              "units": " ",
+              "description": "Matrix1: transforms 3-element vector from Inertial Heliographic (IHG) to Heliographic (HG)coordinates.",
+              "size": [
+                9
+              ]
+            },
+            {
+              "name": "matrix2",
+              "type": "double",
+              "units": " ",
+              "description": "---> Matrix2: transforms 3-element vector from Earth Mean ecliptic, Equinox of 1950 (EME 50) to Heliographic (HG) coordinates.",
+              "size": [
+                9
+              ]
+            },
+            {
+              "name": "matrix3",
+              "type": "double",
+              "units": " ",
+              "description": "---> Matrix3: transforms 3-element vector from payload coordinates to Heliographic (HG) coordinates.",
+              "size": [
+                9
+              ]
+            }
+          ]
+        },
+        "VOYAGER1_48S_MAG-VIM@0": {
+          "description": "",
+          "start_date": "2009-01-01T04:10:26Z",
+          "stop_date": "2025-06-30T00:01:28Z",
+          "parameters": [
+            {
+              "name": "F1",
+              "type": "double",
+              "units": "nT",
+              "description": "B Field Magnitude (average of fine scale magnitudes)"
+            },
+            {
+              "name": "BR",
+              "type": "double",
+              "units": "nT",
+              "description": "BR in RTN (Radial-Tangential-Normal) coordinate system (w/ uncertainty)"
+            },
+            {
+              "name": "BT",
+              "type": "double",
+              "units": "nT",
+              "description": "BT in RTN coordinate system (w/ uncertainty)"
+            },
+            {
+              "name": "BN",
+              "type": "double",
+              "units": "nT",
+              "description": "BN in RTN coordinate system (w/ uncertainty)"
+            },
+            {
+              "name": "dF",
+              "type": "double",
+              "units": "nT",
+              "description": "Uncertainty in B"
+            },
+            {
+              "name": "dBR",
+              "type": "double",
+              "units": "nT",
+              "description": "Uncertainty in BR"
+            },
+            {
+              "name": "dBT",
+              "type": "double",
+              "units": "nT",
+              "description": "Uncertainty in BT"
+            },
+            {
+              "name": "dBN",
+              "type": "double",
+              "units": "nT",
+              "description": "Uncertainty in BN"
+            }
+          ]
+        },
+        "VOYAGER1_48S_MAG-VIM@1": {
+          "description": "",
+          "start_date": "2009-01-01T04:10:26Z",
+          "stop_date": "2025-06-30T00:01:28Z",
+          "parameters": [
+            {
+              "name": "Radius",
+              "type": "double",
+              "units": "au",
+              "description": "Radius"
+            },
+            {
+              "name": "hg_lat",
+              "type": "double",
+              "units": "deg",
+              "description": "heliographic latitude"
+            },
+            {
+              "name": "hg_lon",
+              "type": "double",
+              "units": "deg",
+              "description": "heliographic longitude"
+            },
+            {
+              "name": "hgi_lon",
+              "type": "double",
+              "units": "deg",
+              "description": "heliographic inertial longitude"
+            }
+          ]
+        },
+        "VOYAGER1_COHO1HR_MERGED_MAG_PLASMA": {
+          "description": "",
+          "start_date": "1977-01-01T00:00:00Z",
+          "stop_date": "2025-06-30T00:00:00Z",
+          "parameters": [
+            {
+              "name": "heliocentricDistance",
+              "type": "double",
+              "units": "AU",
+              "description": "Heliocentric Distance"
+            },
+            {
+              "name": "heliographicLatitude",
+              "type": "double",
+              "units": "deg",
+              "description": "HelioGraphic Inertial (HGI) latitude of the spacecraft position at the start of data interval"
+            },
+            {
+              "name": "heliographicLongitude",
+              "type": "double",
+              "units": "deg",
+              "description": "HelioGraphic Inertial (HGI) longitude of the spacecraft position at the start of data interval "
+            },
+            {
+              "name": "ABS_B",
+              "type": "double",
+              "units": "nT",
+              "description": "B Field Magnitude (average of fine scale magnitudes)"
+            },
+            {
+              "name": "F",
+              "type": "double",
+              "units": "nT",
+              "description": "Magnitude of Average Field, sqrt(Bx^2+By^2+Bz^2), nT"
+            },
+            {
+              "name": "BR",
+              "type": "double",
+              "units": "nT",
+              "description": "BR in RTN (Radial-Tangential-Normal) coordinate system (w/ uncertainty)"
+            },
+            {
+              "name": "BT",
+              "type": "double",
+              "units": "nT",
+              "description": "BT in RTN coordinate system (w/ uncertainty)"
+            },
+            {
+              "name": "BN",
+              "type": "double",
+              "units": "nT",
+              "description": "BN in RTN coordinate system (w/ uncertainty)"
+            },
+            {
+              "name": "V",
+              "type": "double",
+              "units": "km/s",
+              "description": "Bulk Flow Speed"
+            },
+            {
+              "name": "elevAngle",
+              "type": "double",
+              "units": "Deg",
+              "description": "THETA - elevation angle of the velocity vector (RTN)"
+            },
+            {
+              "name": "azimuthAngle",
+              "type": "double",
+              "units": "Deg",
+              "description": "PHI - azimuth angle of the velocity vector (RTN)"
+            },
+            {
+              "name": "protonDensity",
+              "type": "double",
+              "units": "n/cc",
+              "description": "Proton density"
+            },
+            {
+              "name": "protonTemp",
+              "type": "double",
+              "units": "deg K",
+              "description": "Proton Temperature (calculated from thermal speed width T=60.5*Vth*Vth)"
+            },
+            {
+              "name": "protonFlux1_LECP",
+              "type": "double",
+              "units": "1/(cm^2 sec ster MeV)",
+              "description": "Proton Flux 0.57 - 1.78 energy bins, MeV, LECP"
+            },
+            {
+              "name": "protonFlux2_LECP",
+              "type": "double",
+              "units": "1/(cm^2 sec ster MeV)",
+              "description": "Proton Flux 3.40 - 17.6 energy bins, MeV, LECP"
+            },
+            {
+              "name": "protonFlux3_LECP",
+              "type": "double",
+              "units": "1/(cm^2 sec ster MeV)",
+              "description": "Proton Flux 22.0 - 31.0 energy bins, MeV, LECP"
+            },
+            {
+              "name": "protonFlux1_CRS",
+              "type": "double",
+              "units": "1/(cm^2 sec ster MeV)",
+              "description": "Proton Flux 3.000 - 4.600 energy bins, MeV, CRS (6-hr)"
+            },
+            {
+              "name": "protonFlux2_CRS",
+              "type": "double",
+              "units": "1/(cm^2 sec ster MeV)",
+              "description": "Proton Flux 4.600 - 6.200 energy bins, MeV, CRS (6-hr)"
+            },
+            {
+              "name": "protonFlux3_CRS",
+              "type": "double",
+              "units": "1/(cm^2 sec ster MeV)",
+              "description": "Proton Flux 6.200 - 7.700 energy bins, MeV, CRS (6-hr)"
+            },
+            {
+              "name": "protonFlux4_CRS",
+              "type": "double",
+              "units": "1/(cm^2 sec ster MeV)",
+              "description": "Proton Flux 7.700 - 12.800 energy bins, MeV, CRS (6-hr)"
+            },
+            {
+              "name": "protonFlux5_CRS",
+              "type": "double",
+              "units": "1/(cm^2 sec ster MeV)",
+              "description": "Proton Flux 12.800 - 17.900 energy bins, MeV, CRS (6-hr)"
+            },
+            {
+              "name": "protonFlux6_CRS",
+              "type": "double",
+              "units": "1/(cm^2 sec ster MeV)",
+              "description": "Proton Flux 17.900 - 30.000 energy bins, MeV, CRS (6-hr)"
+            },
+            {
+              "name": "protonFlux7_CRS",
+              "type": "double",
+              "units": "1/(cm^2 sec ster MeV)",
+              "description": "Proton Flux 30.000-48.000 energy bins, MeV, CRS (6-hr)"
+            },
+            {
+              "name": "protonFlux8_CRS",
+              "type": "double",
+              "units": "1/(cm^2 sec ster MeV)",
+              "description": "Proton Flux 48.000 - 56.000 energy bins, MeV, CRS (6-hr)"
+            },
+            {
+              "name": "protonFlux9_CRS",
+              "type": "double",
+              "units": "1/(cm^2 sec ster MeV)",
+              "description": "Proton Flux 74.471 - 83.661 energy bins, MeV, CRS (6-hr)"
+            },
+            {
+              "name": "protonFlux10_CRS",
+              "type": "double",
+              "units": "1/(cm^2 sec ster MeV)",
+              "description": "Proton Flux 132.834 - 154.911 energy bins, MeV, CRS (6-hr)"
+            },
+            {
+              "name": "protonFlux11_CRS",
+              "type": "double",
+              "units": "1/(cm^2 sec ster MeV)",
+              "description": "Proton Flux 154.911 - 174.866 energy bins, MeV, CRS (6-hr)"
+            },
+            {
+              "name": "protonFlux12_CRS",
+              "type": "double",
+              "units": "1/(cm^2 sec ster MeV)",
+              "description": "Proton Flux 174.866 - 187.713 energy bins, MeV, CRS (6-hr)"
+            },
+            {
+              "name": "protonFlux13_CRS",
+              "type": "double",
+              "units": "1/(cm^2 sec ster MeV)",
+              "description": "Proton Flux 187.713 - 220.475 energy bins, MeV, CRS (6-hr)"
+            },
+            {
+              "name": "protonFlux14_CRS",
+              "type": "double",
+              "units": "1/(cm^2 sec ster MeV)",
+              "description": "Proton Flux 220.475 - 270.050 energy bins, MeV, CRS (6-hr)"
+            },
+            {
+              "name": "protonFlux15_CRS",
+              "type": "double",
+              "units": "1/(cm^2 sec ster MeV)",
+              "description": "Proton Flux 270.050 - 346.034 energy bins, MeV, CRS (6-hr)"
+            }
+          ]
+        },
+        "VOYAGER1_CRS_DAILY_FLUX": {
+          "description": "",
+          "start_date": "1977-09-08T00:00:00Z",
+          "stop_date": "2016-12-13T00:00:00Z",
+          "parameters": [
+            {
+              "name": "PROTONFLUX1",
+              "type": "double",
+              "units": "1/(m^2 s sr MeV)",
+              "description": "3.0 - 4.6 MeV/n Hydrogen flux"
+            },
+            {
+              "name": "error_PROTONFLUX1",
+              "type": "double",
+              "units": "1/(m^2 s sr MeV)",
+              "description": "error_3.0 - 4.6 MeV/n Hydrogen flux"
+            },
+            {
+              "name": "PROTONFLUX2",
+              "type": "double",
+              "units": "1/(m^2 s sr MeV)",
+              "description": "4.6 - 6.2 MeV/n Hydrogen flux"
+            },
+            {
+              "name": "error_PROTONFLUX2",
+              "type": "double",
+              "units": "1/(m^2 s sr MeV)",
+              "description": "error_4.6 - 6.2 MeV/n Hydrogen flux"
+            },
+            {
+              "name": "PROTONFLUX3",
+              "type": "double",
+              "units": "1/(m^2 s sr MeV)",
+              "description": "6.2 - 7.7 MeV/n Hydrogen flux"
+            },
+            {
+              "name": "error_PROTONFLUX3",
+              "type": "double",
+              "units": "1/(m^2 s sr MeV)",
+              "description": "error_6.2 - 7.7 MeV/n Hydrogen flux"
+            },
+            {
+              "name": "PROTONFLUX4",
+              "type": "double",
+              "units": "1/(m^2 s sr MeV)",
+              "description": "7.7 - 12.8 MeV/n Hydrogen flux"
+            },
+            {
+              "name": "error_PROTONFLUX4",
+              "type": "double",
+              "units": "1/(m^2 s sr MeV)",
+              "description": "error_7.7 - 12.8 MeV/n Hydrogen flux"
+            },
+            {
+              "name": "PROTONFLUX5",
+              "type": "double",
+              "units": "1/(m^2 s sr MeV)",
+              "description": "12.8 - 17.9 MeV/n Hydrogen flux"
+            },
+            {
+              "name": "error_PROTONFLUX5",
+              "type": "double",
+              "units": "1/(m^2 s sr MeV)",
+              "description": "error_12.8 - 17.9 MeV/n Hydrogen flux"
+            },
+            {
+              "name": "PROTONFLUX6",
+              "type": "double",
+              "units": "1/(m^2 s sr MeV)",
+              "description": "17.9 - 30.0 MeV/n Hydrogen flux"
+            },
+            {
+              "name": "error_PROTONFLUX6",
+              "type": "double",
+              "units": "1/(m^2 s sr MeV)",
+              "description": "error_17.9 - 30.0 MeV/n Hydrogen flux"
+            },
+            {
+              "name": "PROTONFLUX7",
+              "type": "double",
+              "units": "1/(m^2 s sr MeV)",
+              "description": "30.0 - 48.0 MeV/n Hydrogen flux"
+            },
+            {
+              "name": "error_PROTONFLUX7",
+              "type": "double",
+              "units": "1/(m^2 s sr MeV)",
+              "description": "error_30.0 - 48.0 MeV/n Hydrogen flux"
+            },
+            {
+              "name": "PROTONFLUX8",
+              "type": "double",
+              "units": "1/(m^2 s sr MeV)",
+              "description": "48.0 - 56.0 MeV/n Hydrogen flux"
+            },
+            {
+              "name": "error_PROTONFLUX8",
+              "type": "double",
+              "units": "1/(m^2 s sr MeV)",
+              "description": "error_48.0 - 56.0 MeV/n Hydrogen flux"
+            },
+            {
+              "name": "PROTONFLUX9",
+              "type": "double",
+              "units": "1/(m^2 s sr MeV)",
+              "description": "74 -  84 MeV/n Hydrogen flux"
+            },
+            {
+              "name": "error_PROTONFLUX9",
+              "type": "double",
+              "units": "1/(m^2 s sr MeV)",
+              "description": "error_74 -  84 MeV/n Hydrogen flux"
+            },
+            {
+              "name": "PROTONFLUX10",
+              "type": "double",
+              "units": "1/(m^2 s sr MeV)",
+              "description": "133 - 155 MeV/n Hydrogen flux"
+            },
+            {
+              "name": "error_PROTONFLUX10",
+              "type": "double",
+              "units": "1/(m^2 s sr MeV)",
+              "description": "error_133 - 155 MeV/n Hydrogen flux"
+            },
+            {
+              "name": "PROTONFLUX11",
+              "type": "double",
+              "units": "1/(m^2 s sr MeV)",
+              "description": "155 - 175 MeV/n Hydrogen flux"
+            },
+            {
+              "name": "error_PROTONFLUX11",
+              "type": "double",
+              "units": "1/(m^2 s sr MeV)",
+              "description": "error_155 - 175 MeV/n Hydrogen flux"
+            },
+            {
+              "name": "PROTONFLUX12",
+              "type": "double",
+              "units": "1/(m^2 s sr MeV)",
+              "description": "175 - 188 MeV/n Hydrogen flux"
+            },
+            {
+              "name": "error_PROTONFLUX12",
+              "type": "double",
+              "units": "1/(m^2 s sr MeV)",
+              "description": "error_175 - 188 MeV/n Hydrogen flux"
+            },
+            {
+              "name": "PROTONFLUX13",
+              "type": "double",
+              "units": "1/(m^2 s sr MeV)",
+              "description": "188 - 220 MeV/n Hydrogen flux"
+            },
+            {
+              "name": "error_PROTONFLUX13",
+              "type": "double",
+              "units": "1/(m^2 s sr MeV)",
+              "description": "error_188 - 220 MeV/n Hydrogen flux"
+            },
+            {
+              "name": "PROTONFLUX14",
+              "type": "double",
+              "units": "1/(m^2 s sr MeV)",
+              "description": "220 - 270 MeV/n Hydrogen flux"
+            },
+            {
+              "name": "error_PROTONFLUX14",
+              "type": "double",
+              "units": "1/(m^2 s sr MeV)",
+              "description": "error_220 - 270 MeV/n Hydrogen flux"
+            },
+            {
+              "name": "PROTONFLUX15",
+              "type": "double",
+              "units": "1/(m^2 s sr MeV)",
+              "description": "270 - 346 MeV/n Hydrogen flux"
+            },
+            {
+              "name": "error_PROTONFLUX15",
+              "type": "double",
+              "units": "1/(m^2 s sr MeV)",
+              "description": "error_270 - 346 MeV/n Hydrogen flux"
+            },
+            {
+              "name": "HELIUMFLUX1",
+              "type": "double",
+              "units": "1/(m^2 s sr MeV)",
+              "description": "3.0 - 4.6 MeV/n Helium flux"
+            },
+            {
+              "name": "error_HELIUMFLUX1",
+              "type": "double",
+              "units": "1/(m^2 s sr MeV)",
+              "description": "error_3.0 - 4.6 MeV/n Helium flux"
+            },
+            {
+              "name": "HELIUMFLUX2",
+              "type": "double",
+              "units": "1/(m^2 s sr MeV)",
+              "description": "4.6 - 6.2 MeV/n Helium flux"
+            },
+            {
+              "name": "error_HELIUMFLUX2",
+              "type": "double",
+              "units": "1/(m^2 s sr MeV)",
+              "description": "error_4.6 - 6.2 MeV/n Helium flux"
+            },
+            {
+              "name": "HELIUMFLUX3",
+              "type": "double",
+              "units": "1/(m^2 s sr MeV)",
+              "description": "6.2 - 7.7 MeV/n Helium flux"
+            },
+            {
+              "name": "error_HELIUMFLUX3",
+              "type": "double",
+              "units": "1/(m^2 s sr MeV)",
+              "description": "error_6.2 - 7.7 MeV/n Helium flux"
+            },
+            {
+              "name": "HELIUMFLUX4",
+              "type": "double",
+              "units": "1/(m^2 s sr MeV)",
+              "description": "7.7 - 12.8 MeV/n Helium flux"
+            },
+            {
+              "name": "error_HELIUMFLUX4",
+              "type": "double",
+              "units": "1/(m^2 s sr MeV)",
+              "description": "error_7.7 - 12.8 MeV/n Helium flux"
+            },
+            {
+              "name": "HELIUMFLUX5",
+              "type": "double",
+              "units": "1/(m^2 s sr MeV)",
+              "description": "12.8 - 17.9 MeV/n Helium flux"
+            },
+            {
+              "name": "error_HELIUMFLUX5",
+              "type": "double",
+              "units": "1/(m^2 s sr MeV)",
+              "description": "error_12.8 - 17.9 MeV/n Helium flux"
+            },
+            {
+              "name": "HELIUMFLUX6",
+              "type": "double",
+              "units": "1/(m^2 s sr MeV)",
+              "description": "17.9 - 30.0 MeV/n Helium flux"
+            },
+            {
+              "name": "error_HELIUMFLUX6",
+              "type": "double",
+              "units": "1/(m^2 s sr MeV)",
+              "description": "error_17.9 - 30.0 MeV/n Helium flux"
+            },
+            {
+              "name": "HELIUMFLUX7",
+              "type": "double",
+              "units": "1/(m^2 s sr MeV)",
+              "description": "30.0 - 48.0 MeV/n Helium flux"
+            },
+            {
+              "name": "error_HELIUMFLUX7",
+              "type": "double",
+              "units": "1/(m^2 s sr MeV)",
+              "description": "error_30.0 - 48.0 MeV/n Helium flux"
+            },
+            {
+              "name": "HELIUMFLUX8",
+              "type": "double",
+              "units": "1/(m^2 s sr MeV)",
+              "description": "48.0 - 56.0 MeV/n Helium flux"
+            },
+            {
+              "name": "error_HELIUMFLUX8",
+              "type": "double",
+              "units": "1/(m^2 s sr MeV)",
+              "description": "error_48.0 - 56.0 MeV/n Helium flux"
+            },
+            {
+              "name": "HELIUMFLUX9",
+              "type": "double",
+              "units": "1/(m^2 s sr MeV)",
+              "description": "110 - 134 MeV/n Helium flux"
+            },
+            {
+              "name": "error_HELIUMFLUX9",
+              "type": "double",
+              "units": "1/(m^2 s sr MeV)",
+              "description": "error_110 - 134 MeV/n Helium flux"
+            },
+            {
+              "name": "HELIUMFLUX10",
+              "type": "double",
+              "units": "1/(m^2 s sr MeV)",
+              "description": "134 - 152 MeV/n Helium flux"
+            },
+            {
+              "name": "error_HELIUMFLUX10",
+              "type": "double",
+              "units": "1/(m^2 s sr MeV)",
+              "description": "error_134 - 152 MeV/n Helium flux"
+            },
+            {
+              "name": "HELIUMFLUX11",
+              "type": "double",
+              "units": "1/(m^2 s sr MeV)",
+              "description": "152 - 193 MeV/n Helium flux"
+            },
+            {
+              "name": "error_HELIUMFLUX11",
+              "type": "double",
+              "units": "1/(m^2 s sr MeV)",
+              "description": "error_152 - 193 MeV/n Helium flux"
+            },
+            {
+              "name": "HELIUMFLUX12",
+              "type": "double",
+              "units": "1/(m^2 s sr MeV)",
+              "description": "193 - 239 MeV/n Helium flux"
+            },
+            {
+              "name": "error_HELIUMFLUX12",
+              "type": "double",
+              "units": "1/(m^2 s sr MeV)",
+              "description": "error_193 - 239 MeV/n Helium flux"
+            },
+            {
+              "name": "HELIUMFLUX13",
+              "type": "double",
+              "units": "1/(m^2 s sr MeV)",
+              "description": "238 - 318 MeV/n Helium flux"
+            },
+            {
+              "name": "error_HELIUMFLUX13",
+              "type": "double",
+              "units": "1/(m^2 s sr MeV)",
+              "description": "error_238 - 318 MeV/n Helium flux"
+            },
+            {
+              "name": "HELIUMFLUX14",
+              "type": "double",
+              "units": "1/(m^2 s sr MeV)",
+              "description": "318 - 381 MeV/n Helium flux"
+            },
+            {
+              "name": "error_HELIUMFLUX14",
+              "type": "double",
+              "units": "1/(m^2 s sr MeV)",
+              "description": "error_318 - 381 MeV/n Helium flux"
+            },
+            {
+              "name": "HELIUMFLUX15",
+              "type": "double",
+              "units": "1/(m^2 s sr MeV)",
+              "description": "381 - 480 MeV/n Helium flux"
+            },
+            {
+              "name": "error_HELIUMFLUX15",
+              "type": "double",
+              "units": "1/(m^2 s sr MeV)",
+              "description": "error_381 - 480 MeV/n Helium flux"
+            },
+            {
+              "name": "HELIUMFLUX16",
+              "type": "double",
+              "units": "1/(m^2 s sr MeV)",
+              "description": "480 - 661 MeV/n Helium flux"
+            },
+            {
+              "name": "error_HELIUMFLUX16",
+              "type": "double",
+              "units": "1/(m^2 s sr MeV)",
+              "description": "error_480 - 661 MeV/n Helium flux"
+            }
+          ]
+        },
+        "VOYAGER1_PLS_COMPOSITION": {
+          "description": "",
+          "start_date": "1979-03-03T10:23:58Z",
+          "stop_date": "1979-03-05T19:24:54Z",
+          "parameters": [
+            {
+              "name": "R_J",
+              "type": "double",
+              "units": "#",
+              "description": "Spacecraft location in Jupiter Radii of RHSIII"
+            },
+            {
+              "name": "R_Theta",
+              "type": "double",
+              "units": "degree",
+              "description": "Spacecraft co-latitude (degrees) in RHSIII system"
+            },
+            {
+              "name": "R_Phi",
+              "type": "double",
+              "units": "degree",
+              "description": "East longitude (degrees) of spacecraft in RHSIII system."
+            },
+            {
+              "name": "F_C",
+              "type": "double",
+              "units": "#",
+              "description": "Fit Case Number 1-5 for how the fit parameters were handled by the VIPER code. "
+            },
+            {
+              "name": "V_R",
+              "type": "double",
+              "units": "km/s",
+              "description": "Radial velocity of bulk plasma flow in RHSIII coordinate system"
+            },
+            {
+              "name": "V_Phi",
+              "type": "double",
+              "units": "km/s",
+              "description": "East longitude (Phi) velocity (km/s) of the bulk plasma flow in RHSIII coordinate system."
+            },
+            {
+              "name": "V_Z",
+              "type": "double",
+              "units": "km/s",
+              "description": "Northward component of bulk flow velocity (km/s) in RHSIII coordinate system."
+            },
+            {
+              "name": "Ch_Den",
+              "type": "double",
+              "units": "#/cc",
+              "description": "Sum of ion charge number densities"
+            },
+            {
+              "name": "H_Den",
+              "type": "double",
+              "units": "#/cc",
+              "description": "H+ Ion Partial Number Density"
+            },
+            {
+              "name": "H_Tem",
+              "type": "double",
+              "units": "K",
+              "description": "H+ Ion Temperature"
+            },
+            {
+              "name": "O_Den",
+              "type": "double",
+              "units": "#/cc",
+              "description": "O+ Ion Partial Number Density"
+            },
+            {
+              "name": "O_Tem",
+              "type": "double",
+              "units": "K",
+              "description": "O+ Ion Temperature"
+            },
+            {
+              "name": "O_2_Den",
+              "type": "double",
+              "units": "#/cc",
+              "description": "O++ Ion Partial Number Density "
+            },
+            {
+              "name": "O_2_Tem",
+              "type": "double",
+              "units": "K",
+              "description": "O++ Ion Temperature"
+            },
+            {
+              "name": "S_Den",
+              "type": "double",
+              "units": "#/cc",
+              "description": "S+ Ion Partial Number Density"
+            },
+            {
+              "name": "S_Tem",
+              "type": "double",
+              "units": "K",
+              "description": "S+ Ion Temperature"
+            },
+            {
+              "name": "S_2_Den",
+              "type": "double",
+              "units": "#/cc",
+              "description": "S++ Ion Partial Number Density"
+            },
+            {
+              "name": "S_2_Tem",
+              "type": "double",
+              "units": "K",
+              "description": "S++ Ion Temperature"
+            },
+            {
+              "name": "S_3_Den",
+              "type": "double",
+              "units": "#/cc",
+              "description": "S+++ Ion Partial Number Density"
+            },
+            {
+              "name": "S_3_Tem",
+              "type": "double",
+              "units": "K",
+              "description": "S+++ Ion Temperature"
+            },
+            {
+              "name": "Na_Den",
+              "type": "double",
+              "units": "#/cc",
+              "description": "Na+ Ion Partial Number Density"
+            },
+            {
+              "name": "Na_Tem",
+              "type": "double",
+              "units": "K",
+              "description": "Na+ Ion Temperature"
+            },
+            {
+              "name": "SO2_Den",
+              "type": "double",
+              "units": "#/cc",
+              "description": "SO2+ Ion Partial Number Density"
+            },
+            {
+              "name": "SO2_Tem",
+              "type": "double",
+              "units": "K",
+              "description": "SO2+ Ion Temperature"
+            },
+            {
+              "name": "O_hot_Den",
+              "type": "double",
+              "units": "#/cc",
+              "description": "Hot O+ Ion Partial Number Density"
+            },
+            {
+              "name": "O_hot_Tem",
+              "type": "double",
+              "units": "K",
+              "description": "Hot O+ Ion Temperature"
+            }
+          ]
+        },
+        "VOYAGER1_PLS_ELECTRONS_E1": {
+          "description": "",
+          "start_date": "1979-02-28T14:00:31Z",
+          "stop_date": "1979-03-22T12:59:51Z",
+          "parameters": [
+            {
+              "name": "Electrons",
+              "type": "double",
+              "units": "femto-amp",
+              "description": "Electron current from D cup versus electron energy at 10 - 140 eV . ",
+              "size": [
+                16
+              ]
+            }
+          ]
+        },
+        "VOYAGER1_PLS_ELECTRONS_E2": {
+          "description": "",
+          "start_date": "1979-02-28T14:01:19Z",
+          "stop_date": "1979-03-22T13:00:39Z",
+          "parameters": [
+            {
+              "name": "Electrons",
+              "type": "double",
+              "units": "femto-amp",
+              "description": "Electron current from D cup versus electron energy at 10 - 5950 eV  . ",
+              "size": [
+                16
+              ]
+            }
+          ]
+        },
+        "VOYAGER1_PLS_HIRES_PLASMA_DATA": {
+          "description": "",
+          "start_date": "1977-09-07T09:21:34Z",
+          "stop_date": "1980-12-31T17:56:35Z",
+          "parameters": [
+            {
+              "name": "V",
+              "type": "double",
+              "units": "km/s",
+              "description": "proton bulk velocity"
+            },
+            {
+              "name": "dens",
+              "type": "double",
+              "units": "1/c",
+              "description": "proton number density"
+            },
+            {
+              "name": "V_thermal",
+              "type": "double",
+              "units": "km/s",
+              "description": "proton thermal velocity"
+            },
+            {
+              "name": "V_rtn",
+              "type": "double",
+              "units": "km/s",
+              "description": "proton velocity vector",
+              "size": [
+                3
+              ]
+            }
+          ]
+        },
+        "VOYAGER1_PLS_IONS_L": {
+          "description": "",
+          "start_date": "1979-02-28T14:01:00Z",
+          "stop_date": "1979-03-22T13:01:56Z",
+          "parameters": [
+            {
+              "name": "Ions_Cup1",
+              "type": "double",
+              "units": "femto-amp",
+              "description": "L-mode Ion current from A cup for H+ energies 10 - 5950 eV",
+              "size": [
+                16
+              ]
+            },
+            {
+              "name": "Ions_Cup2",
+              "type": "double",
+              "units": "femto-amp",
+              "description": "L-mode Ion current from B cup for H+ energies 10 - 5950 eV",
+              "size": [
+                16
+              ]
+            },
+            {
+              "name": "Ions_Cup3",
+              "type": "double",
+              "units": "femto-amp",
+              "description": "L-Mode Ion current from C cup for H+ energies 10 - 5950 eV",
+              "size": [
+                16
+              ]
+            },
+            {
+              "name": "Ions_Cup4",
+              "type": "double",
+              "units": "femto-amp",
+              "description": "L-Mode Ion current from D cup for H+ energies 10 - 5950 eV",
+              "size": [
+                16
+              ]
+            }
+          ]
+        },
+        "VOYAGER1_PLS_IONS_M": {
+          "description": "",
+          "start_date": "1979-02-28T14:01:35Z",
+          "stop_date": "1979-03-22T13:02:31Z",
+          "parameters": [
+            {
+              "name": "Ions_Cup1",
+              "type": "double",
+              "units": "femto-amp",
+              "description": "M-mode Ion current from A cup for H+ energies 10 - 5950 eV",
+              "size": [
+                128
+              ]
+            },
+            {
+              "name": "Ions_Cup2",
+              "type": "double",
+              "units": "femto-amp",
+              "description": "M-mode Ion current from B cup for H+ energies 10 - 5950 eV",
+              "size": [
+                128
+              ]
+            },
+            {
+              "name": "Ions_Cup3",
+              "type": "double",
+              "units": "femto-amp",
+              "description": "M-Mode Ion current from C cup for H+ energies 10 - 5950 eV",
+              "size": [
+                128
+              ]
+            },
+            {
+              "name": "Ions_Cup4",
+              "type": "double",
+              "units": "femto-amp",
+              "description": "M-Mode Ion current from D cup for H+ energies 10 - 5950 eV",
+              "size": [
+                128
+              ]
+            }
+          ]
+        }
+      }
+    }
+  },
+  "_meta": {
+    "generated_at": "2026-02-08T09:24:41Z",
+    "hapi_server": "https://cdaweb.gsfc.nasa.gov/hapi"
+  }
+}

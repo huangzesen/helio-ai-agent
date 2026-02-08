@@ -71,11 +71,12 @@ class TestLoadMission:
 
 
 class TestLoadAllMissions:
-    def test_loads_all_8_missions(self):
+    def test_loads_all_missions(self):
         missions = load_all_missions()
-        assert len(missions) == 8
-        expected_ids = {"PSP", "SolO", "ACE", "OMNI", "WIND", "DSCOVR", "MMS", "STEREO_A"}
-        assert set(missions.keys()) == expected_ids
+        assert len(missions) >= 8  # 8 curated + auto-generated
+        # Original 8 curated missions must be present
+        for expected in ("PSP", "SolO", "ACE", "OMNI", "WIND", "DSCOVR", "MMS", "STEREO_A"):
+            assert expected in missions
 
     def test_keyed_by_canonical_id(self):
         missions = load_all_missions()
@@ -86,7 +87,7 @@ class TestLoadAllMissions:
 class TestGetMissionIds:
     def test_returns_sorted_ids(self):
         ids = get_mission_ids()
-        assert len(ids) == 8
+        assert len(ids) >= 8
         assert ids == sorted(ids)
         assert "PSP" in ids
         assert "ACE" in ids
@@ -95,7 +96,7 @@ class TestGetMissionIds:
 class TestGetRoutingTable:
     def test_returns_all_missions(self):
         table = get_routing_table()
-        assert len(table) == 8
+        assert len(table) >= 8
 
     def test_entry_structure(self):
         table = get_routing_table()

@@ -1,0 +1,3406 @@
+{
+  "id": "IMAGE",
+  "name": "IMAGE",
+  "keywords": [
+    "im",
+    "image"
+  ],
+  "profile": {
+    "description": "IMAGE spacecraft data from CDAWeb.",
+    "coordinate_systems": [],
+    "typical_cadence": "",
+    "data_caveats": [],
+    "analysis_patterns": []
+  },
+  "instruments": {
+    "General": {
+      "name": "General",
+      "keywords": [],
+      "datasets": {
+        "IMAGE_M2_EUV": {
+          "description": "",
+          "start_date": "2000-05-03T20:20:00Z",
+          "stop_date": "2005-12-17T23:49:59Z",
+          "parameters": [
+            {
+              "name": "Plasmapause_MLTbin",
+              "type": "double",
+              "units": "Earth Radii",
+              "description": "Sharpest gradient from equatorial IMAGE EUV Ion Images, at 48 MLT 0:0.5:23.5 MLT hours (spectrogram)",
+              "size": [
+                48
+              ]
+            },
+            {
+              "name": "Mapped_Plasmapause_Grid",
+              "type": "integer",
+              "units": "Re and MLT",
+              "description": "Sharpest gradient from equatorial IMAGE EUV Ion Images.",
+              "size": [
+                241,
+                241
+              ]
+            },
+            {
+              "name": "Mapped_Plasmapause_Grid_flip_vert",
+              "type": "integer",
+              "units": "Re and MLT",
+              "description": "Sharpest gradient from equatorial IMAGE EUV Ion Images. Images flipped so 6MLT is to the left",
+              "size": [
+                241,
+                241
+              ]
+            },
+            {
+              "name": "Mapped_Plasmapause_Grid_Movie",
+              "type": "integer",
+              "units": "Re and MLT",
+              "description": "---> (MOVIE) Sharpest gradient from equatorial IMAGE EUV Ion Images.",
+              "size": [
+                241,
+                241
+              ]
+            },
+            {
+              "name": "Quality_Flag",
+              "type": "integer",
+              "units": " ",
+              "description": "Integer quality rating 1:3 of the plasmapause data with 3 being the best"
+            },
+            {
+              "name": "Equatorial_EUV_Grid",
+              "type": "double",
+              "units": "cm^-3",
+              "description": "IMAGE EUV Images mapped to the equatorial plane.",
+              "size": [
+                241,
+                241
+              ]
+            },
+            {
+              "name": "Equatorial_EUV_Grid_flip_vert",
+              "type": "double",
+              "units": "cm^-3",
+              "description": "IMAGE EUV Images mapped to the equatorial plane. Images flipped so 6MLT is to the left",
+              "size": [
+                241,
+                241
+              ]
+            },
+            {
+              "name": "Equatorial_EUV_Grid_Movie",
+              "type": "double",
+              "units": "cm^-3",
+              "description": "---> (MOVIE) IMAGE EUV Images mapped to the equatorial plane.",
+              "size": [
+                241,
+                241
+              ]
+            },
+            {
+              "name": "Equatorial_EUV_Grid_log",
+              "type": "double",
+              "units": "log(cm^-3)",
+              "description": "IMAGE EUV Images mapped to the equatorial plane, log10 scale.",
+              "size": [
+                241,
+                241
+              ]
+            },
+            {
+              "name": "Equatorial_EUV_Grid_log_Movie",
+              "type": "double",
+              "units": "log(cm^-3)",
+              "description": "---> (MOVIE) IMAGE EUV Images mapped to the equatorial plane, log10 scale.",
+              "size": [
+                241,
+                241
+              ]
+            }
+          ]
+        },
+        "IM_ELECTRON_DENSITY_RPI": {
+          "description": "",
+          "start_date": "2001-01-01T00:06:37Z",
+          "stop_date": "2005-12-18T06:45:56Z",
+          "parameters": [
+            {
+              "name": "xsm",
+              "type": "double",
+              "units": "Re",
+              "description": "x satellite position in sm coordinates"
+            },
+            {
+              "name": "ysm",
+              "type": "double",
+              "units": "Re",
+              "description": "y satellite position in sm coordinates"
+            },
+            {
+              "name": "zsm",
+              "type": "double",
+              "units": "Re",
+              "description": "z satellite position in sm coordinates"
+            },
+            {
+              "name": "mlt",
+              "type": "double",
+              "units": "hours",
+              "description": "magnetic local time"
+            },
+            {
+              "name": "mlat",
+              "type": "double",
+              "units": "deg",
+              "description": "magnetic latitude"
+            },
+            {
+              "name": "L",
+              "type": "double",
+              "units": " ",
+              "description": "L_dip - L-shell calculated from R and MLAT assuming a dipole magnetic field"
+            },
+            {
+              "name": "fce_model",
+              "type": "double",
+              "units": "kHz",
+              "description": "model gyrofrequency"
+            },
+            {
+              "name": "den",
+              "type": "double",
+              "units": "1/cm3",
+              "description": "electron density"
+            },
+            {
+              "name": "fpe",
+              "type": "double",
+              "units": "kHz",
+              "description": "Electron plasma frequency from fits"
+            },
+            {
+              "name": "doy",
+              "type": "integer",
+              "units": " ",
+              "description": "day of year"
+            },
+            {
+              "name": "type",
+              "type": "integer",
+              "units": " ",
+              "description": "Spectral feature for auto-fit, 1:Upper Hybrid, 2:Z-Mode, 3:Continuum Edge"
+            },
+            {
+              "name": "numHarmonics",
+              "type": "integer",
+              "units": " ",
+              "description": "number of n+1/2 harmonics recognized by automatic routine"
+            },
+            {
+              "name": "fce",
+              "type": "double",
+              "units": "kHz",
+              "description": "electron cyclotron frequency from the spacing of n+1/2 harmonics"
+            },
+            {
+              "name": "stdevFCE",
+              "type": "double",
+              "units": "kHz",
+              "description": "standard deviation (kHz) of fce_n+1/2 based on individual frequencies"
+            },
+            {
+              "name": "am",
+              "type": "integer",
+              "units": " ",
+              "description": "1: automatic fit, 2: manual fit"
+            }
+          ]
+        },
+        "IM_HK_ADS": {
+          "description": "",
+          "start_date": "2000-03-25T21:31:52Z",
+          "stop_date": "2005-12-18T07:38:17Z",
+          "parameters": [
+            {
+              "name": "BA_AdsEnable",
+              "type": "integer",
+              "units": "n/a",
+              "description": "Attitude Determination System Enabled"
+            },
+            {
+              "name": "BA_HdpEnable",
+              "type": "integer",
+              "units": "n/a",
+              "description": "Hardware Data Processing Enabled"
+            },
+            {
+              "name": "BA_McsEnable",
+              "type": "integer",
+              "units": "n/a",
+              "description": "Magnetic Control System Enabled"
+            },
+            {
+              "name": "BA_SspEnable",
+              "type": "integer",
+              "units": "n/a",
+              "description": "Sun Sensor Processing Enabled"
+            },
+            {
+              "name": "BA_Eclipse",
+              "type": "integer",
+              "units": "n/a",
+              "description": "Eclipsed=1, Not-Eclipsed=0"
+            },
+            {
+              "name": "BA_EclipseCount",
+              "type": "double",
+              "units": "counts",
+              "description": "Consecutive Eclipse Count"
+            },
+            {
+              "name": "BA_ScRatesValid",
+              "type": "integer",
+              "units": "n/a",
+              "description": "S/C Body Rates Valid (Valid=1, Not-Valid=0)"
+            },
+            {
+              "name": "BA_SspValid",
+              "type": "integer",
+              "units": "n/a",
+              "description": "Sun Sensor Processing Valid (Valid=1, Not-Valid=0)"
+            },
+            {
+              "name": "BA_StpValid",
+              "type": "integer",
+              "units": "n/a",
+              "description": "Star Tracker Processing (Valid=1, Not-Valid=0)"
+            },
+            {
+              "name": "BA_TorqEn",
+              "type": "integer",
+              "units": "n/a",
+              "description": "Torque Rod Enabled (Enabled=1, Not-Enabled=0)"
+            },
+            {
+              "name": "BA_AdsAstDv",
+              "type": "integer",
+              "units": "n/a",
+              "description": "StarTracker Data Valid (Valid=1, Not-Valid=0)"
+            },
+            {
+              "name": "BA_AstRatesX",
+              "type": "double",
+              "units": "urads/sec",
+              "description": "AST body rates (X) in GCI frame"
+            },
+            {
+              "name": "BA_AstRatesY",
+              "type": "double",
+              "units": "urads/sec",
+              "description": "AST body rates (Y) in GCI frame"
+            },
+            {
+              "name": "BA_AstRatesZ",
+              "type": "double",
+              "units": "urads/sec",
+              "description": "AST body rates (Z) in GCI frame"
+            },
+            {
+              "name": "BA_CmdHSc1",
+              "type": "double",
+              "units": "NM2",
+              "description": "Commanded Momentum Vector (X) in s/c frame"
+            },
+            {
+              "name": "BA_CmdHSc2",
+              "type": "double",
+              "units": "Nm2",
+              "description": "Commanded Momentum Vector (Y) in s/c frame"
+            },
+            {
+              "name": "BA_CmdHSc3",
+              "type": "double",
+              "units": "Nm2",
+              "description": "Commanded Momentum Vector (Z) in s/c frame"
+            },
+            {
+              "name": "BA_SaCurrent",
+              "type": "double",
+              "units": "amps",
+              "description": "Solar Array Current (amps)"
+            },
+            {
+              "name": "BA_FiltSpPhase",
+              "type": "double",
+              "units": "deg",
+              "description": "Filtered Spin Phase (deg)"
+            },
+            {
+              "name": "BF_HiPres_1",
+              "type": "double",
+              "units": "volts",
+              "description": "Sun Sensor Sine Voltage (volts)"
+            },
+            {
+              "name": "BF_HiPres_2",
+              "type": "double",
+              "units": "volts",
+              "description": "Sun Sensor Cosine Voltage (volts)"
+            },
+            {
+              "name": "BF_HiPres_3",
+              "type": "double",
+              "units": "volts",
+              "description": "Sun Sensor Bias Voltage (volts)"
+            },
+            {
+              "name": "BF_HiPres_4",
+              "type": "double",
+              "units": "gauss",
+              "description": "TAM X Axis Output (gauss)"
+            },
+            {
+              "name": "BF_HiPres_5",
+              "type": "double",
+              "units": "gauss",
+              "description": "TAM Y Axis Output (gauss)"
+            },
+            {
+              "name": "BF_HiPres_6",
+              "type": "double",
+              "units": "gauss",
+              "description": "TAM Z Axis Output (gauss)"
+            },
+            {
+              "name": "BA_NMiss",
+              "type": "double",
+              "units": "n/a",
+              "description": "Number of missed CEPs in Eclipse"
+            },
+            {
+              "name": "BA_Theta",
+              "type": "double",
+              "units": "deg",
+              "description": "Angle between spinaxis & magfield vector"
+            },
+            {
+              "name": "BA_FiltSpinRate",
+              "type": "double",
+              "units": "rpm",
+              "description": "Filtered Spin Rate (rpm)"
+            },
+            {
+              "name": "BA_SspSpinRate",
+              "type": "double",
+              "units": "rpm",
+              "description": "Ssp-derived Spin Rate (rpm)"
+            },
+            {
+              "name": "BA_BMag",
+              "type": "double",
+              "units": "gauss",
+              "description": "Magnetic Field Magnitude (gauss)"
+            },
+            {
+              "name": "BA_HMag",
+              "type": "double",
+              "units": "N-m-s",
+              "description": "Current Momentum magnitude, N-M-S"
+            },
+            {
+              "name": "BA_PsiSwitch",
+              "type": "double",
+              "units": "deg",
+              "description": "Switching commutation angle, (deg)"
+            },
+            {
+              "name": "BA_McsMode",
+              "type": "integer",
+              "units": "n/a",
+              "description": "MCS Mode (0=Off,1=Acq,2=Science,3=Ground)"
+            },
+            {
+              "name": "BA_FailCount",
+              "type": "double",
+              "units": "counts",
+              "description": "Number of consecutive periods with invalid sensor calcs"
+            },
+            {
+              "name": "BA_FiltScRatesX",
+              "type": "double",
+              "units": "deg/sec",
+              "description": "Filtered s/c body rates x"
+            },
+            {
+              "name": "BA_FiltScRatesY",
+              "type": "double",
+              "units": "deg/sec",
+              "description": "Filtered s/c body rates y"
+            },
+            {
+              "name": "BA_FiltScRatesZ",
+              "type": "double",
+              "units": "deg/sec",
+              "description": "Filtered s/c body rates z"
+            },
+            {
+              "name": "BA_FiltSpAttX",
+              "type": "double",
+              "units": "none",
+              "description": "Filtered spinaxis attitude (GCI uvector)"
+            },
+            {
+              "name": "BA_FiltSpAttY",
+              "type": "double",
+              "units": "deg",
+              "description": "Filtered spinaxis attitude (GCI uvector)"
+            },
+            {
+              "name": "BA_FiltSpAttZ",
+              "type": "double",
+              "units": "deg",
+              "description": "Filtered spinaxis attitude (GCI uvector)"
+            },
+            {
+              "name": "BA_CepMet",
+              "type": "double",
+              "units": "sec",
+              "description": "Mission Elapsed Time of last sun pulse"
+            },
+            {
+              "name": "BA_ScQuat1",
+              "type": "double",
+              "units": "n/a",
+              "description": "s/c quaternion (1)"
+            },
+            {
+              "name": "BA_ScQuat2",
+              "type": "double",
+              "units": "n/a",
+              "description": "s/c quaternion (2)"
+            },
+            {
+              "name": "BA_ScQuat3",
+              "type": "double",
+              "units": "n/a",
+              "description": "s/c quaternion (3)"
+            },
+            {
+              "name": "BA_ScQuat4",
+              "type": "double",
+              "units": "n/a",
+              "description": "s/c quaternion (4)"
+            }
+          ]
+        },
+        "IM_HK_AST": {
+          "description": "",
+          "start_date": "2000-03-25T21:31:52Z",
+          "stop_date": "2005-12-18T07:38:17Z",
+          "parameters": [
+            {
+              "name": "BS_QUATQ1",
+              "type": "double",
+              "units": "n/a",
+              "description": "AST-derived quarternion 1"
+            },
+            {
+              "name": "BS_QUATQ2",
+              "type": "double",
+              "units": "n/a",
+              "description": "AST-derived quarternion 2"
+            },
+            {
+              "name": "BS_QUATQ3",
+              "type": "double",
+              "units": "n/a",
+              "description": "AST-derived quarternion 3"
+            },
+            {
+              "name": "BS_QUATQ4",
+              "type": "double",
+              "units": "n/a",
+              "description": "AST-derived quarternion 4"
+            },
+            {
+              "name": "BS_ATTUNCX",
+              "type": "double",
+              "units": "urad/ct",
+              "description": "AST Attitude uncertainty about X"
+            },
+            {
+              "name": "BS_ATTUNCY",
+              "type": "double",
+              "units": "urad/ct",
+              "description": "AST Attitude uncertainty about Y"
+            },
+            {
+              "name": "BS_ATTUNCZ",
+              "type": "double",
+              "units": "urad/ct",
+              "description": "AST Attitude uncertainty about Z"
+            },
+            {
+              "name": "BS_RMSERR",
+              "type": "double",
+              "units": "urad",
+              "description": "AST RMS star position error"
+            },
+            {
+              "name": "BS_ANGINCX",
+              "type": "double",
+              "units": "urad",
+              "description": "AST Angular Increment about X"
+            },
+            {
+              "name": "BS_ANGINCY",
+              "type": "double",
+              "units": "urad",
+              "description": "AST Angular Increment about Y"
+            },
+            {
+              "name": "BS_ANGINCZ",
+              "type": "double",
+              "units": "urad",
+              "description": "AST Angular Increment about Z"
+            },
+            {
+              "name": "BS_HK2P5Volts",
+              "type": "double",
+              "units": "volts",
+              "description": "Voltage of +5v power supply"
+            },
+            {
+              "name": "BS_HK3M5Volts",
+              "type": "double",
+              "units": "volts",
+              "description": "Minus 5v power supply voltage"
+            },
+            {
+              "name": "BS_HK4P15Volts",
+              "type": "double",
+              "units": "volts",
+              "description": "Plus 15v power supply voltage"
+            },
+            {
+              "name": "BS_HK5M15Volts",
+              "type": "double",
+              "units": "volts",
+              "description": "Minus 15v power supply voltage"
+            },
+            {
+              "name": "BS_HK6P30Volts",
+              "type": "double",
+              "units": "volts",
+              "description": "Plus 30v power supply voltage"
+            },
+            {
+              "name": "BS_HK1HousTmp",
+              "type": "double",
+              "units": "c",
+              "description": "Temperature of AST Housing (c)"
+            },
+            {
+              "name": "BS_HK0CCDTmp",
+              "type": "double",
+              "units": "c",
+              "description": "Temperature of charge-coupled-device"
+            },
+            {
+              "name": "BS_HK8BiasBrdT",
+              "type": "double",
+              "units": "c",
+              "description": "Temperature of AST Bias Board (c)"
+            },
+            {
+              "name": "BS_ASTEnabled",
+              "type": "integer",
+              "units": "n/a",
+              "description": "Autonomous Star Tracker Enabled"
+            },
+            {
+              "name": "BS_AttOK",
+              "type": "integer",
+              "units": "n/a",
+              "description": "AST Attitude OK 0=bad,1=ok"
+            },
+            {
+              "name": "BS_SyncOK",
+              "type": "integer",
+              "units": "n/a",
+              "description": "AST Syncronization OK 0=bad,1=ok"
+            },
+            {
+              "name": "BS_OpsMode",
+              "type": "integer",
+              "units": "n/a",
+              "description": "AST Ops Mode 1=boot,2=init,3=standby,4=acq,5=Ftrack,6=Wtrack"
+            },
+            {
+              "name": "BS_CalopsOK",
+              "type": "integer",
+              "units": "n/a",
+              "description": "AST Calops table OK 0=bad,1=ok"
+            },
+            {
+              "name": "BS_TDIAct",
+              "type": "integer",
+              "units": "n/a",
+              "description": "AST Time Delay Imaging Status 0=inactive,1=active"
+            },
+            {
+              "name": "BS_TECstate",
+              "type": "integer",
+              "units": "n/a",
+              "description": "AST ThermoElectric Cooler state off/cold/cool/warm"
+            },
+            {
+              "name": "BS_TECCCDtmp",
+              "type": "double",
+              "units": "c",
+              "description": "Temperature of AST TEC CCD (c)"
+            },
+            {
+              "name": "BS_FOCLNGUSED",
+              "type": "double",
+              "units": "microns",
+              "description": "AST Focal Length Used"
+            },
+            {
+              "name": "BS_DFOCLNGEST",
+              "type": "double",
+              "units": "microns",
+              "description": "AST Delta Focal Length Estimate"
+            },
+            {
+              "name": "BS_INTTIME",
+              "type": "integer",
+              "units": "secs",
+              "description": "AST Center of Integration timestamp"
+            },
+            {
+              "name": "BS_StarsIDD",
+              "type": "integer",
+              "units": "n/a",
+              "description": "AST Stars identified delta"
+            },
+            {
+              "name": "BS_STARIDSTG1",
+              "type": "integer",
+              "units": "n/a",
+              "description": "AST Stars identified in stage 1"
+            },
+            {
+              "name": "BS_STARIDSTG2",
+              "type": "integer",
+              "units": "n/a",
+              "description": "AST Stars identified in stage 2"
+            },
+            {
+              "name": "BS_PNMGSTAR",
+              "type": "double",
+              "units": "n/a",
+              "description": "AST Predicted #of Guide Stars"
+            }
+          ]
+        },
+        "IM_HK_COM": {
+          "description": "",
+          "start_date": "2000-03-25T21:31:52Z",
+          "stop_date": "2005-12-18T07:38:17Z",
+          "parameters": [
+            {
+              "name": "BR_RCV_LPSTRS",
+              "type": "double",
+              "units": "kHz",
+              "description": "Receiver Loop Stress (Carrier Freq Offset kHz)"
+            },
+            {
+              "name": "BR_RCV_P20V",
+              "type": "double",
+              "units": "Volts",
+              "description": "Receiver 20volt supply monitor"
+            },
+            {
+              "name": "BR_RCV_RCSL",
+              "type": "double",
+              "units": "dBm",
+              "description": "Receiver Signal Level (dBm)"
+            },
+            {
+              "name": "BR_XMT_P12V",
+              "type": "double",
+              "units": "Volts",
+              "description": "Transponder 12volt supply monitor"
+            },
+            {
+              "name": "BR_XMT_P20V",
+              "type": "double",
+              "units": "Volts",
+              "description": "Transponder 20volt supply monitor"
+            },
+            {
+              "name": "BR_XMT_RFPWR",
+              "type": "double",
+              "units": "Watts",
+              "description": "Transponder RF Output Power"
+            },
+            {
+              "name": "BT_XMTRRADTMP",
+              "type": "double",
+              "units": "c",
+              "description": "Transponder Radial Temperature"
+            },
+            {
+              "name": "BT_XPNINT1TMP",
+              "type": "double",
+              "units": "c",
+              "description": "Receiver Thermistor Temperature"
+            },
+            {
+              "name": "BT_XPNINT2TMP",
+              "type": "double",
+              "units": "c",
+              "description": "Transponder Thermistor Temperature"
+            },
+            {
+              "name": "BP_FiltSpRate",
+              "type": "double",
+              "units": "rpm",
+              "description": "Filtered Spin Rate given to CIDP"
+            },
+            {
+              "name": "BP_AstQuatValid",
+              "type": "integer",
+              "units": "n/a",
+              "description": "AST Quarternion valid flag given to CIDP (0=not valid,1=valid)"
+            },
+            {
+              "name": "BP_FltSpRtValid",
+              "type": "integer",
+              "units": "n/a",
+              "description": "Filtered Spinrate valid flag given to CIDP (0=not valid,1=valid)"
+            },
+            {
+              "name": "BP_NxtSunXValid",
+              "type": "integer",
+              "units": "n/a",
+              "description": "Sun Crossing valid flag given to CIDP (0=not valid,1=valid)"
+            },
+            {
+              "name": "BP_SpnAxisValid",
+              "type": "integer",
+              "units": "n/a",
+              "description": "Spin Axis valid flag given to CIDP (0=not valid,1=valid)"
+            },
+            {
+              "name": "BP_SpnPhasValid",
+              "type": "integer",
+              "units": "n/a",
+              "description": "Spin Phase valid flag given to CIDP (0=not valid,1=valid)"
+            },
+            {
+              "name": "BP_SC_AttCntrl",
+              "type": "integer",
+              "units": "n/a",
+              "description": "Attitude Control Mode (1=active control,0=no control)"
+            }
+          ]
+        },
+        "IM_HK_FSW": {
+          "description": "",
+          "start_date": "2000-03-25T21:31:52Z",
+          "stop_date": "2005-12-18T07:38:17Z",
+          "parameters": [
+            {
+              "name": "BF_Timeout10Hz",
+              "type": "integer",
+              "units": "n/a",
+              "description": "10 Hz task timeout counter"
+            },
+            {
+              "name": "BF_Timeout1Hz",
+              "type": "integer",
+              "units": "n/a",
+              "description": "1 Hz task timeout counter"
+            },
+            {
+              "name": "BF_1HzCounter",
+              "type": "double",
+              "units": "n/a",
+              "description": "Schedulers 1 Hz counter"
+            },
+            {
+              "name": "BM_CurrentRead",
+              "type": "integer",
+              "units": "n/a",
+              "description": "MMM Read Pointer"
+            },
+            {
+              "name": "BM_CurrentWrite",
+              "type": "integer",
+              "units": "n/a",
+              "description": "MMM Write Pointer"
+            },
+            {
+              "name": "BM_readFailCtr",
+              "type": "double",
+              "units": "n/a",
+              "description": "MMM Read Failure counter"
+            },
+            {
+              "name": "BM_writeFailCtr",
+              "type": "double",
+              "units": "n/a",
+              "description": "MMM Write Failure counter"
+            },
+            {
+              "name": "BF_DramMbeCnt",
+              "type": "double",
+              "units": "n/a",
+              "description": "DRAM multibit error counter"
+            },
+            {
+              "name": "BF_DramSbeCnt",
+              "type": "double",
+              "units": "n/a",
+              "description": "DRAM singlebit error counter"
+            },
+            {
+              "name": "BF_CmmMbeCnt",
+              "type": "double",
+              "units": "n/a",
+              "description": "CMM multibit error counter"
+            },
+            {
+              "name": "BF_CmmSbeCnt",
+              "type": "double",
+              "units": "n/a",
+              "description": "CMM singlebit error counter"
+            },
+            {
+              "name": "BF_EepromErrCnt",
+              "type": "integer",
+              "units": "n/a",
+              "description": "EEPROM error counter"
+            },
+            {
+              "name": "BE_1553FailCnt",
+              "type": "integer",
+              "units": "n/a",
+              "description": "1553 interface failure counter"
+            },
+            {
+              "name": "BF_InvalidChks",
+              "type": "integer",
+              "units": "n/a",
+              "description": "Flags indicating Frame Validation check failures flag."
+            },
+            {
+              "name": "BF_ValidDiscard",
+              "type": "integer",
+              "units": "n/a",
+              "description": "Number of invalid frames discarded."
+            },
+            {
+              "name": "BD_AdaEx1_10HEvt",
+              "type": "integer",
+              "units": "n/a",
+              "description": "Flight s/w ada exception 10 hz counter."
+            },
+            {
+              "name": "BD_AdaEx1_1HEvt",
+              "type": "integer",
+              "units": "n/a",
+              "description": "Flight s/w ada exception 1 hz counter."
+            },
+            {
+              "name": "BD_AdaEx2_10HEvt",
+              "type": "integer",
+              "units": "n/a",
+              "description": "Flight s/w ada exception 10 hz counter."
+            },
+            {
+              "name": "BD_AdaEx2_1HEvt",
+              "type": "integer",
+              "units": "n/a",
+              "description": "Flight s/w ada exception 1 hz counter."
+            },
+            {
+              "name": "BD_ASTAlvns1Evt",
+              "type": "integer",
+              "units": "n/a",
+              "description": "Consecutive failures of AST aliveness 1"
+            },
+            {
+              "name": "BD_ASTAlvns2Evt",
+              "type": "integer",
+              "units": "n/a",
+              "description": "Consecutive failures of AST aliveness 2"
+            },
+            {
+              "name": "BD_ASTRnsF1Evt",
+              "type": "integer",
+              "units": "n/a",
+              "description": "Consecutive failures of AST aliveness 1"
+            },
+            {
+              "name": "BD_ASTRnsF2Evt",
+              "type": "integer",
+              "units": "n/a",
+              "description": "Consecutive failures of AST aliveness 2"
+            },
+            {
+              "name": "BD_ASTRnsF3Evt",
+              "type": "integer",
+              "units": "n/a",
+              "description": "Consecutive failures of AST aliveness 3"
+            },
+            {
+              "name": "BD_BatHt1Rsb1Evt",
+              "type": "integer",
+              "units": "n/a",
+              "description": "Consecutive failures of Battery Heater 1"
+            },
+            {
+              "name": "BD_BatHt1Rsb2Evt",
+              "type": "integer",
+              "units": "n/a",
+              "description": "Consecutive failures of Battery Heater 1"
+            },
+            {
+              "name": "BD_BatHt2Rsb1Evt",
+              "type": "integer",
+              "units": "n/a",
+              "description": "Consecutive failures of Battery Heater 2"
+            },
+            {
+              "name": "BD_BatHt2Rsb2Evt",
+              "type": "integer",
+              "units": "n/a",
+              "description": "Consecutive failures of Battery Heater 2"
+            },
+            {
+              "name": "BD_BatHt3Rsb1Evt",
+              "type": "integer",
+              "units": "n/a",
+              "description": "Consecutive failures of Battery Heater 3"
+            },
+            {
+              "name": "BD_BatHt3Rsb2Evt",
+              "type": "integer",
+              "units": "n/a",
+              "description": "Consecutive failures of Battery Heater 3"
+            },
+            {
+              "name": "BD_BatSOCLmt1Evt",
+              "type": "integer",
+              "units": "n/a",
+              "description": "Consecutive failures of Battery SOC Limit 1"
+            },
+            {
+              "name": "BD_BatSOCLmt2Evt",
+              "type": "integer",
+              "units": "n/a",
+              "description": "Consecutive failures of Battery SOC Limit 2"
+            },
+            {
+              "name": "BD_BatSOCLmt3Evt",
+              "type": "integer",
+              "units": "n/a",
+              "description": "Consecutive failures of Battery SOC Limit 3"
+            },
+            {
+              "name": "BD_CIDPAlvnsEvt",
+              "type": "integer",
+              "units": "n/a",
+              "description": "Consecutive failures of CIDP Aliveness check"
+            },
+            {
+              "name": "BD_GenSPCErrEvt",
+              "type": "integer",
+              "units": "n/a",
+              "description": "Consecutive failures of SPC Events"
+            },
+            {
+              "name": "BD_SPCListExEvt",
+              "type": "integer",
+              "units": "n/a",
+              "description": "Consecutive failures SPC list exhaustion"
+            },
+            {
+              "name": "BD_SMSPCErrEvt",
+              "type": "integer",
+              "units": "n/a",
+              "description": "SPC Safe Macro Error Event Counter"
+            },
+            {
+              "name": "BD_NoGndCmdEvt",
+              "type": "integer",
+              "units": "n/a",
+              "description": "Consecutive failures of Watchdog timer"
+            },
+            {
+              "name": "BD_GndTstHldEvt",
+              "type": "integer",
+              "units": "n/a",
+              "description": "Ground Test failures"
+            },
+            {
+              "name": "BD_PDUAlvnsEvt",
+              "type": "integer",
+              "units": "n/a",
+              "description": "Consecutive failures of PDU Aliveness"
+            },
+            {
+              "name": "BD_SSHtrRsb1Evt",
+              "type": "integer",
+              "units": "n/a",
+              "description": "Consecutive failures of Sun Sensor Htr 1"
+            },
+            {
+              "name": "BD_SSHtrRsb2Evt",
+              "type": "integer",
+              "units": "n/a",
+              "description": "Consecutive failures of Sun Sensor Htr 2"
+            },
+            {
+              "name": "BD_SCU_EDACFEvt",
+              "type": "integer",
+              "units": "n/a",
+              "description": "Consecutive failures SCU EDAC"
+            },
+            {
+              "name": "BD_RTmo1_T10HEvt",
+              "type": "integer",
+              "units": "n/a",
+              "description": "Consecutive failures Count"
+            },
+            {
+              "name": "BD_RTmo1_T1HEvt",
+              "type": "integer",
+              "units": "n/a",
+              "description": "Consecutive failures Count"
+            },
+            {
+              "name": "BD_RTmo2_T10HEvt",
+              "type": "integer",
+              "units": "n/a",
+              "description": "Consecutive failures Count"
+            },
+            {
+              "name": "BD_RTmo2_T1HEvt",
+              "type": "integer",
+              "units": "n/a",
+              "description": "Consecutive failures Count"
+            }
+          ]
+        },
+        "IM_HK_PWR": {
+          "description": "",
+          "start_date": "2000-03-25T21:31:52Z",
+          "stop_date": "2005-12-18T07:38:17Z",
+          "parameters": [
+            {
+              "name": "BE_BSOC_Percent",
+              "type": "double",
+              "units": "A/Hr",
+              "description": "Battery State of Charge"
+            },
+            {
+              "name": "BE_BATTMP",
+              "type": "double",
+              "units": "c",
+              "description": "Battery Temperature (c)"
+            },
+            {
+              "name": "BE_BATVLTC",
+              "type": "double",
+              "units": "volts",
+              "description": "Battery Voltage (v)"
+            },
+            {
+              "name": "BE_BUSVLT",
+              "type": "double",
+              "units": "volts",
+              "description": "Bus Voltage (v)"
+            },
+            {
+              "name": "BE_LDCUR",
+              "type": "double",
+              "units": "amps",
+              "description": "Battery Load Current (amps)"
+            },
+            {
+              "name": "BE_BATCUR",
+              "type": "double",
+              "units": "amps",
+              "description": "Battery Current (amps)"
+            },
+            {
+              "name": "BE_SAMCUR",
+              "type": "double",
+              "units": "amps",
+              "description": "Solar Array Current (amps)"
+            },
+            {
+              "name": "BE_CHASSCUR",
+              "type": "double",
+              "units": "amps",
+              "description": "Chassis Current (amps)"
+            },
+            {
+              "name": "BE_PriCoilStat",
+              "type": "integer",
+              "units": "n/a",
+              "description": "Torquer Primary Coil Status (0=off,1=on)"
+            },
+            {
+              "name": "BE_RdtCoilStat",
+              "type": "integer",
+              "units": "n/a",
+              "description": "Torquer Primary Coil Status (0=off,1=on)"
+            },
+            {
+              "name": "BE_SAM1Status",
+              "type": "integer",
+              "units": "n/a",
+              "description": "Solar Array Modulator 1 Status (0=off,1=on)"
+            },
+            {
+              "name": "BE_SAM2Status",
+              "type": "integer",
+              "units": "n/a",
+              "description": "Solar Array Modulator 2 Status (0=off,1=on)"
+            },
+            {
+              "name": "BE_SAM3Status",
+              "type": "integer",
+              "units": "n/a",
+              "description": "Solar Array Modulator 3 Status (0=off,1=on)"
+            },
+            {
+              "name": "BE_SAM4Status",
+              "type": "integer",
+              "units": "n/a",
+              "description": "Solar Array Modulator 4 Status (0=off,1=on)"
+            },
+            {
+              "name": "BE_SAM1Ovride",
+              "type": "integer",
+              "units": "n/a",
+              "description": "Solar Array Modulator 1 Override (0=normal,1=override)"
+            },
+            {
+              "name": "BE_SAM2Ovride",
+              "type": "integer",
+              "units": "n/a",
+              "description": "Solar Array Modulator 2 Override (0=normal,1=override)"
+            },
+            {
+              "name": "BE_SAM3Ovride",
+              "type": "integer",
+              "units": "n/a",
+              "description": "Solar Array Modulator 3 Override (0=normal,1=override)"
+            },
+            {
+              "name": "BE_SAM4Ovride",
+              "type": "integer",
+              "units": "n/a",
+              "description": "Solar Array Modulator 4 Override (0=normal,1=override)"
+            },
+            {
+              "name": "BE_COILSTATE",
+              "type": "integer",
+              "units": "n/a",
+              "description": "MTR Coil State (0=disabled,1=enabled)"
+            },
+            {
+              "name": "BE_MTRPCUR",
+              "type": "double",
+              "units": "amps",
+              "description": "Torquer Primary Current (amps)"
+            },
+            {
+              "name": "BE_MTRPVLTCS",
+              "type": "double",
+              "units": "volts",
+              "description": "Torquer Primary Start Voltage (volts)"
+            },
+            {
+              "name": "BE_MTRPVLTCE",
+              "type": "double",
+              "units": "volts",
+              "description": "Torquer Primary End Voltage (volts)"
+            },
+            {
+              "name": "BE_MTRRCUR",
+              "type": "double",
+              "units": "amps",
+              "description": "Torquer Redundant Current (amps)"
+            },
+            {
+              "name": "BE_MTRRVLTCS",
+              "type": "double",
+              "units": "volts",
+              "description": "Torquer Redundant Start Voltage (volts)"
+            },
+            {
+              "name": "BE_MTRRVLTCE",
+              "type": "double",
+              "units": "volts",
+              "description": "Torquer Redundant End Voltage (volts)"
+            }
+          ]
+        },
+        "IM_HK_TML": {
+          "description": "",
+          "start_date": "2000-03-25T21:31:52Z",
+          "stop_date": "2005-12-18T07:38:17Z",
+          "parameters": [
+            {
+              "name": "BT_BATBASEATMP",
+              "type": "double",
+              "units": "Celcius",
+              "description": "External Thermistor 20 Batt Baseplate Temp 1"
+            },
+            {
+              "name": "BT_BATBASEBTMP",
+              "type": "double",
+              "units": "Celcius",
+              "description": "External Thermistor 21 Batt Baseplate Temp 2"
+            },
+            {
+              "name": "BT_CCRT1TMP",
+              "type": "double",
+              "units": "Celcius",
+              "description": "External Thermistor 40 Batt TEMP 1 Temp"
+            },
+            {
+              "name": "BT_CCRT2TMP",
+              "type": "double",
+              "units": "Celcius",
+              "description": "External Thermistor 41 Batt TEMP 2 Temp"
+            },
+            {
+              "name": "BT_MTRTMP",
+              "type": "double",
+              "units": "Celcius",
+              "description": "External Thermistor 15 Torque Rod Temp"
+            },
+            {
+              "name": "BT_NUTDAMPTMP",
+              "type": "double",
+              "units": "Celcius",
+              "description": "External Thermistor 13 Nutation Damper Temp"
+            },
+            {
+              "name": "BT_PLCIDPTMP",
+              "type": "double",
+              "units": "Celcius",
+              "description": "External Thermistor 1 CIDP Baseplate Temp"
+            },
+            {
+              "name": "BT_PLEUVLENATMP",
+              "type": "double",
+              "units": "Celcius",
+              "description": "External Thermistor 4 EUV/LENA Temp"
+            },
+            {
+              "name": "BT_PLFUVWICTMP",
+              "type": "double",
+              "units": "Celcius",
+              "description": "External Thermistor 2 FUV WIC Temp"
+            },
+            {
+              "name": "BT_PLHENAMEUTMP",
+              "type": "double",
+              "units": "Celcius",
+              "description": "External Thermistor 6 HENA MEU Temp"
+            },
+            {
+              "name": "BT_PLMENATMP",
+              "type": "double",
+              "units": "Celcius",
+              "description": "External Thermistor 5 FUV Elec/MENA Temp"
+            },
+            {
+              "name": "BT_SAPNLMXTMP",
+              "type": "double",
+              "units": "Celcius",
+              "description": "External Thermistor 9 Side Panel -X Temp"
+            },
+            {
+              "name": "BT_SAPNLMYTMP",
+              "type": "double",
+              "units": "Celcius",
+              "description": "External Thermistor 11 Side Panel -Y Temp"
+            },
+            {
+              "name": "BT_SAPNLMZHTMP",
+              "type": "double",
+              "units": "Celcius",
+              "description": "External Thermistor 23 Minus Z  Panel Hi Temp"
+            },
+            {
+              "name": "BT_SAPNLMZLTMP",
+              "type": "double",
+              "units": "Celcius",
+              "description": "External Thermistor 12 Minus Z Panel Lo Temp"
+            },
+            {
+              "name": "BT_SAPNLPXTMP",
+              "type": "double",
+              "units": "Celcius",
+              "description": "External Thermistor 8 Side Panel +X Temp"
+            },
+            {
+              "name": "BT_SAPNLPYTMP",
+              "type": "double",
+              "units": "Celcius",
+              "description": "External Thermistor 10 Side Panel +Y Temp"
+            },
+            {
+              "name": "BT_SAPNLPZHTMP",
+              "type": "double",
+              "units": "Celcius",
+              "description": "External Thermistor 3 Minus Z Panel Hi Temp"
+            },
+            {
+              "name": "BT_SAPNLPZLTMP",
+              "type": "double",
+              "units": "Celcius",
+              "description": "External Thermistor 22 Minus Z Panel Lo Temp"
+            },
+            {
+              "name": "BT_SCUCMDTMP",
+              "type": "double",
+              "units": "Celcius",
+              "description": "VME Thermistor 4 SCU Z Command/TLM Module Temp"
+            },
+            {
+              "name": "BT_SCUCOMTMP",
+              "type": "double",
+              "units": "Celcius",
+              "description": "VME Thermistor 2 SCU Z Command/Mem Module Temp"
+            },
+            {
+              "name": "BT_SCUGPIOTMP",
+              "type": "double",
+              "units": "Celcius",
+              "description": "VME Thermistor 1 SCU GPIO Module Temp"
+            },
+            {
+              "name": "BT_SCUMASSMTMP",
+              "type": "double",
+              "units": "Celcius",
+              "description": "VME Thermistor 3 SCU Mass Memory Module Temp"
+            },
+            {
+              "name": "BT_SCUPSTMP",
+              "type": "double",
+              "units": "Celcius",
+              "description": "VME Thermistor 5 SCU Power Supply Module Temp"
+            },
+            {
+              "name": "BT_TAMTMP",
+              "type": "double",
+              "units": "Celcius",
+              "description": "External Thermistor 14 Magnetometer"
+            },
+            {
+              "name": "BT_XMTRRADTMP",
+              "type": "double",
+              "units": "Celcius",
+              "description": "External Thermistor 34 Transponder Radia"
+            },
+            {
+              "name": "BT_XPNINT1TMP",
+              "type": "double",
+              "units": "Celcius",
+              "description": "External Thermistor 44 Receiver Temp"
+            },
+            {
+              "name": "BT_XPNINT2TMP",
+              "type": "double",
+              "units": "Celcius",
+              "description": "External Thermistor 45 Transmitter Power"
+            }
+          ]
+        },
+        "IM_K0_EUV": {
+          "description": "",
+          "start_date": "2000-03-28T09:56:32Z",
+          "stop_date": "2005-12-18T02:49:43Z",
+          "parameters": [
+            {
+              "name": "IMAGE",
+              "type": "double",
+              "units": "cnts/cm^2/sr",
+              "description": "EUV ion (He+) images of earth and surrounding plasmasphere (no grid, small format, linear scale)",
+              "size": [
+                140,
+                140
+              ]
+            },
+            {
+              "name": "IMAGE_LT",
+              "type": "double",
+              "units": "cnts/cm^2/sr",
+              "description": " ---> EUV ion images, as above (large format)",
+              "size": [
+                140,
+                140
+              ]
+            },
+            {
+              "name": "IMAGE_MV",
+              "type": "double",
+              "units": "cnts/cm^2/sr",
+              "description": " ---> EUV ion images, as above (movie)",
+              "size": [
+                140,
+                140
+              ]
+            },
+            {
+              "name": "IMAGE_LOG",
+              "type": "double",
+              "units": "log10(cnts/cm^2/sr)",
+              "description": " ---> EUV ion images, as above (log10 scale)",
+              "size": [
+                140,
+                140
+              ]
+            },
+            {
+              "name": "IMAGE_LT_LOG",
+              "type": "double",
+              "units": "log10(cnts/cm^2/sr)",
+              "description": " ---> EUV ion images, as above (large format, log10 scale)",
+              "size": [
+                140,
+                140
+              ]
+            },
+            {
+              "name": "IMAGE_MV_LOG",
+              "type": "double",
+              "units": "log10(cnts/cm^2/sr)",
+              "description": " ---> EUV ion images, as above (movie, log10 scale)",
+              "size": [
+                140,
+                140
+              ]
+            },
+            {
+              "name": "IMAGEMAP_LT",
+              "type": "double",
+              "units": "cnts/cm^2/sr",
+              "description": " ---> EUV ion images, as above (mapped, large format)",
+              "size": [
+                140,
+                140
+              ]
+            },
+            {
+              "name": "IMAGEMAP_LT_LOG",
+              "type": "double",
+              "units": "cnts/cm^2/sr",
+              "description": " ---> EUV ion images, as above (mapped, large format, log10 scale)",
+              "size": [
+                140,
+                140
+              ]
+            },
+            {
+              "name": "IMAGEMAP_MV",
+              "type": "double",
+              "units": "cnts/cm^2/sr",
+              "description": " ---> EUV ion images, as above (mapped, movie)",
+              "size": [
+                140,
+                140
+              ]
+            },
+            {
+              "name": "IMAGEMAP_MV_LOG",
+              "type": "double",
+              "units": "cnts/cm^2/sr",
+              "description": " ---> EUV ion images, as above (mapped, movie, log10 scale)",
+              "size": [
+                140,
+                140
+              ]
+            },
+            {
+              "name": "gci_pos",
+              "type": "double",
+              "units": "km",
+              "description": "IMAGE Position in GCI coordinates, 3 components",
+              "size": [
+                3
+              ]
+            },
+            {
+              "name": "geo_pos",
+              "type": "double",
+              "units": "km",
+              "description": "IMAGE Position in GEO (geographic) coordinates, 3 components",
+              "size": [
+                3
+              ]
+            },
+            {
+              "name": "gsm_pos",
+              "type": "double",
+              "units": "km",
+              "description": "IMAGE Position in GSM coordinates, 3 components",
+              "size": [
+                3
+              ]
+            }
+          ]
+        },
+        "IM_K0_HENA": {
+          "description": "",
+          "start_date": "2000-04-21T01:50:04Z",
+          "stop_date": "2005-12-18T07:28:01Z",
+          "parameters": [
+            {
+              "name": "Image0_V",
+              "type": "double",
+              "units": "counts",
+              "description": "ENA H Images @ 50-60 keV (no grid, small format, linear scale) - Image0",
+              "size": [
+                60,
+                20
+              ]
+            },
+            {
+              "name": "Image0_VL",
+              "type": "double",
+              "units": "counts",
+              "description": "ENA H Images @ 50-60 keV, as above (large format)",
+              "size": [
+                60,
+                20
+              ]
+            },
+            {
+              "name": "Image0_V_MOV",
+              "type": "double",
+              "units": "counts",
+              "description": "ENA H Images @ 50-60 keV, as above (movie)",
+              "size": [
+                60,
+                20
+              ]
+            },
+            {
+              "name": "Image0_MAP",
+              "type": "double",
+              "units": "counts",
+              "description": "ENA H Images @ 50-60 keV, as above (mapped, large format)",
+              "size": [
+                60,
+                20
+              ]
+            },
+            {
+              "name": "Image0_MAP_MOV",
+              "type": "double",
+              "units": "counts",
+              "description": "ENA H Images @ 50-60 keV, as above (mapped, movie)",
+              "size": [
+                60,
+                20
+              ]
+            },
+            {
+              "name": "Image1_V",
+              "type": "double",
+              "units": "counts",
+              "description": "ENA H Images @ 39-50 keV (no grid, small format, linear scale) - Image1",
+              "size": [
+                60,
+                20
+              ]
+            },
+            {
+              "name": "Image1_VL",
+              "type": "double",
+              "units": "counts",
+              "description": "ENA H Images @ 39-50 keV, as above (large format)",
+              "size": [
+                60,
+                20
+              ]
+            },
+            {
+              "name": "Image1_V_MOV",
+              "type": "double",
+              "units": "counts",
+              "description": "ENA H Images @ 39-50 keV, as above (movie)",
+              "size": [
+                60,
+                20
+              ]
+            },
+            {
+              "name": "Image1_MAP",
+              "type": "double",
+              "units": "counts",
+              "description": "ENA H Images @ 39-50 keV, as above (mapped, large format)",
+              "size": [
+                60,
+                20
+              ]
+            },
+            {
+              "name": "Image1_MAP_MOV",
+              "type": "double",
+              "units": "counts",
+              "description": "ENA H Images @ 39-50 keV, as above (mapped, movie)",
+              "size": [
+                60,
+                20
+              ]
+            },
+            {
+              "name": "Image2_V",
+              "type": "double",
+              "units": "counts",
+              "description": "ENA H Images @ 27-39 kev (no grid, small format, linear scale) - Image2",
+              "size": [
+                60,
+                20
+              ]
+            },
+            {
+              "name": "Image2_VL",
+              "type": "double",
+              "units": "counts",
+              "description": "ENA H Images @ 27-39 keV, as above (large format)",
+              "size": [
+                60,
+                20
+              ]
+            },
+            {
+              "name": "Image2_V_MOV",
+              "type": "double",
+              "units": "counts",
+              "description": "ENA H Images @ 27-39 keV, as above (movie)",
+              "size": [
+                60,
+                20
+              ]
+            },
+            {
+              "name": "Image2_MAP",
+              "type": "double",
+              "units": "counts",
+              "description": "ENA H Images @ 27-39 keV, as above (mapped, large format)",
+              "size": [
+                60,
+                20
+              ]
+            },
+            {
+              "name": "Image2_MAP_MOV",
+              "type": "double",
+              "units": "counts",
+              "description": "ENA H Images @ 27-39 keV, as above (mapped, movie)",
+              "size": [
+                60,
+                20
+              ]
+            },
+            {
+              "name": "Image3_V",
+              "type": "double",
+              "units": "counts",
+              "description": "ENA H Images @ 16-27 keV (no grid, small format, linear scale) - Image3",
+              "size": [
+                60,
+                20
+              ]
+            },
+            {
+              "name": "Image3_VL",
+              "type": "double",
+              "units": "counts",
+              "description": "ENA H Images @ 16-27 keV, as above (large format)",
+              "size": [
+                60,
+                20
+              ]
+            },
+            {
+              "name": "Image3_VMOV",
+              "type": "double",
+              "units": "counts",
+              "description": "ENA H Images @ 16-27 keV, as above (movie)",
+              "size": [
+                60,
+                20
+              ]
+            },
+            {
+              "name": "Image3_MAP",
+              "type": "double",
+              "units": "counts",
+              "description": "ENA H Images @ 16-27 keV, as above (mapped, large format)",
+              "size": [
+                60,
+                20
+              ]
+            },
+            {
+              "name": "Image3_MAP_MOV",
+              "type": "double",
+              "units": "counts",
+              "description": "ENA H Images @ 16-27 keV, as above (mapped, movie)",
+              "size": [
+                60,
+                20
+              ]
+            },
+            {
+              "name": "Image4_V",
+              "type": "double",
+              "units": "counts",
+              "description": "ENA H Images @ 10-16 keV (no grid, small format, linear scale) - Image4",
+              "size": [
+                60,
+                20
+              ]
+            },
+            {
+              "name": "Image4_VL",
+              "type": "double",
+              "units": "counts",
+              "description": "ENA H Images @ 10-16 keV, as above (large format)",
+              "size": [
+                60,
+                20
+              ]
+            },
+            {
+              "name": "Image4_VMOV",
+              "type": "double",
+              "units": "counts",
+              "description": "ENA H Images @ 10-16 keV, as above (movie)",
+              "size": [
+                60,
+                20
+              ]
+            },
+            {
+              "name": "Image4_MAP",
+              "type": "double",
+              "units": "counts",
+              "description": "ENA H Images @ 10-16 keV, as above (mapped, large format)",
+              "size": [
+                60,
+                20
+              ]
+            },
+            {
+              "name": "Image4_MAP_MOV",
+              "type": "double",
+              "units": "counts",
+              "description": "ENA H Images @ 10-16 keV, as above (mapped, movie)",
+              "size": [
+                60,
+                20
+              ]
+            },
+            {
+              "name": "Image5_V",
+              "type": "double",
+              "units": "counts",
+              "description": "ENA H Images @ <10 keV (no grid, small format, linear scale) - Image5",
+              "size": [
+                60,
+                20
+              ]
+            },
+            {
+              "name": "Image5_VL",
+              "type": "double",
+              "units": "counts",
+              "description": "ENA H Images @ <10 keV, as above (large format)",
+              "size": [
+                60,
+                20
+              ]
+            },
+            {
+              "name": "Image5_VMOV",
+              "type": "double",
+              "units": "counts",
+              "description": "ENA H Images @ <10 keV, as above (movie)",
+              "size": [
+                60,
+                20
+              ]
+            },
+            {
+              "name": "Image5_MAP",
+              "type": "double",
+              "units": "counts",
+              "description": "ENA H Images @ <10 keV, as above (mapped, large format)",
+              "size": [
+                60,
+                20
+              ]
+            },
+            {
+              "name": "Image5_MAP_MOV",
+              "type": "double",
+              "units": "counts",
+              "description": "ENA H Images @ <10 keV, as above (mapped, movie)",
+              "size": [
+                60,
+                20
+              ]
+            },
+            {
+              "name": "gci_pos",
+              "type": "double",
+              "units": "km",
+              "description": "IMAGE position (GCI)",
+              "size": [
+                3
+              ]
+            },
+            {
+              "name": "gsm_pos",
+              "type": "double",
+              "units": "km",
+              "description": "IMAGE position (GSM)",
+              "size": [
+                3
+              ]
+            },
+            {
+              "name": "gse_pos",
+              "type": "double",
+              "units": "km",
+              "description": "IMAGE position (GSE)",
+              "size": [
+                3
+              ]
+            },
+            {
+              "name": "gci_spinaxis",
+              "type": "double",
+              "units": "rads",
+              "description": "Spin Axis (GCI) at time image was taken.",
+              "size": [
+                3
+              ]
+            }
+          ]
+        },
+        "IM_K0_LENA": {
+          "description": "",
+          "start_date": "2000-05-24T00:00:00Z",
+          "stop_date": "2005-12-18T07:31:59Z",
+          "parameters": [
+            {
+              "name": "Image0",
+              "type": "double",
+              "units": "counts",
+              "description": "ENA H Images @ 20 eV (no grid, small format, linear scale) - Image0",
+              "size": [
+                45,
+                12
+              ]
+            },
+            {
+              "name": "Image0_LT",
+              "type": "double",
+              "units": "counts",
+              "description": "ENA H Images @ 20 eV, as above (large format)",
+              "size": [
+                45,
+                12
+              ]
+            },
+            {
+              "name": "Image0_MV",
+              "type": "double",
+              "units": "counts",
+              "description": "ENA H Images @ 20 eV, as above (movie)",
+              "size": [
+                45,
+                12
+              ]
+            },
+            {
+              "name": "Image0MAP_LT",
+              "type": "double",
+              "units": "counts",
+              "description": "ENA H Images @ 20 eV, as above (mapped, large format)",
+              "size": [
+                45,
+                12
+              ]
+            },
+            {
+              "name": "Image0MAP_MV",
+              "type": "double",
+              "units": "counts",
+              "description": "ENA H Images @ 20 eV, as above (mapped, movie)",
+              "size": [
+                45,
+                12
+              ]
+            },
+            {
+              "name": "Image1",
+              "type": "double",
+              "units": "counts",
+              "description": "ENA H Images @ 70 eV (no grid, small format, linear scale) - Image1",
+              "size": [
+                45,
+                12
+              ]
+            },
+            {
+              "name": "Image1_LT",
+              "type": "double",
+              "units": "counts",
+              "description": "ENA H Images @ 70 eV, as above (large format)",
+              "size": [
+                45,
+                12
+              ]
+            },
+            {
+              "name": "Image1_MV",
+              "type": "double",
+              "units": "counts",
+              "description": "ENA H Images @ 70 eV, as above (movie)",
+              "size": [
+                45,
+                12
+              ]
+            },
+            {
+              "name": "Image1MAP_LT",
+              "type": "double",
+              "units": "counts",
+              "description": "ENA H Images @ 70 eV, as above (mapped, large format)",
+              "size": [
+                45,
+                12
+              ]
+            },
+            {
+              "name": "Image1MAP_MOV",
+              "type": "double",
+              "units": "counts",
+              "description": "ENA H Images @ 70 eV, as above (mapped, movie)",
+              "size": [
+                45,
+                12
+              ]
+            },
+            {
+              "name": "Image2",
+              "type": "double",
+              "units": "counts",
+              "description": "ENA H Images @ 200 eV (no grid, small format, linear scale) - Image2",
+              "size": [
+                45,
+                12
+              ]
+            },
+            {
+              "name": "Image2_LT",
+              "type": "double",
+              "units": "counts",
+              "description": "ENA H Images @ 200 eV, as above (large format)",
+              "size": [
+                45,
+                12
+              ]
+            },
+            {
+              "name": "Image2_MV",
+              "type": "double",
+              "units": "counts",
+              "description": "ENA H Images @ 200 eV, as above (movie)",
+              "size": [
+                45,
+                12
+              ]
+            },
+            {
+              "name": "Image2MAP_LT",
+              "type": "double",
+              "units": "counts",
+              "description": "ENA H Images @ 200 eV, as above (mapped, large format)",
+              "size": [
+                45,
+                12
+              ]
+            },
+            {
+              "name": "Image2MAP_MOV",
+              "type": "double",
+              "units": "counts",
+              "description": "ENA H Images @ 200 eV, as above (mapped, movie)",
+              "size": [
+                45,
+                12
+              ]
+            },
+            {
+              "name": "gci_pos",
+              "type": "double",
+              "units": "km",
+              "description": "IMAGE position (GCI)",
+              "size": [
+                3
+              ]
+            },
+            {
+              "name": "gsm_pos",
+              "type": "double",
+              "units": "km",
+              "description": "IMAGE position (GSM)",
+              "size": [
+                3
+              ]
+            },
+            {
+              "name": "gse_pos",
+              "type": "double",
+              "units": "km",
+              "description": "IMAGE position (GSE)",
+              "size": [
+                3
+              ]
+            },
+            {
+              "name": "gci_spinaxis",
+              "type": "double",
+              "units": "rads",
+              "description": "IMAGE Spin Axis (GCI) at time image was taken.",
+              "size": [
+                3
+              ]
+            }
+          ]
+        },
+        "IM_K0_MENA": {
+          "description": "",
+          "start_date": "2000-04-04T12:56:37Z",
+          "stop_date": "2005-12-18T07:34:05Z",
+          "parameters": [
+            {
+              "name": "Image0",
+              "type": "double",
+              "units": "keV/nucleon",
+              "description": "ENA H Images @ 1.0-2.2 keV/n (no grid, small format, linear scale) - Image0",
+              "size": [
+                32,
+                32
+              ]
+            },
+            {
+              "name": "Image0_LT",
+              "type": "double",
+              "units": "Kev/nucleon",
+              "description": "ENA H Images @ 1.0-2.2 keV/n, as above (large format)",
+              "size": [
+                32,
+                32
+              ]
+            },
+            {
+              "name": "Image0_MV",
+              "type": "double",
+              "units": "Kev/nucleon",
+              "description": "ENA H Images @ 1.0-2.2 keV/n, as above (movie)",
+              "size": [
+                32,
+                32
+              ]
+            },
+            {
+              "name": "Image0MAP_LT",
+              "type": "double",
+              "units": "Kev/nucleon",
+              "description": "ENA H Images @ 1.0-2.2 keV/n, as above (mapped, large format)",
+              "size": [
+                32,
+                32
+              ]
+            },
+            {
+              "name": "Image0MAP_MV",
+              "type": "double",
+              "units": "Kev/nucleon",
+              "description": "ENA H Images @ 1.0-2.2 keV/n, as above (mapped, movie)",
+              "size": [
+                32,
+                32
+              ]
+            },
+            {
+              "name": "Image1",
+              "type": "double",
+              "units": "Kev/nucleon",
+              "description": "ENA H Images @ 2.2-5.3 keV/n (no grid, small format, linear scale) - Image1",
+              "size": [
+                32,
+                32
+              ]
+            },
+            {
+              "name": "Image1_LT",
+              "type": "double",
+              "units": "Kev/nucleon",
+              "description": "ENA H Images @ 2.2-5.3 keV/n, as above (large format)",
+              "size": [
+                32,
+                32
+              ]
+            },
+            {
+              "name": "Image1_MV",
+              "type": "double",
+              "units": "Kev/nucleon",
+              "description": "ENA H Images @ 2.2-5.3 keV/n, as above (movie)",
+              "size": [
+                32,
+                32
+              ]
+            },
+            {
+              "name": "Image1MAP_LT",
+              "type": "double",
+              "units": "Kev/nucleon",
+              "description": "ENA H Images @ 2.2-5.3 keV/n, as above (mapped, large format)",
+              "size": [
+                32,
+                32
+              ]
+            },
+            {
+              "name": "Image1MAP_MOV",
+              "type": "double",
+              "units": "Kev/nucleon",
+              "description": "ENA H Images @ 2.2-5.3 keV/n, as above (mapped, movie)",
+              "size": [
+                32,
+                32
+              ]
+            },
+            {
+              "name": "Image2",
+              "type": "double",
+              "units": "Kev/nucleon",
+              "description": "ENA H Images @ 5.3-12 keV/n (no grid, small format, linear scale) - Image2",
+              "size": [
+                32,
+                32
+              ]
+            },
+            {
+              "name": "Image2_LT",
+              "type": "double",
+              "units": "Kev/nucleon",
+              "description": "ENA H Images @ 5.3-12 keV/n, as above (large format)",
+              "size": [
+                32,
+                32
+              ]
+            },
+            {
+              "name": "Image2_MV",
+              "type": "double",
+              "units": "Kev/nucleon",
+              "description": "ENA H Images @ 5.3-12 keV/n, as above (movie)",
+              "size": [
+                32,
+                32
+              ]
+            },
+            {
+              "name": "Image2MAP_LT",
+              "type": "double",
+              "units": "Kev/nucleon",
+              "description": "ENA H Images @ 5.3-12 keV/n, as above (mapped, large format)",
+              "size": [
+                32,
+                32
+              ]
+            },
+            {
+              "name": "Image2MAP_MOV",
+              "type": "double",
+              "units": "Kev/nucleon",
+              "description": "ENA H Images @ 5.3-12 keV/n, as above (mapped, movie)",
+              "size": [
+                32,
+                32
+              ]
+            },
+            {
+              "name": "Image3",
+              "type": "double",
+              "units": "Kev/nucleon",
+              "description": "ENA H Images @ 12-27 keV/n (no grid, small format, linear scale) - Image3",
+              "size": [
+                32,
+                32
+              ]
+            },
+            {
+              "name": "Image3_LT",
+              "type": "double",
+              "units": "Kev/nucleon",
+              "description": "ENA H Images @ 12-27 keV/n, as above (large format)",
+              "size": [
+                32,
+                32
+              ]
+            },
+            {
+              "name": "Image3_MV",
+              "type": "double",
+              "units": "Kev/nucleon",
+              "description": "ENA H Images @ 12-27 keV/n, as above (movie)",
+              "size": [
+                32,
+                32
+              ]
+            },
+            {
+              "name": "Image3MAP_LT",
+              "type": "double",
+              "units": "Kev/nucleon",
+              "description": "ENA H Images @ 12-27 keV/n, as above (mapped, large format)",
+              "size": [
+                32,
+                32
+              ]
+            },
+            {
+              "name": "Image3MAP_MOV",
+              "type": "double",
+              "units": "Kev/nucleon",
+              "description": "ENA H Images @ 12-27 keV/n, as above (mapped, movie)",
+              "size": [
+                32,
+                32
+              ]
+            },
+            {
+              "name": "Image4",
+              "type": "double",
+              "units": "Kev/nucleon",
+              "description": "ENA H Images @ 27-70 keV/n (no grid, small format, linear scale) - Image4",
+              "size": [
+                32,
+                32
+              ]
+            },
+            {
+              "name": "Image4_LT",
+              "type": "double",
+              "units": "Kev/nucleon",
+              "description": "ENA H Images @ 27-70 keV/n, as above (large format)",
+              "size": [
+                32,
+                32
+              ]
+            },
+            {
+              "name": "Image4_MV",
+              "type": "double",
+              "units": "Kev/nucleon",
+              "description": "ENA H Images @ 27-70 keV/n, as above (movie)",
+              "size": [
+                32,
+                32
+              ]
+            },
+            {
+              "name": "Image4MAP_LT",
+              "type": "double",
+              "units": "Kev/nucleon",
+              "description": "ENA H Images @ 27-70 keV/n, as above (mapped, large format)",
+              "size": [
+                32,
+                32
+              ]
+            },
+            {
+              "name": "Image4MAP_MOV",
+              "type": "double",
+              "units": "Kev/nucleon",
+              "description": "ENA H Images @ 27-70 keV/n, as above (mapped, movie)",
+              "size": [
+                32,
+                32
+              ]
+            },
+            {
+              "name": "gci_pos",
+              "type": "double",
+              "units": "km",
+              "description": "IMAGE position (GCI)",
+              "size": [
+                3
+              ]
+            },
+            {
+              "name": "gsm_pos",
+              "type": "double",
+              "units": "km",
+              "description": "IMAGE position (GSM)",
+              "size": [
+                3
+              ]
+            },
+            {
+              "name": "gse_pos",
+              "type": "double",
+              "units": "km",
+              "description": "IMAGE position (GSE)",
+              "size": [
+                3
+              ]
+            },
+            {
+              "name": "gci_spinaxis",
+              "type": "double",
+              "units": "rads",
+              "description": "IMAGE Spin Axis (GCI) at time image was taken.",
+              "size": [
+                3
+              ]
+            }
+          ]
+        },
+        "IM_K0_RPI": {
+          "description": "",
+          "start_date": "2000-03-26T07:51:50Z",
+          "stop_date": "2005-12-18T07:40:47Z",
+          "parameters": [
+            {
+              "name": "Amplitude22",
+              "type": "integer",
+              "units": "3/4 dBnV/m",
+              "description": "Echo Amplitude Image [nV] - Plasmagram - linear (frequency vs. range, standard display/orientation)",
+              "size": [
+                256,
+                128
+              ]
+            },
+            {
+              "name": "Amplitude22M",
+              "type": "integer",
+              "units": "3/4 dBnV/m",
+              "description": " ---> Movie - linear (frequency vs. range)",
+              "size": [
+                256,
+                128
+              ]
+            },
+            {
+              "name": "Amplitude2",
+              "type": "integer",
+              "units": "3/4 dBnV/m",
+              "description": " ---> Plasmagram - linear (range vs frequency) ",
+              "size": [
+                256,
+                128
+              ]
+            },
+            {
+              "name": "Amplitude2M",
+              "type": "integer",
+              "units": "3/4 dBnV/m",
+              "description": " ---> Movie - linear (range vs. frequency)",
+              "size": [
+                256,
+                128
+              ]
+            },
+            {
+              "name": "Amplitude3",
+              "type": "integer",
+              "units": "3/4 dBnV/m",
+              "description": " ---> Plasmagram - range vs. log frequency",
+              "size": [
+                256,
+                128
+              ]
+            },
+            {
+              "name": "Amplitude3M",
+              "type": "integer",
+              "units": "3/4 dBnV/m",
+              "description": " ---> Movie - range vs. log frequency",
+              "size": [
+                256,
+                128
+              ]
+            },
+            {
+              "name": "Amplitude4",
+              "type": "integer",
+              "units": "3/4 dBnV/m",
+              "description": " ---> Plasmagram - log frequency vs. range",
+              "size": [
+                256,
+                128
+              ]
+            },
+            {
+              "name": "Amplitude4M",
+              "type": "integer",
+              "units": "3/4 dBnV/m",
+              "description": " ---> Movie - log frequency vs. range",
+              "size": [
+                256,
+                128
+              ]
+            },
+            {
+              "name": "AmplitudeF",
+              "type": "integer",
+              "units": "3/4 dBnV/m",
+              "description": "Plain images (x=frequency, y=range, no scales)",
+              "size": [
+                256,
+                128
+              ]
+            },
+            {
+              "name": "AmplitudeFM",
+              "type": "integer",
+              "units": "3/4 dBnV/m",
+              "description": " ---> Movie (x=frequency, y=range, no scales)",
+              "size": [
+                256,
+                128
+              ]
+            },
+            {
+              "name": "Amplitude",
+              "type": "integer",
+              "units": "3/4 dBnV/m",
+              "description": " ---> Images (x=range, y=frequency, no scales)",
+              "size": [
+                256,
+                128
+              ]
+            },
+            {
+              "name": "AmplitudeM",
+              "type": "integer",
+              "units": "3/4 dBnV/m",
+              "description": " ---> Movie (x=range, y=frequency, no scales)",
+              "size": [
+                256,
+                128
+              ]
+            },
+            {
+              "name": "MPA",
+              "type": "integer",
+              "units": "3/4 dBnv/m",
+              "description": "Most Probable Amplitude",
+              "size": [
+                256
+              ]
+            },
+            {
+              "name": "ProgramSpecs",
+              "type": "integer",
+              "units": " ",
+              "description": "Program Specifications (25 values/epoch) [NO PLOT - LISTING ONLY]",
+              "size": [
+                25
+              ]
+            },
+            {
+              "name": "NumFreqs",
+              "type": "integer",
+              "units": " ",
+              "description": "Actual number of frequencies being measured"
+            },
+            {
+              "name": "Frequency",
+              "type": "double",
+              "units": "kHz",
+              "description": "Measured frequency values",
+              "size": [
+                256
+              ]
+            },
+            {
+              "name": "NumRanges",
+              "type": "integer",
+              "units": " ",
+              "description": "Actual number of ranges being measured"
+            },
+            {
+              "name": "Range",
+              "type": "double",
+              "units": "Re",
+              "description": "Measured range values",
+              "size": [
+                128
+              ]
+            }
+          ]
+        },
+        "IM_K0_SIE": {
+          "description": "",
+          "start_date": "2000-04-25T09:52:03Z",
+          "stop_date": "2005-12-18T07:35:42Z",
+          "parameters": [
+            {
+              "name": "SI_PIXELS",
+              "type": "integer",
+              "units": "Raw Pixel Cnts",
+              "description": "FUV/SIE Electron Images @ 1356A (raw cnts, no grid, small format, linear scaling) - use CDAWeb noise filter",
+              "size": [
+                128,
+                128
+              ]
+            },
+            {
+              "name": "SI_PIXELS_L",
+              "type": "integer",
+              "units": "Raw Pixel Cnts",
+              "description": " ---> As above (large format)",
+              "size": [
+                128,
+                128
+              ]
+            },
+            {
+              "name": "SI_PIXELS_V",
+              "type": "integer",
+              "units": "Raw Pixel Cnts",
+              "description": "[DO NOT USE] FUV/SIE Electron Images @ 1356A (raw cnts, mapped, large format, linear scaling) - use CDAWeb noise filter",
+              "size": [
+                128,
+                128
+              ]
+            },
+            {
+              "name": "SI_PIXELS_M",
+              "type": "integer",
+              "units": "Raw Pixel Cnts",
+              "description": "--->  [DO NOT USE] As above (movie format)",
+              "size": [
+                128,
+                128
+              ]
+            },
+            {
+              "name": "SI_PIXELS_LOG",
+              "type": "double",
+              "units": "Log10(Raw Pixel Cnts)",
+              "description": "FUV/SIE Electron Images @ 1356A (no grid, small format, log10 scaling)",
+              "size": [
+                128,
+                128
+              ]
+            },
+            {
+              "name": "SI_PIXELS_L_LOG",
+              "type": "double",
+              "units": "Log10(Raw Pixel Cnts)",
+              "description": " ---> As above (large format)",
+              "size": [
+                128,
+                128
+              ]
+            },
+            {
+              "name": "SI_PIXELS_M_LOG",
+              "type": "double",
+              "units": "Log10(Raw Pixel Cnts)",
+              "description": " ---> As above (movie format)",
+              "size": [
+                128,
+                128
+              ]
+            },
+            {
+              "name": "SPIN",
+              "type": "integer",
+              "units": " ",
+              "description": "Spin number (time_equivalent)"
+            },
+            {
+              "name": "DATA_QUAL",
+              "type": "integer",
+              "units": " (1=Good,2=Bad)",
+              "description": "FUV/SIE Data Quality parameter (1=Good, 2=Bad)"
+            },
+            {
+              "name": "RADIUS",
+              "type": "double",
+              "units": "Earth radii",
+              "description": "IMAGE Geocentric Distance"
+            },
+            {
+              "name": "HV",
+              "type": "double",
+              "units": "volts",
+              "description": "SIE Phosphor HV"
+            },
+            {
+              "name": "FOVSCALE",
+              "type": "integer",
+              "units": " ",
+              "description": "expansion factor for FOV"
+            },
+            {
+              "name": "SPINPHASE",
+              "type": "double",
+              "units": "Degrees",
+              "description": "Spin Phase Angle"
+            },
+            {
+              "name": "SV_X",
+              "type": "double",
+              "units": " ",
+              "description": "orientation direction cosine X (direction of true spin axis at SIE Snapshot Time)"
+            },
+            {
+              "name": "SV_Y",
+              "type": "double",
+              "units": " ",
+              "description": "oriention direction cosine Y (direction of true spin axis at SIE Snapshot Time)"
+            },
+            {
+              "name": "SV_Z",
+              "type": "double",
+              "units": " ",
+              "description": "oriention direction cosine Z"
+            },
+            {
+              "name": "ORB_X",
+              "type": "double",
+              "units": "Km",
+              "description": "geocentric position - GCI X"
+            },
+            {
+              "name": "ORB_Y",
+              "type": "double",
+              "units": "Km",
+              "description": "geocentric position GCI Y"
+            },
+            {
+              "name": "ORB_Z",
+              "type": "double",
+              "units": "Km",
+              "description": "geocentric position GCI Z"
+            },
+            {
+              "name": "SCSV_X",
+              "type": "double",
+              "units": " ",
+              "description": "SIE spin axis orientation direction cosine X-direction, s/c frame"
+            },
+            {
+              "name": "SCSV_Y",
+              "type": "double",
+              "units": " ",
+              "description": "SIE spin axis orientation direction cosine Y-direction, s/c frame"
+            },
+            {
+              "name": "SCSV_Z",
+              "type": "double",
+              "units": " ",
+              "description": "SIE spin axis orientation direction cosine Z-direction, s/c frame"
+            }
+          ]
+        },
+        "IM_K0_SIP": {
+          "description": "",
+          "start_date": "2000-04-25T09:41:42Z",
+          "stop_date": "2005-12-18T07:35:42Z",
+          "parameters": [
+            {
+              "name": "SI_PIXELS",
+              "type": "integer",
+              "units": "Raw Pixel Cnts",
+              "description": "FUV/SIP Proton Images @1218A (raw cnts, no grid, small format, linear scale) - use CDAWeb noise filter",
+              "size": [
+                128,
+                128
+              ]
+            },
+            {
+              "name": "SI_PIXELS_L",
+              "type": "integer",
+              "units": "Raw Pixel Cnts",
+              "description": " ---> FUV/SIP Proton Images @1218A, as above (large format)",
+              "size": [
+                128,
+                128
+              ]
+            },
+            {
+              "name": "SI_PIXELS_V",
+              "type": "integer",
+              "units": "Raw Pixel Cnts",
+              "description": "[DO NOT USE] FUV/SIP Proton Images @1218A (raw cnts, mapped, large format, linear scale) - use CDAWeb noise filter",
+              "size": [
+                128,
+                128
+              ]
+            },
+            {
+              "name": "SI_PIXELS_M",
+              "type": "integer",
+              "units": "Raw Pixel Cnts",
+              "description": " ---> [DO NOT USE] As above (movie format)",
+              "size": [
+                128,
+                128
+              ]
+            },
+            {
+              "name": "SI_PIXELS_LOG",
+              "type": "double",
+              "units": "Log10(Raw Pixel Cnts)",
+              "description": "FUV/SIP Proton Images @ 1218A, (no grid, small format, log10 scaling)",
+              "size": [
+                128,
+                128
+              ]
+            },
+            {
+              "name": "SI_PIXELS_L_LOG",
+              "type": "double",
+              "units": "Log10(Raw Pixel Cnts)",
+              "description": " ---> As above (large format)",
+              "size": [
+                128,
+                128
+              ]
+            },
+            {
+              "name": "SI_PIXELS_LOG_M",
+              "type": "double",
+              "units": "Log10(Raw Pixel Cnts)",
+              "description": " ---> As above (movie format)",
+              "size": [
+                128,
+                128
+              ]
+            },
+            {
+              "name": "SI_PIXELS_V_LOG",
+              "type": "integer",
+              "units": "Log10 (Raw Pixel Cnts)",
+              "description": "[DO NOT USE] FUV/SIP Proton Images @1218A (raw cnts, mapped, large format, log10 scaling) ",
+              "size": [
+                128,
+                128
+              ]
+            },
+            {
+              "name": "SI_PIXELS_M_LOG",
+              "type": "double",
+              "units": "Log10 (Raw Pixel Cnts)",
+              "description": " ---> [DO NOT USE] As above (movie format)",
+              "size": [
+                128,
+                128
+              ]
+            },
+            {
+              "name": "SPIN",
+              "type": "integer",
+              "units": " ",
+              "description": "SIP spin number (time_equivalent)"
+            },
+            {
+              "name": "DATA_QUAL",
+              "type": "integer",
+              "units": " (1=Good, 2=Bad)",
+              "description": "FUV/SIP Quality parameter (1=Good, 2=Bad)"
+            },
+            {
+              "name": "RADIUS",
+              "type": "double",
+              "units": "Earth radii",
+              "description": "IMAGE Geocentric Distance"
+            },
+            {
+              "name": "HV",
+              "type": "double",
+              "units": "volts",
+              "description": "SIP Phospher HV voltage"
+            },
+            {
+              "name": "FOVSCALE",
+              "type": "integer",
+              "units": " ",
+              "description": "expansion factor for FOV"
+            },
+            {
+              "name": "SPINPHASE",
+              "type": "double",
+              "units": "Degrees",
+              "description": "Spin phase angle"
+            },
+            {
+              "name": "SV_X",
+              "type": "double",
+              "units": " ",
+              "description": "orientation direction cosine X (direction of true spin axis at SIP Snapshot Time)"
+            },
+            {
+              "name": "SV_Y",
+              "type": "double",
+              "units": " ",
+              "description": "orientation direction cosine Y (direction of true spin axis at SIP Snapshot Time)"
+            },
+            {
+              "name": "SV_Z",
+              "type": "double",
+              "units": " ",
+              "description": "oriention direction cosine Z"
+            },
+            {
+              "name": "ORB_X",
+              "type": "double",
+              "units": "Km",
+              "description": "geocentric position GCI X"
+            },
+            {
+              "name": "ORB_Y",
+              "type": "double",
+              "units": "Km",
+              "description": "geocentric position GCI Y"
+            },
+            {
+              "name": "ORB_Z",
+              "type": "double",
+              "units": "Km",
+              "description": "geocentric position GCI Z"
+            },
+            {
+              "name": "SCSV_X",
+              "type": "double",
+              "units": " ",
+              "description": "X-coordinate of Spin Axis in Spacecraft System"
+            },
+            {
+              "name": "SCSV_Y",
+              "type": "double",
+              "units": " ",
+              "description": "Y-coordinate of Spin Axis in Spacecraft System"
+            },
+            {
+              "name": "SCSV_Z",
+              "type": "double",
+              "units": " ",
+              "description": "Z-coordinate of Spin Axis in Spacecraft System"
+            }
+          ]
+        },
+        "IM_K0_WIC": {
+          "description": "",
+          "start_date": "2000-04-25T07:44:03Z",
+          "stop_date": "2005-12-18T07:35:41Z",
+          "parameters": [
+            {
+              "name": "WIC_PIXELS",
+              "type": "integer",
+              "units": "counts",
+              "description": "FUV/WIC LBH Auroral Images (raw cnts/14 bits, no grid, small format, linear scale)",
+              "size": [
+                256,
+                256
+              ]
+            },
+            {
+              "name": "WIC_PIXELS_LARGE",
+              "type": "integer",
+              "units": "counts",
+              "description": " ---> FUV/WIC LBH Auroral Images, as above (large format)",
+              "size": [
+                256,
+                256
+              ]
+            },
+            {
+              "name": "WIC_PIXELS_M",
+              "type": "integer",
+              "units": "counts",
+              "description": " ---> as above (movie format)",
+              "size": [
+                256,
+                256
+              ]
+            },
+            {
+              "name": "WIC_PIXELS_LOG",
+              "type": "double",
+              "units": "Log10(Cnts)",
+              "description": " ---> FUV/WIC LBH Auroral Images, as above (small format, log10 scaling)",
+              "size": [
+                256,
+                256
+              ]
+            },
+            {
+              "name": "WIC_PIXELS_L_LOG",
+              "type": "double",
+              "units": "Log10(Cnts)",
+              "description": " ---> FUV/WIC LBH Auroral Images, as above (large format, log10 scaling)",
+              "size": [
+                256,
+                256
+              ]
+            },
+            {
+              "name": "WIC_PIXELS_M_LOG",
+              "type": "double",
+              "units": "Log10(Cnts)",
+              "description": " ---> as above (movie format log10 scaling)",
+              "size": [
+                256,
+                256
+              ]
+            },
+            {
+              "name": "WIC_PIXELS_V",
+              "type": "integer",
+              "units": "counts",
+              "description": "[DO NOT USE] FUV/WIC LBH Auroral Mapped Images (raw cnts/14 bits, large format, linear scale)",
+              "size": [
+                256,
+                256
+              ]
+            },
+            {
+              "name": "WIC_PIXELS_MOVIE",
+              "type": "integer",
+              "units": "counts",
+              "description": " ---> [DO NOT USE] FUV/WIC LBH Auroral Mapped images, as above (movie format)",
+              "size": [
+                256,
+                256
+              ]
+            },
+            {
+              "name": "WIC_PIXELS_MAP_LOG",
+              "type": "double",
+              "units": "Log10(Cnts)",
+              "description": " ---> [DO NOT USE] FUV/WIC LBH Auroral Mapped Images, as above (log10 scaling)",
+              "size": [
+                256,
+                256
+              ]
+            },
+            {
+              "name": "WIC_PIXELS_MOV_LOG",
+              "type": "double",
+              "units": "Log10(Cnts)",
+              "description": " ---> [DO NOT USE] FUV/WIC LBH Auroral Mapped Images, as above (movie format, log10 scaling)",
+              "size": [
+                256,
+                256
+              ]
+            },
+            {
+              "name": "SPIN",
+              "type": "integer",
+              "units": " ",
+              "description": "WIC spin number (time_equivalent)"
+            },
+            {
+              "name": "DATA_QUAL",
+              "type": "integer",
+              "units": "(1=Good, 2=Bad)",
+              "description": "WIC Quality parameter (1=Good, 2=Bad)"
+            },
+            {
+              "name": "RADIUS",
+              "type": "double",
+              "units": "Earth radii",
+              "description": "IMAGE Geocentric Distance"
+            },
+            {
+              "name": "HV_PHOS",
+              "type": "double",
+              "units": "volts",
+              "description": "HV setting for WIC Phosphor"
+            },
+            {
+              "name": "HV_MCP",
+              "type": "double",
+              "units": "volts",
+              "description": "HV setting for WIC MCP"
+            },
+            {
+              "name": "FOVSCALE",
+              "type": "integer",
+              "units": " ",
+              "description": "expansion factor for FOV"
+            },
+            {
+              "name": "SPINPHASE",
+              "type": "double",
+              "units": "Degrees",
+              "description": "spin phase angle"
+            },
+            {
+              "name": "SV_X",
+              "type": "double",
+              "units": " ",
+              "description": "orientation direction cosine X (direction of true spin axis at WIC Snapshot Time)"
+            },
+            {
+              "name": "SV_Y",
+              "type": "double",
+              "units": " ",
+              "description": "oriention direction cosine Y (direction of true spin axis at WIC Snapshot Time)"
+            },
+            {
+              "name": "SV_Z",
+              "type": "double",
+              "units": " ",
+              "description": "oriention direction cosine Z"
+            },
+            {
+              "name": "ORB_X",
+              "type": "double",
+              "units": "Km",
+              "description": "IMAGE GCI  position X"
+            },
+            {
+              "name": "ORB_Y",
+              "type": "double",
+              "units": "Km",
+              "description": "IMAGE GCI position Y"
+            },
+            {
+              "name": "ORB_Z",
+              "type": "double",
+              "units": "Km",
+              "description": "IMAGE GCI position Z"
+            },
+            {
+              "name": "SCSV_X",
+              "type": "double",
+              "units": " ",
+              "description": "WIC spin axis orientation direction cosine X-direction, s/c frame"
+            },
+            {
+              "name": "SCSV_Y",
+              "type": "double",
+              "units": " ",
+              "description": "WIC spin axis orientation direction cosine Y-direction, s/c frame"
+            },
+            {
+              "name": "SCSV_Z",
+              "type": "double",
+              "units": " ",
+              "description": "WIC spin axis orientation direction cosine Z-direction, s/c frame"
+            }
+          ]
+        },
+        "IM_K1_RPI": {
+          "description": "",
+          "start_date": "2000-04-12T20:35:45Z",
+          "stop_date": "2005-12-18T07:39:52Z",
+          "parameters": [
+            {
+              "name": "Amplitude_XY",
+              "type": "double",
+              "units": "dBV/root-Hz",
+              "description": "Thermal Noise Amplitude, antennas XY summary (standard display)",
+              "size": [
+                256
+              ]
+            },
+            {
+              "name": "Amplitude_X",
+              "type": "double",
+              "units": "dBV/root-Hz",
+              "description": " ---> Antenna X",
+              "size": [
+                256
+              ]
+            },
+            {
+              "name": "Amplitude_Y",
+              "type": "double",
+              "units": "dBV/root-Hz",
+              "description": " ---> Antenna Y",
+              "size": [
+                256
+              ]
+            },
+            {
+              "name": "Amplitude_Z",
+              "type": "double",
+              "units": "dBV/root-Hz",
+              "description": " ---> Antenna Z",
+              "size": [
+                256
+              ]
+            },
+            {
+              "name": "ProgramSpecs",
+              "type": "integer",
+              "units": " ",
+              "description": "Program Specifications [NO PLOT - LISTING ONLY]",
+              "size": [
+                25
+              ]
+            },
+            {
+              "name": "NumFreqs",
+              "type": "integer",
+              "units": " ",
+              "description": "Number of frequencies measured"
+            },
+            {
+              "name": "Frequency",
+              "type": "double",
+              "units": "kHz",
+              "description": "Frequency",
+              "size": [
+                256
+              ]
+            }
+          ]
+        },
+        "IM_OR_DEF": {
+          "description": "",
+          "start_date": "2000-03-27T00:00:55Z",
+          "stop_date": "2005-12-19T23:58:00Z",
+          "parameters": [
+            {
+              "name": "MOON_POS",
+              "type": "double",
+              "units": "km",
+              "description": "GCI Moon Position Vector",
+              "size": [
+                3
+              ]
+            },
+            {
+              "name": "SUN_POS",
+              "type": "double",
+              "units": "km",
+              "description": "GCI Sun Position Vector",
+              "size": [
+                3
+              ]
+            },
+            {
+              "name": "GCI_VEL",
+              "type": "double",
+              "units": "km/sec",
+              "description": "GCI Cartesian Velocity",
+              "size": [
+                3
+              ]
+            },
+            {
+              "name": "GSM_VEL",
+              "type": "double",
+              "units": "km/sec",
+              "description": "GSM Cartesian Velocity",
+              "size": [
+                3
+              ]
+            },
+            {
+              "name": "GSE_VEL",
+              "type": "double",
+              "units": "km/sec",
+              "description": "GSE Cartesian Velocity",
+              "size": [
+                3
+              ]
+            },
+            {
+              "name": "GCI_POS",
+              "type": "double",
+              "units": "km",
+              "description": "GCI Cartesian Position",
+              "size": [
+                3
+              ]
+            },
+            {
+              "name": "GSM_POS",
+              "type": "double",
+              "units": "km",
+              "description": "[All values have been corrected 7/9/2001] GSM Cartesian Position, time-series",
+              "size": [
+                3
+              ]
+            },
+            {
+              "name": "GSM_POSO",
+              "type": "double",
+              "units": "km",
+              "description": "[All values have been corrected 7/9/2001] GSM Cartesian Position, orbit plot",
+              "size": [
+                3
+              ]
+            },
+            {
+              "name": "GSE_POS",
+              "type": "double",
+              "units": "km",
+              "description": "[All values have been corrected 7/9/2001] GSE Cartesian Position, time-series",
+              "size": [
+                3
+              ]
+            },
+            {
+              "name": "GSE_POSO",
+              "type": "double",
+              "units": "km",
+              "description": "[All values have been corrected 7/9/2001] GSE Cartesian Position, orbit plot",
+              "size": [
+                3
+              ]
+            },
+            {
+              "name": "L_shell",
+              "type": "double",
+              "units": "n/a",
+              "description": "Predicted L-shell"
+            }
+          ]
+        },
+        "IM_OR_PRE": {
+          "description": "",
+          "start_date": "2001-02-21T00:00:00Z",
+          "stop_date": "2006-01-30T23:59:59Z",
+          "parameters": [
+            {
+              "name": "MOON_POS",
+              "type": "double",
+              "units": "km",
+              "description": "GCI Moon Position Vector",
+              "size": [
+                3
+              ]
+            },
+            {
+              "name": "SUN_POS",
+              "type": "double",
+              "units": "km",
+              "description": "GCI Sun Position Vector",
+              "size": [
+                3
+              ]
+            },
+            {
+              "name": "GCI_VEL",
+              "type": "double",
+              "units": "km/sec",
+              "description": "GCI Cartesian Velocity",
+              "size": [
+                3
+              ]
+            },
+            {
+              "name": "GSM_VEL",
+              "type": "double",
+              "units": "km/sec",
+              "description": "GSM Cartesian Velocity",
+              "size": [
+                3
+              ]
+            },
+            {
+              "name": "GSE_VEL",
+              "type": "double",
+              "units": "km/sec",
+              "description": "GSE Cartesian Velocity",
+              "size": [
+                3
+              ]
+            },
+            {
+              "name": "GCI_POS",
+              "type": "double",
+              "units": "km",
+              "description": "GCI Cartesian Position",
+              "size": [
+                3
+              ]
+            },
+            {
+              "name": "GSM_POS",
+              "type": "double",
+              "units": "km",
+              "description": "[All values have been corrected 7/9/2001] GSM Cartesian Position, time-series",
+              "size": [
+                3
+              ]
+            },
+            {
+              "name": "GSM_POSO",
+              "type": "double",
+              "units": "km",
+              "description": "[All values have been corrected 7/9/2001] GSM Cartesian Position, orbit plot",
+              "size": [
+                3
+              ]
+            },
+            {
+              "name": "GSE_POS",
+              "type": "double",
+              "units": "km",
+              "description": "[All values have been corrected 7/9/2001] GSE Cartesian Position, time-series",
+              "size": [
+                3
+              ]
+            },
+            {
+              "name": "GSE_POSO",
+              "type": "double",
+              "units": "km",
+              "description": "[All values have been corrected 7/9/2001] GSE Cartesian Position, orbit plot",
+              "size": [
+                3
+              ]
+            },
+            {
+              "name": "L_shell",
+              "type": "double",
+              "units": "n/a",
+              "description": "Predicted L-shell"
+            }
+          ]
+        }
+      }
+    }
+  },
+  "_meta": {
+    "generated_at": "2026-02-08T09:24:40Z",
+    "hapi_server": "https://cdaweb.gsfc.nasa.gov/hapi"
+  }
+}

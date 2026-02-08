@@ -1,0 +1,392 @@
+{
+  "id": "ISS",
+  "name": "ISS",
+  "keywords": [
+    "iss"
+  ],
+  "profile": {
+    "description": "ISS spacecraft data from CDAWeb.",
+    "coordinate_systems": [],
+    "typical_cadence": "",
+    "data_caveats": [],
+    "analysis_patterns": []
+  },
+  "instruments": {
+    "General": {
+      "name": "General",
+      "keywords": [],
+      "datasets": {
+        "ISS_27DAY-AVERAGES_AMS-02": {
+          "description": "",
+          "start_date": "2011-05-20T00:00:00Z",
+          "stop_date": "2017-04-13T00:00:00Z",
+          "parameters": [
+            {
+              "name": "BR",
+              "type": "double",
+              "units": " ",
+              "description": "Bartels rotation number."
+            },
+            {
+              "name": "ProFlux",
+              "type": "double",
+              "units": "1/[m**2-sr-s-GeV/n]",
+              "description": "Proton differential flux, at 45 bins 0.433-59.37 GeV/n.",
+              "size": [
+                45
+              ]
+            },
+            {
+              "name": "ProFlux_TotErr",
+              "type": "double",
+              "units": "1/[m**2-sr-s-GeV/n]",
+              "description": "Proton flux total error: statistical and systematic added in quadrature.",
+              "size": [
+                45
+              ]
+            },
+            {
+              "name": "ProFlux_StatErr",
+              "type": "double",
+              "units": "1/[m**2-sr-s-GeV/n]",
+              "description": "Proton flux statistical error.",
+              "size": [
+                45
+              ]
+            },
+            {
+              "name": "ProFlux_TimeErr",
+              "type": "double",
+              "units": "1/[m**2-sr-s-GeV/n]",
+              "description": "Proton fluxtime-dependent error: trigger and reconstruction efficiency errors added in quadrature.",
+              "size": [
+                45
+              ]
+            },
+            {
+              "name": "ProFlux_SystErr",
+              "type": "double",
+              "units": "1/[m**2-sr-s-GeV/n]",
+              "description": "Proton Flux systematic error: acceptance, background contamination, geomagnetic cutoff, event selection, rigidity resolution, unfolding, absolute rigidity scale and time-dependent errors added in quadrature.",
+              "size": [
+                45
+              ]
+            },
+            {
+              "name": "HeFlux",
+              "type": "double",
+              "units": "1/[m**2-sr-s-GeV/n]",
+              "description": "Helium differential flux, at 40 bins 0.404-29.23 GeV/n.",
+              "size": [
+                40
+              ]
+            },
+            {
+              "name": "HeFlux_TotErr",
+              "type": "double",
+              "units": "1/[m**2-sr-s-GeV/n]",
+              "description": "Helium flux total error: statistical and systematic added in quadrature.",
+              "size": [
+                40
+              ]
+            },
+            {
+              "name": "HeFlux_StatErr",
+              "type": "double",
+              "units": "1/[m**2-sr-s-GeV/n]",
+              "description": "Helium flux statistical error.",
+              "size": [
+                40
+              ]
+            },
+            {
+              "name": "HeFlux_TimeErr",
+              "type": "double",
+              "units": "1/[m**2-sr-s-GeV/n]",
+              "description": "Helium flux time-dependent error: trigger and reconstruction efficiency errors added in quadrature.",
+              "size": [
+                40
+              ]
+            },
+            {
+              "name": "HeFlux_SystErr",
+              "type": "double",
+              "units": "1/[m**2-sr-s-GeV/n]",
+              "description": "Helium flux systematic error: acceptance, background contamination, geomagnetic cutoff, event selection, rigidity resolution, unfolding, absolute rigidity scale and time-dependent errors added in quadrature.",
+              "size": [
+                40
+              ]
+            },
+            {
+              "name": "ProHeRatio",
+              "type": "double",
+              "units": " ",
+              "description": "Proton to Helium differential flux ratio, at 40 bins 1.92-60.30 GV.",
+              "size": [
+                40
+              ]
+            },
+            {
+              "name": "ProHeRatio_TotErr",
+              "type": "double",
+              "units": " ",
+              "description": "p/He ratio total error: statistical and systematic added in quadrature.",
+              "size": [
+                40
+              ]
+            },
+            {
+              "name": "ProHeRatio_StatErr",
+              "type": "double",
+              "units": " ",
+              "description": "p/He ratio statistical error: p and He statistical errors added in quadrature.",
+              "size": [
+                40
+              ]
+            },
+            {
+              "name": "ProHeRatio_TimeErr",
+              "type": "double",
+              "units": " ",
+              "description": "p/He ratio time-dependent error: p and He time-dependent errors added in quadrature.",
+              "size": [
+                40
+              ]
+            },
+            {
+              "name": "ProHeRatio_SystErr",
+              "type": "double",
+              "units": " ",
+              "description": "p/He ratio systematic error: p and He systematic errors added in quadrature, with correlations in rigidity resolution, unfolding, absolute rigidity scale errors taken into account.",
+              "size": [
+                40
+              ]
+            },
+            {
+              "name": "EleFlux",
+              "type": "double",
+              "units": "1/[m**2-sr-s-GeV]",
+              "description": "Electron differential flux, at 49 bins 1.01-49.3 GeV.",
+              "size": [
+                49
+              ]
+            },
+            {
+              "name": "EleFlux_TotErr",
+              "type": "double",
+              "units": "1/[m**2-sr-s-GeV]",
+              "description": "Electron flux total error: statistical and systematic added in quadrature.",
+              "size": [
+                49
+              ]
+            },
+            {
+              "name": "EleFlux_StatErr",
+              "type": "double",
+              "units": "1/[m**2-sr-s-GeV]",
+              "description": "Electron flux statistical error.",
+              "size": [
+                49
+              ]
+            },
+            {
+              "name": "EleFlux_SystErr",
+              "type": "double",
+              "units": "1/[m**2-sr-s-GeV]",
+              "description": "Electron flux systematic error: acceptance and background contamination errors added in quadrature.",
+              "size": [
+                49
+              ]
+            },
+            {
+              "name": "PosFlux",
+              "type": "double",
+              "units": "1/[m**2-sr-s-GeV]",
+              "description": "Positron differential flux, at 49 bins 1.01-49.3 GeV.",
+              "size": [
+                49
+              ]
+            },
+            {
+              "name": "PosFlux_TotErr",
+              "type": "double",
+              "units": "1/[m**2-sr-s-GeV]",
+              "description": "Positron flux total error: statistical and systematic added in quadrature.",
+              "size": [
+                49
+              ]
+            },
+            {
+              "name": "PosFlux_StatErr",
+              "type": "double",
+              "units": "1/[m**2-sr-s-GeV]",
+              "description": "Positron flux statistical error.",
+              "size": [
+                49
+              ]
+            },
+            {
+              "name": "PosFlux_SystErr",
+              "type": "double",
+              "units": "1/[m**2-sr-s-GeV]",
+              "description": "Positron flux systematic error: acceptance and background contamination errors added in quadrature.",
+              "size": [
+                49
+              ]
+            },
+            {
+              "name": "PosEleRatio",
+              "type": "double",
+              "units": " ",
+              "description": "Positron to electron differential flux ratio, at 49 bins 1.01-49.3 GeV.",
+              "size": [
+                49
+              ]
+            },
+            {
+              "name": "PosEleRatio_TotErr",
+              "type": "double",
+              "units": " ",
+              "description": "e+/e- ratio total error: statistical and systematic added in quadrature.",
+              "size": [
+                49
+              ]
+            },
+            {
+              "name": "PosEleRatio_StatErr",
+              "type": "double",
+              "units": " ",
+              "description": "e+/e- ratio statistical error.",
+              "size": [
+                49
+              ]
+            },
+            {
+              "name": "PosEleRatio_SystErr",
+              "type": "double",
+              "units": " ",
+              "description": "e+/e- ratio systematic error: acceptance and background contamination errors added in quadrature.",
+              "size": [
+                49
+              ]
+            }
+          ]
+        },
+        "ISS_DOSANL_TEPC": {
+          "description": "",
+          "start_date": "2010-04-29T03:27:36Z",
+          "stop_date": "2018-04-11T23:19:39Z",
+          "parameters": [
+            {
+              "name": "DOSE",
+              "type": "double",
+              "units": "uGy/min",
+              "description": "Average dose rate"
+            },
+            {
+              "name": "DOSE_EQ60",
+              "type": "double",
+              "units": "uSv/min",
+              "description": "Average Dose Equivalent Rate (ICRP-60)"
+            },
+            {
+              "name": "TIME_INTERVAL",
+              "type": "double",
+              "units": "min",
+              "description": "Number of minutes over which the data was collected"
+            },
+            {
+              "name": "LONGITUDE",
+              "type": "double",
+              "units": "Deg",
+              "description": "Geographic longitude of the International Space Station"
+            },
+            {
+              "name": "LATITUDE",
+              "type": "double",
+              "units": "Deg",
+              "description": "Geographic latitude of the International Space Station"
+            },
+            {
+              "name": "ALTITUDE",
+              "type": "double",
+              "units": "km",
+              "description": "Altitude of the International Space Station"
+            }
+          ]
+        },
+        "ISS_SP_FPMU": {
+          "description": "",
+          "start_date": "2006-08-03T16:08:07Z",
+          "stop_date": "2020-09-14T18:00:58Z",
+          "parameters": [
+            {
+              "name": "Latitude",
+              "type": "double",
+              "units": "deg",
+              "description": "Latitude"
+            },
+            {
+              "name": "Longitude",
+              "type": "double",
+              "units": "deg",
+              "description": "Longitude"
+            },
+            {
+              "name": "Altitude",
+              "type": "double",
+              "units": "km",
+              "description": "Altitude"
+            },
+            {
+              "name": "T_e",
+              "type": "double",
+              "units": "K",
+              "description": "Electron Temperature"
+            },
+            {
+              "name": "N_i",
+              "type": "double",
+              "units": "m-3",
+              "description": "Total Ion Density"
+            },
+            {
+              "name": "Oxygen_Ion_Percent",
+              "type": "double",
+              "units": "%",
+              "description": "Ratio of O+/Total Ion Density"
+            },
+            {
+              "name": "Spacecraft_Potential",
+              "type": "double",
+              "units": "V",
+              "description": "Spacecraft Potential"
+            },
+            {
+              "name": "Spacecraft_Potential_Uncertainty",
+              "type": "double",
+              "units": "V",
+              "description": "Spacecraft Potential Uncertainty"
+            },
+            {
+              "name": "Sunlight",
+              "type": "double",
+              "units": "%",
+              "description": "Sunlight Illuminiation"
+            },
+            {
+              "name": "TCC",
+              "type": "integer",
+              "units": "",
+              "description": "Time Code Flag"
+            }
+          ]
+        }
+      }
+    }
+  },
+  "_meta": {
+    "generated_at": "2026-02-08T09:24:40Z",
+    "hapi_server": "https://cdaweb.gsfc.nasa.gov/hapi"
+  }
+}

@@ -11,6 +11,7 @@ Usage:
     python scripts/generate_mission_data.py              # Update all missions
     python scripts/generate_mission_data.py --mission PSP  # Update one mission
     python scripts/generate_mission_data.py --discover     # Show unknown datasets
+    python scripts/generate_mission_data.py --create-new   # Create skeletons for new missions + update all
 """
 
 import argparse
@@ -20,11 +21,20 @@ import time
 from datetime import datetime, timezone
 from pathlib import Path
 
+# Add project root to path for knowledge imports
+sys.path.insert(0, str(Path(__file__).parent.parent))
+
 try:
     import requests
 except ImportError:
     print("Error: 'requests' package is required. Install with: pip install requests")
     sys.exit(1)
+
+from knowledge.mission_prefixes import (
+    match_dataset_to_mission,
+    create_mission_skeleton,
+    get_mission_name,
+)
 
 
 # HAPI server base URL
@@ -32,37 +42,6 @@ HAPI_SERVER = "https://cdaweb.gsfc.nasa.gov/hapi"
 
 # Missions directory
 MISSIONS_DIR = Path(__file__).parent.parent / "knowledge" / "missions"
-
-# Maps CDAWeb dataset ID prefixes to mission IDs (lowercase JSON filenames)
-# Order matters: longer prefixes checked first
-MISSION_PREFIX_MAP = {
-    "PSP_FLD": ("psp", "FIELDS/MAG"),
-    "PSP_SWP_SPC": ("psp", "SWEAP"),
-    "PSP_SWP_SPI": ("psp", "SWEAP/SPAN-I"),
-    "PSP_SWP_SPA": ("psp", "SWEAP/SPAN-E"),
-    "PSP_SWP_SPB": ("psp", "SWEAP/SPAN-E"),
-    "PSP_SWP": ("psp", "SWEAP"),
-    "PSP_ISOIS": ("psp", "ISOIS"),
-    "PSP_": ("psp", None),
-    "SOLO_L2_MAG": ("solo", "MAG"),
-    "SOLO_L2_SWA": ("solo", "SWA-PAS"),
-    "SOLO_": ("solo", None),
-    "AC_H": ("ace", None),
-    "AC_K": ("ace", None),
-    "OMNI_HRO": ("omni", "Combined"),
-    "OMNI_": ("omni", "Combined"),
-    "WI_H": ("wind", None),
-    "WI_": ("wind", None),
-    "DSCOVR_H0_MAG": ("dscovr", "MAG"),
-    "DSCOVR_H1_FC": ("dscovr", "FC"),
-    "DSCOVR_": ("dscovr", None),
-    "MMS1_FGM": ("mms", "FGM"),
-    "MMS1_FPI": ("mms", "FPI-DIS"),
-    "MMS1_": ("mms", None),
-    "STA_L2_MAG": ("stereo_a", "MAG"),
-    "STA_L2_PLA": ("stereo_a", "PLASTIC"),
-    "STA_": ("stereo_a", None),
-}
 
 # Rate limiting between HAPI /info requests (seconds)
 REQUEST_DELAY = 0.5
@@ -80,11 +59,21 @@ def fetch_hapi_catalog() -> list[dict]:
     return catalog
 
 
-def fetch_hapi_info(dataset_id: str) -> dict | None:
-    """Fetch HAPI /info for a dataset.
+def fetch_hapi_info(dataset_id: str, mission_stem: str | None = None) -> dict | None:
+    """Get HAPI /info for a dataset — local cache first, then network.
 
     Returns parsed JSON or None on error.
     """
+    # Try local cache first (populated by fetch_hapi_cache.py)
+    if mission_stem:
+        cache_file = MISSIONS_DIR / mission_stem / "hapi" / f"{dataset_id}.json"
+        if cache_file.exists():
+            try:
+                with open(cache_file, "r", encoding="utf-8") as f:
+                    return json.load(f)
+            except (json.JSONDecodeError, OSError):
+                pass  # Fall through to network
+
     url = f"{HAPI_SERVER}/info?id={dataset_id}"
     try:
         resp = requests.get(url, timeout=30)
@@ -94,18 +83,6 @@ def fetch_hapi_info(dataset_id: str) -> dict | None:
     except Exception as e:
         print(f"    Warning: Failed to fetch info for {dataset_id}: {e}")
         return None
-
-
-def match_dataset_to_mission(dataset_id: str) -> tuple[str | None, str | None]:
-    """Map a CDAWeb dataset ID to a mission and optional instrument.
-
-    Returns:
-        (mission_file_stem, instrument_id) or (None, None) if no match.
-    """
-    for prefix, (mission, instrument) in MISSION_PREFIX_MAP.items():
-        if dataset_id.startswith(prefix):
-            return mission, instrument
-    return None, None
 
 
 def load_mission_json(mission_stem: str) -> dict:
@@ -213,22 +190,24 @@ def update_mission(mission_stem: str, hapi_catalog: list[dict], verbose: bool = 
             if suggested_instrument in mission_data.get("instruments", {}):
                 target_instrument = suggested_instrument
 
-        # If still no instrument, skip (we can't auto-assign)
+        # If still no instrument, assign to "General" (create if needed)
         if target_instrument is None:
-            if verbose:
-                print(f"    Skipping {ds_id}: no instrument mapping")
-            continue
+            if "General" not in mission_data.get("instruments", {}):
+                mission_data.setdefault("instruments", {})["General"] = {
+                    "name": "General",
+                    "keywords": [],
+                    "datasets": {},
+                }
+            target_instrument = "General"
 
-        # Fetch HAPI /info
+        # Get HAPI /info (local cache first, then network)
         if verbose:
-            print(f"    Fetching info for {ds_id}...")
-        hapi_info = fetch_hapi_info(ds_id)
+            print(f"    Loading info for {ds_id}...")
+        hapi_info = fetch_hapi_info(ds_id, mission_stem=mission_stem)
         if hapi_info is None:
             if verbose:
                 print(f"    Warning: No info available for {ds_id}")
             continue
-
-        time.sleep(REQUEST_DELAY)
 
         # Merge into the instrument's datasets
         inst = mission_data["instruments"][target_instrument]
@@ -281,6 +260,58 @@ def discover_unmatched(hapi_catalog: list[dict]):
                 print(f"    {ds_id}")
 
 
+def create_new_missions(hapi_catalog: list[dict], verbose: bool = False):
+    """Create skeleton JSON files for missions found in the HAPI catalog
+    that don't yet have a local JSON file.
+
+    Args:
+        hapi_catalog: Full HAPI catalog list
+        verbose: Print detailed progress
+    """
+    # Find all mission stems referenced in the catalog
+    discovered_stems = set()
+    for entry in hapi_catalog:
+        ds_id = entry.get("id", "")
+        mission_stem, _ = match_dataset_to_mission(ds_id)
+        if mission_stem:
+            discovered_stems.add(mission_stem)
+
+    # Check which ones don't have JSON files yet
+    created = []
+    for stem in sorted(discovered_stems):
+        filepath = MISSIONS_DIR / f"{stem}.json"
+        if not filepath.exists():
+            name = get_mission_name(stem)
+            print(f"  Creating skeleton for {name} ({stem}.json)...")
+            skeleton = create_mission_skeleton(stem)
+            save_mission_json(stem, skeleton)
+
+            # Create basic calibration exclude file
+            hapi_dir = MISSIONS_DIR / stem / "hapi"
+            hapi_dir.mkdir(parents=True, exist_ok=True)
+            exclude_file = hapi_dir / "_calibration_exclude.json"
+            if not exclude_file.exists():
+                exclude_data = {
+                    "description": "Auto-generated exclusion patterns for calibration/housekeeping data",
+                    "patterns": ["*_K0_*", "*_K1_*", "*_K2_*"],
+                    "ids": [],
+                }
+                with open(exclude_file, "w", encoding="utf-8") as f:
+                    json.dump(exclude_data, f, indent=2, ensure_ascii=False)
+                    f.write("\n")
+                if verbose:
+                    print(f"    Created {exclude_file}")
+
+            created.append(stem)
+
+    if created:
+        print(f"\nCreated {len(created)} new mission skeletons: {', '.join(created)}")
+    else:
+        print("\nNo new missions to create — all discovered missions already have JSON files.")
+
+    return created
+
+
 def main():
     parser = argparse.ArgumentParser(
         description="Update per-mission JSON files from CDAWeb HAPI metadata"
@@ -296,6 +327,11 @@ def main():
         help="Show HAPI datasets that don't match any known mission",
     )
     parser.add_argument(
+        "--create-new",
+        action="store_true",
+        help="Create skeleton JSON files for new missions found in the HAPI catalog, then update all",
+    )
+    parser.add_argument(
         "--verbose", "-v",
         action="store_true",
         help="Print detailed progress",
@@ -308,6 +344,17 @@ def main():
     if args.discover:
         discover_unmatched(hapi_catalog)
         return
+
+    if args.create_new:
+        created = create_new_missions(hapi_catalog, verbose=args.verbose)
+        if not args.mission:
+            # --create-new alone only creates skeletons; skip the slow per-dataset update.
+            # To populate, run: --mission <stem>  or omit --create-new to update all.
+            print("\nSkeletons created. To populate a specific mission with HAPI metadata, run:")
+            print("  python scripts/generate_mission_data.py --mission <stem>")
+            print("To populate ALL missions (slow — thousands of HAPI requests):")
+            print("  python scripts/generate_mission_data.py")
+            return
 
     if args.mission:
         # Update a single mission

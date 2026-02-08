@@ -1,0 +1,2900 @@
+{
+  "id": "TIMED",
+  "name": "TIMED",
+  "keywords": [
+    "timed"
+  ],
+  "profile": {
+    "description": "TIMED spacecraft data from CDAWeb.",
+    "coordinate_systems": [],
+    "typical_cadence": "",
+    "data_caveats": [],
+    "analysis_patterns": []
+  },
+  "instruments": {
+    "General": {
+      "name": "General",
+      "keywords": [],
+      "datasets": {
+        "TIMED_EDP_GUVI": {
+          "description": "",
+          "start_date": "2002-01-07T05:53:28Z",
+          "stop_date": "2007-10-04T23:20:59Z",
+          "parameters": [
+            {
+              "name": "norbp_VER0",
+              "type": "double",
+              "units": "ergs/cm3/sec",
+              "description": "Volume emission rate (no mutual neutralization correction) for 23 channels",
+              "size": [
+                23
+              ]
+            },
+            {
+              "name": "norbp_SIGVER0",
+              "type": "double",
+              "units": "ergs/cm3/sec",
+              "description": "-----> VER (no correction) uncertainty - sigma for 23 channels",
+              "size": [
+                23
+              ]
+            },
+            {
+              "name": "norbp_VER",
+              "type": "double",
+              "units": "ergs/cm3/sec",
+              "description": "Volume emission rate (corrected) for 23 channels",
+              "size": [
+                23
+              ]
+            },
+            {
+              "name": "norbp_SIGVER",
+              "type": "double",
+              "units": "ergs/cm3/sec",
+              "description": "-----> VER (corrected) uncertainty - sigma for 23 channels",
+              "size": [
+                23
+              ]
+            },
+            {
+              "name": "norbp_EP",
+              "type": "double",
+              "units": "cm-3",
+              "description": "Electron density profiles along orbit for 23 channels",
+              "size": [
+                23
+              ]
+            },
+            {
+              "name": "norbp_SIGEP",
+              "type": "double",
+              "units": "cm-3",
+              "description": "-----> Electron density uncertainty - Sigma for 23 channels",
+              "size": [
+                23
+              ]
+            },
+            {
+              "name": "norbp_EP_100",
+              "type": "double",
+              "units": "cm-3",
+              "description": "Electron density at 100km"
+            },
+            {
+              "name": "norbp_EP_200",
+              "type": "double",
+              "units": "cm-3",
+              "description": "-----> at 200km"
+            },
+            {
+              "name": "norbp_EP_300",
+              "type": "double",
+              "units": "cm-3",
+              "description": "-----> at 300km"
+            },
+            {
+              "name": "norbp_EP_400",
+              "type": "double",
+              "units": "cm-3",
+              "description": "-----> at 400km"
+            },
+            {
+              "name": "norbp_EP_500",
+              "type": "double",
+              "units": "cm-3",
+              "description": "-----> at 500km"
+            },
+            {
+              "name": "norbp_NMF2",
+              "type": "double",
+              "units": "cm-3",
+              "description": "Density at F-layer maximum - NmF2 (Chapman layer)"
+            },
+            {
+              "name": "norbp_RMF2",
+              "type": "double",
+              "units": "km",
+              "description": "-----> F-layer height - hmF2"
+            },
+            {
+              "name": "norbp_HMF2",
+              "type": "double",
+              "units": "km",
+              "description": "-----> Topside scale height"
+            },
+            {
+              "name": "norbp_SIGNMF2",
+              "type": "double",
+              "units": "cm-3",
+              "description": "-----> Uncertainty of density at F-layer maximum - sigma(NmF2) "
+            },
+            {
+              "name": "norbp_SIGRMF2",
+              "type": "double",
+              "units": "km",
+              "description": "-----> Uncertainty of F-layer height - sigma(hmF2)"
+            },
+            {
+              "name": "norbp_SIGHMF2",
+              "type": "double",
+              "units": "km",
+              "description": "-----> Uncertainty of topside scale height - sigma(H)"
+            },
+            {
+              "name": "norbp_GLAT",
+              "type": "double",
+              "units": "deg",
+              "description": "Geographic Latitude of profile [registered at ~300km]"
+            },
+            {
+              "name": "norbp_GLON",
+              "type": "double",
+              "units": "deg",
+              "description": "-----> Longitude of profile"
+            },
+            {
+              "name": "norbp_MLAT",
+              "type": "double",
+              "units": "deg",
+              "description": "Geomagnetic (simple dipole) Latitude of profile [registered at ~300km]"
+            },
+            {
+              "name": "norbp_MLON",
+              "type": "double",
+              "units": "deg",
+              "description": "-----> Longitude of profile"
+            },
+            {
+              "name": "norbp_ACMLAT",
+              "type": "double",
+              "units": "deg",
+              "description": "Geomagnetic AACGM Latitude of profile [registered at ~300km]"
+            },
+            {
+              "name": "norbp_ACMLON",
+              "type": "double",
+              "units": "deg",
+              "description": "-----> Longitude of profile"
+            },
+            {
+              "name": "localTime",
+              "type": "double",
+              "units": "hours",
+              "description": "Local Time"
+            },
+            {
+              "name": "norbp_RE",
+              "type": "double",
+              "units": "km",
+              "description": "Earth radius at the given geographic latitude"
+            },
+            {
+              "name": "norbp_HPCOR",
+              "type": "integer",
+              "units": " ",
+              "description": "H+ correction using IRI model  (-1 if not used)"
+            },
+            {
+              "name": "norbp_ODEN",
+              "type": "double",
+              "units": "cm-3",
+              "description": "Atomic oxygen density profile from MSIS for 23 channels",
+              "size": [
+                23
+              ]
+            },
+            {
+              "name": "profile_altitude",
+              "type": "double",
+              "units": "km",
+              "description": "Profile altitude for given channel",
+              "size": [
+                23
+              ]
+            }
+          ]
+        },
+        "TIMED_L1BV20_SABER": {
+          "description": "",
+          "start_date": "2002-01-25T01:21:56Z",
+          "stop_date": "2026-02-01T00:58:48Z",
+          "parameters": [
+            {
+              "name": "mode",
+              "type": "integer",
+              "units": "0-down,1-up",
+              "description": "Instrument scan mode (down=0, up=1)"
+            },
+            {
+              "name": "tpDN",
+              "type": "integer",
+              "units": "Day/ni/tw=0/1/2",
+              "description": "Phase of day at Tangent Point (0=Day 1=Night 2=Twilight(85<solar zenith angle<95)), "
+            },
+            {
+              "name": "tpAD",
+              "type": "integer",
+              "units": "asc=0/desc=1",
+              "description": "Orbit phase at Tangent Point (0=Ascending 1=Descending) "
+            },
+            {
+              "name": "solAP",
+              "type": "double",
+              "units": " ",
+              "description": "Magnetic Ap index (daily)"
+            },
+            {
+              "name": "solKP",
+              "type": "double",
+              "units": " ",
+              "description": "Magnetic Kp index (3-hour)"
+            },
+            {
+              "name": "solf10p7Daily",
+              "type": "double",
+              "units": "daily",
+              "description": "Solar F10.7 index (daily)"
+            },
+            {
+              "name": "scSolarZen",
+              "type": "double",
+              "units": "degree",
+              "description": "Spacecraft solar zenith angle "
+            },
+            {
+              "name": "sclatitudeAVG",
+              "type": "double",
+              "units": "degree",
+              "description": "Spacecraft latitude (scan-average)"
+            },
+            {
+              "name": "sclongitudeAVG",
+              "type": "double",
+              "units": "degree",
+              "description": "---------> longitude"
+            },
+            {
+              "name": "scaltitudeAVG",
+              "type": "double",
+              "units": "km",
+              "description": "---------> altitude"
+            },
+            {
+              "name": "tpaltitude",
+              "type": "double",
+              "units": "km",
+              "description": "Tangent Point altitude vs elevation",
+              "size": [
+                1401
+              ]
+            },
+            {
+              "name": "tplatitudeAVG",
+              "type": "double",
+              "units": "degree",
+              "description": "Tangent point latitude (scan-average)"
+            },
+            {
+              "name": "tplongitudeAVG",
+              "type": "double",
+              "units": "degree",
+              "description": "------------> longitude"
+            },
+            {
+              "name": "tpSolarZenAVG",
+              "type": "double",
+              "units": "degree",
+              "description": "------------> solar zenith angle "
+            },
+            {
+              "name": "tpSolarLTAVG",
+              "type": "double",
+              "units": "hour",
+              "description": "------------> Local Solar Time "
+            },
+            {
+              "name": "tpSolarZen",
+              "type": "double",
+              "units": "degree",
+              "description": "Tangent point solar zenith angle vs tangent point height",
+              "size": [
+                1401
+              ]
+            },
+            {
+              "name": "tpSolarLT",
+              "type": "double",
+              "units": "hour",
+              "description": "------------> Local Solar Time vs tangent point height",
+              "size": [
+                1401
+              ]
+            },
+            {
+              "name": "rad1",
+              "type": "double",
+              "units": "watts/m2/sr",
+              "description": "Calibrated RADIANCE centered at 15.2um (C02-N) vs tangent point height",
+              "size": [
+                1401
+              ]
+            },
+            {
+              "name": "rad2",
+              "type": "double",
+              "units": "watts/m2/sr",
+              "description": "------------------> at 14.9 um (C02-W), filter technique 1",
+              "size": [
+                1401
+              ]
+            },
+            {
+              "name": "rad3",
+              "type": "double",
+              "units": "watts/m2/sr",
+              "description": "------------------> at 14.9 um (C02-W), filter technique 2",
+              "size": [
+                1401
+              ]
+            },
+            {
+              "name": "rad4",
+              "type": "double",
+              "units": "watts/m2/sr",
+              "description": "------------------> at 9.6 um (O3)",
+              "size": [
+                1401
+              ]
+            },
+            {
+              "name": "rad5",
+              "type": "double",
+              "units": "watts/m2/sr",
+              "description": "------------------> at 6.9 um (H2O)",
+              "size": [
+                1401
+              ]
+            },
+            {
+              "name": "rad6",
+              "type": "double",
+              "units": "watts/m2/sr",
+              "description": "------------------> at 5.3 um (NO)",
+              "size": [
+                1401
+              ]
+            },
+            {
+              "name": "rad7",
+              "type": "double",
+              "units": "watts/m2/sr",
+              "description": "------------------> at 4.3 um (C02)",
+              "size": [
+                1401
+              ]
+            },
+            {
+              "name": "rad8",
+              "type": "double",
+              "units": "watts/m2/sr",
+              "description": "------------------> at 2 um (OH)",
+              "size": [
+                1401
+              ]
+            },
+            {
+              "name": "rad9",
+              "type": "double",
+              "units": "watts/m2/sr",
+              "description": "------------------> at 1.6 um (OH-B)",
+              "size": [
+                1401
+              ]
+            },
+            {
+              "name": "rad10",
+              "type": "double",
+              "units": "watts/m2/sr",
+              "description": "------------------> at 1.27 um (O2)",
+              "size": [
+                1401
+              ]
+            },
+            {
+              "name": "rad6_80km",
+              "type": "double",
+              "units": "watts/m2/sr",
+              "description": "Calibrated RADIANCE at 5.3 um (NO) at 80km [line plot]"
+            },
+            {
+              "name": "rad6_110km",
+              "type": "double",
+              "units": "watts/m2/sr",
+              "description": "------------------> at 5.3 um (NO) at 110km [line plot]"
+            },
+            {
+              "name": "rad6_140km",
+              "type": "double",
+              "units": "watts/m2/sr",
+              "description": "------------------> at 5.3 um (NO) at 140km [line plot]"
+            },
+            {
+              "name": "rad7_100km",
+              "type": "double",
+              "units": "watts/m2/sr",
+              "description": "------------------> at 4.3 um (C02) at 100km [line plot]"
+            },
+            {
+              "name": "rad7_140km",
+              "type": "double",
+              "units": "watts/m2/sr",
+              "description": "------------------> at 4.3 um (C02) at 140km [line plot]"
+            },
+            {
+              "name": "temperature_nmc",
+              "type": "double",
+              "units": "K",
+              "description": "NMC temperature vs geopotential height at tangent point (scan-average)",
+              "size": [
+                64
+              ]
+            },
+            {
+              "name": "geopotential_height_nmc",
+              "type": "double",
+              "units": "km",
+              "description": "NMC geopotential height vs pressure at tangent point (scan-average)",
+              "size": [
+                64
+              ]
+            }
+          ]
+        },
+        "TIMED_L1CDISK_GUVI@0": {
+          "description": "",
+          "start_date": "2001-10-18T06:10:25Z",
+          "stop_date": "2007-12-10T22:52:41Z",
+          "parameters": [
+            {
+              "name": "Intns1_rec_MC_log",
+              "type": "double",
+              "units": "Log10 (Intensity/Rayleighs)",
+              "description": "[Mercator Projection by Orbit, Log10 Scaling] H Ly-alpha (1216 A) Intensities [Plots/CDFs ONLY]",
+              "size": [
+                1647,
+                130
+              ]
+            },
+            {
+              "name": "Intns2_rec_MC_log",
+              "type": "double",
+              "units": "Log10 (Intensity/Rayleighs)",
+              "description": "- - - - -> O (1304 A)",
+              "size": [
+                1647,
+                130
+              ]
+            },
+            {
+              "name": "Intns3_rec_MC_log",
+              "type": "double",
+              "units": "Log10 (Intensity/Rayleighs)",
+              "description": "- - - - -> O (1356 A)",
+              "size": [
+                1647,
+                130
+              ]
+            },
+            {
+              "name": "Intns4_rec_MC_log",
+              "type": "double",
+              "units": "Log10 (Intensity/Rayleighs)",
+              "description": "- - - - -> LBH1 (1400-1500 A)",
+              "size": [
+                1647,
+                130
+              ]
+            },
+            {
+              "name": "Intns5_rec_MC_log",
+              "type": "double",
+              "units": "Log10 (Intensity/Rayleighs)",
+              "description": "- - - - -> LBH2 (1650-1800 A)",
+              "size": [
+                1647,
+                130
+              ]
+            },
+            {
+              "name": "Intensity1_rectified",
+              "type": "double",
+              "units": "Rayleighs",
+              "description": "[Mercator Projection by Orbit, Linear Scaling] H Ly-alpha (1216 A) Intensities [Plots/CDFs ONLY]",
+              "size": [
+                1647,
+                130
+              ]
+            },
+            {
+              "name": "Intensity2_rectified",
+              "type": "double",
+              "units": "Rayleighs",
+              "description": "- - - - -> O (1304 A)",
+              "size": [
+                1647,
+                130
+              ]
+            },
+            {
+              "name": "Intensity3_rectified",
+              "type": "double",
+              "units": "Rayleighs",
+              "description": "- - - - -> O (1356 A)",
+              "size": [
+                1647,
+                130
+              ]
+            },
+            {
+              "name": "Intensity4_rectified",
+              "type": "double",
+              "units": "Rayleighs",
+              "description": "- - - - -> LBH1 (1400-1500 A)",
+              "size": [
+                1647,
+                130
+              ]
+            },
+            {
+              "name": "Intensity5_rectified",
+              "type": "double",
+              "units": "Rayleighs",
+              "description": "- - - - -> LBH2 (1650-1800 A)",
+              "size": [
+                1647,
+                130
+              ]
+            },
+            {
+              "name": "Intns1_rec_MC_log_movie",
+              "type": "double",
+              "units": "Log10 (Intensity/Rayleighs)",
+              "description": "[Movie, Mercator Projection by Orbit, Log10 Scaling] H Ly-alpha (1216 A) Intensities",
+              "size": [
+                1647,
+                130
+              ]
+            },
+            {
+              "name": "Intns2_rec_MC_log_movie",
+              "type": "double",
+              "units": "Log10 (Intensity/Rayleighs)",
+              "description": "- - - - -> O (1304 A)",
+              "size": [
+                1647,
+                130
+              ]
+            },
+            {
+              "name": "Intns3_rec_MC_log_movie",
+              "type": "double",
+              "units": "Log10 (Intensity/Rayleighs)",
+              "description": "- - - - -> O (1356 A)",
+              "size": [
+                1647,
+                130
+              ]
+            },
+            {
+              "name": "Intns4_rec_MC_log_movie",
+              "type": "double",
+              "units": "Log10 (Intensity/Rayleighs)",
+              "description": "- - - - -> LBH1 (1400-1500 A)",
+              "size": [
+                1647,
+                130
+              ]
+            },
+            {
+              "name": "Intns5_rec_MC_log_movie",
+              "type": "double",
+              "units": "Log10 (Intensity/Rayleighs)",
+              "description": "- - - - -> LBH2 (1650-1800 A)",
+              "size": [
+                1647,
+                130
+              ]
+            },
+            {
+              "name": "Intns1_rec_MC_lin_movie",
+              "type": "double",
+              "units": "Rayleighs ",
+              "description": "[Movie, Mercator Projection by Orbit, Linear Scaling] H Ly-alpha (1216 A)",
+              "size": [
+                1647,
+                130
+              ]
+            },
+            {
+              "name": "Intns2_rec_MC_lin_movie",
+              "type": "double",
+              "units": "Rayleighs",
+              "description": "- - - - -> O (1304 A)",
+              "size": [
+                1647,
+                130
+              ]
+            },
+            {
+              "name": "Intns3_rec_MC_lin_movie",
+              "type": "double",
+              "units": "Rayleighs",
+              "description": "- - - - -> O (1356 A)",
+              "size": [
+                1647,
+                130
+              ]
+            },
+            {
+              "name": "Intns4_rec_MC_lin_movie",
+              "type": "double",
+              "units": "Rayleighs",
+              "description": "- - - - -> LBH1 (1400-1500 A)",
+              "size": [
+                1647,
+                130
+              ]
+            },
+            {
+              "name": "Intns5_rec_MC_lin_movie",
+              "type": "double",
+              "units": "Rayleighs",
+              "description": "- - - - -> LBH2 (1650-1800 A)",
+              "size": [
+                1647,
+                130
+              ]
+            },
+            {
+              "name": "Intns1_rec_NP_log",
+              "type": "double",
+              "units": "Log10 (Intensity/Rayleighs)",
+              "description": "[North Polar Projection by Orbit, Log10 Scaling] H Ly-alpha (1216 A) Intensities [Plot/CDFs ONLY]",
+              "size": [
+                1647,
+                130
+              ]
+            },
+            {
+              "name": "Intns2_rec_NP_log",
+              "type": "double",
+              "units": "Log10 (Intensity/Rayleighs)",
+              "description": "- - - - -> O (1304 A)",
+              "size": [
+                1647,
+                130
+              ]
+            },
+            {
+              "name": "Intns3_rec_NP_log",
+              "type": "double",
+              "units": "Log10 (Intensity/Rayleighs)",
+              "description": "- - - - -> O (1356 A)",
+              "size": [
+                1647,
+                130
+              ]
+            },
+            {
+              "name": "Intns4_rec_NP_log",
+              "type": "double",
+              "units": "Log10 (Intensity/Rayleighs)",
+              "description": "- - - - -> LBH1 (1400-1500 A)",
+              "size": [
+                1647,
+                130
+              ]
+            },
+            {
+              "name": "Intns5_rec_NP_log",
+              "type": "double",
+              "units": "Log10 (Intensity/Rayleighs)",
+              "description": "- - - - -> LBH2 (1650-1800 A)",
+              "size": [
+                1647,
+                130
+              ]
+            },
+            {
+              "name": "Intns1_rec_NP_lin",
+              "type": "double",
+              "units": "Rayleighs",
+              "description": "[North Polar Projection by Orbit, Linear Scaling] H Ly-alpha (1216 A) Intensities [Plots/CDFs ONLY]",
+              "size": [
+                1647,
+                130
+              ]
+            },
+            {
+              "name": "Intns2_rec_NP_lin",
+              "type": "double",
+              "units": "Rayleighs",
+              "description": "- - - - -> O (1304 A)",
+              "size": [
+                1647,
+                130
+              ]
+            },
+            {
+              "name": "Intns3_rec_NP_lin",
+              "type": "double",
+              "units": "Rayleighs",
+              "description": "- - - - -> O (1356 A)",
+              "size": [
+                1647,
+                130
+              ]
+            },
+            {
+              "name": "Intns4_rec_NP_lin",
+              "type": "double",
+              "units": "Rayleighs",
+              "description": "- - - - -> LBH1 (1400-1500 A)",
+              "size": [
+                1647,
+                130
+              ]
+            },
+            {
+              "name": "Intns5_rec_NP_lin",
+              "type": "double",
+              "units": "Rayleighs",
+              "description": "- - - - -> LBH2 (1650-1800 A)",
+              "size": [
+                1647,
+                130
+              ]
+            },
+            {
+              "name": "Intns1_rec_NP_log_movie",
+              "type": "double",
+              "units": "Log10 (Intensity/Rayleighs)",
+              "description": "[Movie, North Polar Projection by Orbit, Log10 Scaling] H Ly-alpha (1216 A) Intensities",
+              "size": [
+                1647,
+                130
+              ]
+            },
+            {
+              "name": "Intns2_rec_NP_log_movie",
+              "type": "double",
+              "units": "Log10 (Intensity/Rayleighs)",
+              "description": "- - - - -> O (1304 A)",
+              "size": [
+                1647,
+                130
+              ]
+            },
+            {
+              "name": "Intns3_rec_NP_log_movie",
+              "type": "double",
+              "units": "Log10 (Intensity/Rayleighs)",
+              "description": "- - - - -> O (1356 A)",
+              "size": [
+                1647,
+                130
+              ]
+            },
+            {
+              "name": "Intns4_rec_NP_log_movie",
+              "type": "double",
+              "units": "Log10 (Intensity/Rayleighs)",
+              "description": "- - - - -> LBH1 (1400-1500 A)",
+              "size": [
+                1647,
+                130
+              ]
+            },
+            {
+              "name": "Intns5_rec_NP_log_movie",
+              "type": "double",
+              "units": "Log10 (Intensity/Rayleighs)",
+              "description": "- - - - -> LBH2 (1650-1800 A)",
+              "size": [
+                1647,
+                130
+              ]
+            },
+            {
+              "name": "Intns1_rec_NP_lin_movie",
+              "type": "double",
+              "units": "Rayleighs",
+              "description": "[Movie, North Polar Projection by Orbit, Linear Scaling] H Ly-alpha (1216 A) Intensities",
+              "size": [
+                1647,
+                130
+              ]
+            },
+            {
+              "name": "Intns2_rec_NP_lin_movie",
+              "type": "double",
+              "units": "Rayleighs",
+              "description": "- - - - -> O (1304 A)",
+              "size": [
+                1647,
+                130
+              ]
+            },
+            {
+              "name": "Intns3_rec_NP_lin_movie",
+              "type": "double",
+              "units": "Rayleighs",
+              "description": "- - - - -> O (1356 A)",
+              "size": [
+                1647,
+                130
+              ]
+            },
+            {
+              "name": "Intns4_rec_NP_lin_movie",
+              "type": "double",
+              "units": "Rayleighs",
+              "description": "- - - - -> LBH1 (1400-1500 A)",
+              "size": [
+                1647,
+                130
+              ]
+            },
+            {
+              "name": "Intns5_rec_NP_lin_movie",
+              "type": "double",
+              "units": "Rayleighs",
+              "description": "- - - - -> LBH2 (1650-1800 A)",
+              "size": [
+                1647,
+                130
+              ]
+            },
+            {
+              "name": "Intns1_rec_SP_log",
+              "type": "double",
+              "units": "Log10 (Intensity/Rayleighs)",
+              "description": "[South Polar Projection by Orbit, Log10 Scaling] H Ly-alpha (1216 A) Intensities [Plots/CDFs ONLY]",
+              "size": [
+                1647,
+                130
+              ]
+            },
+            {
+              "name": "Intns2_rec_SP_log",
+              "type": "double",
+              "units": "Log10 (Intensity/Rayleighs)",
+              "description": "- - - - -> O (1304 A)",
+              "size": [
+                1647,
+                130
+              ]
+            },
+            {
+              "name": "Intns3_rec_SP_log",
+              "type": "double",
+              "units": "Log10 (Intensity/Rayleighs)",
+              "description": "- - - - -> O (1356 A)",
+              "size": [
+                1647,
+                130
+              ]
+            },
+            {
+              "name": "Intns4_rec_SP_log",
+              "type": "double",
+              "units": "Log10 (Intensity/Rayleighs)",
+              "description": "- - - - -> LBH1 (1400-1500 A)",
+              "size": [
+                1647,
+                130
+              ]
+            },
+            {
+              "name": "Intns5_rec_SP_log",
+              "type": "double",
+              "units": "Log10 (Intensity/Rayleighs)",
+              "description": "- - - - -> LBH2 (1650-1800 A)",
+              "size": [
+                1647,
+                130
+              ]
+            },
+            {
+              "name": "Intns1_rec_SP_lin",
+              "type": "double",
+              "units": "Rayleighs",
+              "description": "[South Polar Projection by Orbit, Linear Scaling] H Ly-alpha (1216 A) Intensities [Plots/CDFs ONLY]",
+              "size": [
+                1647,
+                130
+              ]
+            },
+            {
+              "name": "Intns2_rec_SP_lin",
+              "type": "double",
+              "units": "Rayleighs",
+              "description": "- - - - -> O (1304 A)",
+              "size": [
+                1647,
+                130
+              ]
+            },
+            {
+              "name": "Intns3_rec_SP_lin",
+              "type": "double",
+              "units": "Rayleighs",
+              "description": "- - - - -> O (1356 A)",
+              "size": [
+                1647,
+                130
+              ]
+            },
+            {
+              "name": "Intns4_rec_SP_lin",
+              "type": "double",
+              "units": "Rayleighs",
+              "description": "- - - - -> LBH1 (1400-1500 A)",
+              "size": [
+                1647,
+                130
+              ]
+            },
+            {
+              "name": "Intns5_rec_SP_lin",
+              "type": "double",
+              "units": "Rayleighs",
+              "description": "- - - - -> LBH2 (1650-1800 A)",
+              "size": [
+                1647,
+                130
+              ]
+            },
+            {
+              "name": "Intns1_rec_SP_log_movie",
+              "type": "double",
+              "units": "Log10 (Intensity/Rayleighs)",
+              "description": "[Movie, South Polar Projection by Orbit, Log10 Scaling] H Ly-alpha (1216 A) Intensities",
+              "size": [
+                1647,
+                130
+              ]
+            },
+            {
+              "name": "Intns2_rec_SP_log_movie",
+              "type": "double",
+              "units": "Log10 (Intensity/Rayleighs)",
+              "description": "- - - - -> O (1304 A)",
+              "size": [
+                1647,
+                130
+              ]
+            },
+            {
+              "name": "Intns3_rec_SP_log_movie",
+              "type": "double",
+              "units": "Log10 (Intensity/Rayleighs)",
+              "description": "- - - - -> O (1356 A)",
+              "size": [
+                1647,
+                130
+              ]
+            },
+            {
+              "name": "Intns4_rec_SP_log_movie",
+              "type": "double",
+              "units": "Log10 (Intensity/Rayleighs)",
+              "description": "- - - - -> LBH1 (1400-1500 A)",
+              "size": [
+                1647,
+                130
+              ]
+            },
+            {
+              "name": "Intns5_rec_SP_log_movie",
+              "type": "double",
+              "units": "Log10 (Intensity/Rayleighs)",
+              "description": "- - - - -> LBH2 (1650-1800 A)(movie)",
+              "size": [
+                1647,
+                130
+              ]
+            },
+            {
+              "name": "Intns1_rec_SP_lin_movie",
+              "type": "double",
+              "units": "Rayleighs",
+              "description": "[Movie, South Polar Projection by Orbit, Linear Scaling] H Ly-alpha (1216 A) Intensities",
+              "size": [
+                1647,
+                130
+              ]
+            },
+            {
+              "name": "Intns2_rec_SP_lin_movie",
+              "type": "double",
+              "units": "Rayleighs",
+              "description": "- - - - -> O (1304 A)",
+              "size": [
+                1647,
+                130
+              ]
+            },
+            {
+              "name": "Intns3_rec_SP_lin_movie",
+              "type": "double",
+              "units": "Rayleighs",
+              "description": "- - - - -> O (1356 A)",
+              "size": [
+                1647,
+                130
+              ]
+            },
+            {
+              "name": "Intns4_rec_SP_lin_movie",
+              "type": "double",
+              "units": "Rayleighs",
+              "description": "- - - - -> LBH1 (1400-1500 A)",
+              "size": [
+                1647,
+                130
+              ]
+            },
+            {
+              "name": "Intns5_rec_SP_lin_movie",
+              "type": "double",
+              "units": "Rayleighs",
+              "description": "- - - - -> LBH2 (1650-1800 A)(movie)",
+              "size": [
+                1647,
+                130
+              ]
+            },
+            {
+              "name": "GeographLat",
+              "type": "double",
+              "units": "degrees",
+              "description": "[SUPPORTING DATA, Mercator Projection by Orbit, Linear Scaing] Array of pixel center geographic latitude",
+              "size": [
+                1647,
+                130
+              ]
+            },
+            {
+              "name": "GeographLon",
+              "type": "double",
+              "units": "degrees ",
+              "description": "- - - - -> Array of pixel center geographic longitude",
+              "size": [
+                1647,
+                130
+              ]
+            },
+            {
+              "name": "GeomagLat",
+              "type": "double",
+              "units": "degrees",
+              "description": "- - - - -> Array of pixel center geomagnetic latitude",
+              "size": [
+                1647,
+                130
+              ]
+            },
+            {
+              "name": "GeomagLon",
+              "type": "double",
+              "units": "degrees",
+              "description": "- - - - -> Array of pixel center geomagnetic longitude",
+              "size": [
+                1647,
+                130
+              ]
+            },
+            {
+              "name": "SystematicError1_rectified",
+              "type": "double",
+              "units": "Rayleighs",
+              "description": "[Errors in Intensities, Mercator Projection by Orbit, Linear Scaling] Systematic H Ly-alpha (1216 A)",
+              "size": [
+                1647,
+                130
+              ]
+            },
+            {
+              "name": "StatisticalError1_rectified",
+              "type": "double",
+              "units": "Rayleighs",
+              "description": "- - - - -> Statitical H Ly-alpha (1216 A)",
+              "size": [
+                1647,
+                130
+              ]
+            },
+            {
+              "name": "SystematicError2_rectified",
+              "type": "double",
+              "units": "Rayleighs",
+              "description": "- - - - -> Systematic O (1304 A)",
+              "size": [
+                1647,
+                130
+              ]
+            },
+            {
+              "name": "StatisticalError2_rectified",
+              "type": "double",
+              "units": "Rayleighs",
+              "description": "- - - - -> Statistical O (1304 A)",
+              "size": [
+                1647,
+                130
+              ]
+            },
+            {
+              "name": "SystematicError3_rectified",
+              "type": "double",
+              "units": "Rayleighs",
+              "description": "- - - - -> Systematic O (1356 A)",
+              "size": [
+                1647,
+                130
+              ]
+            },
+            {
+              "name": "StatisticalError3_rectified",
+              "type": "double",
+              "units": "Rayleighs",
+              "description": "- - - - -> Statistical O (1356 A)",
+              "size": [
+                1647,
+                130
+              ]
+            },
+            {
+              "name": "SystematicError4_rectified",
+              "type": "double",
+              "units": "Rayleighs",
+              "description": "- - - - -> Systematic LBH1 (1400-1500 A)",
+              "size": [
+                1647,
+                130
+              ]
+            },
+            {
+              "name": "StatisticalError4_rectified",
+              "type": "double",
+              "units": "Rayleighs",
+              "description": "- - - - -> Statistical LBH1 (1400-1500 A)",
+              "size": [
+                1647,
+                130
+              ]
+            },
+            {
+              "name": "SystematicError5_rectified",
+              "type": "double",
+              "units": "Rayleighs",
+              "description": "- - - - -> Systematic N2 LBH2 (1650-1800 A)",
+              "size": [
+                1647,
+                130
+              ]
+            },
+            {
+              "name": "StatisticalError5_rectified",
+              "type": "double",
+              "units": "Rayleighs",
+              "description": "- - - - -> Statistical N2 LBH2 (1650-1800 A)",
+              "size": [
+                1647,
+                130
+              ]
+            },
+            {
+              "name": "Intensity1_unrectified",
+              "type": "double",
+              "units": "Rayleighs",
+              "description": "[UNRECTIFIED DATA AND ERRORS - NO PLOTS] Intensity1_unrectified",
+              "size": [
+                1647,
+                130
+              ]
+            },
+            {
+              "name": "SystematicError1_unrectified",
+              "type": "double",
+              "units": "Rayleighs",
+              "description": "- - - - -> SystematicError1_unrectified",
+              "size": [
+                1647,
+                130
+              ]
+            },
+            {
+              "name": "StatisticalError1_unrectified",
+              "type": "double",
+              "units": "Rayleighs",
+              "description": "- - - - -> StatisticalError1_unrectified",
+              "size": [
+                1647,
+                130
+              ]
+            },
+            {
+              "name": "Intensity2_unrectified",
+              "type": "double",
+              "units": "Rayleighs",
+              "description": "- - - - -> Intensity2_unrectified",
+              "size": [
+                1647,
+                130
+              ]
+            },
+            {
+              "name": "SystematicError2_unrectified",
+              "type": "double",
+              "units": "Rayleighs",
+              "description": "- - - - -> SystematicError2_unrectified",
+              "size": [
+                1647,
+                130
+              ]
+            },
+            {
+              "name": "StatisticalError2_unrectified",
+              "type": "double",
+              "units": "Rayleighs",
+              "description": "- - - - -> StatisticalError2_unrectified",
+              "size": [
+                1647,
+                130
+              ]
+            },
+            {
+              "name": "Intensity3_unrectified",
+              "type": "double",
+              "units": "Rayleighs",
+              "description": "- - - - -> Intensity3_unrectified",
+              "size": [
+                1647,
+                130
+              ]
+            },
+            {
+              "name": "SystematicError3_unrectified",
+              "type": "double",
+              "units": "Rayleighs",
+              "description": "- - - - -> SystematicError3_unrectified",
+              "size": [
+                1647,
+                130
+              ]
+            },
+            {
+              "name": "StatisticalError3_unrectified",
+              "type": "double",
+              "units": "Rayleighs",
+              "description": "- - - - -> StatisticalError3_unrectified",
+              "size": [
+                1647,
+                130
+              ]
+            },
+            {
+              "name": "Intensity4_unrectified",
+              "type": "double",
+              "units": "Rayleighs",
+              "description": "- - - - -> Intensity4_unrectified",
+              "size": [
+                1647,
+                130
+              ]
+            },
+            {
+              "name": "SystematicError4_unrectified",
+              "type": "double",
+              "units": "Rayleighs",
+              "description": "- - - - -> SystematicError4_unrectified",
+              "size": [
+                1647,
+                130
+              ]
+            },
+            {
+              "name": "StatisticalError4_unrectified",
+              "type": "double",
+              "units": "Rayleighs",
+              "description": "- - - - -> StatisticalError4_unrectified",
+              "size": [
+                1647,
+                130
+              ]
+            },
+            {
+              "name": "Intensity5_unrectified",
+              "type": "double",
+              "units": "Rayleighs",
+              "description": "- - - - -> Intensity5_unrectified",
+              "size": [
+                1647,
+                130
+              ]
+            },
+            {
+              "name": "SystematicError5_unrectified",
+              "type": "double",
+              "units": "Rayleighs",
+              "description": "- - - - -> SystematicError5_unrectified",
+              "size": [
+                1647,
+                130
+              ]
+            },
+            {
+              "name": "StatisticalError5_unrectified",
+              "type": "double",
+              "units": "Rayleighs",
+              "description": "- - - - -> StatisticalError5_unrectified",
+              "size": [
+                1647,
+                130
+              ]
+            }
+          ]
+        },
+        "TIMED_L1CDISK_GUVI@1": {
+          "description": "",
+          "start_date": "2001-10-18T06:10:25Z",
+          "stop_date": "2007-12-10T22:52:41Z",
+          "parameters": [
+            {
+              "name": "Intensity1_LogAllProfiles",
+              "type": "double",
+              "units": "Rayleighs",
+              "description": "[Intensities for all Across-Track Positions, Log10 Scaling] H Ly-alpha (1216 A)",
+              "size": [
+                130
+              ]
+            },
+            {
+              "name": "Intensity2_LogAllProfiles",
+              "type": "double",
+              "units": "Rayleighs",
+              "description": "- - - - -> O (1304 A)",
+              "size": [
+                130
+              ]
+            },
+            {
+              "name": "Intensity3_LogAllProfiles",
+              "type": "double",
+              "units": "Rayleighs",
+              "description": "- - - - -> O (1356 A)",
+              "size": [
+                130
+              ]
+            },
+            {
+              "name": "Intensity4_LogAllProfiles",
+              "type": "double",
+              "units": "Rayleighs",
+              "description": "- - - - -> LBH1 (1400-1500 A)",
+              "size": [
+                130
+              ]
+            },
+            {
+              "name": "Intensity5_LogAllProfiles",
+              "type": "double",
+              "units": "Rayleighs",
+              "description": "- - - - -> LBH2 (1650-1800 A)",
+              "size": [
+                130
+              ]
+            },
+            {
+              "name": "Intensity1_AllProfiles",
+              "type": "double",
+              "units": "Rayleighs",
+              "description": "[Intensities for all Across-Track Positions, Linear Scaling] H Ly-alpha (1216 A)",
+              "size": [
+                130
+              ]
+            },
+            {
+              "name": "Intensity2_AllProfiles",
+              "type": "double",
+              "units": "Rayleighs",
+              "description": "- - - - -> O (1304 A)",
+              "size": [
+                130
+              ]
+            },
+            {
+              "name": "Intensity3_AllProfiles",
+              "type": "double",
+              "units": "Rayleighs",
+              "description": "- - - - -> O (1356 A)",
+              "size": [
+                130
+              ]
+            },
+            {
+              "name": "Intensity4_AllProfiles",
+              "type": "double",
+              "units": "Rayleighs",
+              "description": "- - - - -> LBH1 (1400-1500 A)",
+              "size": [
+                130
+              ]
+            },
+            {
+              "name": "Intensity5_AllProfiles",
+              "type": "double",
+              "units": "Rayleighs",
+              "description": "- - - - -> LBH2 (1650-1800 A)",
+              "size": [
+                130
+              ]
+            },
+            {
+              "name": "Intensity1_SampleProfile",
+              "type": "double",
+              "units": "Rayleighs",
+              "description": "[Intensities for 7 Across-Track Positions, Linear Scaling] H Ly-alpha (1216 A)",
+              "size": [
+                7
+              ]
+            },
+            {
+              "name": "Intensity2_SampleProfile",
+              "type": "double",
+              "units": "Rayleighs",
+              "description": "- - - - -> O (1304 A)",
+              "size": [
+                7
+              ]
+            },
+            {
+              "name": "Intensity3_SampleProfile",
+              "type": "double",
+              "units": "Rayleighs",
+              "description": "- - - - -> O (1356 A)",
+              "size": [
+                7
+              ]
+            },
+            {
+              "name": "Intensity4_SampleProfile",
+              "type": "double",
+              "units": "Rayleighs",
+              "description": "- - - - -> LBH1 (1400-1500 A)",
+              "size": [
+                7
+              ]
+            },
+            {
+              "name": "Intensity5_SampleProfile",
+              "type": "double",
+              "units": "Rayleighs",
+              "description": "- - - - -> LBH2 (1650-1800 A)",
+              "size": [
+                7
+              ]
+            },
+            {
+              "name": "GeographLatMedian",
+              "type": "double",
+              "units": "degrees",
+              "description": "Nadir geographic latitude of GUVI sweep as function of time (plot)"
+            },
+            {
+              "name": "GeographLonMedian",
+              "type": "double",
+              "units": "degrees",
+              "description": "Nadir geographic longitude of GUVI sweep as function of time (plot)"
+            },
+            {
+              "name": "GeomagLatMedian",
+              "type": "double",
+              "units": "degrees",
+              "description": "Nadir geomagnetic latitude of GUVI sweep as function of time (plot)"
+            },
+            {
+              "name": "GeomagLonMedian",
+              "type": "double",
+              "units": "degrees",
+              "description": "Nadir geomagnetic longitude of GUVI sweep as function of time (plot)"
+            },
+            {
+              "name": "GeographLatMedian_ax",
+              "type": "double",
+              "units": "degrees",
+              "description": "TIME AXIS LABEL:  Nadir geographic latitude of GUVI sweep"
+            },
+            {
+              "name": "GeographLonMedian_ax",
+              "type": "double",
+              "units": "degrees",
+              "description": "TIME AXIS LABEL:  Nadir geographic longitude of GUVI sweep"
+            },
+            {
+              "name": "GeomagLatMedian_ax",
+              "type": "double",
+              "units": "degrees",
+              "description": "TIME AXIS LABEL:  Nadir geomagnetic latitude of GUVI sweep"
+            },
+            {
+              "name": "GeomagLonMedian_ax",
+              "type": "double",
+              "units": "degrees",
+              "description": "TIME AXIS LABEL:  Nadir geomagnetic longitude of GUVI sweep"
+            }
+          ]
+        },
+        "TIMED_L2A_SABER": {
+          "description": "",
+          "start_date": "2002-01-25T01:21:48Z",
+          "stop_date": "2026-02-01T00:58:51Z",
+          "parameters": [
+            {
+              "name": "mode",
+              "type": "integer",
+              "units": "0-down,1-up",
+              "description": "Instrument scan mode (down=0, up=1)"
+            },
+            {
+              "name": "tpDN",
+              "type": "integer",
+              "units": "Day/ni/tw=0/1/2",
+              "description": "Phase of day at Tangent Point (0=Day, 1=Night, 2=Twilight (85<solar zenith angle<95)), "
+            },
+            {
+              "name": "tpAD",
+              "type": "integer",
+              "units": "asc=0/desc=1",
+              "description": "Orbit phase at Tangent Point (0=Ascending 1=Descending) "
+            },
+            {
+              "name": "solAP",
+              "type": "double",
+              "units": "daily",
+              "description": "Magnetic Ap index (daily)"
+            },
+            {
+              "name": "solKP",
+              "type": "double",
+              "units": "3-hour",
+              "description": "Magnetic Kp index (3-hour)"
+            },
+            {
+              "name": "solf10p7Daily",
+              "type": "double",
+              "units": "daily",
+              "description": "Solar F10.7 index (daily)"
+            },
+            {
+              "name": "solf10p781dAvg",
+              "type": "double",
+              "units": "81-day",
+              "description": "Solar F10.7 index (81-day)"
+            },
+            {
+              "name": "solSpotNo",
+              "type": "integer",
+              "units": " ",
+              "description": "Zurich Sunspot Number  [all fill]"
+            },
+            {
+              "name": "Iaurora",
+              "type": "integer",
+              "units": " ",
+              "description": "Aurora Flag [all fill]"
+            },
+            {
+              "name": "sclatitudeAVG",
+              "type": "double",
+              "units": "degree",
+              "description": "Spacecraft latitude (scan-average)"
+            },
+            {
+              "name": "sclongitudeAVG",
+              "type": "double",
+              "units": "degree",
+              "description": "---------> longitude"
+            },
+            {
+              "name": "scaltitudeAVG",
+              "type": "double",
+              "units": "km",
+              "description": "---------> altitude"
+            },
+            {
+              "name": "tplatitudeAVG",
+              "type": "double",
+              "units": "degree",
+              "description": "Tangent point latitude (average ) over lower part of scan"
+            },
+            {
+              "name": "tplatitude_topAVG",
+              "type": "double",
+              "units": "degree",
+              "description": "---------> latitude (average over upper part of scan"
+            },
+            {
+              "name": "tplongitudeAVG",
+              "type": "double",
+              "units": "degree",
+              "description": "---------> longitude (lower average)"
+            },
+            {
+              "name": "tplongitude_topAVG",
+              "type": "double",
+              "units": "degree",
+              "description": "---------> longitude (upper average)"
+            },
+            {
+              "name": "tpSolarZenAVG",
+              "type": "double",
+              "units": "degree",
+              "description": "---------> solar zenith angle (lower average)"
+            },
+            {
+              "name": "tpSolarZen_topAVG",
+              "type": "double",
+              "units": "degree",
+              "description": "---------> solar zenith angle (upper average"
+            },
+            {
+              "name": "tpSolarLTAVG",
+              "type": "double",
+              "units": "hour",
+              "description": "---------> Local Solar Time (lower average "
+            },
+            {
+              "name": "tpSolarLT_topAVG",
+              "type": "double",
+              "units": "hour",
+              "description": "---------> Local Solar Time (upper average)"
+            },
+            {
+              "name": "tpSolarZen",
+              "type": "double",
+              "units": "degrees",
+              "description": "Tangent point solar zenith angle vs tangent point height (lower part of scan)",
+              "size": [
+                400
+              ]
+            },
+            {
+              "name": "tpSolarZen_top",
+              "type": "double",
+              "units": "degrees",
+              "description": "---------> solar zenith angle vs tangent point height (upper part of scan",
+              "size": [
+                400
+              ]
+            },
+            {
+              "name": "tpSolarLT",
+              "type": "double",
+              "units": "hour",
+              "description": "---------> Local Solar Time vs tangent point height (lower)",
+              "size": [
+                400
+              ]
+            },
+            {
+              "name": "tpSolarLT_top",
+              "type": "double",
+              "units": "hour",
+              "description": "---------> Local Solar Time vs tangent point height (upper)",
+              "size": [
+                400
+              ]
+            },
+            {
+              "name": "Elevation",
+              "type": "double",
+              "units": "mradians",
+              "description": "Elevation angle (lower part of scan)",
+              "size": [
+                400
+              ]
+            },
+            {
+              "name": "Elevation_top",
+              "type": "double",
+              "units": "mradians",
+              "description": "---------> upper part of scan",
+              "size": [
+                400
+              ]
+            },
+            {
+              "name": "tpgpaltitude",
+              "type": "double",
+              "units": "km",
+              "description": "Geopotential height at tangent point",
+              "size": [
+                400
+              ]
+            },
+            {
+              "name": "pressure",
+              "type": "double",
+              "units": "mbar",
+              "description": "---------> Pressure",
+              "size": [
+                400
+              ]
+            },
+            {
+              "name": "ktemp",
+              "type": "double",
+              "units": "K",
+              "description": "---------> Kinetic temperature",
+              "size": [
+                400
+              ]
+            },
+            {
+              "name": "density",
+              "type": "double",
+              "units": "1/cm^3",
+              "description": "---------> Neutral density",
+              "size": [
+                400
+              ]
+            },
+            {
+              "name": "O3_96",
+              "type": "double",
+              "units": "O3 (9.6um)",
+              "description": "Mixing Ratios (MR): -> O3 (9.6um) MR vs tangent point height",
+              "size": [
+                400
+              ]
+            },
+            {
+              "name": "O3_127",
+              "type": "double",
+              "units": "O3 (1.27um)",
+              "description": "---------> O3 (1.27um) MR vs tangent point height",
+              "size": [
+                400
+              ]
+            },
+            {
+              "name": "O3_127_92km",
+              "type": "double",
+              "units": "O3 (1.27um)",
+              "description": "-------------> O3 (1.27um) MR at 92km [line plot]"
+            },
+            {
+              "name": "H2O",
+              "type": "double",
+              "units": "H2O",
+              "description": "---------> H2O MR vs tangent point height [all fill]",
+              "size": [
+                400
+              ]
+            },
+            {
+              "name": "C02",
+              "type": "double",
+              "units": "CO2 ",
+              "description": "---------> CO2 MR vs tangent point height",
+              "size": [
+                400
+              ]
+            },
+            {
+              "name": "O",
+              "type": "double",
+              "units": "O",
+              "description": "---------> O MR vs tangent point height",
+              "size": [
+                400
+              ]
+            },
+            {
+              "name": "H",
+              "type": "double",
+              "units": "H",
+              "description": "---------> H MR vs tangent point height",
+              "size": [
+                400
+              ]
+            },
+            {
+              "name": "O2_1delta_ver_unfilt",
+              "type": "double",
+              "units": "ergs/cm3/sec",
+              "description": "Volume Emission Rates (VER): -> O2(1delta) VER vs tangent point height",
+              "size": [
+                400
+              ]
+            },
+            {
+              "name": "O2_1delta_ver",
+              "type": "double",
+              "units": "ergs/cm3/sec",
+              "description": "--------------> filtered (actual measurement with SABER's spectral bandpass for this line)",
+              "size": [
+                400
+              ]
+            },
+            {
+              "name": "O2_1delta_ver_92km",
+              "type": "double",
+              "units": "ergs/cm3/sec",
+              "description": "---------------> unfiltered at 92km [line plot]"
+            },
+            {
+              "name": "OH_16_ver_unfilt",
+              "type": "double",
+              "units": "ergs/cm3/sec",
+              "description": "---------> OH (1.6um) VER vs tangent point height",
+              "size": [
+                400
+              ]
+            },
+            {
+              "name": "OH_16_ver",
+              "type": "double",
+              "units": "ergs/cm3/sec",
+              "description": "---------------> filtered",
+              "size": [
+                400
+              ]
+            },
+            {
+              "name": "OH_16_ver_85km",
+              "type": "double",
+              "units": "ergs/cm3/sec",
+              "description": "---------------> unfiltered at 85km [line plot]"
+            },
+            {
+              "name": "OH_20_ver_unfilt",
+              "type": "double",
+              "units": "ergs/cm3/sec",
+              "description": "---------> OH (2.0 um) VER vs tangent point height",
+              "size": [
+                400
+              ]
+            },
+            {
+              "name": "OH_20_ver",
+              "type": "double",
+              "units": "ergs/cm3/sec",
+              "description": "---------------> filtered",
+              "size": [
+                400
+              ]
+            },
+            {
+              "name": "OH_20_ver_85km",
+              "type": "double",
+              "units": "ergs/cm3/sec",
+              "description": "------------------> unfiltered at 85km [lineplot]"
+            },
+            {
+              "name": "NO_ver_top_unfilt",
+              "type": "double",
+              "units": "ergs/cm3/sec",
+              "description": "---------> NO VER (upper part of scan) vs tangent point height",
+              "size": [
+                400
+              ]
+            },
+            {
+              "name": "NO_ver_top",
+              "type": "double",
+              "units": "ergs/cm3/sec",
+              "description": "---------------> filtered (upper)",
+              "size": [
+                400
+              ]
+            },
+            {
+              "name": "NO_ver_unfilt",
+              "type": "double",
+              "units": "ergs/cm3/sec",
+              "description": "---------------> unfiltered (lower)",
+              "size": [
+                400
+              ]
+            },
+            {
+              "name": "NO_ver",
+              "type": "double",
+              "units": "ergs/cm3/sec",
+              "description": "---------------> filtered (lower)",
+              "size": [
+                400
+              ]
+            },
+            {
+              "name": "NO_ver_120km",
+              "type": "double",
+              "units": "ergs/cm3/sec",
+              "description": "---------------> unfiltered at 120km [line plot]"
+            }
+          ]
+        },
+        "TIMED_L3A_SEE": {
+          "description": "",
+          "start_date": "2002-01-22T05:10:36Z",
+          "stop_date": "2026-02-03T22:54:43Z",
+          "parameters": [
+            {
+              "name": "FLUX_SP_30",
+              "type": "double",
+              "units": "W/m^2",
+              "description": "Solar irradiance at 30.5 nm, He II"
+            },
+            {
+              "name": "FLUX_SP_33",
+              "type": "double",
+              "units": "W/m^2",
+              "description": "Solar irradiance at 33.5 nm, Fe XVI"
+            },
+            {
+              "name": "FLUX_SP_36",
+              "type": "double",
+              "units": "W/m^2",
+              "description": "Solar irradiance at 36.5 nm, Mg IX"
+            },
+            {
+              "name": "FLUX_SP_121",
+              "type": "double",
+              "units": "W/m^2",
+              "description": "Solar irradiance at 121.5 nm, H I"
+            },
+            {
+              "name": "FLUX_SP_133",
+              "type": "double",
+              "units": "W/m^2",
+              "description": "Solar irradiance at 133.5 nm, C II"
+            },
+            {
+              "name": "FLUX_SP_SUM6",
+              "type": "double",
+              "units": "W/m^2",
+              "description": "Integrated solar irradiance from 0 to 7 nm (soft X-rays)"
+            },
+            {
+              "name": "FLUX_SP_SUM44",
+              "type": "double",
+              "units": "W/m^2",
+              "description": "Integrated solar irradiance from 0 to 45 nm (QEUV1)"
+            },
+            {
+              "name": "FLUX_SP_SUM5_44",
+              "type": "double",
+              "units": "W/m^2",
+              "description": "Integrated solar irradiance from 5 to 45 nm (QEUV2)"
+            },
+            {
+              "name": "FLUX_SP_SUM104",
+              "type": "double",
+              "units": "W/m^2",
+              "description": "Integrated solar irradiance from 0 to 105 nm (E10.7)"
+            },
+            {
+              "name": "FLUX_LINE",
+              "type": "double",
+              "units": "W / m^2 / nm",
+              "description": "[NOT FOR PLOTTING] Solar irradiance at 38 emission lines",
+              "size": [
+                38
+              ]
+            },
+            {
+              "name": "ERR_TOT_LINE",
+              "type": "double",
+              "units": "Fractional",
+              "description": "[NOT FOR PLOTTING] Accuracy of solar irradiance at 38 wavelengths",
+              "size": [
+                38
+              ]
+            },
+            {
+              "name": "ERR_MEAS_LINE",
+              "type": "double",
+              "units": "Fractional",
+              "description": "[NOT FOR PLOTTING] Measurement precision for solar irradiance",
+              "size": [
+                38
+              ]
+            },
+            {
+              "name": "COR_1AU",
+              "type": "double",
+              "units": "1 / (AU * AU)",
+              "description": "AU correction factor for date"
+            },
+            {
+              "name": "FLUX_SP",
+              "type": "double",
+              "units": "W / m^2 / nm",
+              "description": "[NOT FOR PLOTTING] Solar irradiance 0 to 195 nm (1nm res.)",
+              "size": [
+                195
+              ]
+            },
+            {
+              "name": "ERR_TOT_SP",
+              "type": "double",
+              "units": "Fractional",
+              "description": "[NOT FOR PLOTTING] Accuracy of solar irradiance",
+              "size": [
+                195
+              ]
+            },
+            {
+              "name": "ERR_MEAS_SP",
+              "type": "double",
+              "units": "Fractional",
+              "description": "[NOT FOR PLOTTING] Measurement precision",
+              "size": [
+                195
+              ]
+            }
+          ]
+        },
+        "TIMED_WINDVECTORSNCAR_TIDI@0": {
+          "description": "",
+          "start_date": "2002-02-20T00:06:55Z",
+          "stop_date": "2020-12-31T23:52:46Z",
+          "parameters": [
+            {
+              "name": "ZonalWindP9_SampleProfilecold_ascend",
+              "type": "double",
+              "units": "m/s",
+              "description": "Zonal wind at 75, 80, 85, 90, 95, and 100 km, Ascending orbit phase, Cold side",
+              "size": [
+                6
+              ]
+            },
+            {
+              "name": "MeridionalWindP9_SampleProfilecold_ascend",
+              "type": "double",
+              "units": "m/s",
+              "description": "Meridional wind at 75, 80, 85, 90, 95, and 100 km, Ascending orbit phase, Cold Side",
+              "size": [
+                6
+              ]
+            },
+            {
+              "name": "Ucold_P9_ascend",
+              "type": "double",
+              "units": "m/s",
+              "description": "Zonal wind profiles (velocity as function of time and altitude), Ascending orbit phase, Cold side",
+              "size": [
+                30
+              ]
+            },
+            {
+              "name": "VAR_Ucold_P9_ascend",
+              "type": "double",
+              "units": "(m/s)^2",
+              "description": "- -> Zonal wind variance profiles,  Ascending orbit phase, Cold side",
+              "size": [
+                30
+              ]
+            },
+            {
+              "name": "Vcold_P9_ascend",
+              "type": "double",
+              "units": "m/s",
+              "description": "Meridional wind profiles, (velocity as a function of time and altitude), Ascending orbit phase, Cold side",
+              "size": [
+                30
+              ]
+            },
+            {
+              "name": "VAR_Vcold_P9_ascend",
+              "type": "double",
+              "units": "(m/s)^2",
+              "description": "- -> Meridional wind variance profiles Ascending orbit phase, Cold side",
+              "size": [
+                30
+              ]
+            },
+            {
+              "name": "Windplot_cold_asc_080",
+              "type": "double",
+              "units": "m/s",
+              "description": "Wind vector map, 80 km, Cylindrical projection, Ascending orbit phase, Cold side",
+              "size": [
+                6
+              ]
+            },
+            {
+              "name": "Windplot_cold_asc_transv_080",
+              "type": "double",
+              "units": "m/s",
+              "description": "- -> Transverse Mercator projection, Ascending orbit phase, Cold side",
+              "size": [
+                6
+              ]
+            },
+            {
+              "name": "Windplot_cold_asc_mov_080",
+              "type": "double",
+              "units": "m/s",
+              "description": "- -> MOVIE: Cylindrical projection, Ascending orbit phase, Cold side",
+              "size": [
+                6
+              ]
+            },
+            {
+              "name": "Windplot_cold_asc_transv_mov_080",
+              "type": "double",
+              "units": "m/s",
+              "description": "- -> MOVIE: Transverse Mercator projection, Ascending orbit phase, Cold side",
+              "size": [
+                6
+              ]
+            },
+            {
+              "name": "Windplot_cold_asc_090",
+              "type": "double",
+              "units": "m/s",
+              "description": "Wind vector map, 90 km, Cylindrical projection, Ascending orbit phase, Cold side",
+              "size": [
+                6
+              ]
+            },
+            {
+              "name": "Windplot_cold_asc_transv_090",
+              "type": "double",
+              "units": "m/s",
+              "description": "- -> Transverse Mercator projection, Ascending orbit phase, Cold side",
+              "size": [
+                6
+              ]
+            },
+            {
+              "name": "Windplot_cold_asc_mov_090",
+              "type": "double",
+              "units": "m/s",
+              "description": "- -> MOVIE: Cylindrical projection, Ascending orbit phase, Cold side",
+              "size": [
+                6
+              ]
+            },
+            {
+              "name": "Windplot_cold_asc_transv_mov_090",
+              "type": "double",
+              "units": "m/s",
+              "description": "- -> MOVIE: Transverse Mercator projection, Ascending orbit phase, Cold side",
+              "size": [
+                6
+              ]
+            },
+            {
+              "name": "Windplot_cold_asc_100",
+              "type": "double",
+              "units": "m/s",
+              "description": "Wind vector map, 100 km, Cylindrical projection, Ascending orbit phase, Cold side",
+              "size": [
+                6
+              ]
+            },
+            {
+              "name": "Windplot_cold_asc_transv_100",
+              "type": "double",
+              "units": "m/s",
+              "description": "- -> Transverse Mercator projection, Ascending orbit phase, Cold side",
+              "size": [
+                6
+              ]
+            },
+            {
+              "name": "Windplot_cold_asc_mov_100",
+              "type": "double",
+              "units": "m/s",
+              "description": "- -> MOVIE: Cylindrical projection, Ascending orbit phase, Cold side",
+              "size": [
+                6
+              ]
+            },
+            {
+              "name": "Windplot_cold_asc_transv_mov_100",
+              "type": "double",
+              "units": "m/s",
+              "description": "- -> MOVIE: Transverse Mercator projection, Ascending orbit phase, Cold side",
+              "size": [
+                6
+              ]
+            },
+            {
+              "name": "LATcold_ascend",
+              "type": "double",
+              "units": "deg",
+              "description": "Geodetic latitude, Ascending orbit phase, Cold Side"
+            },
+            {
+              "name": "LONcold_ascend",
+              "type": "double",
+              "units": "deg",
+              "description": "- -> Geodetic East Longitude, Ascending orbit phase, Cold side"
+            },
+            {
+              "name": "SZAcold_ascend",
+              "type": "double",
+              "units": "deg",
+              "description": "- -> Solar Zenith Angle (SZA), Ascending orbit phase, Cold side"
+            },
+            {
+              "name": "LSTcold_ascend",
+              "type": "double",
+              "units": "hour",
+              "description": "- -> Local Solar Time (LST)Ascending orbit phase, Cold side"
+            },
+            {
+              "name": "MLATcold_ascend",
+              "type": "double",
+              "units": "deg",
+              "description": "- -> Magnetic Latitude, Ascending orbit phase, Cold side"
+            },
+            {
+              "name": "MLONcold_ascend",
+              "type": "double",
+              "units": "deg",
+              "description": "- -> Magnetic Longitude, Ascending orbit phase, Cold side"
+            }
+          ]
+        },
+        "TIMED_WINDVECTORSNCAR_TIDI@1": {
+          "description": "",
+          "start_date": "2002-02-20T00:06:55Z",
+          "stop_date": "2020-12-31T23:52:46Z",
+          "parameters": [
+            {
+              "name": "ZonalWindP9_SampleProfilewarm_ascend",
+              "type": "double",
+              "units": "m/s",
+              "description": "- - - - - -> Ascending, Warm side ",
+              "size": [
+                6
+              ]
+            },
+            {
+              "name": "MeridionalWindP9_SampleProfilewarm_ascend",
+              "type": "double",
+              "units": "m/s",
+              "description": "- - - - - -> Ascending, Warm side ",
+              "size": [
+                6
+              ]
+            },
+            {
+              "name": "Uwarm_P9_ascend",
+              "type": "double",
+              "units": "m/s",
+              "description": "- - - - - -> Ascending, Warm side ",
+              "size": [
+                30
+              ]
+            },
+            {
+              "name": "VAR_Uwarm_P9_ascend",
+              "type": "double",
+              "units": "(m/s)^2",
+              "description": "- - - - - -> Ascending, Warm side ",
+              "size": [
+                30
+              ]
+            },
+            {
+              "name": "Vwarm_P9_ascend",
+              "type": "double",
+              "units": "m/s",
+              "description": "- - - - - -> Ascending, Warm side ",
+              "size": [
+                30
+              ]
+            },
+            {
+              "name": "VAR_Vwarm_P9_ascend",
+              "type": "double",
+              "units": "(m/s)^2",
+              "description": "- - - - - -> Ascending, Warm side ",
+              "size": [
+                30
+              ]
+            },
+            {
+              "name": "Windplot_warm_asc_080",
+              "type": "double",
+              "units": "m/s",
+              "description": "- - - - - -> Ascending, Warm side ",
+              "size": [
+                6
+              ]
+            },
+            {
+              "name": "Windplot_warm_asc_transv_080",
+              "type": "double",
+              "units": "m/s",
+              "description": "- - - - - -> Ascending, Warm side ",
+              "size": [
+                6
+              ]
+            },
+            {
+              "name": "Windplot_warm_asc_mov_080",
+              "type": "double",
+              "units": "m/s",
+              "description": "- - - - - -> Ascending, Warm side ",
+              "size": [
+                6
+              ]
+            },
+            {
+              "name": "Windplot_warm_asc_transv_mov_080",
+              "type": "double",
+              "units": "m/s",
+              "description": "- - - - - -> Ascending, Warm side ",
+              "size": [
+                6
+              ]
+            },
+            {
+              "name": "Windplot_warm_asc_090",
+              "type": "double",
+              "units": "m/s",
+              "description": "- - - - - -> Ascending, Warm side ",
+              "size": [
+                6
+              ]
+            },
+            {
+              "name": "Windplot_warm_asc_transv_090",
+              "type": "double",
+              "units": "m/s",
+              "description": "- - - - - -> Ascending, Warm side ",
+              "size": [
+                6
+              ]
+            },
+            {
+              "name": "Windplot_warm_asc_mov_090",
+              "type": "double",
+              "units": "m/s",
+              "description": "- - - - - -> Ascending, Warm side ",
+              "size": [
+                6
+              ]
+            },
+            {
+              "name": "Windplot_warm_asc_transv_mov_090",
+              "type": "double",
+              "units": "m/s",
+              "description": "- - - - - -> Ascending, Warm side ",
+              "size": [
+                6
+              ]
+            },
+            {
+              "name": "Windplot_warm_asc_100",
+              "type": "double",
+              "units": "m/s",
+              "description": "- - - - - -> Ascending, Warm side ",
+              "size": [
+                6
+              ]
+            },
+            {
+              "name": "Windplot_warm_asc_transv_100",
+              "type": "double",
+              "units": "m/s",
+              "description": "- - - - - -> Ascending, Warm side ",
+              "size": [
+                6
+              ]
+            },
+            {
+              "name": "Windplot_warm_asc_mov_100",
+              "type": "double",
+              "units": "m/s",
+              "description": "- - - - - -> Ascending, Warm side ",
+              "size": [
+                6
+              ]
+            },
+            {
+              "name": "Windplot_warm_asc_transv_mov_100",
+              "type": "double",
+              "units": "m/s",
+              "description": "- - - - - -> Ascending, Warm side ",
+              "size": [
+                6
+              ]
+            },
+            {
+              "name": "LATwarm_ascend",
+              "type": "double",
+              "units": "deg",
+              "description": "- - - - - -> Ascending, Warm side "
+            },
+            {
+              "name": "LONwarm_ascend",
+              "type": "double",
+              "units": "deg",
+              "description": "- - - - - -> Ascending, Warm side "
+            },
+            {
+              "name": "SZAwarm_ascend",
+              "type": "double",
+              "units": "deg",
+              "description": "- - - - - -> Ascending, Warm side "
+            },
+            {
+              "name": "LSTwarm_ascend",
+              "type": "double",
+              "units": "hour",
+              "description": "- - - - - -> Ascending, Warm side "
+            },
+            {
+              "name": "MLATwarm_ascend",
+              "type": "double",
+              "units": "deg",
+              "description": "- - - - - -> Ascending, Warm side "
+            },
+            {
+              "name": "MLONwarm_ascend",
+              "type": "double",
+              "units": "deg",
+              "description": "- - - - - -> Ascending, Warm side "
+            }
+          ]
+        },
+        "TIMED_WINDVECTORSNCAR_TIDI@2": {
+          "description": "",
+          "start_date": "2002-02-20T00:06:55Z",
+          "stop_date": "2020-12-31T23:52:46Z",
+          "parameters": [
+            {
+              "name": "ZonalWindP9_SampleProfilecold_descend",
+              "type": "double",
+              "units": "m/s",
+              "description": "- - - - - -> Descending, Cold side ",
+              "size": [
+                6
+              ]
+            },
+            {
+              "name": "MeridionalWindP9_SampleProfilecold_descend",
+              "type": "double",
+              "units": "m/s",
+              "description": "- - - - - -> Descending, Cold side ",
+              "size": [
+                6
+              ]
+            },
+            {
+              "name": "Ucold_P9_descend",
+              "type": "double",
+              "units": "m/s",
+              "description": "- - - - - -> Descending, Cold side ",
+              "size": [
+                30
+              ]
+            },
+            {
+              "name": "VAR_Ucold_P9_descend",
+              "type": "double",
+              "units": "(m/s)^2",
+              "description": "- - - - - -> Descending, Cold side ",
+              "size": [
+                30
+              ]
+            },
+            {
+              "name": "Vcold_P9_descend",
+              "type": "double",
+              "units": "m/s",
+              "description": "- - - - - -> Descending, Cold side ",
+              "size": [
+                30
+              ]
+            },
+            {
+              "name": "VAR_Vcold_P9_descend",
+              "type": "double",
+              "units": "(m/s)^2",
+              "description": "- - - - - -> Descending, Cold side ",
+              "size": [
+                30
+              ]
+            },
+            {
+              "name": "Windplot_cold_des_080",
+              "type": "double",
+              "units": "m/s",
+              "description": "- - - - - -> Descending, Cold side ",
+              "size": [
+                6
+              ]
+            },
+            {
+              "name": "Windplot_cold_des_transv_080",
+              "type": "double",
+              "units": "m/s",
+              "description": "- - - - - -> Descending, Cold side ",
+              "size": [
+                6
+              ]
+            },
+            {
+              "name": "Windplot_cold_des_mov_080",
+              "type": "double",
+              "units": "m/s",
+              "description": "- - - - - -> Descending, Cold side ",
+              "size": [
+                6
+              ]
+            },
+            {
+              "name": "Windplot_cold_des_transv_mov_080",
+              "type": "double",
+              "units": "m/s",
+              "description": "- - - - - -> Descending, Cold side ",
+              "size": [
+                6
+              ]
+            },
+            {
+              "name": "Windplot_cold_desc_090",
+              "type": "double",
+              "units": "m/s",
+              "description": "- - - - - -> Descending, Cold side ",
+              "size": [
+                6
+              ]
+            },
+            {
+              "name": "Windplot_cold_desc_transv_090",
+              "type": "double",
+              "units": "m/s",
+              "description": "- - - - - -> Descending, Cold side ",
+              "size": [
+                6
+              ]
+            },
+            {
+              "name": "Windplot_cold_desc_mov_090",
+              "type": "double",
+              "units": "m/s",
+              "description": "- - - - - -> Descending, Cold side ",
+              "size": [
+                6
+              ]
+            },
+            {
+              "name": "Windplot_cold_desc_transv_mov_090",
+              "type": "double",
+              "units": "m/s",
+              "description": "- - - - - -> Descending, Cold side ",
+              "size": [
+                6
+              ]
+            },
+            {
+              "name": "Windplot_cold_desc_100",
+              "type": "double",
+              "units": "m/s",
+              "description": "- - - - - -> Descending, Cold side ",
+              "size": [
+                6
+              ]
+            },
+            {
+              "name": "Windplot_cold_desc_transv_100",
+              "type": "double",
+              "units": "m/s",
+              "description": "- - - - - -> Descending, Cold side ",
+              "size": [
+                6
+              ]
+            },
+            {
+              "name": "Windplot_cold_desc_mov_100",
+              "type": "double",
+              "units": "m/s",
+              "description": "- - - - - -> Descending, Cold side ",
+              "size": [
+                6
+              ]
+            },
+            {
+              "name": "Windplot_cold_desc_transv_mov_100",
+              "type": "double",
+              "units": "m/s",
+              "description": "- - - - - -> Descending, Cold side ",
+              "size": [
+                6
+              ]
+            },
+            {
+              "name": "LATcold_descend",
+              "type": "double",
+              "units": "deg",
+              "description": "- - - - - -> Descending, Cold side "
+            },
+            {
+              "name": "LONcold_descend",
+              "type": "double",
+              "units": "deg",
+              "description": "- - - - - -> Descending, Cold side "
+            },
+            {
+              "name": "SZAcold_descend",
+              "type": "double",
+              "units": "deg",
+              "description": "- - - - - -> Descending, Cold side "
+            },
+            {
+              "name": "LSTcold_descend",
+              "type": "double",
+              "units": "hour",
+              "description": "- - - - - -> Descending, Cold side "
+            },
+            {
+              "name": "MLATcold_descend",
+              "type": "double",
+              "units": "deg",
+              "description": "- - - - - -> Descending, Cold side "
+            },
+            {
+              "name": "MLONcold_descend",
+              "type": "double",
+              "units": "deg",
+              "description": "- - - - - -> Descending, Cold side "
+            }
+          ]
+        },
+        "TIMED_WINDVECTORSNCAR_TIDI@3": {
+          "description": "",
+          "start_date": "2002-02-20T00:06:55Z",
+          "stop_date": "2020-12-31T23:52:46Z",
+          "parameters": [
+            {
+              "name": "ZonalWindP9_SampleProfilewarm_descend",
+              "type": "double",
+              "units": "m/s",
+              "description": "- - - - - -> Descending, Warm side ",
+              "size": [
+                6
+              ]
+            },
+            {
+              "name": "MeridionalWindP9_SampleProfilewarm_descend",
+              "type": "double",
+              "units": "m/s",
+              "description": "- - - - - -> Descending, Warm side ",
+              "size": [
+                6
+              ]
+            },
+            {
+              "name": "Uwarm_P9_descend",
+              "type": "double",
+              "units": "m/s",
+              "description": "- - - - - -> Descending, Warm side ",
+              "size": [
+                30
+              ]
+            },
+            {
+              "name": "VAR_Uwarm_P9_descend",
+              "type": "double",
+              "units": "(m/s)^2",
+              "description": "- - - - - -> Descending, Warm side ",
+              "size": [
+                30
+              ]
+            },
+            {
+              "name": "Vwarm_P9_descend",
+              "type": "double",
+              "units": "m/s",
+              "description": "- - - - - -> Descending, Warm side ",
+              "size": [
+                30
+              ]
+            },
+            {
+              "name": "VAR_Vwarm_P9_descend",
+              "type": "double",
+              "units": "(m/s)^2",
+              "description": "- - - - - -> Descending, Warm side ",
+              "size": [
+                30
+              ]
+            },
+            {
+              "name": "Windplot_warm_desc_080",
+              "type": "double",
+              "units": "m/s",
+              "description": "- - - - - -> Descending, Warm side ",
+              "size": [
+                6
+              ]
+            },
+            {
+              "name": "Windplot_warm_desc_transv_080",
+              "type": "double",
+              "units": "m/s",
+              "description": "- - - - - -> Descending, Warm side ",
+              "size": [
+                6
+              ]
+            },
+            {
+              "name": "Windplot_warm_desc_mov_080",
+              "type": "double",
+              "units": "m/s",
+              "description": "- - - - - -> Descending, Warm side ",
+              "size": [
+                6
+              ]
+            },
+            {
+              "name": "Windplot_warm_desc_transv_mov_080",
+              "type": "double",
+              "units": "m/s",
+              "description": "- - - - - -> Descending, Warm side ",
+              "size": [
+                6
+              ]
+            },
+            {
+              "name": "Windplot_warm_desc_090",
+              "type": "double",
+              "units": "m/s",
+              "description": "- - - - - -> Descending, Warm side ",
+              "size": [
+                6
+              ]
+            },
+            {
+              "name": "Windplot_warm_desc_transv_090",
+              "type": "double",
+              "units": "m/s",
+              "description": "- - - - - -> Descending, Warm side ",
+              "size": [
+                6
+              ]
+            },
+            {
+              "name": "Windplot_warm_desc_mov_090",
+              "type": "double",
+              "units": "m/s",
+              "description": "- - - - - -> Descending, Warm side ",
+              "size": [
+                6
+              ]
+            },
+            {
+              "name": "Windplot_warm_desc_transv_mov_090",
+              "type": "double",
+              "units": "m/s",
+              "description": "- - - - - -> Descending, Warm side ",
+              "size": [
+                6
+              ]
+            },
+            {
+              "name": "Windplot_warm_desc_100",
+              "type": "double",
+              "units": "m/s",
+              "description": "- - - - - -> Descending, Warm side ",
+              "size": [
+                6
+              ]
+            },
+            {
+              "name": "Windplot_warm_desc_transv_100",
+              "type": "double",
+              "units": "m/s",
+              "description": "- - - - - -> Descending, Warm side ",
+              "size": [
+                6
+              ]
+            },
+            {
+              "name": "Windplot_warm_desc_mov_100",
+              "type": "double",
+              "units": "m/s",
+              "description": "- - - - - -> Descending, Warm side ",
+              "size": [
+                6
+              ]
+            },
+            {
+              "name": "Windplot_warm_desc_transv_mov_100",
+              "type": "double",
+              "units": "m/s",
+              "description": "- - - - - -> Descending, Warm side ",
+              "size": [
+                6
+              ]
+            },
+            {
+              "name": "LATwarm_descend",
+              "type": "double",
+              "units": "deg",
+              "description": "- - - - - -> Descending, Warm side "
+            },
+            {
+              "name": "LONwarm_descend",
+              "type": "double",
+              "units": "deg",
+              "description": "- - - - - -> Descending, Warm side "
+            },
+            {
+              "name": "SZAwarm_descend",
+              "type": "double",
+              "units": "deg",
+              "description": "- - - - - -> Descending, Warm side "
+            },
+            {
+              "name": "LSTwarm_descend",
+              "type": "double",
+              "units": "hour",
+              "description": "- - - - - -> Descending, Warm side "
+            },
+            {
+              "name": "MLATwarm_descend",
+              "type": "double",
+              "units": "deg",
+              "description": "- - - - - -> Descending, Warm side "
+            },
+            {
+              "name": "MLONwarm_descend",
+              "type": "double",
+              "units": "deg",
+              "description": "- - - - - -> Descending, Warm side "
+            }
+          ]
+        }
+      }
+    }
+  },
+  "_meta": {
+    "generated_at": "2026-02-08T09:24:41Z",
+    "hapi_server": "https://cdaweb.gsfc.nasa.gov/hapi"
+  }
+}

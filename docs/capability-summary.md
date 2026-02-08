@@ -65,10 +65,12 @@ agent/core.py  OrchestratorAgent  (LLM-driven orchestrator)
   |       TaskStore               JSON persistence to ~/.helio-agent/tasks/
   |
   +---> knowledge/                Dataset discovery + prompt generation
-  |       missions/*.json          Per-mission JSON files (8 files, HAPI-derived + hand-curated)
+  |       missions/*.json          Per-mission JSON files (8 curated + auto-generated via --create-new)
   |       mission_loader.py        Lazy-loading cache, routing table, dataset access
+  |       mission_prefixes.py      Shared CDAWeb dataset ID prefix map (40+ missions)
+  |       cdaweb_catalog.py        Full CDAWeb HAPI catalog fetch/cache/search (2000+ datasets)
   |       catalog.py               Thin routing layer (loads from JSON, backward-compat SPACECRAFT dict)
-  |       prompt_builder.py        Slim system prompt (routing table only) + rich mission/visualization prompts
+  |       prompt_builder.py        Slim system prompt (routing table + catalog search) + rich mission/visualization prompts
   |       hapi_client.py           CDAWeb HAPI /info endpoint (parameter metadata, cached, browse_datasets)
   |
   +---> data_ops/                 Python-side data pipeline (pandas-backed)
@@ -89,7 +91,7 @@ agent/core.py  OrchestratorAgent  (LLM-driven orchestrator)
           stress_test.py            Stress testing
 ```
 
-## Tools (17 tool schemas)
+## Tools (18 tool schemas)
 
 ### Dataset Discovery
 | Tool | Purpose |
@@ -99,6 +101,7 @@ agent/core.py  OrchestratorAgent  (LLM-driven orchestrator)
 | `list_parameters` | List plottable parameters for a dataset (HAPI /info) |
 | `get_data_availability` | Check available time range for a dataset (HAPI /info) |
 | `get_dataset_docs` | Fetch CDAWeb documentation for a dataset (instrument info, coordinates, PI contact) |
+| `search_full_catalog` | Search full CDAWeb HAPI catalog (2000+ datasets) by keyword |
 | `google_search` | Web search via Google Search grounding (isolated Gemini API call) |
 
 ### Visualization
@@ -158,6 +161,8 @@ The `execute_visualization` tool dispatches to the method registry (`rendering/r
 
 ## Supported Spacecraft
 
+### Curated Missions (8) — Rich prompts with analysis patterns
+
 | Spacecraft | Instruments | Example Datasets |
 |-----------|-------------|-----------------|
 | Parker Solar Probe (PSP) | FIELDS/MAG, SWEAP | `PSP_FLD_L2_MAG_RTN_1MIN` |
@@ -168,6 +173,12 @@ The `execute_visualization` tool dispatches to the method registry (`rendering/r
 | DSCOVR | MAG, FC | `DSCOVR_H0_MAG`, `DSCOVR_H1_FC` |
 | MMS | FGM, FPI-DIS | `MMS1_FGM_SRVY_L2` |
 | STEREO-A | MAG, PLASTIC | `STA_L1_MAG_RTN` |
+
+### Full CDAWeb Catalog Access (2000+ datasets)
+
+All CDAWeb datasets are searchable via the `search_full_catalog` tool, including missions like STEREO-B, THEMIS, Cluster, Van Allen Probes, GOES, Voyager 1/2, Ulysses, Geotail, Polar, IMAGE, FAST, SOHO, Juno, MAVEN, MESSENGER, Cassini, New Horizons, IMP-8, ISEE, Arase/ERG, TIMED, TWINS, IBEX, and more.
+
+New missions can be added as curated missions (with mission agent + rich prompts) by creating a JSON file in `knowledge/missions/` via `scripts/generate_mission_data.py --create-new`. The shared prefix map in `knowledge/mission_prefixes.py` maps dataset ID prefixes to mission identifiers.
 
 ## Time Range Parsing
 
@@ -227,10 +238,12 @@ All times are UTC. Outputs `TimeRange` objects with `start`/`end` datetimes.
 - Planner infrastructure (`agent/planner.py`, `agent/tasks.py`) supports programmatic multi-step plans
 
 ### Per-Mission JSON Knowledge (`knowledge/missions/*.json`)
-- **8 JSON files**: One per mission (psp.json, ace.json, etc.) with HAPI-derived metadata + hand-curated profiles.
+- **8 curated JSON files** + auto-generated skeletons for 30+ additional missions. Curated missions have hand-written profiles (analysis patterns, coordinate systems, data caveats). Auto-generated missions have minimal profiles populated from HAPI metadata.
+- **Shared prefix map**: `knowledge/mission_prefixes.py` maps CDAWeb dataset ID prefixes to mission identifiers (40+ mission groups).
+- **Full catalog search**: `knowledge/cdaweb_catalog.py` provides `search_full_catalog` tool — searches all 2000+ CDAWeb datasets by keyword, with 24-hour local cache.
 - **Recommended datasets**: All datasets in the instrument section are shown as recommended. Additional datasets are discoverable via `browse_datasets`.
 - **Calibration exclusion lists**: Per-mission `_calibration_exclude.json` files filter out calibration, housekeeping, and ephemeris datasets from browse results. Uses glob patterns and exact IDs.
-- **Auto-generation**: `scripts/generate_mission_data.py` queries CDAWeb HAPI to populate parameters, dates, descriptions.
+- **Auto-generation**: `scripts/generate_mission_data.py` queries CDAWeb HAPI to populate parameters, dates, descriptions. Use `--create-new` to create skeleton JSON files for new missions.
 - **Loader**: `knowledge/mission_loader.py` provides lazy-loading cache, routing table, and dataset access.
 
 ### Google Search Grounding

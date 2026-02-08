@@ -1,0 +1,4475 @@
+{
+  "id": "STEREO-B",
+  "name": "STEREO-B",
+  "keywords": [
+    "stb",
+    "stb_l1_mag",
+    "stb_l1_pla",
+    "stb_l2_mag",
+    "stb_l2_pla",
+    "stereo-b",
+    "stereo_b"
+  ],
+  "profile": {
+    "description": "STEREO-B spacecraft data from CDAWeb.",
+    "coordinate_systems": [],
+    "typical_cadence": "",
+    "data_caveats": [],
+    "analysis_patterns": []
+  },
+  "instruments": {
+    "General": {
+      "name": "General",
+      "keywords": [],
+      "datasets": {
+        "STB_COHO1HR_MERGED_MAG_PLASMA": {
+          "description": "",
+          "start_date": "2007-01-01T00:00:00Z",
+          "stop_date": "2014-09-27T16:00:00Z",
+          "parameters": [
+            {
+              "name": "radialDistance",
+              "type": "double",
+              "units": "AU",
+              "description": "Radial Distance"
+            },
+            {
+              "name": "heliographicLatitude",
+              "type": "double",
+              "units": "deg",
+              "description": "HelioGraphic Inertial (HGI) latitude of the spacecraft position at the start of data interval"
+            },
+            {
+              "name": "heliographicLongitude",
+              "type": "double",
+              "units": "deg",
+              "description": "HelioGraphic Inertial (HGI) longitude of the spacecraft position at the start of data interval "
+            },
+            {
+              "name": "BR",
+              "type": "double",
+              "units": "nT",
+              "description": "IMF BR in RTN (Radial-Tangential-Normal) coordinate system"
+            },
+            {
+              "name": "BT",
+              "type": "double",
+              "units": "nT",
+              "description": "IMF BT in RTN coordinate system"
+            },
+            {
+              "name": "BN",
+              "type": "double",
+              "units": "nT",
+              "description": "IMF BN in RTN coordinate system"
+            },
+            {
+              "name": "B",
+              "type": "double",
+              "units": "nT",
+              "description": "B Field Magnitude (average of fine scale magnitudes)"
+            },
+            {
+              "name": "plasmaSpeed",
+              "type": "double",
+              "units": "km/s",
+              "description": "SW plasma speed"
+            },
+            {
+              "name": "lat",
+              "type": "double",
+              "units": "deg",
+              "description": "SW lat angle in RTN coordinate system "
+            },
+            {
+              "name": "lon",
+              "type": "double",
+              "units": "deg",
+              "description": "SW lon angle in RTN coordinate system "
+            },
+            {
+              "name": "plasmaDensity",
+              "type": "double",
+              "units": "N/cm3",
+              "description": "SW plasma density"
+            },
+            {
+              "name": "plasmaTemp",
+              "type": "double",
+              "units": "deg K",
+              "description": "SW plasma Temperature"
+            },
+            {
+              "name": "protonFlux1_LET",
+              "type": "double",
+              "units": "1/(cm^2 sec ster MeV)",
+              "description": "Proton Flux 1.8 - 3.6, MeV, LET"
+            },
+            {
+              "name": "protonFlux2_LET",
+              "type": "double",
+              "units": "1/(cm^2 sec ster MeV)",
+              "description": "Proton Flux 4.0 - 6.0, MeV, LET"
+            },
+            {
+              "name": "protonFlux3_LET",
+              "type": "double",
+              "units": "1/(cm^2 sec ster MeV)",
+              "description": "Proton Flux 6.0 - 10.0, MeV, LET"
+            },
+            {
+              "name": "protonFlux4_LET",
+              "type": "double",
+              "units": "1/(cm^2 sec ster MeV)",
+              "description": "Proton Flux 10.0 - 12.0, MeV, LET"
+            },
+            {
+              "name": "protonFlux1_HET",
+              "type": "double",
+              "units": "1/(cm^2 sec ster MeV)",
+              "description": "Proton Flux 13.6 - 15.1, MeV, HET"
+            },
+            {
+              "name": "protonFlux2_HET",
+              "type": "double",
+              "units": "1/(cm^2 sec ster MeV)",
+              "description": "Proton Flux 14.9 - 17.1, MeV, HET"
+            },
+            {
+              "name": "protonFlux3_HET",
+              "type": "double",
+              "units": "1/(cm^2 sec ster MeV)",
+              "description": "Proton Flux 17.0 - 19.3, MeV, HET"
+            },
+            {
+              "name": "protonFlux4_HET",
+              "type": "double",
+              "units": "1/(cm^2 sec ster MeV)",
+              "description": "Proton Flux 20.8 - 23.8, MeV, HET"
+            },
+            {
+              "name": "protonFlux5_HET",
+              "type": "double",
+              "units": "1/(cm^2 sec ster MeV)",
+              "description": "Proton Flux 23.8 - 26.4, MeV, HET"
+            },
+            {
+              "name": "protonFlux6_HET",
+              "type": "double",
+              "units": "1/(cm^2 sec ster MeV)",
+              "description": "Proton Flux 26.3 - 29.7, MeV, HET"
+            },
+            {
+              "name": "protonFlux7_HET",
+              "type": "double",
+              "units": "1/(cm^2 sec ster MeV)",
+              "description": "Proton Flux 29.5 - 33.4, MeV, HET"
+            },
+            {
+              "name": "protonFlux8_HET",
+              "type": "double",
+              "units": "1/(cm^2 sec ster MeV)",
+              "description": "Proton Flux 33.4 - 35.8, MeV, HET"
+            },
+            {
+              "name": "protonFlux9_HET",
+              "type": "double",
+              "units": "1/(cm^2 sec ster MeV)",
+              "description": "Proton Flux 35.5 - 40.5, MeV, HET"
+            },
+            {
+              "name": "protonFlux10_HET",
+              "type": "double",
+              "units": "1/(cm^2 sec ster MeV)",
+              "description": "Proton Flux 40.0 - 60.0, MeV, HET"
+            },
+            {
+              "name": "protonFlux11_HET",
+              "type": "double",
+              "units": "1/(cm^2 sec ster MeV)",
+              "description": "Proton Flux 60.0 - 100.0, MeV, HET"
+            },
+            {
+              "name": "protonFlux1_SIT",
+              "type": "double",
+              "units": "1/(cm^2 sec ster MeV)",
+              "description": "Proton Flux 0.320 - 0.452, MeV, SIT"
+            },
+            {
+              "name": "protonFlux2_SIT",
+              "type": "double",
+              "units": "1/(cm^2 sec ster MeV)",
+              "description": "Proton Flux 0.452 - 0.64, MeV, SIT"
+            },
+            {
+              "name": "protonFlux3_SIT",
+              "type": "double",
+              "units": "1/(cm^2 sec ster MeV)",
+              "description": "Proton Flux 0.640 - 0.905, MeV, SIT"
+            },
+            {
+              "name": "protonFlux4_SIT",
+              "type": "double",
+              "units": "1/(cm^2 sec ster MeV)",
+              "description": "Proton Flux 0.905 - 1.280, MeV, SIT"
+            },
+            {
+              "name": "protonFlux5_SIT",
+              "type": "double",
+              "units": "1/(cm^2 sec ster MeV)",
+              "description": "Proton Flux 1.280 - 1.81, MeV, SIT"
+            },
+            {
+              "name": "protonFlux6_SIT",
+              "type": "double",
+              "units": "1/(cm^2 sec ster MeV)",
+              "description": "Proton Flux 1.810 - 2.56, MeV, SIT"
+            },
+            {
+              "name": "protonFlux7_SIT",
+              "type": "double",
+              "units": "1/(cm^2 sec ster MeV)",
+              "description": "Proton Flux 2.560 - 3.62, MeV, SIT"
+            }
+          ]
+        },
+        "STB_HELIO1DAY_POSITION": {
+          "description": "",
+          "start_date": "2006-10-27T00:00:00Z",
+          "stop_date": "2029-06-16T00:00:00Z",
+          "parameters": [
+            {
+              "name": "RAD_AU",
+              "type": "double",
+              "units": "AU",
+              "description": "Distance from Sun to object"
+            },
+            {
+              "name": "SE_LAT",
+              "type": "double",
+              "units": "deg",
+              "description": "Latitude in Solar Ecliptic Coordinate System (SE)"
+            },
+            {
+              "name": "SE_LON",
+              "type": "double",
+              "units": "deg",
+              "description": "Longitude in Solar Ecliptic Coordinate System (SE)"
+            },
+            {
+              "name": "HG_LAT",
+              "type": "double",
+              "units": "deg",
+              "description": "Latitude in heliographic Rotating Coordinate System (HG)"
+            },
+            {
+              "name": "HG_LON",
+              "type": "double",
+              "units": "deg",
+              "description": "Longitude in Heliographic Rotating Coordinate System (HG)"
+            },
+            {
+              "name": "HGI_LAT",
+              "type": "double",
+              "units": "deg",
+              "description": "Latitude in heliographic Inertial Coordinate System (HGI)"
+            },
+            {
+              "name": "HGI_LON",
+              "type": "double",
+              "units": "deg",
+              "description": "Longitude in heliographic Inertial Coordinate System (HGI)"
+            }
+          ]
+        },
+        "STB_HELIO1HR_POSITION": {
+          "description": "",
+          "start_date": "2006-10-27T00:00:00Z",
+          "stop_date": "2024-10-25T23:00:00Z",
+          "parameters": [
+            {
+              "name": "RAD_AU",
+              "type": "double",
+              "units": "AU",
+              "description": "Distance from Sun to object"
+            },
+            {
+              "name": "SE_LAT",
+              "type": "double",
+              "units": "deg",
+              "description": "Latitude in Solar Ecliptic Coordinate System (SE)"
+            },
+            {
+              "name": "SE_LON",
+              "type": "double",
+              "units": "deg",
+              "description": "Longitude in Solar Ecliptic Coordinate System (SE)"
+            },
+            {
+              "name": "HG_LAT",
+              "type": "double",
+              "units": "deg",
+              "description": "Latitude in heliographic Rotating Coordinate System (HG)"
+            },
+            {
+              "name": "HG_LON",
+              "type": "double",
+              "units": "deg",
+              "description": "Longitude in Heliographic Rotating Coordinate System (HG)"
+            },
+            {
+              "name": "HGI_LAT",
+              "type": "double",
+              "units": "deg",
+              "description": "Latitude in heliographic Inertial Coordinate System (HGI)"
+            },
+            {
+              "name": "HGI_LON",
+              "type": "double",
+              "units": "deg",
+              "description": "Longitude in heliographic Inertial Coordinate System (HGI)"
+            }
+          ]
+        },
+        "STB_L1_HET": {
+          "description": "",
+          "start_date": "2006-12-01T00:00:08Z",
+          "stop_date": "2014-09-27T16:28:26Z",
+          "parameters": [
+            {
+              "name": "Electron_Flux",
+              "type": "double",
+              "units": "#/(cm2-sr-s-MeV/n) ",
+              "description": "Electron flux measured by HET in 3 energy bins (time series: good with plot overlay option, above)",
+              "size": [
+                3
+              ]
+            },
+            {
+              "name": "Electron_Flux_stack",
+              "type": "double",
+              "units": "#/(cm2-sr-s-MeV/n) ",
+              "description": "Electron flux measured by HET in 3 energy bins (stacked plot)",
+              "size": [
+                3
+              ]
+            },
+            {
+              "name": "Proton_Flux",
+              "type": "double",
+              "units": "#/(cm2-sr-s-MeV/n) ",
+              "description": "Proton flux measured by the HET instrument in 11 energy bins (time series: good with plot overlay option, above)",
+              "size": [
+                11
+              ]
+            },
+            {
+              "name": "Proton_Flux_stack",
+              "type": "double",
+              "units": "#/(cm2-sr-s-MeV/n) ",
+              "description": "Proton flux measured by the HET instrument in 11 energy bins (stacked)",
+              "size": [
+                11
+              ]
+            },
+            {
+              "name": "Electron_Sigma",
+              "type": "double",
+              "units": "#/(cm2-sr-s-MeV/n) ",
+              "description": "Electron flux sigma uncertainty based on counting statistics",
+              "size": [
+                3
+              ]
+            },
+            {
+              "name": "Proton_Sigma",
+              "type": "double",
+              "units": "#/(cm2-sr-s-MeV/n) ",
+              "description": "Proton flux sigma uncertainty based on counting statistics",
+              "size": [
+                11
+              ]
+            }
+          ]
+        },
+        "STB_L1_IMPACT_BURST": {
+          "description": "",
+          "start_date": "2006-10-28T18:58:18Z",
+          "stop_date": "2014-03-01T00:00:39Z",
+          "parameters": [
+            {
+              "name": "BurstTableID",
+              "type": "integer",
+              "units": null,
+              "description": "ID of the IMPACT Burst Table"
+            },
+            {
+              "name": "SWEAModeID",
+              "type": "integer",
+              "units": null,
+              "description": "ID of the SWEA instrument's mode"
+            },
+            {
+              "name": "STEModeID",
+              "type": "integer",
+              "units": null,
+              "description": "ID of the STE instrument's mode"
+            },
+            {
+              "name": "SWEARate",
+              "type": "integer",
+              "units": null,
+              "description": "Scaled SWEA count rate used in burst criteria calculation"
+            },
+            {
+              "name": "STERate",
+              "type": "integer",
+              "units": null,
+              "description": "Scaled STE LLD rate used in burst criteria calculation"
+            },
+            {
+              "name": "MAGDelB",
+              "type": "integer",
+              "units": null,
+              "description": "Scaled MAG delta B value used in burst criteria calculation"
+            },
+            {
+              "name": "PLASTICDelV",
+              "type": "integer",
+              "units": null,
+              "description": "Scaled PLASTIC delta V value used in burst criteria calculation"
+            },
+            {
+              "name": "SWAVESNTDS",
+              "type": "integer",
+              "units": null,
+              "description": "Scaled SWAVES NTDS value used in burst criteria calculation"
+            },
+            {
+              "name": "SWAVESPlasma",
+              "type": "integer",
+              "units": null,
+              "description": "Scaled SWAVES plasma power value used in burst criteria calculation"
+            },
+            {
+              "name": "SWAVESHFR1",
+              "type": "integer",
+              "units": null,
+              "description": "Scaled SWAVES HFR1 power value used in burst criteria calculation"
+            },
+            {
+              "name": "SWAVESHFR2",
+              "type": "integer",
+              "units": null,
+              "description": "Scaled SWAVES HFR2 power value used in burst criteria calculation"
+            }
+          ]
+        },
+        "STB_L1_IMPACT_HKP": {
+          "description": "",
+          "start_date": "2006-10-28T18:58:09Z",
+          "stop_date": "2014-09-27T18:00:40Z",
+          "parameters": [
+            {
+              "name": "SoftwareVersion",
+              "type": "integer",
+              "units": null,
+              "description": "IDPU Software version"
+            },
+            {
+              "name": "HardwareVersion",
+              "type": "integer",
+              "units": null,
+              "description": "IDPU Hardware version"
+            },
+            {
+              "name": "PollTimeMax",
+              "type": "double",
+              "units": "s",
+              "description": "Maximum foreground loop time"
+            },
+            {
+              "name": "PollTimeAvg",
+              "type": "double",
+              "units": "s",
+              "description": "Average foreground loop time"
+            },
+            {
+              "name": "TimeJitter",
+              "type": "double",
+              "units": "s",
+              "description": "Max UTC time jitter compared to Sample Clock once a second"
+            },
+            {
+              "name": "ErrorCode",
+              "type": "integer",
+              "units": null,
+              "description": "Error code reported by IDPU"
+            },
+            {
+              "name": "ErrorData",
+              "type": "integer",
+              "units": null,
+              "description": "Error data reported by IDPU"
+            },
+            {
+              "name": "ErrorCount",
+              "type": "integer",
+              "units": null,
+              "description": "Error count"
+            },
+            {
+              "name": "CommandCount",
+              "type": "integer",
+              "units": null,
+              "description": "IMPACT Command Counter"
+            },
+            {
+              "name": "CommandLastID",
+              "type": "integer",
+              "units": null,
+              "description": "IMPACT Last Command Ap ID (Bits 8,6,5,4,3,2,1,0)"
+            },
+            {
+              "name": "CommandLastSeq",
+              "type": "integer",
+              "units": null,
+              "description": "IMPACT Last Command Sequence Counter (LSB)"
+            },
+            {
+              "name": "PCommandCount",
+              "type": "integer",
+              "units": null,
+              "description": "PLASTIC command counter"
+            },
+            {
+              "name": "PCommandLastID",
+              "type": "integer",
+              "units": null,
+              "description": "PLASTIC Last Command Ap ID (Bits 8,6,5,4,3,2,1,0)"
+            },
+            {
+              "name": "PCommandLastSeq",
+              "type": "integer",
+              "units": null,
+              "description": "PLASTIC Last Command Sequence Counter (LSB)"
+            },
+            {
+              "name": "IMPACT_SSR",
+              "type": "integer",
+              "units": "%",
+              "description": "IMPACT SSR Fill Level"
+            },
+            {
+              "name": "PLASTIC_SSR",
+              "type": "integer",
+              "units": "%",
+              "description": "PLASTIC SSR Fill Level"
+            },
+            {
+              "name": "SCStatus",
+              "type": "integer",
+              "units": null,
+              "description": "Spacecraft status"
+            },
+            {
+              "name": "BootSelect",
+              "type": "integer",
+              "units": null,
+              "description": "Boot Select (0-3=EEPROM to RAM, 4-7=EEPROM, else PROM)"
+            },
+            {
+              "name": "CodePage",
+              "type": "integer",
+              "units": null,
+              "description": "Code Page (0=PROM, 8-11=EEPROM0-3, 16=RAM, Else = Illegal)"
+            },
+            {
+              "name": "CodePageStatus",
+              "type": "integer",
+              "units": null,
+              "description": "Code Page Status Bits"
+            },
+            {
+              "name": "CmdSeqRunning",
+              "type": "integer",
+              "units": null,
+              "description": "Command Sequence # Running (>31 -> no sequence running)"
+            },
+            {
+              "name": "InterfaceEnables",
+              "type": "integer",
+              "units": null,
+              "description": "Instrument Interface Enables"
+            },
+            {
+              "name": "ITelemEnables",
+              "type": "integer",
+              "units": null,
+              "description": "IMPACT Telemetry Enables"
+            },
+            {
+              "name": "PTelemEnables",
+              "type": "integer",
+              "units": null,
+              "description": "PLASTIC Telemetry Enables"
+            },
+            {
+              "name": "InterfaceActive",
+              "type": "integer",
+              "units": null,
+              "description": "Instrument Interfaces Active"
+            },
+            {
+              "name": "MaxIMPACTQ",
+              "type": "integer",
+              "units": null,
+              "description": "Maximum IMPACT queue depth"
+            },
+            {
+              "name": "MaxPLASTICQ",
+              "type": "integer",
+              "units": null,
+              "description": "Maximum PLASTIC queue depth"
+            },
+            {
+              "name": "IMPACTBitrate",
+              "type": "double",
+              "units": "bps",
+              "description": "IMPACT Telemetry bit rate (1 minute average)"
+            },
+            {
+              "name": "PLASTICBitrate",
+              "type": "double",
+              "units": "bps",
+              "description": "PLASTIC Telemetry bit rate (1 minute average)"
+            },
+            {
+              "name": "CmdSeqMask",
+              "type": "double",
+              "units": null,
+              "description": "Command sequence mask"
+            },
+            {
+              "name": "BurstModeID",
+              "type": "integer",
+              "units": null,
+              "description": "Burst Parameter Table Mode ID"
+            },
+            {
+              "name": "BurstCurCriteria",
+              "type": "integer",
+              "units": null,
+              "description": "Burst Current Criteria"
+            },
+            {
+              "name": "STEUDoorCount",
+              "type": "integer",
+              "units": null,
+              "description": "STE-U Door motion count"
+            },
+            {
+              "name": "STEUDoorStart",
+              "type": "double",
+              "units": "s",
+              "description": "STE-U Time from power application to motion start"
+            },
+            {
+              "name": "STEUDoorDone",
+              "type": "double",
+              "units": "s",
+              "description": "STE-U Time from power application to motion complete"
+            },
+            {
+              "name": "STEDDoorCount",
+              "type": "integer",
+              "units": null,
+              "description": "STE-D Door motion count"
+            },
+            {
+              "name": "STEDDoorStart",
+              "type": "double",
+              "units": "s",
+              "description": "STEDDoorStart"
+            },
+            {
+              "name": "STEDDoorDone",
+              "type": "double",
+              "units": "s",
+              "description": "STE-D Time from power application to motion complete"
+            },
+            {
+              "name": "AutoLUT",
+              "type": "integer",
+              "units": null,
+              "description": "SWEA/STE Auto LUT enables"
+            },
+            {
+              "name": "STEModeID",
+              "type": "integer",
+              "units": null,
+              "description": "STE LUT Table ID"
+            },
+            {
+              "name": "SWEAModeID",
+              "type": "integer",
+              "units": null,
+              "description": "SWEA LUT Table ID"
+            },
+            {
+              "name": "BurstSavePage",
+              "type": "integer",
+              "units": null,
+              "description": "Burst recording page number"
+            },
+            {
+              "name": "BurstSendPage",
+              "type": "integer",
+              "units": null,
+              "description": "Burst transmission page number"
+            },
+            {
+              "name": "BurstBestCriteria",
+              "type": "integer",
+              "units": null,
+              "description": "Burst Save Best Criteria"
+            },
+            {
+              "name": "MAGHKP",
+              "type": "integer",
+              "units": null,
+              "description": "MAG Hardware Housekeeping"
+            },
+            {
+              "name": "MAGHeater",
+              "type": "double",
+              "units": "mA",
+              "description": "MAG sensor heater input current (on 28V primary)"
+            },
+            {
+              "name": "MAGTemp",
+              "type": "double",
+              "units": "C",
+              "description": "MAG sensor temperature"
+            },
+            {
+              "name": "STEUCur",
+              "type": "double",
+              "units": "V",
+              "description": "STE-U Front End Current (sum of +5A, -5A, and +5D)"
+            },
+            {
+              "name": "STEUTemp",
+              "type": "double",
+              "units": "C",
+              "description": "STEUTemp"
+            },
+            {
+              "name": "STEUDACTemp",
+              "type": "double",
+              "units": "C",
+              "description": "STE-U Interface PWB Temperature"
+            },
+            {
+              "name": "STEUVCCA",
+              "type": "double",
+              "units": "V",
+              "description": "STE-U +2.5V Supply Voltage"
+            },
+            {
+              "name": "STEU5VD",
+              "type": "double",
+              "units": "V",
+              "description": "STE-U +5V Digital Supply Voltage"
+            },
+            {
+              "name": "STEUVCC1",
+              "type": "double",
+              "units": "V",
+              "description": "STE-U FPGA Interface +5V Supply voltage (ref)"
+            },
+            {
+              "name": "STEU5VA",
+              "type": "double",
+              "units": "V",
+              "description": "STE-U +5V Analog Supply Voltage"
+            },
+            {
+              "name": "STEU12V",
+              "type": "double",
+              "units": "V",
+              "description": "STE-U +12V Supply Voltage"
+            },
+            {
+              "name": "SWEAMCP",
+              "type": "double",
+              "units": "V",
+              "description": "SWEA MCP Voltage"
+            },
+            {
+              "name": "SWEANR5V",
+              "type": "double",
+              "units": "V",
+              "description": "SWEA Non-regulated HV Voltage 5V supply"
+            },
+            {
+              "name": "SWEAAnal",
+              "type": "double",
+              "units": "V",
+              "description": "SWEA Analyzer Voltage"
+            },
+            {
+              "name": "SWEADefl1",
+              "type": "double",
+              "units": "V",
+              "description": "SWEA Deflector 1 Voltage"
+            },
+            {
+              "name": "SWEADefl2",
+              "type": "double",
+              "units": "V",
+              "description": "SWEA Deflector 2 Voltage"
+            },
+            {
+              "name": "SWEAV0",
+              "type": "double",
+              "units": "V",
+              "description": "SWEA V0 Voltage"
+            },
+            {
+              "name": "SWEAGND",
+              "type": "double",
+              "units": "V",
+              "description": "SWEA Ground"
+            },
+            {
+              "name": "SWEASTEDCur",
+              "type": "double",
+              "units": "V",
+              "description": "SWEA/STE-D Front End Current (sum of +5A, -5A, and +5D). "
+            },
+            {
+              "name": "SWEAMCPTemp",
+              "type": "double",
+              "units": "C",
+              "description": "SWEA MCP Temperature"
+            },
+            {
+              "name": "STEDTemp",
+              "type": "double",
+              "units": "C",
+              "description": "STE-D temperature"
+            },
+            {
+              "name": "SWEADACTemp",
+              "type": "double",
+              "units": "C",
+              "description": "SWEA PWB Temperature"
+            },
+            {
+              "name": "SWEASTEDVCCA",
+              "type": "double",
+              "units": "V",
+              "description": "SWEA/STE-D +2.5V Supply Voltage"
+            },
+            {
+              "name": "SWEASTED5VD",
+              "type": "double",
+              "units": "V",
+              "description": "SWEA/STE-D +5V Digital Supply Voltage"
+            },
+            {
+              "name": "SWEASTEDVCC1",
+              "type": "double",
+              "units": "V",
+              "description": "SWEA/STE FPGA Interface +5V Supply voltage (ref)"
+            },
+            {
+              "name": "SWEASTE5VA",
+              "type": "double",
+              "units": "V",
+              "description": "SWEA/STE-D +5V Analog Supply Voltage"
+            },
+            {
+              "name": "SWEASTE12V",
+              "type": "double",
+              "units": "V",
+              "description": "SWEA/STE-D +12V Supply Voltage"
+            },
+            {
+              "name": "STEUDig",
+              "type": "integer",
+              "units": null,
+              "description": "STE-U digital housekeeping"
+            },
+            {
+              "name": "SWEASTEDDig",
+              "type": "integer",
+              "units": null,
+              "description": "SWEA/STE-D digital housekeeping"
+            },
+            {
+              "name": "BLK_ID",
+              "type": "integer",
+              "units": null,
+              "description": "PLASTIC Block ID"
+            },
+            {
+              "name": "DEV_ID",
+              "type": "integer",
+              "units": null,
+              "description": "PLASTIC Device ID"
+            },
+            {
+              "name": "PLRNM_SPARE",
+              "type": "double",
+              "units": null,
+              "description": "PLASTIC spare monitor channel (negative)"
+            },
+            {
+              "name": "PLVC_N12V",
+              "type": "double",
+              "units": "V",
+              "description": "PLASTIC low voltage converter -12 V"
+            },
+            {
+              "name": "PLVC_N5V",
+              "type": "double",
+              "units": "V",
+              "description": "PLASTIC low voltage converter -5 V"
+            },
+            {
+              "name": "PESA_VM_POS",
+              "type": "double",
+              "units": "V",
+              "description": "PLASTIC Electrostatic Analyzer Positive Voltage Monitor"
+            },
+            {
+              "name": "PDFL_1_VM",
+              "type": "double",
+              "units": "V",
+              "description": "PLASTIC Deflection 1 HV Voltage Monitor"
+            },
+            {
+              "name": "PDFL_1_TAP",
+              "type": "double",
+              "units": "V",
+              "description": "Deflection 1 HV Tap Voltage Monitor"
+            },
+            {
+              "name": "PDFL_2_VM",
+              "type": "double",
+              "units": "V",
+              "description": "PLASTIC Deflection 2 HV Voltage Monitor"
+            },
+            {
+              "name": "PDFL_2_TAP",
+              "type": "double",
+              "units": "V",
+              "description": "PLASTIC Deflection 2 HV Tap Voltage Monitor"
+            },
+            {
+              "name": "PLVC_P2VB",
+              "type": "double",
+              "units": "V",
+              "description": "PLASTIC low voltage converter +2.5 V b"
+            },
+            {
+              "name": "PPAC_CM_DC",
+              "type": "double",
+              "units": "mA",
+              "description": "PLASTIC Post-Acceleration Voltage DC Current Monitor"
+            },
+            {
+              "name": "PLVC_P12V",
+              "type": "double",
+              "units": "V",
+              "description": "PLASTIC low voltage converter +12 V"
+            },
+            {
+              "name": "PLRPM_SPARE",
+              "type": "double",
+              "units": null,
+              "description": "PLASTIC spare monitor channel (positive)"
+            },
+            {
+              "name": "PLVC_P2VA",
+              "type": "double",
+              "units": "V",
+              "description": "PLASTIC low voltage converter +2.5 V a"
+            },
+            {
+              "name": "PLVC_P5V",
+              "type": "double",
+              "units": "V",
+              "description": "PLASTIC low voltage converter +5 V"
+            },
+            {
+              "name": "PADC_AVDD",
+              "type": "double",
+              "units": "V",
+              "description": "PLASTIC Analog to Digital Converter Voltage (Analog)"
+            },
+            {
+              "name": "PADC_DVDD",
+              "type": "double",
+              "units": "V",
+              "description": "PLASTIC Analog to Digital Converter Voltage (Digital)"
+            },
+            {
+              "name": "PPAC_VM",
+              "type": "double",
+              "units": "V",
+              "description": "PLASTIC Post-Acceleration Voltage Monitor"
+            },
+            {
+              "name": "PCAL_VREF",
+              "type": "double",
+              "units": "V",
+              "description": "PLASTIC Calibrated Reference Voltage"
+            },
+            {
+              "name": "PPAC_CM_AC",
+              "type": "integer",
+              "units": null,
+              "description": "PLASTIC Post-Acceleration AC Current Monitor -- not in use"
+            },
+            {
+              "name": "PMCP_VM",
+              "type": "double",
+              "units": "V",
+              "description": "PLASTIC Microchannel Plate Voltage Monitor"
+            },
+            {
+              "name": "PMCP_CM_DC",
+              "type": "double",
+              "units": "mA",
+              "description": "PLASTIC Microchannel Plate DC Current Monitor"
+            },
+            {
+              "name": "PMCP_CM_AC",
+              "type": "integer",
+              "units": null,
+              "description": "PLASTIC Microchannel Plate AC Current Monitor -- not in use"
+            },
+            {
+              "name": "PSSD_CM_DC",
+              "type": "double",
+              "units": "mA",
+              "description": "PLASTIC Solid State Detector DC Current Monitor – primary si"
+            },
+            {
+              "name": "PS_CH_VM",
+              "type": "double",
+              "units": "V",
+              "description": "PLASTIC S-Channel Voltage Monitor"
+            },
+            {
+              "name": "PS_CH_VM_TAP",
+              "type": "double",
+              "units": "V",
+              "description": "PLASTIC S-Channel Voltage Monitor Tap"
+            },
+            {
+              "name": "PS_CH_CM_DC",
+              "type": "double",
+              "units": "mA",
+              "description": "PLASTIC S-Channel DC Current Monitor"
+            },
+            {
+              "name": "PESA_VM_NEG",
+              "type": "double",
+              "units": "V",
+              "description": "PLASTIC Electrostatic Analyzer Negative Voltage Monitor"
+            },
+            {
+              "name": "PESA_CM_DC",
+              "type": "double",
+              "units": "mA",
+              "description": "PLASTIC Electrostatic Analyzer DC Current Monitor"
+            },
+            {
+              "name": "PDFL_1_CM_DC",
+              "type": "double",
+              "units": "mA",
+              "description": "PLASTIC Deflection 1 HV DC Current Monitor"
+            },
+            {
+              "name": "PDFL_2_CM_DC",
+              "type": "double",
+              "units": "mA",
+              "description": "PLASTIC Deflection 2 HV DC Current Monitor"
+            },
+            {
+              "name": "PLVC_P2VB_IMON",
+              "type": "double",
+              "units": "mA",
+              "description": "PLASTIC low voltage converter +2.5 V b Current Monitor"
+            },
+            {
+              "name": "PLVC_P12V_IMON",
+              "type": "double",
+              "units": "mA",
+              "description": "PLASTIC low voltage converter +12 V Current Monitor"
+            },
+            {
+              "name": "PLVC_N12V_IMON",
+              "type": "double",
+              "units": "mA",
+              "description": "PLASTIC low voltage converter -12 V Current Monitor"
+            },
+            {
+              "name": "PLVC_P5V_IMON",
+              "type": "double",
+              "units": "mA",
+              "description": "PLASTIC low voltage converter +5 V Current Monitor"
+            },
+            {
+              "name": "PLVC_N5V_IMON",
+              "type": "double",
+              "units": "mA",
+              "description": "PLASTIC low voltage converter -5 V Current Monitor"
+            },
+            {
+              "name": "PLVC_P2VA_IMON",
+              "type": "double",
+              "units": "mA",
+              "description": "PLASTIC low voltage converter +2.5 V a Current Monitor"
+            },
+            {
+              "name": "PSSD_VM",
+              "type": "double",
+              "units": "V",
+              "description": "PLASTIC Solid State Detector Voltage Monitor - primary side estimate"
+            },
+            {
+              "name": "PPLUG_ID",
+              "type": "integer",
+              "units": null,
+              "description": "PLASTIC high voltage limit plug (none—HV fully enable"
+            },
+            {
+              "name": "PADC_LU_FLAG",
+              "type": "integer",
+              "units": null,
+              "description": "PLASTIC DAC Boards Analog to Digital Converter latchup flag"
+            },
+            {
+              "name": "PDAC_STATUS",
+              "type": "integer",
+              "units": null,
+              "description": "PLASTIC DAC Board Status"
+            },
+            {
+              "name": "PADC_LU_CTR",
+              "type": "integer",
+              "units": null,
+              "description": "PLASTIC DAC Board Analog to Digital Converter latchup counter"
+            },
+            {
+              "name": "PDHK_SPARE",
+              "type": "integer",
+              "units": null,
+              "description": "PDHK_SPARE"
+            },
+            {
+              "name": "PADC0_AGND",
+              "type": "double",
+              "units": null,
+              "description": "PLASTIC Analog to Digital Converter 0 Analog Ground"
+            },
+            {
+              "name": "PADC1_AGND",
+              "type": "double",
+              "units": null,
+              "description": "PLASTIC Analog to Digital Converter 1 Analog Ground"
+            },
+            {
+              "name": "PRA_E0",
+              "type": "double",
+              "units": null,
+              "description": "PLASTIC Resistive Anode Charge Amplifier Output 0"
+            },
+            {
+              "name": "PRA_E1",
+              "type": "double",
+              "units": null,
+              "description": "PLASTIC Resistive Anode Charge Amplifier Output 1"
+            },
+            {
+              "name": "PTAC0_TSP",
+              "type": "double",
+              "units": "C",
+              "description": "PLASTIC Time to Amplitude Converter board 0 temperature"
+            },
+            {
+              "name": "PTAC2_TSP",
+              "type": "double",
+              "units": "C",
+              "description": "PLASTIC Time to Amplitude Converter board 2 temperature"
+            },
+            {
+              "name": "PSB0_TSP",
+              "type": "double",
+              "units": "C",
+              "description": "PLASTIC Signal Board 0 temperature -- not in use"
+            },
+            {
+              "name": "PSB1_TSP",
+              "type": "double",
+              "units": "C",
+              "description": "PLASTIC Signal Board 1 temperature -- not in use"
+            },
+            {
+              "name": "PTOF_HV0_TSP",
+              "type": "double",
+              "units": "C",
+              "description": "PLASTIC Time-of-Flight System High Voltage 0 temperature"
+            },
+            {
+              "name": "PTOF_HV1_TSP",
+              "type": "double",
+              "units": "C",
+              "description": "PLASTIC Time-of-Flight System High Voltage 1 temperature"
+            },
+            {
+              "name": "PS_C_0_TSP",
+              "type": "double",
+              "units": "C",
+              "description": "Spacecraft/Instrument Case temperature 0"
+            },
+            {
+              "name": "PS_C_1_TSP",
+              "type": "double",
+              "units": "C",
+              "description": "PLASTIC Spacecraft/Instrument Case temperature 1"
+            },
+            {
+              "name": "PLVC0_TSP",
+              "type": "double",
+              "units": "C",
+              "description": "PLASTIC Low voltage converter 0 temperature"
+            },
+            {
+              "name": "PLVC1_TSP",
+              "type": "double",
+              "units": "C",
+              "description": "PLASTIC Low voltage converter 1 temperature"
+            },
+            {
+              "name": "PADC0_VREF",
+              "type": "double",
+              "units": "V",
+              "description": "PLASTIC Analog to Digital Converter 0 reference voltage"
+            },
+            {
+              "name": "PADC1_VREF",
+              "type": "double",
+              "units": "V",
+              "description": "PLASTIC Analog to Digital Converter 1 reference voltage"
+            },
+            {
+              "name": "PSSD_STATUS",
+              "type": "integer",
+              "units": null,
+              "description": "PLASTIC Solid State Detector Status"
+            },
+            {
+              "name": "PSSD_V_POS_ANALOG",
+              "type": "double",
+              "units": "V",
+              "description": "PLASTIC Solid State Detector Positive Voltage (Analog)"
+            },
+            {
+              "name": "PSSD_V_NEG_ANALOG",
+              "type": "double",
+              "units": "V",
+              "description": "PLASTIC Solid State Detector Negative Voltage (Analog)"
+            },
+            {
+              "name": "PSSD_HV_BIAS",
+              "type": "double",
+              "units": "V",
+              "description": "PLASTIC Solid State Detector High Voltage Bias"
+            },
+            {
+              "name": "PSSD_TC0",
+              "type": "double",
+              "units": "C",
+              "description": "PLASTIC Solid State Detector 0 Temperature"
+            },
+            {
+              "name": "PSSD_TC1",
+              "type": "double",
+              "units": "C",
+              "description": "PLASTIC Solid State Detector 1 Temperature"
+            },
+            {
+              "name": "PSSD_TC2",
+              "type": "double",
+              "units": "C",
+              "description": "PLASTIC Solid State Detector 2 Temperature"
+            },
+            {
+              "name": "PSSD_V_POS_DIG",
+              "type": "double",
+              "units": "V",
+              "description": "PLASTIC Solid State Detector Positive Voltage (Digital)"
+            },
+            {
+              "name": "SampleTime",
+              "type": "integer",
+              "units": null,
+              "description": "Sample time as reported by IDPU"
+            }
+          ]
+        },
+        "STB_L1_LET": {
+          "description": "",
+          "start_date": "2006-11-14T00:00:56Z",
+          "stop_date": "2014-09-27T16:26:56Z",
+          "parameters": [
+            {
+              "name": "H_unsec_flux",
+              "type": "double",
+              "units": "#/(cm^2*s*sr*Mev/nucleon)",
+              "description": "Unsectored H flux at 12 energy bins in particles/(cm^2*sec*sr*MeV/nucleon)",
+              "size": [
+                12
+              ]
+            },
+            {
+              "name": "He3_unsec_flux",
+              "type": "double",
+              "units": "#/(cm^2*s*sr*Mev/nucleon)",
+              "description": "-->Unsectored He3 flux at 11 energy bins",
+              "size": [
+                11
+              ]
+            },
+            {
+              "name": "He4_unsec_flux",
+              "type": "double",
+              "units": "#/(cm^2*s*sr*Mev/nucleon)",
+              "description": "-->Unsectored He4 flux at 12 energy bins",
+              "size": [
+                12
+              ]
+            },
+            {
+              "name": "C_unsec_flux",
+              "type": "double",
+              "units": "#/(cm^2*s*sr*Mev/nucleon)",
+              "description": "-->Unsectored C flux at 12 energy bins",
+              "size": [
+                12
+              ]
+            },
+            {
+              "name": "N_unsec_flux",
+              "type": "double",
+              "units": "#/(cm^2*s*sr*Mev/nucleon)",
+              "description": "-->Unsectored N flux at 12 energy bins",
+              "size": [
+                12
+              ]
+            },
+            {
+              "name": "O_unsec_flux",
+              "type": "double",
+              "units": "#/(cm^2*s*sr*Mev/nucleon)",
+              "description": "-->Unsectored O flux at 12 energy bins",
+              "size": [
+                12
+              ]
+            },
+            {
+              "name": "Ne_unsec_flux",
+              "type": "double",
+              "units": "#/(cm^2*s*sr*MeV/nuc)",
+              "description": "-->Unsectored Ne flux at 13 energy bins",
+              "size": [
+                13
+              ]
+            },
+            {
+              "name": "Na_unsec_flux",
+              "type": "double",
+              "units": "#/(cm^2*s*sr*MeV/nuc)",
+              "description": "-->Unsectored Na flux at 8 energy bins",
+              "size": [
+                8
+              ]
+            },
+            {
+              "name": "Mg_unsec_flux",
+              "type": "double",
+              "units": "#/(cm^2*s*sr*MeV/nuc)",
+              "description": "-->Unsectored Mg flux at 14 energy bins",
+              "size": [
+                14
+              ]
+            },
+            {
+              "name": "Al_unsec_flux",
+              "type": "double",
+              "units": "#/(cm^2*s*sr*MeV/nuc)",
+              "description": "-->Unsectored Al flux at 9 energy bins",
+              "size": [
+                9
+              ]
+            },
+            {
+              "name": "Si_unsec_flux",
+              "type": "double",
+              "units": "#/(cm^2*s*sr*MeV/nuc)",
+              "description": "-->Unsectored Si flux at 14 energy bins",
+              "size": [
+                14
+              ]
+            },
+            {
+              "name": "S_unsec_flux",
+              "type": "double",
+              "units": "#/(cm^2*s*sr*MeV/nuc)",
+              "description": "-->Unsectored S flux in 13 energy bins",
+              "size": [
+                13
+              ]
+            },
+            {
+              "name": "Ar_unsec_flux",
+              "type": "double",
+              "units": "#/(cm^2*s*sr*MeV/nuc)",
+              "description": "-->Unsectored Ar flux in 13 energy bins",
+              "size": [
+                13
+              ]
+            },
+            {
+              "name": "Ca_unsec_flux",
+              "type": "double",
+              "units": "#/(cm^2*s*sr*MeV/nuc)",
+              "description": "-->Unsectored Ca flux in 13 energy bins",
+              "size": [
+                13
+              ]
+            },
+            {
+              "name": "Fe_unsec_flux",
+              "type": "double",
+              "units": "#/(cm^2*s*sr*MeV/nuc)",
+              "description": "-->Unsectored Fe flux in 16 energy bins",
+              "size": [
+                16
+              ]
+            },
+            {
+              "name": "Ni_unsec_flux",
+              "type": "double",
+              "units": "#/(cm^2*s*sr*Mev/nuc)",
+              "description": "-->Unsectored Ni flux in 9 energy bins",
+              "size": [
+                9
+              ]
+            },
+            {
+              "name": "H_unsec_cnts",
+              "type": "integer",
+              "units": "cnts",
+              "description": "Unsectored H counts",
+              "size": [
+                12
+              ]
+            },
+            {
+              "name": "He3_unsec_cnts",
+              "type": "integer",
+              "units": "cnts",
+              "description": "-->Unsectored He3 counts",
+              "size": [
+                11
+              ]
+            },
+            {
+              "name": "He4_unsec_cnts",
+              "type": "integer",
+              "units": "cnts",
+              "description": "-->Unsectored He4 counts",
+              "size": [
+                12
+              ]
+            },
+            {
+              "name": "C_unsec_cnts",
+              "type": "integer",
+              "units": "cnts",
+              "description": "-->Unsectored C counts",
+              "size": [
+                12
+              ]
+            },
+            {
+              "name": "N_unsec_cnts",
+              "type": "integer",
+              "units": "cnts",
+              "description": "-->Unsectored N counts",
+              "size": [
+                12
+              ]
+            },
+            {
+              "name": "O_unsec_cnts",
+              "type": "integer",
+              "units": "cnts",
+              "description": "-->Unsectored O counts",
+              "size": [
+                12
+              ]
+            },
+            {
+              "name": "Ne_unsec_cnts",
+              "type": "integer",
+              "units": "cnts",
+              "description": "-->Unsectored Ne counts",
+              "size": [
+                13
+              ]
+            },
+            {
+              "name": "Na_unsec_cnts",
+              "type": "integer",
+              "units": "cnts",
+              "description": "-->Unsectored Na counts",
+              "size": [
+                8
+              ]
+            },
+            {
+              "name": "Mg_unsec_cnts",
+              "type": "integer",
+              "units": "cnts",
+              "description": "-->Unsectored Mg counts",
+              "size": [
+                14
+              ]
+            },
+            {
+              "name": "Al_unsec_cnts",
+              "type": "integer",
+              "units": "cnts",
+              "description": "-->Unsectored Al cnts",
+              "size": [
+                9
+              ]
+            },
+            {
+              "name": "Si_unsec_cnts",
+              "type": "integer",
+              "units": "cnts",
+              "description": "-->Unsectored Si counts",
+              "size": [
+                14
+              ]
+            },
+            {
+              "name": "S_unsec_cnts",
+              "type": "integer",
+              "units": "cnts",
+              "description": "-->Unsectored S counts",
+              "size": [
+                13
+              ]
+            },
+            {
+              "name": "Ar_unsec_cnts",
+              "type": "integer",
+              "units": "cnts",
+              "description": "-->Unsectored Ar counts",
+              "size": [
+                13
+              ]
+            },
+            {
+              "name": "Ca_unsec_cnts",
+              "type": "integer",
+              "units": "cnts",
+              "description": "-->Unsectored Ca counts",
+              "size": [
+                13
+              ]
+            },
+            {
+              "name": "Fe_unsec_cnts",
+              "type": "integer",
+              "units": "cnts",
+              "description": "-->Unsectored Fe counts",
+              "size": [
+                16
+              ]
+            },
+            {
+              "name": "Ni_unsec_cnts",
+              "type": "integer",
+              "units": "cnts",
+              "description": "-->Unsectored Ni cnts",
+              "size": [
+                9
+              ]
+            },
+            {
+              "name": "H_Lo_sec_flux",
+              "type": "double",
+              "units": "#/(cm^2*s*sr*MeV/nuc)",
+              "description": "Sectored low energy H flux in particles/(cm^2*s*sr*MeV/nuc) in 16 look directions between 4 and 6 MeV/nuc",
+              "size": [
+                16
+              ]
+            },
+            {
+              "name": "He3_Lo_sec_flux",
+              "type": "double",
+              "units": "#/(cm^2*s*sr*MeV/nuc)",
+              "description": "-->[DO NOT USE] Sectored low energy He3 flux in particles/(cm^2*s*sr*MeV/nuc) in 16 look directions between 4 and 6 MeV/nuc (Valid before 2010-11-22)",
+              "size": [
+                16
+              ]
+            },
+            {
+              "name": "He4_Lo_sec_flux",
+              "type": "double",
+              "units": "#/(cm^2*s*sr*MeV/nuc)",
+              "description": "-->Sectored low energy He4 flux in particles/(cm^2*s*sr*MeV/nuc) in 16 look directions between 4 and 6 MeV/nuc",
+              "size": [
+                16
+              ]
+            },
+            {
+              "name": "He4_Hi_sec_flux",
+              "type": "double",
+              "units": "#/(cm^2*s*sr*MeV/nuc)",
+              "description": "-->Sectored high energy He4 flux in particles/(cm^2*s*sr*MeV/nuc) in 16 look directions between 6 and 12 MeV/nuc",
+              "size": [
+                16
+              ]
+            },
+            {
+              "name": "CNO_Lo_sec_flux",
+              "type": "double",
+              "units": "#/(cm^2*s*sr*MeV/nuc)",
+              "description": "-->Sectored low energy CNO flux in particles/(cm^2*s*sr*MeV/nuc) in 16 look directions between 4 and 6 MeV/nuc",
+              "size": [
+                16
+              ]
+            },
+            {
+              "name": "CNO_Hi_sec_flux",
+              "type": "double",
+              "units": "#/(cm^2*s*sr*MeV/nuc)",
+              "description": "-->Sectored high energy CNO flux in particles/(cm^2*s*sr*MeV/nuc) in 16 look directions between 6 and 12 MeV/nuc",
+              "size": [
+                16
+              ]
+            },
+            {
+              "name": "NeMgSi_Lo_sec_flux",
+              "type": "double",
+              "units": "#/(cm^2*s*sr*MeV/nuc)",
+              "description": "-->Sectored low energy NiMgSi flux in particles/(cm^2*s*sr*MeV/nuc) in 16 look directions between 4 and 6 MeV/nuc",
+              "size": [
+                16
+              ]
+            },
+            {
+              "name": "NeMgSi_Hi_sec_flux",
+              "type": "double",
+              "units": "#/(cm^2*s*sr*MeV/nuc)",
+              "description": "-->Sectored high energy NeMgSi flux in particles/(cm^2*s*sr*MeV/nuc) in 16 look directions between 6 and 12 MeV/nuc",
+              "size": [
+                16
+              ]
+            },
+            {
+              "name": "Fe_Lo_sec_flux",
+              "type": "double",
+              "units": "#/(cm^2*s*sr*MeV/nuc)",
+              "description": "-->Sectored low energy Fe flux in particles/(cm^2*s*sr*MeV/nuc) in 16 look directions between 4 and 6 MeV/nuc (Valid before 2010-11-22)",
+              "size": [
+                16
+              ]
+            },
+            {
+              "name": "Fe_Hi_sec_flux",
+              "type": "double",
+              "units": "#/(cm^2*s*sr*MeV/nuc)",
+              "description": "-->Sectored high energy Fe flux in particles/(cm^2*s*sr*MeV/nuc) in 16 look directions between 6 and 12 MeV/nuc (Valid before 2010-11-22)",
+              "size": [
+                16
+              ]
+            },
+            {
+              "name": "H_Lo_sec_cnts",
+              "type": "integer",
+              "units": "cnts",
+              "description": "Sectored low energy H counts in 16 look directions from 4 to 6 MeV/nuc",
+              "size": [
+                16
+              ]
+            },
+            {
+              "name": "He3_Lo_sec_cnts",
+              "type": "integer",
+              "units": "cnts",
+              "description": "-->[DO NOT USE] Sectored low energy He3 counts in 16 look directions  from 4 to 6 MeV/nuc (Valid before 2010-11-22)",
+              "size": [
+                16
+              ]
+            },
+            {
+              "name": "He4_Lo_sec_cnts",
+              "type": "integer",
+              "units": "cnts",
+              "description": "-->Sectored low energy He4 counts in 16 look directions  from 4 to 6 MeV/nuc",
+              "size": [
+                16
+              ]
+            },
+            {
+              "name": "He4_Hi_sec_cnts",
+              "type": "integer",
+              "units": "cnts",
+              "description": "-->Sectored high energy He4 counts in 16 look directions  from 6 to 12 MeV/nuc",
+              "size": [
+                16
+              ]
+            },
+            {
+              "name": "CNO_Lo_sec_cnts",
+              "type": "integer",
+              "units": "cnts",
+              "description": "-->Sectored low energy CNO counts in 16 look directions  from 4 to 6 MeV/nuc",
+              "size": [
+                16
+              ]
+            },
+            {
+              "name": "CNO_Hi_sec_cnts",
+              "type": "integer",
+              "units": "cnts",
+              "description": "-->Sectored high energy CNO counts in 16 look directions  from 6 to 12 MeV/nuc",
+              "size": [
+                16
+              ]
+            },
+            {
+              "name": "NeMgSi_Lo_sec_cnts",
+              "type": "integer",
+              "units": "cnts",
+              "description": "-->Sectored low energy NeMgSi counts in 16 look directions  from 4 to 6 MeV/nuc",
+              "size": [
+                16
+              ]
+            },
+            {
+              "name": "NeMgSi_Hi_sec_cnts",
+              "type": "integer",
+              "units": "cnts",
+              "description": "-->Sectored high energy NeMgSi counts in 16 look directions  from 6 to 12 MeV/nuc",
+              "size": [
+                16
+              ]
+            },
+            {
+              "name": "Fe_Lo_sec_cnts",
+              "type": "integer",
+              "units": "cnts",
+              "description": "-->Sectored low energy Fe counts in 16 look directions  from 4 to 6 MeV/nuc (Valid before 2010-11-22)",
+              "size": [
+                16
+              ]
+            },
+            {
+              "name": "Fe_Hi_sec_cnts",
+              "type": "integer",
+              "units": "cnts",
+              "description": "-->Sectored high energy Fe counts in 16 look directions  from 6 to 12 MeV/nuc (Valid before 2010-11-22)",
+              "size": [
+                16
+              ]
+            },
+            {
+              "name": "H_VLo_sec_flux",
+              "type": "double",
+              "units": "#/(cm^2*s*sr*MeV/nuc)",
+              "description": "-->Sectored very low energy H flux in particles/(cm^2*s*sr*MeV/nuc) in 16 look directions between 1.8 and 3.6 MeV/nuc (Valid after 2010-11-22)",
+              "size": [
+                16
+              ]
+            },
+            {
+              "name": "H_VLo_sec_cnts",
+              "type": "integer",
+              "units": "cnts",
+              "description": "-->Sectored very low energy H counts in 16 look directions from 1,8 to 3.6 MeV/nuc (Valid after 2010-11-22)",
+              "size": [
+                16
+              ]
+            },
+            {
+              "name": "H_Hi_sec_flux",
+              "type": "double",
+              "units": "#/(cm^2*s*sr*MeV/nuc)",
+              "description": "-->Sectored high energy H flux in particles/(cm^2*s*sr*MeV/nuc) in 16 look directions between 6 and 10 MeV/nuc (Valid after 2010-11-22)",
+              "size": [
+                16
+              ]
+            },
+            {
+              "name": "H_Hi_sec_cnts",
+              "type": "integer",
+              "units": "cnts",
+              "description": "-->Sectored high energy H counts in 16 look directions from 6 to 10 MeV/nuc (Valid after 2010-11-22)",
+              "size": [
+                16
+              ]
+            },
+            {
+              "name": "Fe_Wide_sec_flux",
+              "type": "double",
+              "units": "#/(cm^2*s*sr*MeV/nuc)",
+              "description": "-->Sectored wide energy Fe flux in particles/(cm^2*s*sr*MeV/nuc) in 16 look directions between 4 and 12 MeV/nuc (Valid after 2010-11-22)",
+              "size": [
+                16
+              ]
+            },
+            {
+              "name": "Fe_Wide_sec_cnts",
+              "type": "integer",
+              "units": "cnts",
+              "description": "-->Sectored wide energy Fe counts in 16 look directions between 4 and 12 MeV/nuc (Valid after 2010-11-22)",
+              "size": [
+                16
+              ]
+            },
+            {
+              "name": "He_unsec_flux",
+              "type": "double",
+              "units": "#/(cm^2*s*sr*Mev/nucleon)",
+              "description": "Elemental Helium unsectored flux",
+              "size": [
+                11
+              ]
+            },
+            {
+              "name": "He_unsec_cnts",
+              "type": "integer",
+              "units": "cnts",
+              "description": "-->Elemental Helium unsectored counts",
+              "size": [
+                11
+              ]
+            },
+            {
+              "name": "He_Lo_sec_flux",
+              "type": "double",
+              "units": "#/(cm^2*s*sr*MeV/nuc)",
+              "description": "Elemental Helium low energy sectored flux  in 16 look directions  from 4 to 6 MeV/nuc (Valid before 2010-11-22)",
+              "size": [
+                16
+              ]
+            },
+            {
+              "name": "He_Lo_sec_cnts",
+              "type": "integer",
+              "units": "cnts",
+              "description": "-->Elemental Helium low energy sectored counts  in 16 look directions  from 4 to 6 MeV/nuc (Valid before 2010-11-22)",
+              "size": [
+                16
+              ]
+            },
+            {
+              "name": "H_summed_flux",
+              "type": "double",
+              "units": "#/(cm^2*s*sr*Mev/nucleon)",
+              "description": "H (proton) unsectored flux in 4 energy bins (as a time series overlay)",
+              "size": [
+                4
+              ]
+            },
+            {
+              "name": "He3_summed_flux",
+              "type": "double",
+              "units": "#/(cm^2*s*sr*Mev/nucleon)",
+              "description": "-->[DO NOT USE] He3 unsectored flux in 3 energy bins",
+              "size": [
+                3
+              ]
+            },
+            {
+              "name": "He4_summed_flux",
+              "type": "double",
+              "units": "#/(cm^2*s*sr*Mev/nucleon)",
+              "description": "-->He4 unsectored flux in 4 energy bins",
+              "size": [
+                4
+              ]
+            },
+            {
+              "name": "He_summed_flux",
+              "type": "double",
+              "units": "#/(cm^2*s*sr*Mev/nucleon)",
+              "description": "-->Elemental Helium unsectored flux in 3 energy bins",
+              "size": [
+                3
+              ]
+            },
+            {
+              "name": "C_summed_flux",
+              "type": "double",
+              "units": "#/(cm^2*s*sr*Mev/nucleon)",
+              "description": "-->C unsectored flux in 4 energy bins",
+              "size": [
+                4
+              ]
+            },
+            {
+              "name": "N_summed_flux",
+              "type": "double",
+              "units": "#/(cm^2*s*sr*Mev/nucleon)",
+              "description": "-->N unsectored flux in 4 energy bins",
+              "size": [
+                4
+              ]
+            },
+            {
+              "name": "O_summed_flux",
+              "type": "double",
+              "units": "#/(cm^2*s*sr*Mev/nucleon)",
+              "description": "-->O unsectored flux in 4 energy bins",
+              "size": [
+                4
+              ]
+            },
+            {
+              "name": "Ne_summed_flux",
+              "type": "double",
+              "units": "#/(cm^2*s*sr*Mev/nucleon)",
+              "description": "-->Ne unsectored flux in 4 energy bins",
+              "size": [
+                4
+              ]
+            },
+            {
+              "name": "Na_summed_flux",
+              "type": "double",
+              "units": "#/(cm^2*s*sr*Mev/nucleon)",
+              "description": "-->Na unsectored flux in 2 energy bins",
+              "size": [
+                2
+              ]
+            },
+            {
+              "name": "Mg_summed_flux",
+              "type": "double",
+              "units": "#/(cm^2*s*sr*Mev/nucleon)",
+              "description": "-->Mg unsectored flux in 4 energy bins",
+              "size": [
+                4
+              ]
+            },
+            {
+              "name": "Al_summed_flux",
+              "type": "double",
+              "units": "#/(cm^2*s*sr*Mev/nucleon)",
+              "description": "-->Al unsectored flux in 3 energy bins",
+              "size": [
+                3
+              ]
+            },
+            {
+              "name": "Si_summed_flux",
+              "type": "double",
+              "units": "#/(cm^2*s*sr*Mev/nucleon)",
+              "description": "-->Si unsectored flux in 5 energy bins",
+              "size": [
+                5
+              ]
+            },
+            {
+              "name": "S_summed_flux",
+              "type": "double",
+              "units": "#/(cm^2*s*sr*Mev/nucleon)",
+              "description": "-->S unsectored flux in 5 energy bins",
+              "size": [
+                5
+              ]
+            },
+            {
+              "name": "Ar_summed_flux",
+              "type": "double",
+              "units": "#/(cm^2*s*sr*Mev/nucleon)",
+              "description": "-->Ar unsectored flux in 5 energy bins",
+              "size": [
+                5
+              ]
+            },
+            {
+              "name": "Ca_summed_flux",
+              "type": "double",
+              "units": "#/(cm^2*s*sr*Mev/nucleon)",
+              "description": "-->Ca unsectored flux in 5 energy bins",
+              "size": [
+                5
+              ]
+            },
+            {
+              "name": "Fe_summed_flux",
+              "type": "double",
+              "units": "#/(cm^2*s*sr*Mev/nucleon)",
+              "description": "-->Fe unsectored flux in 5 energy bins",
+              "size": [
+                5
+              ]
+            },
+            {
+              "name": "Ni_summed_flux",
+              "type": "double",
+              "units": "#/(cm^2*s*sr*Mev/nucleon)",
+              "description": "-->Ni unsectored flux in 3 energy bins",
+              "size": [
+                3
+              ]
+            },
+            {
+              "name": "H_summed_cnts",
+              "type": "integer",
+              "units": "cnts",
+              "description": "H (proton) unsectored counts in 4 energy bins",
+              "size": [
+                4
+              ]
+            },
+            {
+              "name": "He3_summed_cnts",
+              "type": "integer",
+              "units": "cnts",
+              "description": "-->[DO NOT USE] He3 unsectored counts in 3 energy bins",
+              "size": [
+                3
+              ]
+            },
+            {
+              "name": "He4_summed_cnts",
+              "type": "integer",
+              "units": "cnts",
+              "description": "-->He4 unsectored counts in 4 energy bins",
+              "size": [
+                4
+              ]
+            },
+            {
+              "name": "He_summed_cnts",
+              "type": "integer",
+              "units": "cnts",
+              "description": "-->He unsectored counts in 3 energy bins",
+              "size": [
+                3
+              ]
+            },
+            {
+              "name": "C_summed_cnts",
+              "type": "integer",
+              "units": "cnts",
+              "description": "-->C unsectored counts in 4 energy bins",
+              "size": [
+                4
+              ]
+            },
+            {
+              "name": "N_summed_cnts",
+              "type": "integer",
+              "units": "cnts",
+              "description": "-->N unsectored counts in 4 energy bins",
+              "size": [
+                4
+              ]
+            },
+            {
+              "name": "O_summed_cnts",
+              "type": "integer",
+              "units": "cnts",
+              "description": "-->O unsectored counts in 4 energy bins",
+              "size": [
+                4
+              ]
+            },
+            {
+              "name": "Ne_summed_cnts",
+              "type": "integer",
+              "units": "cnts",
+              "description": "-->Ne unsectored counts in 4 energy bins",
+              "size": [
+                4
+              ]
+            },
+            {
+              "name": "Na_summed_cnts",
+              "type": "integer",
+              "units": "cnts",
+              "description": "-->Na unsectored counts in 2 energy bins",
+              "size": [
+                2
+              ]
+            },
+            {
+              "name": "Mg_summed_cnts",
+              "type": "integer",
+              "units": "cnts",
+              "description": "-->Mg unsectored counts in 4 energy bins",
+              "size": [
+                4
+              ]
+            },
+            {
+              "name": "Al_summed_cnts",
+              "type": "integer",
+              "units": "cnts",
+              "description": "-->Al unsectored counts in 3 energy bins",
+              "size": [
+                3
+              ]
+            },
+            {
+              "name": "Si_summed_cnts",
+              "type": "integer",
+              "units": "cnts",
+              "description": "-->Si unsectored counts in 5 energy bins",
+              "size": [
+                5
+              ]
+            },
+            {
+              "name": "S_summed_cnts",
+              "type": "integer",
+              "units": "cnts",
+              "description": "-->S unsectored counts in 5 energy bins",
+              "size": [
+                5
+              ]
+            },
+            {
+              "name": "Ar_summed_cnts",
+              "type": "integer",
+              "units": "cnts",
+              "description": "-->Ar unsectored counts in 5 energy bins",
+              "size": [
+                5
+              ]
+            },
+            {
+              "name": "Ca_summed_cnts",
+              "type": "integer",
+              "units": "cnts",
+              "description": "-->Ca unsectored counts in 5 energy bins",
+              "size": [
+                5
+              ]
+            },
+            {
+              "name": "Fe_summed_cnts",
+              "type": "integer",
+              "units": "cnts",
+              "description": "-->Fe unsectored counts in 5 energy bins",
+              "size": [
+                5
+              ]
+            },
+            {
+              "name": "Ni_summed_cnts",
+              "type": "integer",
+              "units": "cnts",
+              "description": "-->Ni unsectored counts in 3 energy bins",
+              "size": [
+                3
+              ]
+            }
+          ]
+        },
+        "STB_L1_MAGB_RTN": {
+          "description": "",
+          "start_date": "2006-11-07T00:58:50Z",
+          "stop_date": "2013-01-08T16:20:28Z",
+          "parameters": [
+            {
+              "name": "BFIELD",
+              "type": "double",
+              "units": "nT",
+              "description": "Magnetic field vector in RTN coordinates from the IMPACT/MAG instrument.",
+              "size": [
+                4
+              ]
+            }
+          ]
+        },
+        "STB_L1_MAGB_SC": {
+          "description": "",
+          "start_date": "2006-11-07T00:58:50Z",
+          "stop_date": "2013-01-08T16:20:28Z",
+          "parameters": [
+            {
+              "name": "BFIELD",
+              "type": "double",
+              "units": "nT",
+              "description": "Magnetic field vector in Spacecraft coordinates from the IMPACT/MAG instrument.",
+              "size": [
+                4
+              ]
+            }
+          ]
+        },
+        "STB_L1_MAG_RTN": {
+          "description": "",
+          "start_date": "2006-11-07T00:00:05Z",
+          "stop_date": "2014-09-27T16:30:34Z",
+          "parameters": [
+            {
+              "name": "BFIELD",
+              "type": "double",
+              "units": null,
+              "description": "Magnetic field vector in RTN coordinates from the IMPACT/MAG instrument.",
+              "size": [
+                4
+              ]
+            },
+            {
+              "name": "MAGFLAGUC",
+              "type": "double",
+              "units": null,
+              "description": "[HIGHLY ENCODED VALUES] IMPACT/MAG status flag"
+            }
+          ]
+        },
+        "STB_L1_MAG_SC": {
+          "description": "",
+          "start_date": "2006-11-07T00:00:05Z",
+          "stop_date": "2014-09-27T16:30:34Z",
+          "parameters": [
+            {
+              "name": "BFIELD",
+              "type": "double",
+              "units": "nT",
+              "description": "Magnetic field vector in Spacecraft coordinates from the IMPACT/MAG instrument.",
+              "size": [
+                4
+              ]
+            },
+            {
+              "name": "MAGFLAGUC",
+              "type": "double",
+              "units": null,
+              "description": "[HIGHLY ENCODED VALUES] IMPACT/MAG status flag"
+            }
+          ]
+        },
+        "STB_L1_SEPT@0": {
+          "description": "",
+          "start_date": "2006-11-13T20:00:26Z",
+          "stop_date": "2014-09-27T16:28:26Z",
+          "parameters": [
+            {
+              "name": "Single_Counter_Rate_NS",
+              "type": "double",
+              "units": "cnts/sec",
+              "description": "NS Single Counter Rate"
+            },
+            {
+              "name": "Temperature_NS",
+              "type": "integer",
+              "units": "Celsius",
+              "description": "Temperatures for the NS Sensors",
+              "size": [
+                2
+              ]
+            },
+            {
+              "name": "Heater_NS",
+              "type": "integer",
+              "units": null,
+              "description": "NS Heater duty cycle in units of 10%"
+            },
+            {
+              "name": "Spec_2_NS",
+              "type": "double",
+              "units": "cnts/sec/sr/cm^2/MeV",
+              "description": "Electron spectra in the ecliptic north field of view",
+              "size": [
+                32
+              ]
+            },
+            {
+              "name": "Spec_0_NS",
+              "type": "double",
+              "units": "cnts/sec/sr/cm^2/MeV",
+              "description": "Electron spectra in the ecliptic south field of view",
+              "size": [
+                32
+              ]
+            },
+            {
+              "name": "Spec_1_NS",
+              "type": "double",
+              "units": "cnts/sec/sr/cm^2/MeV",
+              "description": "Ion spectra in the ecliptic north field of view",
+              "size": [
+                32
+              ]
+            },
+            {
+              "name": "Spec_3_NS",
+              "type": "double",
+              "units": "cnts/sec/sr/cm^2/MeV",
+              "description": "Ion spectra in the ecliptic south field of view",
+              "size": [
+                32
+              ]
+            }
+          ]
+        },
+        "STB_L1_SEPT@1": {
+          "description": "",
+          "start_date": "2006-11-13T20:00:26Z",
+          "stop_date": "2014-09-27T16:28:26Z",
+          "parameters": [
+            {
+              "name": "Single_Counter_Rate_E",
+              "type": "double",
+              "units": "cnts/sec",
+              "description": "E Single Counter Rate"
+            },
+            {
+              "name": "Temperature_E",
+              "type": "integer",
+              "units": "Celsius",
+              "description": "Temperatures for the E Sensors",
+              "size": [
+                2
+              ]
+            },
+            {
+              "name": "Heater_E",
+              "type": "integer",
+              "units": null,
+              "description": "E Heater duty cycle in units of 10%"
+            },
+            {
+              "name": "Spec_0_E",
+              "type": "double",
+              "units": "cnts/sec/sr/cm^2/MeV",
+              "description": "Electron spectra in the sunward direction",
+              "size": [
+                32
+              ]
+            },
+            {
+              "name": "Spec_2_E",
+              "type": "double",
+              "units": "cnts/sec/sr/cm^2/MeV",
+              "description": "Electron spectra in the anti-sunward direction",
+              "size": [
+                32
+              ]
+            },
+            {
+              "name": "Spec_3_E",
+              "type": "double",
+              "units": "cnts/sec/sr/cm^2/MeV",
+              "description": "Ion spectra in the sunward direction",
+              "size": [
+                32
+              ]
+            },
+            {
+              "name": "Spec_1_E",
+              "type": "double",
+              "units": "cnts/sec/sr/cm^2/MeV",
+              "description": "Ion spectra in the anti-sunward direction",
+              "size": [
+                32
+              ]
+            }
+          ]
+        },
+        "STB_L1_SIT": {
+          "description": "",
+          "start_date": "2007-03-15T00:00:37Z",
+          "stop_date": "2014-09-27T16:28:26Z",
+          "parameters": [
+            {
+              "name": "H_Intensity",
+              "type": "double",
+              "units": "particles/(s cm2 sr MeV/n)",
+              "description": "H (proton) Intensity in 12 energy ranges",
+              "size": [
+                12
+              ]
+            },
+            {
+              "name": "H_Sigma",
+              "type": "double",
+              "units": "particles/(s cm2 sr MeV/n)",
+              "description": "--> H (proton) uncertainty in intensity expressed as sigma due to counting statistics",
+              "size": [
+                12
+              ]
+            },
+            {
+              "name": "He3_Intensity",
+              "type": "double",
+              "units": "particles/(s cm2 sr MeV/n)",
+              "description": "3He Intensity in 10 energy ranges",
+              "size": [
+                10
+              ]
+            },
+            {
+              "name": "He3_Sigma",
+              "type": "double",
+              "units": "particles/(s cm2 sr MeV/n)",
+              "description": "--> 3He uncertainty in intensity expressed as sigma due to counting statistics",
+              "size": [
+                10
+              ]
+            },
+            {
+              "name": "He4_Intensity",
+              "type": "double",
+              "units": "particles/(s cm2 sr MeV/n)",
+              "description": "4He Intensity in 16 energy ranges",
+              "size": [
+                16
+              ]
+            },
+            {
+              "name": "He4_Sigma",
+              "type": "double",
+              "units": "particles/(s cm2 sr MeV/n)",
+              "description": "--> 4He uncertainty in intensity expressed as sigma due to counting statistics",
+              "size": [
+                16
+              ]
+            },
+            {
+              "name": "C_Intensity",
+              "type": "double",
+              "units": "particles/(s cm2 sr MeV/n)",
+              "description": "C (carbon) Intensity in 17 energy ranges",
+              "size": [
+                17
+              ]
+            },
+            {
+              "name": "C_Sigma",
+              "type": "double",
+              "units": "particles/(s cm2 sr MeV/n)",
+              "description": "--> C (carbon) uncertainty in intensity expressed as sigma due to counting statistics",
+              "size": [
+                17
+              ]
+            },
+            {
+              "name": "O_Intensity",
+              "type": "double",
+              "units": "particles/(s cm2 sr MeV/n)",
+              "description": "O (oxygen) Intensity in 16 energy ranges",
+              "size": [
+                16
+              ]
+            },
+            {
+              "name": "O_Sigma",
+              "type": "double",
+              "units": "particles/(s cm2 sr MeV/n)",
+              "description": "--> O (oxygen) uncertainty in intensity expressed as sigma due to counting statistics",
+              "size": [
+                16
+              ]
+            },
+            {
+              "name": "NeS_Intensity",
+              "type": "double",
+              "units": "particles/(s cm2 sr MeV/n)",
+              "description": "NeS (neon through sulfur) Intensity in 16 energy ranges",
+              "size": [
+                16
+              ]
+            },
+            {
+              "name": "NeS_Sigma",
+              "type": "double",
+              "units": "particles/(s cm2 sr MeV/n)",
+              "description": "--> NeS (neon through sulfur) uncertainty in intensity expressed as sigma due to counting statistics",
+              "size": [
+                16
+              ]
+            },
+            {
+              "name": "Fe_Intensity",
+              "type": "double",
+              "units": "particles/(s cm2 sr MeV/n)",
+              "description": "Fe (iron) Intensity in 14 energy ranges",
+              "size": [
+                14
+              ]
+            },
+            {
+              "name": "Fe_Sigma",
+              "type": "double",
+              "units": "particles/(s cm2 sr MeV/n)",
+              "description": "--> Fe (iron) uncertainty in intensity expressed as sigma due to counting statistics",
+              "size": [
+                14
+              ]
+            },
+            {
+              "name": "UH_Intensity",
+              "type": "double",
+              "units": "particles/(s cm2 sr MeV/n)",
+              "description": "UH (ultra-heavy) Intensity in 6 energy ranges",
+              "size": [
+                6
+              ]
+            },
+            {
+              "name": "UH_Sigma",
+              "type": "double",
+              "units": "particles/(s cm2 sr MeV/n)",
+              "description": "--> UH (ultra-heavy) uncertainty in intensity expressed as sigma due to counting statistics",
+              "size": [
+                6
+              ]
+            }
+          ]
+        },
+        "STB_L1_STE": {
+          "description": "",
+          "start_date": "2006-11-01T19:57:15Z",
+          "stop_date": "2014-09-27T16:30:21Z",
+          "parameters": [
+            {
+              "name": "STE_spectra_f",
+              "type": "double",
+              "units": "cnts",
+              "description": "STE Electron Spectra [Values for detectors #1-4 are saturated and should not be used]",
+              "size": [
+                32,
+                8
+              ]
+            },
+            {
+              "name": "STE_mode",
+              "type": "double",
+              "units": null,
+              "description": "STE Mode"
+            },
+            {
+              "name": "STE_energy_f",
+              "type": "double",
+              "units": "keV",
+              "description": "--> STE Maximum Energy Threshold",
+              "size": [
+                32,
+                8
+              ]
+            }
+          ]
+        },
+        "STB_L1_SWEA_DISB": {
+          "description": "",
+          "start_date": "2006-10-28T20:05:11Z",
+          "stop_date": "2014-02-26T22:51:47Z",
+          "parameters": [
+            {
+              "name": "Distribution",
+              "type": "double",
+              "units": "cnts",
+              "description": "SWEA 3D counts by 16 energies and 80 angles x=angles, y=energies [DO NOT USE energies below 45 eV]",
+              "size": [
+                16,
+                80
+              ]
+            },
+            {
+              "name": "Energy_spectrogram",
+              "type": "double",
+              "units": "cnts",
+              "description": "SWEA 3D counts by energy at select angles [DO NOT USE energies below 45 eV]",
+              "size": [
+                16,
+                80
+              ]
+            },
+            {
+              "name": "Angle_spectrogram",
+              "type": "double",
+              "units": "cnts",
+              "description": "SWEA 3D counts by angle at select energies [DO NOT USE energies below 45 eV]",
+              "size": [
+                16,
+                80
+              ]
+            }
+          ]
+        },
+        "STB_L1_SWEA_DIST": {
+          "description": "",
+          "start_date": "2006-10-28T20:05:49Z",
+          "stop_date": "2014-09-27T16:30:41Z",
+          "parameters": [
+            {
+              "name": "Distribution",
+              "type": "double",
+              "units": "cnts",
+              "description": "SWEA 3D counts by 16 energies and 80 angles x=angles, y=energies [DO NOT USE energies below 45 eV]",
+              "size": [
+                16,
+                80
+              ]
+            },
+            {
+              "name": "Energy_spectrogram",
+              "type": "double",
+              "units": "cnts",
+              "description": "SWEA 3D counts by energy at select angles [DO NOT USE energies below 45 eV]",
+              "size": [
+                16,
+                80
+              ]
+            },
+            {
+              "name": "Angle_spectrogram",
+              "type": "double",
+              "units": "cnts",
+              "description": "SWEA 3D counts by angle at select energies [DO NOT USE energies below 45 eV]",
+              "size": [
+                16,
+                80
+              ]
+            }
+          ]
+        },
+        "STB_L1_SWEA_SPEC@0": {
+          "description": "",
+          "start_date": "2012-12-01T00:00:03Z",
+          "stop_date": "2013-12-31T23:59:41Z",
+          "parameters": [
+            {
+              "name": "SWEASpectra",
+              "type": "double",
+              "units": "1/cm^3",
+              "description": "48-energy SWEA spectrum",
+              "size": [
+                48
+              ]
+            },
+            {
+              "name": "SWEASpectra_stack",
+              "type": "double",
+              "units": "1/cm^3",
+              "description": "---> as stacked time-series",
+              "size": [
+                48
+              ]
+            }
+          ]
+        },
+        "STB_L1_SWEA_SPEC@1": {
+          "description": "",
+          "start_date": "2012-12-01T00:00:03Z",
+          "stop_date": "2013-12-31T23:59:41Z",
+          "parameters": [
+            {
+              "name": "IAutoLUT",
+              "type": "integer",
+              "units": null,
+              "description": "SWEA LUT mode"
+            },
+            {
+              "name": "SWEAMCPDACSet",
+              "type": "integer",
+              "units": null,
+              "description": "---> SWEA MCP Setting"
+            },
+            {
+              "name": "SWEAMCPHeater",
+              "type": "integer",
+              "units": null,
+              "description": "---> SWEA MCP Heater Setting. 0=off, 10=100%"
+            },
+            {
+              "name": "SWEADistInterval",
+              "type": "integer",
+              "units": "s",
+              "description": "---> SWEA 3D distribution time interval in sec"
+            },
+            {
+              "name": "SWEABurstInterval",
+              "type": "integer",
+              "units": "s",
+              "description": "---> SWEA burst 3D distribution time interval in sec"
+            },
+            {
+              "name": "SWEAPADInterval",
+              "type": "integer",
+              "units": "s",
+              "description": "---> SWEA PAD distribution time interval in sec"
+            },
+            {
+              "name": "SWEARot",
+              "type": "integer",
+              "units": null,
+              "description": "---> SWEA anode rotation to spacecraft coordinates"
+            },
+            {
+              "name": "SWEAModeID",
+              "type": "integer",
+              "units": null,
+              "description": "---> SWEA mode ID"
+            },
+            {
+              "name": "SWEAManualV0",
+              "type": "integer",
+              "units": null,
+              "description": "---> SWEA V0 setting when SWEAV0 is manual and SWEALUT is auto"
+            },
+            {
+              "name": "SWEASweepMax",
+              "type": "integer",
+              "units": null,
+              "description": "---> SWEA Sweep Generator Max"
+            },
+            {
+              "name": "SWEASweepRate",
+              "type": "integer",
+              "units": null,
+              "description": "---> SWEA Sweep Generator Rate"
+            },
+            {
+              "name": "SWEASweepOffset",
+              "type": "integer",
+              "units": null,
+              "description": "---> SWEA Sweep Generator Offset"
+            },
+            {
+              "name": "SWEASweepDeflStep",
+              "type": "integer",
+              "units": null,
+              "description": "---> SWEA Sweep Generator Deflector Step"
+            },
+            {
+              "name": "SWEAMomInterval",
+              "type": "integer",
+              "units": "s",
+              "description": "---> SWEA moments time interval in sec"
+            },
+            {
+              "name": "SWEASpecInterval",
+              "type": "integer",
+              "units": "s",
+              "description": "---> SWEA spectra time interval in sec"
+            }
+          ]
+        },
+        "STB_L2_MAGPLASMA_1M": {
+          "description": "",
+          "start_date": "2006-11-07T00:00:00Z",
+          "stop_date": "2014-09-27T16:30:00Z",
+          "parameters": [
+            {
+              "name": "BFIELDRTN",
+              "type": "double",
+              "units": "nT",
+              "description": "Magnetic field vector in RTN coordinates from the IMPACT/MAG instrument.",
+              "size": [
+                3
+              ]
+            },
+            {
+              "name": "BTOTAL",
+              "type": "double",
+              "units": "nT",
+              "description": "Total magnetic field from the IMPACT/MAG instrument."
+            },
+            {
+              "name": "HAE",
+              "type": "double",
+              "units": "AU",
+              "description": "Spacecraft position in Heliocentric Aries Ecliptic (HAE) coordinates. ",
+              "size": [
+                3
+              ]
+            },
+            {
+              "name": "HEE",
+              "type": "double",
+              "units": "AU",
+              "description": "Spacecraft position in Heliocentric Earth Ecliptic (HEE) coordinates.",
+              "size": [
+                3
+              ]
+            },
+            {
+              "name": "HEEQ",
+              "type": "double",
+              "units": "AU",
+              "description": "Spacecraft position in Heliocentric Earth Equatorial (HEEQ) coordinates.",
+              "size": [
+                3
+              ]
+            },
+            {
+              "name": "CARR",
+              "type": "double",
+              "units": "AU",
+              "description": "Spacecraft position in Carrington Heliographic coordinates. ",
+              "size": [
+                3
+              ]
+            },
+            {
+              "name": "HCI",
+              "type": "double",
+              "units": "AU",
+              "description": "Heliocentric Inertial",
+              "size": [
+                3
+              ]
+            },
+            {
+              "name": "R",
+              "type": "double",
+              "units": "AU",
+              "description": "Distance of STEREO from the Sun."
+            },
+            {
+              "name": "Np",
+              "type": "double",
+              "units": "1/cm3",
+              "description": "Solar wind proton number density"
+            },
+            {
+              "name": "Vp",
+              "type": "double",
+              "units": "km/s",
+              "description": "Proton Bulk Speed from the PLASTIC instrument."
+            },
+            {
+              "name": "Tp",
+              "type": "double",
+              "units": "deg_K",
+              "description": "Proton Temperature from the PLASTIC instrument."
+            },
+            {
+              "name": "Vth",
+              "type": "double",
+              "units": "km/s",
+              "description": "Proton Thermal Speed from the PLASTIC instrument."
+            },
+            {
+              "name": "Vr_Over_V_RTN",
+              "type": "double",
+              "units": " ",
+              "description": "Direction cosine of radial velocity from the PLASTIC instrument."
+            },
+            {
+              "name": "Vt_Over_V_RTN",
+              "type": "double",
+              "units": " ",
+              "description": "Direction cosine of tangential velocity from the PLASTIC instrument."
+            },
+            {
+              "name": "Vn_Over_V_RTN",
+              "type": "double",
+              "units": " ",
+              "description": "Direction cosine of normal velocity from the PLASTIC instrument."
+            },
+            {
+              "name": "Vp_RTN",
+              "type": "double",
+              "units": "km/sec",
+              "description": "Solar Wind Proton Speed"
+            },
+            {
+              "name": "Entropy",
+              "type": "double",
+              "units": " ",
+              "description": "Entropy"
+            },
+            {
+              "name": "Beta",
+              "type": "double",
+              "units": " ",
+              "description": "Beta"
+            },
+            {
+              "name": "Total_Pressure",
+              "type": "double",
+              "units": "pPa",
+              "description": "Total Pressure"
+            },
+            {
+              "name": "Cone_Angle",
+              "type": "double",
+              "units": "deg",
+              "description": "Cone Angle of magnetic field with respect to R direction (0 for anti-sunward, 180 for sunward)"
+            },
+            {
+              "name": "Clock_Angle",
+              "type": "double",
+              "units": "deg",
+              "description": "Clock Angle of B-field in the T-N plane (atan2(BT,BN)). 0 along T. 90 along N."
+            },
+            {
+              "name": "Magnetic_Pressure",
+              "type": "double",
+              "units": "pPa",
+              "description": "Magnetic Pressure"
+            },
+            {
+              "name": "Dynamic_Pressure",
+              "type": "double",
+              "units": "nPa",
+              "description": "Dynamic Pressure"
+            }
+          ]
+        },
+        "STB_L2_PLA_1DMAX_10MIN": {
+          "description": "",
+          "start_date": "2007-03-01T00:00:42Z",
+          "stop_date": "2014-09-26T01:50:25Z",
+          "parameters": [
+            {
+              "name": "error_10min",
+              "type": "integer",
+              "units": null,
+              "description": "Indicates possible error condition."
+            },
+            {
+              "name": "caution_10min",
+              "type": "integer",
+              "units": null,
+              "description": "Indicates how sensitive the density value is to method for determining background correction."
+            },
+            {
+              "name": "cycles_vel_10min",
+              "type": "integer",
+              "units": null,
+              "description": "Indicates how many 1-min cycles were included in average."
+            },
+            {
+              "name": "attitude_flag_10min",
+              "type": "integer",
+              "units": null,
+              "description": "Indicates when instrument flow angles are not in nominal s/c orientation.",
+              "size": [
+                3
+              ]
+            },
+            {
+              "name": "ew_source_flag_10min",
+              "type": "integer",
+              "units": null,
+              "description": "Source flag for EW data.",
+              "size": [
+                2
+              ]
+            },
+            {
+              "name": "proton_number_density_10min",
+              "type": "double",
+              "units": "1/cm3",
+              "description": "Proton Number Density. 1D Maxwellian Fit."
+            },
+            {
+              "name": "proton_bulk_speed_10min",
+              "type": "double",
+              "units": "km/s",
+              "description": "Proton Bulk Speed. 1D Maxwellian Fit."
+            },
+            {
+              "name": "proton_temperature_10min",
+              "type": "double",
+              "units": "K",
+              "description": "Proton Temperature. 1D Maxwellian Fit."
+            },
+            {
+              "name": "proton_thermal_speed_10min",
+              "type": "double",
+              "units": "km/s",
+              "description": "Proton Thermal Speed. 1D Maxwellian Fit."
+            },
+            {
+              "name": "proton_n_s_flow_angle_inst_10min",
+              "type": "double",
+              "units": "deg",
+              "description": "Proton N/S Flow Angle. 1D Maxwellian Fit. Instrument Coordinates."
+            },
+            {
+              "name": "proton_e_w_flow_angle_inst_10min",
+              "type": "double",
+              "units": "deg",
+              "description": "Proton E/W Flow Angle. Instrument Coordinates.[Available for 2007 only]"
+            },
+            {
+              "name": "proton_n_s_flow_angle_HERTN_10min",
+              "type": "double",
+              "units": "deg",
+              "description": "Proton N/S Flow Angle. 1D Maxwellian Fit. HERTN [Available for 2007 only]"
+            },
+            {
+              "name": "proton_e_w_flow_angle_HERTN_10min",
+              "type": "double",
+              "units": "deg",
+              "description": "Proton E/W Flow Angle. HERTN [Available for 2007 only]"
+            },
+            {
+              "name": "proton_Vr_HERTN_10min",
+              "type": "double",
+              "units": "km/s",
+              "description": "Proton Vr. 1D Maxwellian Fit. HERTN.[Available for 2007 only]"
+            },
+            {
+              "name": "proton_Vt_HERTN_10min",
+              "type": "double",
+              "units": "km/s",
+              "description": "Proton Vt. 1D Maxwellian Fit. HERTN.[Available for 2007 only]"
+            },
+            {
+              "name": "proton_Vn_HERTN_10min",
+              "type": "double",
+              "units": "km/s",
+              "description": "Proton Vn. 1D Maxwellian Fit. HERTN.[Available for 2007 only]"
+            },
+            {
+              "name": "proton_n_s_flow_angle_RTN_10min",
+              "type": "double",
+              "units": "deg",
+              "description": "Proton N/S Flow Angle. 1D Maxwellian Fit. RTN [Available for 2007 only]"
+            },
+            {
+              "name": "proton_e_w_flow_angle_RTN_10min",
+              "type": "double",
+              "units": "deg",
+              "description": "Proton E/W Flow Angle. RTN [Available for 2007 only]"
+            },
+            {
+              "name": "proton_Vr_RTN_10min",
+              "type": "double",
+              "units": "km/s",
+              "description": "Proton Vr. 1D Maxwellian Fit. RTN [Available for 2007 only]"
+            },
+            {
+              "name": "proton_Vt_RTN_10min",
+              "type": "double",
+              "units": "km/s",
+              "description": "Proton Vt. 1D Maxwellian Fit. RTN [Available for 2007 only]"
+            },
+            {
+              "name": "proton_Vn_RTN_10min",
+              "type": "double",
+              "units": "km/s",
+              "description": "Proton Vn. 1D Maxwellian Fit. RTN [Available for 2007 only]"
+            }
+          ]
+        },
+        "STB_L2_PLA_1DMAX_1HR": {
+          "description": "",
+          "start_date": "2007-03-01T00:00:42Z",
+          "stop_date": "2014-09-26T01:00:25Z",
+          "parameters": [
+            {
+              "name": "error_1hr",
+              "type": "integer",
+              "units": null,
+              "description": "Indicates possible error condition."
+            },
+            {
+              "name": "caution_1hr",
+              "type": "integer",
+              "units": null,
+              "description": "Indicates how sensitive the density value is to method for determining background correction."
+            },
+            {
+              "name": "cycles_den_1hr",
+              "type": "integer",
+              "units": null,
+              "description": "Indicates how many 1-min cycles (den) were included in average."
+            },
+            {
+              "name": "cycles_vel_1hr",
+              "type": "integer",
+              "units": null,
+              "description": "Indicates how many 1-min cycles were included in average."
+            },
+            {
+              "name": "attitude_flag_1hr",
+              "type": "integer",
+              "units": null,
+              "description": "Indicates when instrument flow angles are not in nominal s/c orientation.",
+              "size": [
+                3
+              ]
+            },
+            {
+              "name": "ew_source_flag_1hr",
+              "type": "integer",
+              "units": null,
+              "description": "Source flag for EW data.",
+              "size": [
+                2
+              ]
+            },
+            {
+              "name": "proton_number_density_1hr",
+              "type": "double",
+              "units": "1/cm3",
+              "description": "Proton Number Density. 1D Maxwellian Fit."
+            },
+            {
+              "name": "proton_bulk_speed_1hr",
+              "type": "double",
+              "units": "km/s",
+              "description": "Proton Bulk Speed. 1D Maxwellian Fit."
+            },
+            {
+              "name": "proton_temperature_1hr",
+              "type": "double",
+              "units": "K",
+              "description": "Proton Temperature. 1D Maxwellian Fit."
+            },
+            {
+              "name": "proton_thermal_speed_1hr",
+              "type": "double",
+              "units": "km/s",
+              "description": "Proton Thermal Speed. 1D Maxwellian Fit."
+            },
+            {
+              "name": "proton_n_s_flow_angle_inst_1hr",
+              "type": "double",
+              "units": "deg",
+              "description": "Proton N/S Flow Angle. 1D Maxwellian Fit. Instrument Coordinates."
+            },
+            {
+              "name": "proton_e_w_flow_angle_inst_1hr",
+              "type": "double",
+              "units": "deg",
+              "description": "Proton E/W Flow Angle. Instrument Coordinates. [Available for 2007 only]"
+            },
+            {
+              "name": "proton_n_s_flow_angle_HERTN_1hr",
+              "type": "double",
+              "units": "deg",
+              "description": "Proton N/S Flow Angle. 1D Maxwellian Fit. HERTN [Available for 2007 only]"
+            },
+            {
+              "name": "proton_e_w_flow_angle_HERTN_1hr",
+              "type": "double",
+              "units": "deg",
+              "description": "Proton E/W Flow Angle HERTN [Available for 2007 only]"
+            },
+            {
+              "name": "proton_Vr_HERTN_1hr",
+              "type": "double",
+              "units": "km/s",
+              "description": "Proton Vr. 1D Maxwellian Fit. HERTN.  [Available for 2007 only]"
+            },
+            {
+              "name": "proton_Vt_HERTN_1hr",
+              "type": "double",
+              "units": "km/s",
+              "description": "Proton Vt. 1D Maxwellian Fit. HERTN.[Available for 2007 only]"
+            },
+            {
+              "name": "proton_Vn_HERTN_1hr",
+              "type": "double",
+              "units": "km/s",
+              "description": "Proton Vn. 1D Maxwellian Fit. HERTN.[Available for 2007 only]"
+            },
+            {
+              "name": "proton_n_s_flow_angle_RTN_1hr",
+              "type": "double",
+              "units": "deg",
+              "description": "Proton N/S Flow Angle. 1D Maxwellian Fit. RTN [Available for 2007 only]"
+            },
+            {
+              "name": "proton_e_w_flow_angle_RTN_1hr",
+              "type": "double",
+              "units": "deg",
+              "description": "Proton E/W Flow Angle. RTN [Available for 2007 only]"
+            },
+            {
+              "name": "proton_Vr_RTN_1hr",
+              "type": "double",
+              "units": "km/s",
+              "description": "Proton Vr. 1D Maxwellian Fit. RTN.[Available for 2007 only]"
+            },
+            {
+              "name": "proton_Vt_RTN_1hr",
+              "type": "double",
+              "units": "km/s",
+              "description": "Proton Vt. 1D Maxwellian Fit. RTN.[Available for 2007 only]"
+            },
+            {
+              "name": "proton_Vn_RTN_1hr",
+              "type": "double",
+              "units": "km/s",
+              "description": "Proton Vn. 1D Maxwellian Fit. RTN.[Available for 2007 only]"
+            }
+          ]
+        },
+        "STB_L2_PLA_1DMAX_1MIN": {
+          "description": "",
+          "start_date": "2007-03-01T00:00:42Z",
+          "stop_date": "2014-09-26T01:59:25Z",
+          "parameters": [
+            {
+              "name": "error",
+              "type": "integer",
+              "units": null,
+              "description": "Indicates possible error condition."
+            },
+            {
+              "name": "caution",
+              "type": "integer",
+              "units": null,
+              "description": "Indicates how sensitive the density value is to method for determining background correction."
+            },
+            {
+              "name": "attitude_flag",
+              "type": "integer",
+              "units": null,
+              "description": "Indicates when instrument flow angles are not in nominal s/c orientation.",
+              "size": [
+                3
+              ]
+            },
+            {
+              "name": "ew_source_flag",
+              "type": "integer",
+              "units": null,
+              "description": "Source flag for EW data.",
+              "size": [
+                2
+              ]
+            },
+            {
+              "name": "proton_number_density",
+              "type": "double",
+              "units": "1/cm3",
+              "description": "Proton Number Density. 1D Maxwellian Fit."
+            },
+            {
+              "name": "proton_bulk_speed",
+              "type": "double",
+              "units": "km/s",
+              "description": "Proton Bulk Speed. 1D Maxwellian Fit."
+            },
+            {
+              "name": "proton_temperature",
+              "type": "double",
+              "units": "K",
+              "description": "Proton Temperature. 1D Maxwellian Fit."
+            },
+            {
+              "name": "proton_thermal_speed",
+              "type": "double",
+              "units": "km/s",
+              "description": "Proton Thermal Speed. 1D Maxwellian Fit."
+            },
+            {
+              "name": "proton_n_s_flow_angle_inst",
+              "type": "double",
+              "units": "deg",
+              "description": "Proton N/S Flow Angle. 1D Maxwellian Fit. Instrument Coordinates."
+            },
+            {
+              "name": "proton_e_w_flow_angle_inst",
+              "type": "double",
+              "units": "deg",
+              "description": "Proton E/W Flow Angle. Instrument Coordinates. [Available for 2007 only]"
+            },
+            {
+              "name": "proton_n_s_flow_angle_HERTN",
+              "type": "double",
+              "units": "deg",
+              "description": "Proton N/S Flow Angle. 1D Maxwellian Fit. HERTN [Available for 2007 only]"
+            },
+            {
+              "name": "proton_e_w_flow_angle_HERTN",
+              "type": "double",
+              "units": "deg",
+              "description": "Proton E/W Flow Angle. HERTN [Available for 2007 only]"
+            },
+            {
+              "name": "proton_Vr_HERTN",
+              "type": "double",
+              "units": "km/s",
+              "description": "Proton Vr. 1D Maxwellian Fit. HERTN. [Available for 2007 only]"
+            },
+            {
+              "name": "proton_Vt_HERTN",
+              "type": "double",
+              "units": "km/s",
+              "description": "Proton Vt. 1D Maxwellian Fit. HERTN. [Available for 2007 only]"
+            },
+            {
+              "name": "proton_Vn_HERTN",
+              "type": "double",
+              "units": "km/s",
+              "description": "Proton Vn. 1D Maxwellian Fit. HERTN. [Available for 2007 only]"
+            },
+            {
+              "name": "proton_n_s_flow_angle_RTN",
+              "type": "double",
+              "units": "deg",
+              "description": "Proton N/S Flow Angle. 1D Maxwellian Fit. RTN [Available for 2007 only]"
+            },
+            {
+              "name": "proton_e_w_flow_angle_RTN",
+              "type": "double",
+              "units": "deg",
+              "description": "Proton E/W Flow Angle. RTN [Available for 2007 only]"
+            },
+            {
+              "name": "proton_Vr_RTN",
+              "type": "double",
+              "units": "km/s",
+              "description": "Proton Vr. 1D Maxwellian Fit. RTN. [Available for 2007 only]"
+            },
+            {
+              "name": "proton_Vt_RTN",
+              "type": "double",
+              "units": "km/s",
+              "description": "Proton Vt. 1D Maxwellian Fit. RTN. [Available for 2007 only]"
+            },
+            {
+              "name": "proton_Vn_RTN",
+              "type": "double",
+              "units": "km/s",
+              "description": "Proton Vn. 1D Maxwellian Fit. RTN. [Available for 2007 only]"
+            }
+          ]
+        },
+        "STB_L2_PLA_ALPHA_RA_1DMAX_10MIN": {
+          "description": "",
+          "start_date": "2007-03-01T00:00:00Z",
+          "stop_date": "2010-12-31T23:50:59Z",
+          "parameters": [
+            {
+              "name": "alpha_density",
+              "type": "double",
+              "units": "1/cc",
+              "description": "Alpha Density"
+            },
+            {
+              "name": "alpha_bulk_speed",
+              "type": "double",
+              "units": "km/s",
+              "description": "Alpha Bulk Speed"
+            },
+            {
+              "name": "alpha_thermal_speed",
+              "type": "double",
+              "units": "sqrt(2kT/m)",
+              "description": "Alpha Thermal Speed"
+            },
+            {
+              "name": "Na_Np",
+              "type": "double",
+              "units": "ratio",
+              "description": "Na/Np"
+            },
+            {
+              "name": "Va_Vp",
+              "type": "double",
+              "units": "km/s",
+              "description": "Va-Vp"
+            }
+          ]
+        },
+        "STB_L2_PLA_ALPHA_RA_1DMAX_1HR": {
+          "description": "",
+          "start_date": "2007-03-01T00:00:00Z",
+          "stop_date": "2010-12-31T23:00:00Z",
+          "parameters": [
+            {
+              "name": "alpha_density",
+              "type": "double",
+              "units": "1/cc",
+              "description": "Alpha Density"
+            },
+            {
+              "name": "alpha_bulk_speed",
+              "type": "double",
+              "units": "km/s",
+              "description": "Alpha Bulk Speed"
+            },
+            {
+              "name": "alpha_thermal_speed",
+              "type": "double",
+              "units": "sqrt(2kT/m)",
+              "description": "Alpha Thermal Speed"
+            },
+            {
+              "name": "Na_Np",
+              "type": "double",
+              "units": "ratio",
+              "description": "Na/Np"
+            },
+            {
+              "name": "Va_Vp",
+              "type": "double",
+              "units": "km/s",
+              "description": "Va-Vp"
+            }
+          ]
+        },
+        "STB_L2_PLA_IRON_Q_2HR": {
+          "description": "",
+          "start_date": "2007-01-01T00:00:00Z",
+          "stop_date": "2011-07-31T20:00:00Z",
+          "parameters": [
+            {
+              "name": "Fe_aveQ",
+              "type": "double",
+              "units": "Charge state",
+              "description": "Fe_aveQ."
+            },
+            {
+              "name": "Qty",
+              "type": "double",
+              "units": "Counts",
+              "description": "Normalized counts for charge state calculation process."
+            },
+            {
+              "name": "Fe_Q",
+              "type": "double",
+              "units": "Counts.",
+              "description": "Fe charge state histograms.",
+              "size": [
+                21
+              ]
+            }
+          ]
+        },
+        "STB_L2_SWEA_PAD": {
+          "description": "",
+          "start_date": "2006-11-06T00:00:14Z",
+          "stop_date": "2014-09-27T16:30:41Z",
+          "parameters": [
+            {
+              "name": "quality_index_0",
+              "type": "integer",
+              "units": " ",
+              "description": "B field INSIDE(0) or OUTSIDE(1) instrument field-of-view"
+            },
+            {
+              "name": "quality_index_1",
+              "type": "integer",
+              "units": " ",
+              "description": "PA distributions corrected(0) or NOT corrected(1) for ion bulk"
+            },
+            {
+              "name": "Energy",
+              "type": "double",
+              "units": "eV",
+              "description": "Energy bins (plotted with error bars)",
+              "size": [
+                16
+              ]
+            },
+            {
+              "name": "pad",
+              "type": "double",
+              "units": "s^3/km^6",
+              "description": "Pitch angle distribution in Phase Space Density (@ energies 1-10)",
+              "size": [
+                12,
+                16
+              ]
+            }
+          ]
+        },
+        "STB_L3_WAV_HFR": {
+          "description": "",
+          "start_date": "2006-10-30T00:00:01Z",
+          "stop_date": "2014-09-28T17:29:09Z",
+          "parameters": [
+            {
+              "name": "PSD_FLUX",
+              "type": "double",
+              "units": "W/m^2/Hz",
+              "description": "Power spectral density after 1% background subtraction and antenna calibration",
+              "size": [
+                319
+              ]
+            },
+            {
+              "name": "PSD_SFU",
+              "type": "double",
+              "units": "sfu",
+              "description": "Power spectral density after 1% background subtraction and antenna calibration in solar radio flux unit normalized to 1 au",
+              "size": [
+                319
+              ]
+            },
+            {
+              "name": "STOKES_I",
+              "type": "double",
+              "units": "W/m^2/Hz",
+              "description": "Radio flux density [Data available after 04-May-2007] ",
+              "size": [
+                319
+              ]
+            },
+            {
+              "name": "STOKES_Q",
+              "type": "double",
+              "units": " ",
+              "description": "Normalized linear polarization [Data available after 04-May-2007] ",
+              "size": [
+                319
+              ]
+            },
+            {
+              "name": "STOKES_U",
+              "type": "double",
+              "units": " ",
+              "description": "Normalized linear polarization [Data available after 04-May-2007] ",
+              "size": [
+                319
+              ]
+            },
+            {
+              "name": "STOKES_V",
+              "type": "double",
+              "units": " ",
+              "description": "Normalized circular polarization [Data available after 04-May-2007] ",
+              "size": [
+                319
+              ]
+            },
+            {
+              "name": "SOURCE_SIZE",
+              "type": "double",
+              "units": "deg",
+              "description": "The angular half aperture of the source as seen by a spacecraft (uniform profile) [Data available after 04-May-2007] ",
+              "size": [
+                319
+              ]
+            },
+            {
+              "name": "WAVE_COLATITUDE_RTN",
+              "type": "double",
+              "units": "deg",
+              "description": "Wave vector colatitude in the Radial-Tangential-Normal (RTN) system [Data available after 04-May-2007] ",
+              "size": [
+                319
+              ]
+            },
+            {
+              "name": "WAVE_AZIMUTH_RTN",
+              "type": "double",
+              "units": "deg",
+              "description": "Wave vector azimuth in the Radial-Tangential-Normal (RTN) system [Data available after 04-May-2007] ",
+              "size": [
+                319
+              ]
+            },
+            {
+              "name": "WAVE_COLATITUDE_HCI",
+              "type": "double",
+              "units": "deg",
+              "description": "Wave vector colatitude in the Heliocentric Inertial (HCI) system [Data available after 04-May-2007] ",
+              "size": [
+                319
+              ]
+            },
+            {
+              "name": "WAVE_AZIMUTH_HCI",
+              "type": "double",
+              "units": "deg",
+              "description": "Wave vector azimuth in the Heliocentric Inertial (HCI) system [Data available after 04-May-2007] ",
+              "size": [
+                319
+              ]
+            },
+            {
+              "name": "WAVE_COLATITUDE_HEE",
+              "type": "double",
+              "units": "deg",
+              "description": "Wave vector colatitude in the Heliocentric Earth Ecliptic (HEE) system [Data available after 04-May-2007] ",
+              "size": [
+                319
+              ]
+            },
+            {
+              "name": "WAVE_AZIMUTH_HEE",
+              "type": "double",
+              "units": "deg",
+              "description": "Wave vector azimuth in the Heliocentric Earth Ecliptic (HEE) system [Data available after 04-May-2007] ",
+              "size": [
+                319
+              ]
+            },
+            {
+              "name": "WAVE_COLATITUDE_HEEQ",
+              "type": "double",
+              "units": "deg",
+              "description": "Wave vector colatitude in the Heliocentric Earth Equatorial (HEEQ) system [Data available after 04-May-2007] ",
+              "size": [
+                319
+              ]
+            },
+            {
+              "name": "WAVE_AZIMUTH_HEEQ",
+              "type": "double",
+              "units": "deg",
+              "description": "Wave vector azimuth in the Heliocentric Earth Equatorial (HEEQ) system [Data available after 04-May-2007] ",
+              "size": [
+                319
+              ]
+            },
+            {
+              "name": "SC_POS_HCI",
+              "type": "double",
+              "units": "km",
+              "description": "STEREO spacecraft position in the Heliocentric Inertial (HCI) system in km",
+              "size": [
+                3
+              ]
+            },
+            {
+              "name": "SC_POS_HEE",
+              "type": "double",
+              "units": "km",
+              "description": "STEREO spacecraft position in the Heliocentric Earth Ecliptic (HEE) system in km",
+              "size": [
+                3
+              ]
+            },
+            {
+              "name": "SC_POS_HEEQ",
+              "type": "double",
+              "units": "km",
+              "description": "STEREO spacecraft position in the Heliocentric Earth Equatorial (HEEQ) system in km",
+              "size": [
+                3
+              ]
+            }
+          ]
+        },
+        "STB_L3_WAV_LFR": {
+          "description": "",
+          "start_date": "2006-10-30T00:00:24Z",
+          "stop_date": "2014-09-28T17:29:21Z",
+          "parameters": [
+            {
+              "name": "PSD_FLUX",
+              "type": "double",
+              "units": "W/m^2/Hz",
+              "description": "Power spectral density after 1% background subtraction and antenna calibration",
+              "size": [
+                48
+              ]
+            },
+            {
+              "name": "PSD_SFU",
+              "type": "double",
+              "units": "sfu",
+              "description": "Power spectral density after 1% background subtraction and antenna calibration in solar radio flux unit normalized to 1 au",
+              "size": [
+                48
+              ]
+            },
+            {
+              "name": "STOKES_I",
+              "type": "double",
+              "units": "W/m^2/Hz",
+              "description": "Radio flux density [Data available after 11-Dec-2012] ",
+              "size": [
+                48
+              ]
+            },
+            {
+              "name": "STOKES_Q",
+              "type": "double",
+              "units": " ",
+              "description": "Normalized linear polarization [Data available after 11-Dec-2012] ",
+              "size": [
+                48
+              ]
+            },
+            {
+              "name": "STOKES_U",
+              "type": "double",
+              "units": " ",
+              "description": "Normalized linear polarization [Data available after 11-Dec-2012] ",
+              "size": [
+                48
+              ]
+            },
+            {
+              "name": "STOKES_V",
+              "type": "double",
+              "units": " ",
+              "description": "Normalized circular polarization [Data available after 11-Dec-2012] ",
+              "size": [
+                48
+              ]
+            },
+            {
+              "name": "SOURCE_SIZE",
+              "type": "double",
+              "units": " deg",
+              "description": "The angular half aperture of the source as seen by a spacecraft (uniform profile) [Data available after 11-Dec-2012] ",
+              "size": [
+                48
+              ]
+            },
+            {
+              "name": "WAVE_COLATITUDE_RTN",
+              "type": "double",
+              "units": "deg",
+              "description": "Wave vector colatitude in the Radial-Tangential-Normal (RTN) system [Data available after 11-Dec-2012] ",
+              "size": [
+                48
+              ]
+            },
+            {
+              "name": "WAVE_AZIMUTH_RTN",
+              "type": "double",
+              "units": "deg",
+              "description": "Wave vector azimuth in the Radial-Tangential-Normal (RTN) system [Data available after 11-Dec-2012] ",
+              "size": [
+                48
+              ]
+            },
+            {
+              "name": "WAVE_COLATITUDE_HCI",
+              "type": "double",
+              "units": "deg",
+              "description": "Wave vector colatitude in the Heliocentric Inertial (HCI) system [Data available after 11-Dec-2012] ",
+              "size": [
+                48
+              ]
+            },
+            {
+              "name": "WAVE_AZIMUTH_HCI",
+              "type": "double",
+              "units": "deg",
+              "description": "Wave vector azimuth in the Heliocentric Inertial (HCI) system [Data available after 11-Dec-2012] ",
+              "size": [
+                48
+              ]
+            },
+            {
+              "name": "WAVE_COLATITUDE_HEE",
+              "type": "double",
+              "units": "deg",
+              "description": "Wave vector colatitude in the Heliocentric Earth Ecliptic (HEE) system [Data available after 11-Dec-2012] ",
+              "size": [
+                48
+              ]
+            },
+            {
+              "name": "WAVE_AZIMUTH_HEE",
+              "type": "double",
+              "units": "deg",
+              "description": "Wave vector azimuth in the Heliocentric Earth Ecliptic (HEE) system [Data available after 11-Dec-2012] ",
+              "size": [
+                48
+              ]
+            },
+            {
+              "name": "WAVE_COLATITUDE_HEEQ",
+              "type": "double",
+              "units": "deg",
+              "description": "Wave vector colatitude in the Heliocentric Earth Equatorial (HEEQ) system [Data available after 11-Dec-2012] ",
+              "size": [
+                48
+              ]
+            },
+            {
+              "name": "WAVE_AZIMUTH_HEEQ",
+              "type": "double",
+              "units": "deg",
+              "description": "Wave vector azimuth in the Heliocentric Earth Equatorial (HEEQ) system [Data available after 11-Dec-2012] ",
+              "size": [
+                48
+              ]
+            },
+            {
+              "name": "SC_POS_HCI",
+              "type": "double",
+              "units": "km",
+              "description": "STEREO spacecraft position in the Heliocentric Inertial (HCI) system in km",
+              "size": [
+                3
+              ]
+            },
+            {
+              "name": "SC_POS_HEE",
+              "type": "double",
+              "units": "km",
+              "description": "STEREO spacecraft position in the Heliocentric Earth Ecliptic (HEE) system in km",
+              "size": [
+                3
+              ]
+            },
+            {
+              "name": "SC_POS_HEEQ",
+              "type": "double",
+              "units": "km",
+              "description": "STEREO spacecraft position in the Heliocentric Earth Equatorial (HEEQ) system in km",
+              "size": [
+                3
+              ]
+            }
+          ]
+        },
+        "STB_LB_IMPACT@0": {
+          "description": "",
+          "start_date": "2007-03-20T16:50:35Z",
+          "stop_date": "2014-09-27T16:29:26Z",
+          "parameters": [
+            {
+              "name": "MAGBField",
+              "type": "double",
+              "units": "nT",
+              "description": "Magnetic field vector in STEREO-A Heliocentric Radial Tangential Normal coordinates",
+              "size": [
+                3
+              ]
+            }
+          ]
+        },
+        "STB_LB_IMPACT@1": {
+          "description": "",
+          "start_date": "2007-03-20T16:50:35Z",
+          "stop_date": "2014-09-27T16:29:26Z",
+          "parameters": [
+            {
+              "name": "STED",
+              "type": "double",
+              "units": "cnts/cm^2/s",
+              "description": "Electron spectrum from STE-D (downstream)",
+              "size": [
+                5
+              ]
+            },
+            {
+              "name": "ISCStatus",
+              "type": "double",
+              "units": null,
+              "description": "---> Spacecraft Status code"
+            },
+            {
+              "name": "InterfaceActive",
+              "type": "double",
+              "units": null,
+              "description": "---> Instrument Activity Code"
+            },
+            {
+              "name": "SWEAModeID",
+              "type": "double",
+              "units": null,
+              "description": "---> SWEA Mode ID"
+            },
+            {
+              "name": "STEModeID",
+              "type": "double",
+              "units": null,
+              "description": "---> STE Mode ID"
+            },
+            {
+              "name": "MAGHKP",
+              "type": "double",
+              "units": null,
+              "description": "---> MAG HKP Status Code"
+            }
+          ]
+        },
+        "STB_LB_IMPACT@2": {
+          "description": "",
+          "start_date": "2007-03-20T16:50:35Z",
+          "stop_date": "2014-09-27T16:29:26Z",
+          "parameters": [
+            {
+              "name": "HETLiveTime",
+              "type": "double",
+              "units": "s",
+              "description": "SEP/HET Livetime"
+            },
+            {
+              "name": "LETLiveTime",
+              "type": "double",
+              "units": "s",
+              "description": "---> SEP/LET Livetime"
+            },
+            {
+              "name": "LETTrigRate",
+              "type": "double",
+              "units": "cnts",
+              "description": "---> LET Number of Front-end Triggers"
+            },
+            {
+              "name": "LETHazRate",
+              "type": "double",
+              "units": "cnts",
+              "description": "---> LET Number of events with hazard flag"
+            },
+            {
+              "name": "LETAcceptRate",
+              "type": "double",
+              "units": "cnts",
+              "description": "---> LET Number of accepted events"
+            },
+            {
+              "name": "LETCodeOK",
+              "type": "double",
+              "units": null,
+              "description": "---> LET Code OK. Internal code check, 1=good, 0=bad"
+            },
+            {
+              "name": "LETHeaterDutyCycle",
+              "type": "double",
+              "units": null,
+              "description": "---> LET Heater Duty Cycle"
+            },
+            {
+              "name": "LETLeakConv",
+              "type": "double",
+              "units": null,
+              "description": "---> LET Leakage Current Balance, 1=ok, 0=bad"
+            },
+            {
+              "name": "LETDyThState",
+              "type": "double",
+              "units": null,
+              "description": "---> LET Dynamic Thresholding State, 0=normal, 1,2,3=higher threshold setting"
+            },
+            {
+              "name": "LETMinute",
+              "type": "double",
+              "units": null,
+              "description": "---> LET Minute Counter - rolls over at 60"
+            },
+            {
+              "name": "SEPTStatus",
+              "type": "double",
+              "units": null,
+              "description": "---> SEPT Status Code"
+            },
+            {
+              "name": "HETElectronFlux",
+              "type": "double",
+              "units": "1/cm^2-s-ster-MeV",
+              "description": "HET Electron Flux between 0.7 and 4 MeV"
+            },
+            {
+              "name": "HETProtonFlux",
+              "type": "double",
+              "units": "1/cm^2-s-ster-MeV",
+              "description": "---> HET Proton Flux measured in 3 energy channels",
+              "size": [
+                3
+              ]
+            },
+            {
+              "name": "HETHeFlux",
+              "type": "double",
+              "units": "1/cm^2-s-ster-MeV/nuc",
+              "description": "---> HET He Flux measured in 3 energy channels",
+              "size": [
+                3
+              ]
+            },
+            {
+              "name": "HETCNOFlux",
+              "type": "double",
+              "units": "1/cm^2-s-ster-MeV/nuc",
+              "description": "---> HET CNO Flux in 2 energy bins",
+              "size": [
+                2
+              ]
+            },
+            {
+              "name": "HETFeFlux",
+              "type": "double",
+              "units": "1/cm^2-s-ster-MeV/nuc",
+              "description": "---> HET Fe Flux between 52 and 74 MeV/nuc"
+            },
+            {
+              "name": "SITHeFlux",
+              "type": "double",
+              "units": "1/cm^2-s-ster-MeV/nuc",
+              "description": "SIT He Flux in 4 energy bins",
+              "size": [
+                4
+              ]
+            },
+            {
+              "name": "SITCNOFlux",
+              "type": "double",
+              "units": "1/cm^2-s-ster-MeV/nuc",
+              "description": "---> SIT CNO Flux in 4 energy bins",
+              "size": [
+                4
+              ]
+            },
+            {
+              "name": "SITFeFlux",
+              "type": "double",
+              "units": "1/cm^2-s-ster-MeV/nuc",
+              "description": "---> SIT Fe Flux in 4 energy bins",
+              "size": [
+                4
+              ]
+            },
+            {
+              "name": "LETProtonFlux",
+              "type": "double",
+              "units": "1/cm^2-s-ster-MeV",
+              "description": "LET Proton Flux in 4 bins (middle 2 have same energy, but different angular coverage)",
+              "size": [
+                4
+              ]
+            },
+            {
+              "name": "LET4HeFlux",
+              "type": "double",
+              "units": "1/cm^2-s-ster-MeV/nuc",
+              "description": "---> LET 4He Flux in 5 bins. Bins 1,2 and 3,4 have same energy coverage but different angular coverage",
+              "size": [
+                5
+              ]
+            },
+            {
+              "name": "LET3HeFlux",
+              "type": "double",
+              "units": "1/cm^2-s-ster-MeV/nuc",
+              "description": "---> LET 3He Flux in 2 energies (full 260 deg coverage)",
+              "size": [
+                2
+              ]
+            },
+            {
+              "name": "LETCNOFlux",
+              "type": "double",
+              "units": "1/cm^2-s-ster-MeV/nuc",
+              "description": "---> LET CNO Flux in 3 energy bins",
+              "size": [
+                3
+              ]
+            },
+            {
+              "name": "LETFeFlux",
+              "type": "double",
+              "units": "1/cm^2-s-ster-MeV/nuc",
+              "description": "---> LET Fe Flux in 4 energy bins",
+              "size": [
+                4
+              ]
+            },
+            {
+              "name": "SEPTElectronFlux",
+              "type": "double",
+              "units": "1/cm^2-s-ster-MeV",
+              "description": "SEPT Electron Flux (see labels for binning)",
+              "size": [
+                10
+              ]
+            },
+            {
+              "name": "SEPTIonFlux",
+              "type": "double",
+              "units": "1/cm^2-s-ster-MeV/nuc",
+              "description": "SEPT Ion Flux (see labels for binning)",
+              "size": [
+                10
+              ]
+            },
+            {
+              "name": "HETElectronCnts",
+              "type": "double",
+              "units": "cnts",
+              "description": "HET Electron Counts (0.7 - 4 MeV)"
+            },
+            {
+              "name": "HETProtonCnts",
+              "type": "double",
+              "units": "cnts",
+              "description": "---> HET Proton Counts (in 3 energy bins)",
+              "size": [
+                3
+              ]
+            },
+            {
+              "name": "HETCNOCnts",
+              "type": "double",
+              "units": "cnts",
+              "description": "---> HET CNO Counts (in 2 energy bins)",
+              "size": [
+                2
+              ]
+            },
+            {
+              "name": "HETFeCnts",
+              "type": "double",
+              "units": "cnts",
+              "description": "---> HET Fe Cnts (52 - 74 MeV/nuc)"
+            },
+            {
+              "name": "SITHeCnts",
+              "type": "double",
+              "units": "cnts",
+              "description": "SIT He Counts",
+              "size": [
+                4
+              ]
+            },
+            {
+              "name": "SITCNOCnts",
+              "type": "double",
+              "units": "cnts",
+              "description": "---> SIT CNO Counts",
+              "size": [
+                4
+              ]
+            },
+            {
+              "name": "SITFeCnts",
+              "type": "double",
+              "units": "cnts",
+              "description": "---> SIT Fe Counts",
+              "size": [
+                4
+              ]
+            },
+            {
+              "name": "LETProtonCnts",
+              "type": "double",
+              "units": "cnts",
+              "description": "LET Proton Counts",
+              "size": [
+                4
+              ]
+            },
+            {
+              "name": "LET4HeCnts",
+              "type": "double",
+              "units": "cnts",
+              "description": "---> LET 4He Counts",
+              "size": [
+                5
+              ]
+            },
+            {
+              "name": "LET3HeCnts",
+              "type": "double",
+              "units": "cnts",
+              "description": "---> LET 3He Counts",
+              "size": [
+                2
+              ]
+            },
+            {
+              "name": "LETCNOCnts",
+              "type": "double",
+              "units": "cnts",
+              "description": "---> LET CNO Counts",
+              "size": [
+                3
+              ]
+            },
+            {
+              "name": "LETFeCnts",
+              "type": "double",
+              "units": "cnts",
+              "description": "---> LET Fe Counts",
+              "size": [
+                4
+              ]
+            },
+            {
+              "name": "SEPTElectronCnts",
+              "type": "double",
+              "units": "cnts",
+              "description": "SEPT Electron Counts",
+              "size": [
+                10
+              ]
+            },
+            {
+              "name": "SEPTIonCnts",
+              "type": "double",
+              "units": "cnts",
+              "description": "SEPT Ion Counts",
+              "size": [
+                10
+              ]
+            },
+            {
+              "name": "HETHeCnts",
+              "type": "double",
+              "units": "cnts",
+              "description": "HET He Counts",
+              "size": [
+                3
+              ]
+            },
+            {
+              "name": "SFSEPTElectrons",
+              "type": "double",
+              "units": "1/cm^2-s-ster-MeV",
+              "description": "Summary Flux SEPT Electrons from 0.035 to 0.065 MeV summed in all directions"
+            },
+            {
+              "name": "SFHETElectrons",
+              "type": "double",
+              "units": "1/cm^2-s-ster-MeV",
+              "description": "---> Summary Flux HET Electrons from 0.7 to 4 MeV"
+            },
+            {
+              "name": "SFSEPTIons1",
+              "type": "double",
+              "units": "1/cm^2-s-ster-MeV",
+              "description": "---> Summary Flux SEPT Ions from 0.137 to 0.623 MeV"
+            },
+            {
+              "name": "SFSEPTIons2",
+              "type": "double",
+              "units": "1/cm^2-s-ster-MeV",
+              "description": "---> Summary Flux SEPT Ions from 0.623 to 2.22 MeV"
+            },
+            {
+              "name": "SFLETProtons",
+              "type": "double",
+              "units": "1/cm^2-s-ster-MeV",
+              "description": "---> Summary Flux LET Protons from 2.2 to 12 MeV"
+            },
+            {
+              "name": "SFHETProtons",
+              "type": "double",
+              "units": "1/cm^2-s-ster-MeV",
+              "description": "---> Summary Flux HET Protons from 13 to 100 MeV"
+            },
+            {
+              "name": "SFSITHe",
+              "type": "double",
+              "units": "1/cm^2-s-ster-MeV",
+              "description": "---> Summary Flux SIT Helium from 0.12 to 1.08 Mev/nuc"
+            },
+            {
+              "name": "SFSITCNO",
+              "type": "double",
+              "units": "1/cm^2-s-ster-MeV",
+              "description": "---> Summary Flux SIT CNO from 0.12 to 1.08 MeV/nuc"
+            },
+            {
+              "name": "SFSITFe",
+              "type": "double",
+              "units": "1/cm^2-s-ster-MeV",
+              "description": "---> Summary Flux SIT Fe from 0.12 to 1.08 MeV/nuc"
+            },
+            {
+              "name": "SFLETHe",
+              "type": "double",
+              "units": "1/cm^2-s-ster-MeV",
+              "description": "---> Summary Flux LET Helium from 4 to 12 MeV/nuc"
+            },
+            {
+              "name": "SFLETCNO",
+              "type": "double",
+              "units": "1/cm^2-s-ster-MeV",
+              "description": "---> Summary Flux LET CNO from 4 to 12 MeV/nuc"
+            },
+            {
+              "name": "SFLETFe",
+              "type": "double",
+              "units": "1/cm^2-s-ster-MeV",
+              "description": "---> Summary Flux LET Fe from 4 to 12 MeV/nuc"
+            },
+            {
+              "name": "SCSEPTElectrons",
+              "type": "double",
+              "units": "cnts",
+              "description": "Summary Counts SEPT Electrons from 0.035 to 0.065 MeV"
+            },
+            {
+              "name": "SCHETElectrons",
+              "type": "double",
+              "units": "cnts",
+              "description": "---> Summary Counts HET Electrons from 0.7 to 4 MeV"
+            },
+            {
+              "name": "SCSEPTIons1",
+              "type": "double",
+              "units": "cnts",
+              "description": "---> Summary Counts SEPT Ions from 0.137 to 0.623 MeV"
+            },
+            {
+              "name": "SCSEPTIons2",
+              "type": "double",
+              "units": "cnts",
+              "description": "---> Summary Counts SEPT Ions from 0.623 to 2.22 MeV"
+            },
+            {
+              "name": "SCLETProtons",
+              "type": "double",
+              "units": "cnts",
+              "description": "---> Summary Counts LET Protons from 2.2 to 12 MeV"
+            },
+            {
+              "name": "SCHETProtons",
+              "type": "double",
+              "units": "cnts",
+              "description": "---> Summary Counts HET Protons from 13 to 100 MeV"
+            },
+            {
+              "name": "SCSITHe",
+              "type": "double",
+              "units": "cnts",
+              "description": "---> Summary Counts SIT Helium from 0.12 to 1.08 MeV/nuc"
+            },
+            {
+              "name": "SCSITCNO",
+              "type": "double",
+              "units": "cnts",
+              "description": "---> Summary Counts SIT CNO from 0.12 to 1.08 MeV/nuc"
+            },
+            {
+              "name": "SCSITFe",
+              "type": "double",
+              "units": "cnts",
+              "description": "---> Summary Counts SIT Fe from 0.12 to 1.08 MeV/nuc"
+            },
+            {
+              "name": "SCLETHe",
+              "type": "double",
+              "units": "cnts",
+              "description": "---> Summary Counts LET Helium from 4 to 12 MeV/nuc"
+            },
+            {
+              "name": "SCLETCNO",
+              "type": "double",
+              "units": "cnts",
+              "description": "---> Summary Counts LET CNO from 4 to 12 MeV/nuc"
+            },
+            {
+              "name": "SCLETFe",
+              "type": "double",
+              "units": "cnts",
+              "description": "---> Summary Counts LET Fe from 4 to 12 MeV/nuc"
+            }
+          ]
+        },
+        "STB_LB_PLA_BROWSE": {
+          "description": "",
+          "start_date": "2011-07-06T15:16:38Z",
+          "stop_date": "2014-09-26T01:59:25Z",
+          "parameters": [
+            {
+              "name": "Density",
+              "type": "double",
+              "units": "1/cm3",
+              "description": "Moment: Density [PRELIM]"
+            },
+            {
+              "name": "Bulk_Speed",
+              "type": "double",
+              "units": "km/s",
+              "description": "Moment: Bulk_Speed [PRELIM]"
+            },
+            {
+              "name": "Vr_HERTN",
+              "type": "double",
+              "units": "km/s",
+              "description": "Moment: Vr in HERTN [PRELIM]"
+            },
+            {
+              "name": "Vt_HERTN",
+              "type": "double",
+              "units": "km/s",
+              "description": "Moment: Vt in HERTN [PRELIM]"
+            },
+            {
+              "name": "Vn_HERTN",
+              "type": "double",
+              "units": "km/s",
+              "description": "Moment: Vn in HERTN [PRELIM]"
+            },
+            {
+              "name": "Vr_RTN",
+              "type": "double",
+              "units": "km/s",
+              "description": "Moment: Vr in RTN [PRELIM]"
+            },
+            {
+              "name": "Vt_RTN",
+              "type": "double",
+              "units": "km/s",
+              "description": "Moment: Vt in RTN [PRELIM]"
+            },
+            {
+              "name": "Vn_RTN",
+              "type": "double",
+              "units": "km/s",
+              "description": "Moment: Vn in RTN [PRELIM]"
+            },
+            {
+              "name": "N_S_flow_angle_HERTN",
+              "type": "double",
+              "units": "deg",
+              "description": "Proton N/S Flow Angle. HERTN [PRELIM]"
+            },
+            {
+              "name": "N_S_flow_angle_RTN",
+              "type": "double",
+              "units": "deg",
+              "description": "Proton N/S Flow Angle. RTN [PRELIM]"
+            },
+            {
+              "name": "E_W_flow_angle_HERTN",
+              "type": "double",
+              "units": "deg",
+              "description": "Proton E/W Flow Angle. HERTN [PRELIM]"
+            },
+            {
+              "name": "E_W_flow_angle_RTN",
+              "type": "double",
+              "units": "deg",
+              "description": "Proton E/W Flow Angle. RTN [PRELIM]"
+            },
+            {
+              "name": "Temperature_Inst",
+              "type": "double",
+              "units": "K",
+              "description": "Moment: Temperature xx in Instrument Coordinates. [PRELIM]"
+            },
+            {
+              "name": "Pressure_Inst",
+              "type": "double",
+              "units": "Pa",
+              "description": "Moment: Pressure xx in Instrument Coordinates. [PRELIM]"
+            }
+          ]
+        }
+      }
+    }
+  },
+  "_meta": {
+    "generated_at": "2026-02-08T09:24:41Z",
+    "hapi_server": "https://cdaweb.gsfc.nasa.gov/hapi"
+  }
+}

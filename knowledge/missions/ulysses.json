@@ -1,0 +1,2040 @@
+{
+  "id": "ULYSSES",
+  "name": "Ulysses",
+  "keywords": [
+    "ulysses",
+    "uy"
+  ],
+  "profile": {
+    "description": "Ulysses spacecraft data from CDAWeb.",
+    "coordinate_systems": [],
+    "typical_cadence": "",
+    "data_caveats": [],
+    "analysis_patterns": []
+  },
+  "instruments": {
+    "General": {
+      "name": "General",
+      "keywords": [],
+      "datasets": {
+        "ULYSSES_HELIO1DAY_POSITION": {
+          "description": "",
+          "start_date": "1990-10-07T00:00:00Z",
+          "stop_date": "2015-12-09T00:00:00Z",
+          "parameters": [
+            {
+              "name": "RAD_AU",
+              "type": "double",
+              "units": "AU",
+              "description": "Distance from Sun to object"
+            },
+            {
+              "name": "SE_LAT",
+              "type": "double",
+              "units": "deg",
+              "description": "Latitude in Solar Ecliptic Coordinate System (SE)"
+            },
+            {
+              "name": "SE_LON",
+              "type": "double",
+              "units": "deg",
+              "description": "Longitude in Solar Ecliptic Coordinate System (SE)"
+            },
+            {
+              "name": "HG_LAT",
+              "type": "double",
+              "units": "deg",
+              "description": "Latitude in heliographic Rotating Coordinate System (HG)"
+            },
+            {
+              "name": "HG_LON",
+              "type": "double",
+              "units": "deg",
+              "description": "Longitude in Heliographic Rotating Coordinate System (HG)"
+            },
+            {
+              "name": "HGI_LAT",
+              "type": "double",
+              "units": "deg",
+              "description": "Latitude in heliographic Inertial Coordinate System (HGI)"
+            },
+            {
+              "name": "HGI_LON",
+              "type": "double",
+              "units": "deg",
+              "description": "Longitude in heliographic Inertial Coordinate System (HGI)"
+            }
+          ]
+        },
+        "ULYSSES_HELIO1HR_POSITION": {
+          "description": "",
+          "start_date": "1990-10-07T00:00:00Z",
+          "stop_date": "2049-12-31T23:00:00Z",
+          "parameters": [
+            {
+              "name": "RAD_AU",
+              "type": "double",
+              "units": "AU",
+              "description": "Distance from Sun to object"
+            },
+            {
+              "name": "SE_LAT",
+              "type": "double",
+              "units": "deg",
+              "description": "Latitude in Solar Ecliptic Coordinate System (SE)"
+            },
+            {
+              "name": "SE_LON",
+              "type": "double",
+              "units": "deg",
+              "description": "Longitude in Solar Ecliptic Coordinate System (SE)"
+            },
+            {
+              "name": "HG_LAT",
+              "type": "double",
+              "units": "deg",
+              "description": "Latitude in heliographic Rotating Coordinate System (HG)"
+            },
+            {
+              "name": "HG_LON",
+              "type": "double",
+              "units": "deg",
+              "description": "Longitude in Heliographic Rotating Coordinate System (HG)"
+            },
+            {
+              "name": "HGI_LAT",
+              "type": "double",
+              "units": "deg",
+              "description": "Latitude in heliographic Inertial Coordinate System (HGI)"
+            },
+            {
+              "name": "HGI_LON",
+              "type": "double",
+              "units": "deg",
+              "description": "Longitude in heliographic Inertial Coordinate System (HGI)"
+            }
+          ]
+        },
+        "UY_1MIN_VHM": {
+          "description": "",
+          "start_date": "1990-10-25T16:51:30Z",
+          "stop_date": "2009-06-30T18:49:30Z",
+          "parameters": [
+            {
+              "name": "B_RTN",
+              "type": "double",
+              "units": "nT",
+              "description": "Magnetic field components in RTN coordinates",
+              "size": [
+                3
+              ]
+            },
+            {
+              "name": "B_MAG",
+              "type": "double",
+              "units": "nT",
+              "description": "Magnetic field magnitude"
+            }
+          ]
+        },
+        "UY_1SEC_VHM": {
+          "description": "",
+          "start_date": "1990-10-25T16:50:45Z",
+          "stop_date": "2009-06-30T18:49:11Z",
+          "parameters": [
+            {
+              "name": "B_RTN",
+              "type": "double",
+              "units": "nT",
+              "description": "Magnetic field components in RTN coordinates",
+              "size": [
+                3
+              ]
+            },
+            {
+              "name": "B_MAG",
+              "type": "double",
+              "units": "nT",
+              "description": "Magnetic field magnitude"
+            }
+          ]
+        },
+        "UY_ALPHA-DISTRIBUTIONS_SWOOPS": {
+          "description": "",
+          "start_date": "1990-11-18T12:56:11Z",
+          "stop_date": "2009-06-30T15:38:12Z",
+          "parameters": [
+            {
+              "name": "heliographicLatitude",
+              "type": "double",
+              "units": "deg",
+              "description": "Heliographic latitude"
+            },
+            {
+              "name": "heliocentricDistance",
+              "type": "double",
+              "units": "AU",
+              "description": "Heliocentric Distance"
+            },
+            {
+              "name": "BR",
+              "type": "double",
+              "units": "nT",
+              "description": "Magnetic field component BR in inertial RTN coordinates"
+            },
+            {
+              "name": "BT",
+              "type": "double",
+              "units": "nT",
+              "description": "Magnetic field component BT in inertial RTN coordinates"
+            },
+            {
+              "name": "BN",
+              "type": "double",
+              "units": "nT",
+              "description": "Magnetic field component BN in inertial RTN coordinates"
+            },
+            {
+              "name": "B_MAG",
+              "type": "double",
+              "units": "nT",
+              "description": "Magnetic field magnitude"
+            },
+            {
+              "name": "V_MAG",
+              "type": "double",
+              "units": "km/s",
+              "description": "Alpha particle speed in inertial RTN coordinates"
+            },
+            {
+              "name": "Matrix",
+              "type": "double",
+              "units": "s^3/(km^3-cm^3)",
+              "description": "Log10 of the distribution function of alpha particles",
+              "size": [
+                50,
+                25
+              ]
+            },
+            {
+              "name": "v_par",
+              "type": "double",
+              "units": "km/s",
+              "description": "v_par",
+              "size": [
+                50
+              ]
+            },
+            {
+              "name": "v_per",
+              "type": "double",
+              "units": "km/s",
+              "description": "v_per",
+              "size": [
+                25
+              ]
+            }
+          ]
+        },
+        "UY_ALPHA-FIT-PARAMETERS_SWOOPS": {
+          "description": "",
+          "start_date": "1990-11-18T12:56:11Z",
+          "stop_date": "2009-06-30T15:38:12Z",
+          "parameters": [
+            {
+              "name": "heliographicLatitude",
+              "type": "double",
+              "units": "deg",
+              "description": "Heliographic latitude"
+            },
+            {
+              "name": "heliocentricDistance",
+              "type": "double",
+              "units": "AU",
+              "description": "Heliocentric Distance"
+            },
+            {
+              "name": "dnft1",
+              "type": "double",
+              "units": "1/cm^3",
+              "description": "Alpha particle density of first population"
+            },
+            {
+              "name": "dnft2",
+              "type": "double",
+              "units": "1/cm^3",
+              "description": "Alpha particle density of second population"
+            },
+            {
+              "name": "vft1",
+              "type": "double",
+              "units": "km/s",
+              "description": "Speed of first population (relative to <Vparallel>)"
+            },
+            {
+              "name": "vft2",
+              "type": "double",
+              "units": "km/s",
+              "description": "Speed of second population (relative to <Vparallel>)"
+            },
+            {
+              "name": "wpar1",
+              "type": "double",
+              "units": "km/s",
+              "description": "Alpha particle thermal parallel speed of first population"
+            },
+            {
+              "name": "wpar2",
+              "type": "double",
+              "units": "km/s",
+              "description": "Alpha particle thermal parallel speed of second population"
+            },
+            {
+              "name": "wper1",
+              "type": "double",
+              "units": "km/s",
+              "description": "Alpha particle thermal perpendicular speed of first population"
+            },
+            {
+              "name": "wper2",
+              "type": "double",
+              "units": "km/s",
+              "description": "Alpha particle thermal perpendicular speed of second population"
+            },
+            {
+              "name": "anis1",
+              "type": "double",
+              "units": " ",
+              "description": "Alpha particle T_par/T_per for first population"
+            },
+            {
+              "name": "anis2",
+              "type": "double",
+              "units": " ",
+              "description": "Alpha particle T_par/T_per for second population"
+            },
+            {
+              "name": "denrat",
+              "type": "double",
+              "units": " ",
+              "description": "Normalized total density (dnft1+dnft2)/dens"
+            },
+            {
+              "name": "V_MAG",
+              "type": "double",
+              "units": "km/s",
+              "description": "Alpha particle speed in inertial RTN coordinates"
+            },
+            {
+              "name": "Valf",
+              "type": "double",
+              "units": "km/s",
+              "description": "Alfven speed               "
+            },
+            {
+              "name": "Vap",
+              "type": "double",
+              "units": "km/s",
+              "description": "Magnitude of proton-alpha streaming vector"
+            },
+            {
+              "name": "BR",
+              "type": "double",
+              "units": "nT",
+              "description": "Magnetic field component BR in inertial RTN coordinates"
+            },
+            {
+              "name": "BT",
+              "type": "double",
+              "units": "nT",
+              "description": "Magnetic field component BT in inertial RTN coordinates"
+            },
+            {
+              "name": "BN",
+              "type": "double",
+              "units": "nT",
+              "description": "Magnetic field component BN in inertial RTN coordinates                  "
+            },
+            {
+              "name": "B_MAG",
+              "type": "double",
+              "units": "nT",
+              "description": "Magnetic field magnitude"
+            }
+          ]
+        },
+        "UY_ALPHA-MOMENTS_SWOOPS": {
+          "description": "",
+          "start_date": "1990-11-18T12:56:11Z",
+          "stop_date": "2009-06-30T15:38:12Z",
+          "parameters": [
+            {
+              "name": "heliographicLatitude",
+              "type": "double",
+              "units": "deg",
+              "description": "Heliographic latitude"
+            },
+            {
+              "name": "heliocentricDistance",
+              "type": "double",
+              "units": "AU",
+              "description": "Heliocentric Distance"
+            },
+            {
+              "name": "BR",
+              "type": "double",
+              "units": "nT",
+              "description": "Magnetic field component BR in inertial RTN coordinates"
+            },
+            {
+              "name": "BT",
+              "type": "double",
+              "units": "nT",
+              "description": "Magnetic field component BT in inertial RTN coordinates"
+            },
+            {
+              "name": "BN",
+              "type": "double",
+              "units": "nT",
+              "description": "Magnetic field component BN in inertial RTN coordinates"
+            },
+            {
+              "name": "B_MAG",
+              "type": "double",
+              "units": "nT",
+              "description": "Magnetic field magnitude"
+            },
+            {
+              "name": "V_MAG",
+              "type": "double",
+              "units": "km/s",
+              "description": "Alpha particle speed in inertial RTN coordinates"
+            },
+            {
+              "name": "VR",
+              "type": "double",
+              "units": "km/s",
+              "description": "Alpha particle velocity component VR in inertial RTN coordinates"
+            },
+            {
+              "name": "VT",
+              "type": "double",
+              "units": "km/s",
+              "description": "Alpha particle velocity component VT in inertial RTN coordinates"
+            },
+            {
+              "name": "VN",
+              "type": "double",
+              "units": "km/s",
+              "description": "Alpha particle velocity component VN in inertial RTN coordinates"
+            },
+            {
+              "name": "Tpar",
+              "type": "double",
+              "units": "K",
+              "description": "Temperature of alphas parallel to the magnetic field"
+            },
+            {
+              "name": "Tper",
+              "type": "double",
+              "units": "K",
+              "description": "Temperature of alphas perpendicular to the magnetic field"
+            },
+            {
+              "name": "dens",
+              "type": "double",
+              "units": "1/cm^3",
+              "description": "Number density of alphas"
+            }
+          ]
+        },
+        "UY_COHO1HR_MERGED_MAG_PLASMA": {
+          "description": "",
+          "start_date": "1990-01-01T00:00:00Z",
+          "stop_date": "2009-12-31T23:00:00Z",
+          "parameters": [
+            {
+              "name": "heliocentricDistance",
+              "type": "double",
+              "units": "Au",
+              "description": "Heliocentric distance (start of data interval)"
+            },
+            {
+              "name": "heliographicLatitude",
+              "type": "double",
+              "units": "deg",
+              "description": "HelioGraphic Inertial (HGI) latitude"
+            },
+            {
+              "name": "heliographicLongitude",
+              "type": "double",
+              "units": "deg",
+              "description": "HGI longitude"
+            },
+            {
+              "name": "BR",
+              "type": "double",
+              "units": "nT",
+              "description": "BR in RTN (Radial-Tangential-Normal) coordinate system"
+            },
+            {
+              "name": "BT",
+              "type": "double",
+              "units": "nT",
+              "description": "BT in RTN coordinate system"
+            },
+            {
+              "name": "BN",
+              "type": "double",
+              "units": "nT",
+              "description": "BN in RTN coordinate system"
+            },
+            {
+              "name": "ABS_B",
+              "type": "double",
+              "units": "nT",
+              "description": "B Field Magnitude (average of fine scale magnitudes)"
+            },
+            {
+              "name": "numVectorsMagFldAvg",
+              "type": "integer",
+              "units": " ",
+              "description": "Number of vectors for Mag field to the average"
+            },
+            {
+              "name": "plasmaFlowSpeed",
+              "type": "double",
+              "units": "km/s",
+              "description": "Plasma Flow Speed (RTN)"
+            },
+            {
+              "name": "elevAngle",
+              "type": "double",
+              "units": "Deg",
+              "description": "Proton flow elevation angle / latitude (RTN)"
+            },
+            {
+              "name": "azimuthAngle",
+              "type": "double",
+              "units": "Deg",
+              "description": "Proton flow azimuth angle / longitude (RTN)"
+            },
+            {
+              "name": "protonDensity",
+              "type": "double",
+              "units": "n/cc",
+              "description": "Proton density"
+            },
+            {
+              "name": "alphaDensity",
+              "type": "double",
+              "units": "n/cc",
+              "description": "Alpha density"
+            },
+            {
+              "name": "protonTempLarge",
+              "type": "double",
+              "units": "deg k",
+              "description": "Proton Temperature (Large)"
+            },
+            {
+              "name": "protonTempSmall",
+              "type": "double",
+              "units": "deg k",
+              "description": "Proton Temperature (Small)"
+            },
+            {
+              "name": "protonFlux1_LET",
+              "type": "double",
+              "units": "1/(sec-cm**2-ster-MeV)",
+              "description": "Proton Flux 2.0 - 4.0, MeV COSPIN, LET"
+            },
+            {
+              "name": "protonFlux2_LET",
+              "type": "double",
+              "units": "1/(sec-cm**2-ster-MeV)",
+              "description": "Proton Flux 4.0 - 6.0, MeV COSPIN, LET"
+            },
+            {
+              "name": "protonFlux3_LET",
+              "type": "double",
+              "units": "1/(sec-cm**2-ster-MeV)",
+              "description": "Proton Flux 6.0 - 8.0, MeV COSPIN, LET"
+            },
+            {
+              "name": "protonFlux4_LET",
+              "type": "double",
+              "units": "1/(sec-cm**2-ster-MeV)",
+              "description": "Proton Flux 8.0 - 16.0, MeV COSPIN, LET"
+            },
+            {
+              "name": "protonFlux5_LET",
+              "type": "double",
+              "units": "1/(sec-cm**2-ster-MeV)",
+              "description": "Proton Flux 16.0 - 20.0, MeV COSPIN, LET"
+            },
+            {
+              "name": "protonFlux1_HET",
+              "type": "double",
+              "units": "1/(sec-cm**2-ster-MeV)",
+              "description": "Proton Flux 39.0 - 70.0, MeV COSPIN, HET"
+            },
+            {
+              "name": "protonFlux2_HET",
+              "type": "double",
+              "units": "1/(sec-cm**2-ster-MeV)",
+              "description": "Proton Flux 71.0 - 94.0, MeV COSPIN, HET"
+            }
+          ]
+        },
+        "UY_H0_GLG": {
+          "description": "",
+          "start_date": "1990-11-08T18:48:01Z",
+          "stop_date": "2005-12-31T23:51:06Z",
+          "parameters": [
+            {
+              "name": "MATRIX_RATE_0",
+              "type": "double",
+              "units": null,
+              "description": "H+, protons, measured in triple coincidence",
+              "size": [
+                64
+              ]
+            },
+            {
+              "name": "MATRIX_RATE_1",
+              "type": "double",
+              "units": null,
+              "description": "4He++, alpha particles, measured in triple coincidence",
+              "size": [
+                64
+              ]
+            },
+            {
+              "name": "MATRIX_RATE_2",
+              "type": "double",
+              "units": null,
+              "description": "H+, protons, measured in double coincidence",
+              "size": [
+                64
+              ]
+            },
+            {
+              "name": "MATRIX_RATE_3",
+              "type": "double",
+              "units": null,
+              "description": "4He+, singly charged helium, measured in double coincidence",
+              "size": [
+                64
+              ]
+            },
+            {
+              "name": "MATRIX_RATE_4",
+              "type": "double",
+              "units": null,
+              "description": "Heavy ions with m/q>10, measured in double coincidence",
+              "size": [
+                64
+              ]
+            },
+            {
+              "name": "MATRIX_RATE_5",
+              "type": "double",
+              "units": null,
+              "description": "C4+ and C5+ nominal, with spillover from N and O",
+              "size": [
+                64
+              ]
+            },
+            {
+              "name": "MATRIX_RATE_6",
+              "type": "double",
+              "units": null,
+              "description": "C6+ nominal, with spillover from N and O",
+              "size": [
+                64
+              ]
+            },
+            {
+              "name": "MATRIX_RATE_7",
+              "type": "double",
+              "units": null,
+              "description": "N5+ to N7+ nominal, with strong spillover from C and O",
+              "size": [
+                64
+              ]
+            },
+            {
+              "name": "MATRIX_RATE_8",
+              "type": "double",
+              "units": null,
+              "description": "O6+ nominal, with spillover from C, N, and Ne",
+              "size": [
+                64
+              ]
+            },
+            {
+              "name": "MATRIX_RATE_9",
+              "type": "double",
+              "units": null,
+              "description": "O7+ and O8+ nominal, with spillover from C, N, and Ne",
+              "size": [
+                64
+              ]
+            },
+            {
+              "name": "MATRIX_RATE_10",
+              "type": "double",
+              "units": null,
+              "description": "Ne8+ nominal, with spillover from O and Mg",
+              "size": [
+                64
+              ]
+            },
+            {
+              "name": "MATRIX_RATE_11",
+              "type": "double",
+              "units": null,
+              "description": "Mg6+ to Mg8+ nominal, with spillover from Si",
+              "size": [
+                64
+              ]
+            },
+            {
+              "name": "MATRIX_RATE_12",
+              "type": "double",
+              "units": null,
+              "description": "Mg9+ to Mg11+ nominal, with spillover from O, Ne, and Si",
+              "size": [
+                64
+              ]
+            },
+            {
+              "name": "MATRIX_RATE_13",
+              "type": "double",
+              "units": null,
+              "description": "Si5+ to Si8+ nominal, with spillover from Mg and S",
+              "size": [
+                64
+              ]
+            },
+            {
+              "name": "MATRIX_RATE_14",
+              "type": "double",
+              "units": null,
+              "description": "Si9+ to Si12+ nominal, with spillover from Mg and S",
+              "size": [
+                64
+              ]
+            },
+            {
+              "name": "MATRIX_RATE_15",
+              "type": "double",
+              "units": null,
+              "description": "S6+ to S14+ nominal, with spillover from Mg, Si, and Fe",
+              "size": [
+                64
+              ]
+            },
+            {
+              "name": "MATRIX_RATE_16",
+              "type": "double",
+              "units": null,
+              "description": "Fe7+ to Fe9+ nominal, with spillover from Si and S",
+              "size": [
+                64
+              ]
+            },
+            {
+              "name": "MATRIX_RATE_17",
+              "type": "double",
+              "units": null,
+              "description": "Fe10+ to Fe14+ nominal, with spillover from Si and S",
+              "size": [
+                64
+              ]
+            }
+          ]
+        },
+        "UY_M0_AT1": {
+          "description": "",
+          "start_date": "1991-01-01T00:05:00Z",
+          "stop_date": "2008-12-31T23:55:00Z",
+          "parameters": [
+            {
+              "name": "Z_ge_1",
+              "type": "double",
+              "units": "/cm2/s/sr/MeV/n",
+              "description": "Z>=1 flux (0.7-2.2 MeV/n) in 3 channels (A1:0.7-0.9,A2:0.9-1.3,A3:1.3-2.2 MeV/n)",
+              "size": [
+                3
+              ]
+            },
+            {
+              "name": "Protons",
+              "type": "double",
+              "units": "/cm2/s/sr/MeV",
+              "description": "Proton flux (2.2-6.6 MeV) in 2 channels (A4:2.2-3.6, A5:3.6-6.6 MeV)",
+              "size": [
+                2
+              ]
+            },
+            {
+              "name": "Zge1_sectors",
+              "type": "double",
+              "units": "/cm2/s/sr/MeV/n",
+              "description": "Z >= 1 flux (0.7-1.3 MeV/n) in 8 sectors (channels A6 - A13)",
+              "size": [
+                8
+              ]
+            },
+            {
+              "name": "Z_ge_2",
+              "type": "double",
+              "units": "/cm2/s/sr/MeV/n",
+              "description": "Z>=2 flux (3.1-23 MeV/n) in 3 channels (A38:3.1-7.2,A39:7.2-12,A40:12-23 MeV/n)",
+              "size": [
+                3
+              ]
+            }
+          ]
+        },
+        "UY_M0_AT2": {
+          "description": "",
+          "start_date": "1991-01-01T00:05:00Z",
+          "stop_date": "2008-12-31T23:55:00Z",
+          "parameters": [
+            {
+              "name": "Z_ge_1",
+              "type": "double",
+              "units": "/cm2/s/sr/MeV/n",
+              "description": "Z>=1 flux (0.7-2.2 MeV/n) in 3 channels (A1:0.7-0.9,A2:0.9-1.3,A3:1.3-2.2 MeV/n)",
+              "size": [
+                3
+              ]
+            },
+            {
+              "name": "Protons",
+              "type": "double",
+              "units": "/cm2/s/sr/MeV",
+              "description": "Proton flux (2.2-6.6 MeV) in 2 channels (A4:2.2-3.6, A5:3.6-6.6 MeV)",
+              "size": [
+                2
+              ]
+            },
+            {
+              "name": "Zge1_sectors",
+              "type": "double",
+              "units": "/cm2/s/sr/MeV/n",
+              "description": "Z >= 1 flux (0.7-1.3 MeV/n) in 8 sectors (channels A6 - A13)",
+              "size": [
+                8
+              ]
+            },
+            {
+              "name": "Z_ge_2",
+              "type": "double",
+              "units": "/cm2/s/sr/MeV/n",
+              "description": "Z>=2 flux (3.1-23 MeV/n) in 3 channels (A38:3.1-7.2,A39:7.2-12,A40:12-23 MeV/n)",
+              "size": [
+                3
+              ]
+            }
+          ]
+        },
+        "UY_M0_BAE": {
+          "description": "",
+          "start_date": "1990-11-18T00:55:16Z",
+          "stop_date": "2004-12-31T00:00:00Z",
+          "parameters": [
+            {
+              "name": "Density",
+              "type": "double",
+              "units": "/cm3",
+              "description": "Electron total, core & halo number density",
+              "size": [
+                3
+              ]
+            },
+            {
+              "name": "Temperature",
+              "type": "double",
+              "units": "deg-K",
+              "description": "Total, core & halo electron temperatures",
+              "size": [
+                3
+              ]
+            }
+          ]
+        },
+        "UY_M0_BAI": {
+          "description": "",
+          "start_date": "1990-11-18T00:33:48Z",
+          "stop_date": "2009-06-30T15:54:12Z",
+          "parameters": [
+            {
+              "name": "Density",
+              "type": "double",
+              "units": "/cm3",
+              "description": "Particle density of protons and alphas",
+              "size": [
+                2
+              ]
+            },
+            {
+              "name": "Temperature",
+              "type": "double",
+              "units": "deg-K",
+              "description": "Proton temperatures TLARGE and TSMALL",
+              "size": [
+                2
+              ]
+            },
+            {
+              "name": "Velocity",
+              "type": "double",
+              "units": "km/s",
+              "description": "Plasma velocity in RTN components",
+              "size": [
+                3
+              ]
+            }
+          ]
+        },
+        "UY_M0_GRB": {
+          "description": "",
+          "start_date": "1990-11-10T00:02:30Z",
+          "stop_date": "2006-12-31T00:00:00Z",
+          "parameters": [
+            {
+              "name": "Count_Rate",
+              "type": "double",
+              "units": "c/s",
+              "description": "Filtered 5 Min. Average Count Rate"
+            }
+          ]
+        },
+        "UY_M0_HET": {
+          "description": "",
+          "start_date": "1990-10-23T16:40:00Z",
+          "stop_date": "2009-06-30T19:10:00Z",
+          "parameters": [
+            {
+              "name": "Protons",
+              "type": "double",
+              "units": "/s",
+              "description": "Proton count rate (5-92MeV), 5 channels (H1:5-14,H2:14-19,H3:24-31,H4:34-48,H5:68-92 MeV)",
+              "size": [
+                5
+              ]
+            },
+            {
+              "name": "Electrons",
+              "type": "double",
+              "units": "/s",
+              "description": "Electron count rate (1-10 MeV) in 3 channels (H6:1-3, H7:5-10, H8:3-5 MeV)",
+              "size": [
+                3
+              ]
+            },
+            {
+              "name": "HiE_protons",
+              "type": "double",
+              "units": "/s",
+              "description": "Proton count rate (>92 MeV), channel H9"
+            },
+            {
+              "name": "Z_ge_3",
+              "type": "double",
+              "units": "/s",
+              "description": "Z>=3 count rate (26-173+ MeV/n), 4 channels (H10:26-36,H11:44-127,H12:127-173,H13:>173 MeV/n)",
+              "size": [
+                4
+              ]
+            }
+          ]
+        },
+        "UY_M0_HFT": {
+          "description": "",
+          "start_date": "1991-01-01T00:00:00Z",
+          "stop_date": "2008-08-31T23:50:00Z",
+          "parameters": [
+            {
+              "name": "F1J_protons",
+              "type": "double",
+              "units": "/cm2/s/sr",
+              "description": "Z>=1 flux (mainly protons), 0.28-2.27 MeV, 3 channels: F1J(0) - F1J(2)",
+              "size": [
+                3
+              ]
+            },
+            {
+              "name": "F1J_helium",
+              "type": "double",
+              "units": " ",
+              "description": "Z>=2 flux (mainly helium), 0.31-5.4 MeV/n, in 11 channels: F1J(3) to F1J(13)",
+              "size": [
+                11
+              ]
+            },
+            {
+              "name": "F1J_oxygen",
+              "type": "double",
+              "units": "/cm2/s/sr",
+              "description": "Z>=2 flux (mainly oxygen), >= 0.34 MeV/n, in 2 channels: F1J(14) to F1J(15)",
+              "size": [
+                2
+              ]
+            },
+            {
+              "name": "F2_protons",
+              "type": "double",
+              "units": "/cm2/s/sr",
+              "description": "Z>=1 flux (mainly protons), 0.29-6.7 MeV,channels F2L: 0.29-6.7, F2H: 0.55-1.95 MeV",
+              "size": [
+                2
+              ]
+            },
+            {
+              "name": "F3_helium",
+              "type": "double",
+              "units": "/cm2/s/sr",
+              "description": "Z>=2 flux (mainly helium), 0.68-1.56 MeV/n, channel F3"
+            },
+            {
+              "name": "F4_C_O",
+              "type": "double",
+              "units": "/cm2/s/sr",
+              "description": "Z>=3 flux (mainly carbon 0.8-4.9 MeV/n, oxygen 0.64-10.7 MeV/n), channel F4"
+            },
+            {
+              "name": "F5_S_Fe",
+              "type": "double",
+              "units": "/cm2/s/sr",
+              "description": "Z>=12 flux (mainly sulphur 1.28-8.5, iron 0.8-34 MeV/n), channel F5"
+            },
+            {
+              "name": "F2S_protons",
+              "type": "double",
+              "units": "/cm2/s/sr",
+              "description": "Z>=1 flux (mainly protons), in 32 sectors, channel F2S",
+              "size": [
+                32
+              ]
+            }
+          ]
+        },
+        "UY_M0_KET": {
+          "description": "",
+          "start_date": "1990-10-23T00:10:00Z",
+          "stop_date": "2009-06-30T16:30:00Z",
+          "parameters": [
+            {
+              "name": "LowE_protons",
+              "type": "double",
+              "units": "/s",
+              "description": "Proton count rate (2.7-5.4 MeV) channel K1"
+            },
+            {
+              "name": "Proton_sectors",
+              "type": "double",
+              "units": "/s",
+              "description": "Proton flux (5.4-23.1 MeV) in 8 sectors, channels K21 - K28",
+              "size": [
+                8
+              ]
+            },
+            {
+              "name": "HiE_protons",
+              "type": "double",
+              "units": "/s",
+              "description": "Proton count rate (5.4-2100+ MeV), in 5 channels: P4, K3, K34, K12, K10",
+              "size": [
+                5
+              ]
+            },
+            {
+              "name": "Helium",
+              "type": "double",
+              "units": "/s",
+              "description": "Helium count rate (6-2100+ MeV) in 5 channels: K2, K33, K29, K31, K30",
+              "size": [
+                5
+              ]
+            },
+            {
+              "name": "Electron_sectors",
+              "type": "double",
+              "units": "/s",
+              "description": "Electron count rate (2.5-7 MeV) in 8 sectors, channels K13 - K20",
+              "size": [
+                8
+              ]
+            },
+            {
+              "name": "Electrons",
+              "type": "double",
+              "units": "/s",
+              "description": "Electron count rate (2.5-170+ MeV) (E4:2.5-7, K11:7-170, K32:>170 MeV)",
+              "size": [
+                3
+              ]
+            },
+            {
+              "name": "Single_detector",
+              "type": "double",
+              "units": "/s",
+              "description": "Single detector counts in 6 channels (D10, D20, C10, C20, S20, A01)",
+              "size": [
+                6
+              ]
+            }
+          ]
+        },
+        "UY_M0_LET": {
+          "description": "",
+          "start_date": "1990-10-23T00:00:00Z",
+          "stop_date": "2009-06-30T23:50:00Z",
+          "parameters": [
+            {
+              "name": "LowE_protons",
+              "type": "double",
+              "units": "/cm2/s/sr/MeV",
+              "description": "Proton flux (0.9-3.8 MeV)",
+              "size": [
+                3
+              ]
+            },
+            {
+              "name": "LowE_proton_sectors",
+              "type": "double",
+              "units": "/cm2/s/sr/MeV",
+              "description": "Proton flux (0.9-3.8 MeV) in 8 sectors",
+              "size": [
+                8
+              ]
+            },
+            {
+              "name": "MidE_protons",
+              "type": "double",
+              "units": "/cm2/s/sr/MeV",
+              "description": "Proton flux (3.8-8.0 MeV)"
+            },
+            {
+              "name": "MidE_proton_sectors",
+              "type": "double",
+              "units": "/cm2/s/sr/MeV",
+              "description": "Proton flux (3.8-8.0 MeV) in 8 sectors",
+              "size": [
+                8
+              ]
+            },
+            {
+              "name": "HiE_protons",
+              "type": "double",
+              "units": "/cm2/s/sr/MeV",
+              "description": "Proton flux (8.0-19.0 MeV)"
+            },
+            {
+              "name": "Alphas",
+              "type": "double",
+              "units": "/cm2/s/sr/MeV/n",
+              "description": "Alpha flux (1.0-19.0 MeV/n)",
+              "size": [
+                4
+              ]
+            },
+            {
+              "name": "Li_Be_B",
+              "type": "double",
+              "units": "/cm2/s/sr/MeV/n",
+              "description": "Li,Be,B flux (1.9-26.0 MeV/n)",
+              "size": [
+                2
+              ]
+            },
+            {
+              "name": "C_N_O",
+              "type": "double",
+              "units": "/cm2/s/sr/MeV/n",
+              "description": "C,N,O flux (2.6-39.0 MeV/n)",
+              "size": [
+                2
+              ]
+            },
+            {
+              "name": "Z_ge_10",
+              "type": "double",
+              "units": "/cm2/s/sr/MeV/n",
+              "description": "Z >= 10 flux (3.0-9.0 MeV/n)"
+            },
+            {
+              "name": "10_Z_20",
+              "type": "double",
+              "units": "/cm2/s/sr/MeV/n",
+              "description": "10<=Z<=20 flux (9.0-50.0 MeV/n)"
+            },
+            {
+              "name": "Z_ge_20",
+              "type": "double",
+              "units": "/cm2/s/sr/MeV/n",
+              "description": "Z >= 20 flux (12.0-75.0 MeV/n)"
+            },
+            {
+              "name": "Electrons",
+              "type": "double",
+              "units": "/cm2/s/sr/MeV",
+              "description": "Electron flux (0.3-1.0 MeV)"
+            },
+            {
+              "name": "Single_detector_rates",
+              "type": "double",
+              "units": "/s",
+              "description": "Single detector counting rates",
+              "size": [
+                5
+              ]
+            }
+          ]
+        },
+        "UY_M0_PFRA": {
+          "description": "",
+          "start_date": "1990-10-29T00:00:00Z",
+          "stop_date": "2004-12-31T00:00:00Z",
+          "parameters": [
+            {
+              "name": "Intensity",
+              "type": "double",
+              "units": "microVolt/Hz**0.5",
+              "description": "PFR Average electric field intensity in 16 channels",
+              "size": [
+                16
+              ]
+            }
+          ]
+        },
+        "UY_M0_PFRP": {
+          "description": "",
+          "start_date": "1990-10-29T00:00:00Z",
+          "stop_date": "2004-12-31T00:00:00Z",
+          "parameters": [
+            {
+              "name": "Intensity",
+              "type": "double",
+              "units": "microVolt/Hz**0.5",
+              "description": "PFR Peak electric field intensity in 16 channels",
+              "size": [
+                16
+              ]
+            }
+          ]
+        },
+        "UY_M0_R144": {
+          "description": "",
+          "start_date": "1990-11-03T00:00:00Z",
+          "stop_date": "2007-11-26T23:57:36Z",
+          "parameters": [
+            {
+              "name": "Intensity",
+              "type": "double",
+              "units": "microVolt/Hz**0.5",
+              "description": "RAR Electric field intensity in 76 channels",
+              "size": [
+                76
+              ]
+            }
+          ]
+        },
+        "UY_M0_RARA": {
+          "description": "",
+          "start_date": "1990-11-03T00:00:00Z",
+          "stop_date": "2007-11-26T23:50:00Z",
+          "parameters": [
+            {
+              "name": "Intensity",
+              "type": "double",
+              "units": "microVolt/Hz**0.5",
+              "description": "RAR Average electric field intensity in 25 channels",
+              "size": [
+                25
+              ]
+            }
+          ]
+        },
+        "UY_M0_RARP": {
+          "description": "",
+          "start_date": "1990-11-03T00:00:00Z",
+          "stop_date": "2007-11-26T23:50:00Z",
+          "parameters": [
+            {
+              "name": "Intensity",
+              "type": "double",
+              "units": "microVolt/Hz**0.5",
+              "description": "RAR Peak electric field intensity in 25 channels",
+              "size": [
+                25
+              ]
+            }
+          ]
+        },
+        "UY_M0_WFBA": {
+          "description": "",
+          "start_date": "1990-10-29T00:00:00Z",
+          "stop_date": "2004-12-31T00:00:00Z",
+          "parameters": [
+            {
+              "name": "Intensity",
+              "type": "double",
+              "units": "1.0e-15Tesla/Hz**0.5",
+              "description": "WFA Average magnetic field intensity in 22 channels",
+              "size": [
+                22
+              ]
+            }
+          ]
+        },
+        "UY_M0_WFBP": {
+          "description": "",
+          "start_date": "1990-10-29T00:00:00Z",
+          "stop_date": "2004-12-31T00:00:00Z",
+          "parameters": [
+            {
+              "name": "Intensity",
+              "type": "double",
+              "units": "1.0e-15Tesla/Hz**0.5",
+              "description": "WFA Peak magnetic field intensity in 22 channels",
+              "size": [
+                22
+              ]
+            }
+          ]
+        },
+        "UY_M0_WFEA": {
+          "description": "",
+          "start_date": "1990-10-29T00:00:00Z",
+          "stop_date": "2004-12-31T00:00:00Z",
+          "parameters": [
+            {
+              "name": "Intensity",
+              "type": "double",
+              "units": "microVolt/Hz**0.5",
+              "description": "WFA average electric field intensity in 22 channels",
+              "size": [
+                22
+              ]
+            }
+          ]
+        },
+        "UY_M0_WFEP": {
+          "description": "",
+          "start_date": "1990-10-29T00:00:00Z",
+          "stop_date": "2004-12-31T00:00:00Z",
+          "parameters": [
+            {
+              "name": "Intensity",
+              "type": "double",
+              "units": "microVolt/Hz**0.5",
+              "description": "WFA peak electric field intensity in 22 channels",
+              "size": [
+                22
+              ]
+            }
+          ]
+        },
+        "UY_M1_BAI": {
+          "description": "",
+          "start_date": "1990-11-18T04:30:00Z",
+          "stop_date": "2009-06-30T15:30:00Z",
+          "parameters": [
+            {
+              "name": "Density",
+              "type": "double",
+              "units": "/cm3",
+              "description": "Particle density of protons and alphas",
+              "size": [
+                2
+              ]
+            },
+            {
+              "name": "Temperature",
+              "type": "double",
+              "units": "deg-K",
+              "description": "Proton temperatures TLARGE and TSMALL",
+              "size": [
+                2
+              ]
+            },
+            {
+              "name": "Velocity",
+              "type": "double",
+              "units": "km/s",
+              "description": "Plasma velocity in RTN components",
+              "size": [
+                3
+              ]
+            }
+          ]
+        },
+        "UY_M1_EPA": {
+          "description": "",
+          "start_date": "1990-10-01T00:00:00Z",
+          "stop_date": "1997-12-31T23:00:00Z",
+          "parameters": [
+            {
+              "name": "Omni_Protons",
+              "type": "double",
+              "units": "/cm2/s/sr",
+              "description": "Omnidirectional proton flux (0.5-1.5 MeV) Telescopes 1-4 (OPTL1-OPTL4)",
+              "size": [
+                4
+              ]
+            },
+            {
+              "name": "PRTL2_sectors",
+              "type": "double",
+              "units": "/cm2/s/sr",
+              "description": "Telescope 2 proton flux (0.5-1 MeV) in 8 sectors (PRTL2)",
+              "size": [
+                8
+              ]
+            },
+            {
+              "name": "PRTL3_sectors",
+              "type": "double",
+              "units": "/cm2/s/sr",
+              "description": "Telescope 3 proton flux (0.5-1 MeV) in 8 sectors (PRTL3)",
+              "size": [
+                8
+              ]
+            },
+            {
+              "name": "LowE_Electrons",
+              "type": "double",
+              "units": "/cm2/s/sr",
+              "description": "Electron flux (0.1-0.4 MeV)Telescopes 1-4 (ELTL1-ELTL4)",
+              "size": [
+                4
+              ]
+            },
+            {
+              "name": "HiE_Electrons",
+              "type": "double",
+              "units": "/cm2/s/sr",
+              "description": "Electron flux (> 180 keV) Telescopes 1-4 (EHTL1-EHTL4)",
+              "size": [
+                4
+              ]
+            },
+            {
+              "name": "Event_rate",
+              "type": "double",
+              "units": "/cm2/s/sr",
+              "description": "Omnidirectional event rate, low, medium & high (channels ERL, ERM, ERH)",
+              "size": [
+                3
+              ]
+            },
+            {
+              "name": "PSTL1",
+              "type": "double",
+              "units": "/cm2/s/sr",
+              "description": "Proton Telescope 1 flux in 8 energy channels (0.5-1.5 MeV) and 8 sectors/channel: x>energy y>sector",
+              "size": [
+                8,
+                8
+              ]
+            },
+            {
+              "name": "PSTL2",
+              "type": "double",
+              "units": "/cm2/s/sr",
+              "description": "Proton Telescope 2 flux in 8 energy channels (0.5-1.5 MeV) and 8 sectors/energy: x>energy y>sector",
+              "size": [
+                8,
+                8
+              ]
+            },
+            {
+              "name": "PSTL3",
+              "type": "double",
+              "units": "/cm2/s/sr",
+              "description": "Proton Telescope 3 flux in 8 energy channels (0.5-1.5 MeV) and 8 sectors/energy: x>energy y>sector",
+              "size": [
+                8,
+                8
+              ]
+            },
+            {
+              "name": "PSTL4",
+              "type": "double",
+              "units": "/cm2/s/sr",
+              "description": "Proton Telescope 4 flux in 8 energy channels (0.5-1.5 MeV) and 8 sectors/energy: x>energy y>sector",
+              "size": [
+                8,
+                8
+              ]
+            }
+          ]
+        },
+        "UY_M1_LF15": {
+          "description": "",
+          "start_date": "1990-11-14T19:00:00Z",
+          "stop_date": "2008-12-31T23:00:00Z",
+          "parameters": [
+            {
+              "name": "Electrons",
+              "type": "double",
+              "units": "/s",
+              "description": "Electron counts in channels E1:40-65,E2:60-107,E3:107-170 and E4:170-280 keV",
+              "size": [
+                4
+              ]
+            },
+            {
+              "name": "Ions",
+              "type": "double",
+              "units": "/s",
+              "description": "Ion counts in channels FP5:540-765, FP6:765-1223 and FP7:1223-4942 keV",
+              "size": [
+                3
+              ]
+            }
+          ]
+        },
+        "UY_M1_LF60": {
+          "description": "",
+          "start_date": "1990-11-14T19:00:00Z",
+          "stop_date": "2008-12-31T23:00:00Z",
+          "parameters": [
+            {
+              "name": "Electrons",
+              "type": "double",
+              "units": "/s",
+              "description": "Electron counts in channels E1':42-65,E2':64-112,E3':112-178 and E4':178-290 keV",
+              "size": [
+                4
+              ]
+            },
+            {
+              "name": "Ions",
+              "type": "double",
+              "units": "/s",
+              "description": "Ion counts in channels FP5':546-761, FP6':761-1223 and FP7':1223-4974 keV",
+              "size": [
+                3
+              ]
+            }
+          ]
+        },
+        "UY_M1_LM12": {
+          "description": "",
+          "start_date": "1990-11-14T19:00:00Z",
+          "stop_date": "2008-12-31T23:00:00Z",
+          "parameters": [
+            {
+              "name": "Ions",
+              "type": "double",
+              "units": "/s",
+              "description": "Ion counts in 8 channels, P1' to P8' (61 keV to 4.752 MeV)",
+              "size": [
+                8
+              ]
+            }
+          ]
+        },
+        "UY_M1_LM30": {
+          "description": "",
+          "start_date": "1990-11-14T19:00:00Z",
+          "stop_date": "2008-12-31T23:00:00Z",
+          "parameters": [
+            {
+              "name": "Ions",
+              "type": "double",
+              "units": "/s",
+              "description": "Ion counts in 8 channels, P1 to P8 (56 keV to 5.0 MeV)",
+              "size": [
+                8
+              ]
+            }
+          ]
+        },
+        "UY_M1_LMDE": {
+          "description": "",
+          "start_date": "1990-11-14T19:00:00Z",
+          "stop_date": "2008-12-31T23:00:00Z",
+          "parameters": [
+            {
+              "name": "Electrons",
+              "type": "double",
+              "units": "/s",
+              "description": "Electron counts in 4 channels, DE1 to DE4 (30 to 300 keV)",
+              "size": [
+                4
+              ]
+            }
+          ]
+        },
+        "UY_M1_SCS": {
+          "description": "",
+          "start_date": "1990-12-07T20:02:48Z",
+          "stop_date": "2009-06-30T00:00:00Z",
+          "parameters": [
+            {
+              "name": "Velocity",
+              "type": "double",
+              "units": "km/s",
+              "description": "Alpha Velocity"
+            },
+            {
+              "name": "RATC6_C5",
+              "type": "double",
+              "units": " ",
+              "description": "Ratio of Carbon 6+ to 5+"
+            },
+            {
+              "name": "RATO7_O6",
+              "type": "double",
+              "units": " ",
+              "description": "Ratio of Oxygen 7+ to 6+"
+            },
+            {
+              "name": "RATFE_O ",
+              "type": "double",
+              "units": " ",
+              "description": "Abundance Ratio of Iron to Oxygen"
+            },
+            {
+              "name": "FECHARGE",
+              "type": "double",
+              "units": " ",
+              "description": "Iron Charge State"
+            }
+          ]
+        },
+        "UY_M1_SWI": {
+          "description": "",
+          "start_date": "1990-12-07T20:02:48Z",
+          "stop_date": "2009-06-30T00:00:00Z",
+          "parameters": [
+            {
+              "name": "Density",
+              "type": "double",
+              "units": " ",
+              "description": "Density ratio to O6+ of 8 species (Alphas,C6+,O6+,Ne8+,Mg10+,Si9+,S10+,Fe11+)",
+              "size": [
+                8
+              ]
+            },
+            {
+              "name": "Velocity",
+              "type": "double",
+              "units": "km/s",
+              "description": "Velocity of 8 species (Alphas,C6+,O6+,Ne8+,Mg10+,Si9+,S10+,Fe11+)",
+              "size": [
+                8
+              ]
+            },
+            {
+              "name": "Temperature",
+              "type": "double",
+              "units": "deg-K",
+              "description": "Temperature of 8 species (Alphas,C6+,O6+,Ne8+,Mg10+,Si9+,S10+,Fe11+)",
+              "size": [
+                8
+              ]
+            }
+          ]
+        },
+        "UY_M1_VHM": {
+          "description": "",
+          "start_date": "1990-10-25T16:30:00Z",
+          "stop_date": "2009-06-30T19:30:00Z",
+          "parameters": [
+            {
+              "name": "B_RTN",
+              "type": "double",
+              "units": "nT",
+              "description": "Magnetic field components in RTN coordinates",
+              "size": [
+                3
+              ]
+            },
+            {
+              "name": "B_MAG",
+              "type": "double",
+              "units": "nT",
+              "description": "Magnetic field magnitude"
+            }
+          ]
+        },
+        "UY_M1_WART": {
+          "description": "",
+          "start_date": "1990-11-14T19:00:00Z",
+          "stop_date": "2008-12-31T23:00:00Z",
+          "parameters": [
+            {
+              "name": "Protons",
+              "type": "double",
+              "units": "/s",
+              "description": "Proton counts in channels W1:0.480-0.966 and W2:0.966-1.204 MeV",
+              "size": [
+                2
+              ]
+            },
+            {
+              "name": "Alphas",
+              "type": "double",
+              "units": "/s",
+              "description": "Alpha counts in channels W3:0.380-1.278 and W4:1.277-6.984 MeV/n",
+              "size": [
+                2
+              ]
+            },
+            {
+              "name": "C_N_O",
+              "type": "double",
+              "units": "/s",
+              "description": "C, N, and O counts in channels W5:0.465-1.709 and W6:1.709-19.107 MeV/n",
+              "size": [
+                2
+              ]
+            },
+            {
+              "name": "Fe_group",
+              "type": "double",
+              "units": "/s",
+              "description": "Fe group counts in channels W7:0.239-0.840 and W8:0.840-92.663 MeV/n",
+              "size": [
+                2
+              ]
+            }
+          ]
+        },
+        "UY_M1_WRTD": {
+          "description": "",
+          "start_date": "1990-11-14T19:00:00Z",
+          "stop_date": "2008-12-31T23:00:00Z",
+          "parameters": [
+            {
+              "name": "Z_gt_1",
+              "type": "double",
+              "units": "/s",
+              "description": "Z > 1 counts in channel Z2 (>0.7 MeV)"
+            },
+            {
+              "name": "Z_gt_7",
+              "type": "double",
+              "units": "/s",
+              "description": "Z > 7 counts in channel Z2A (>7.5 MeV)"
+            },
+            {
+              "name": "Z_gt_5",
+              "type": "double",
+              "units": "/s",
+              "description": "Z > 5 counts in channel Z3 (>2.5 MeV)"
+            },
+            {
+              "name": "Z_gt_10",
+              "type": "double",
+              "units": "/s",
+              "description": "Z > 10 counts in channel Z4 (>9.0 MeV)"
+            }
+          ]
+        },
+        "UY_PROTON-DISTRIBUTIONS_SWOOPS": {
+          "description": "",
+          "start_date": "1990-11-18T02:52:56Z",
+          "stop_date": "2009-06-30T15:54:11Z",
+          "parameters": [
+            {
+              "name": "heliographicLatitude",
+              "type": "double",
+              "units": "deg",
+              "description": "Heliographic latitude"
+            },
+            {
+              "name": "heliocentricDistance",
+              "type": "double",
+              "units": "AU",
+              "description": "Heliocentric Distance"
+            },
+            {
+              "name": "BR",
+              "type": "double",
+              "units": "nT",
+              "description": "Magnetic field component BR in inertial RTN coordinates"
+            },
+            {
+              "name": "BT",
+              "type": "double",
+              "units": "nT",
+              "description": "Magnetic field component BT in inertial RTN coordinates"
+            },
+            {
+              "name": "BN",
+              "type": "double",
+              "units": "nT",
+              "description": "Magnetic field component BN in inertial RTN coordinates"
+            },
+            {
+              "name": "B_MAG",
+              "type": "double",
+              "units": "nT",
+              "description": "Magnetic field magnitude"
+            },
+            {
+              "name": "V_MAG",
+              "type": "double",
+              "units": "km/s",
+              "description": "Proton speed in inertial RTN coordinates"
+            },
+            {
+              "name": "Matrix",
+              "type": "double",
+              "units": "s^3/(km^3-cm^3)",
+              "description": "Log10 of the proton distribution function",
+              "size": [
+                50,
+                25
+              ]
+            },
+            {
+              "name": "v_par",
+              "type": "double",
+              "units": "km/s",
+              "description": "v_par",
+              "size": [
+                50
+              ]
+            },
+            {
+              "name": "v_per",
+              "type": "double",
+              "units": "km/s",
+              "description": "v_per",
+              "size": [
+                25
+              ]
+            }
+          ]
+        },
+        "UY_PROTON-FIT-PARAMETERS_SWOOPS": {
+          "description": "",
+          "start_date": "1990-11-18T02:52:56Z",
+          "stop_date": "2009-06-30T15:54:11Z",
+          "parameters": [
+            {
+              "name": "heliographicLatitude",
+              "type": "double",
+              "units": "deg",
+              "description": "Heliographic latitude"
+            },
+            {
+              "name": "heliocentricDistance",
+              "type": "double",
+              "units": "AU",
+              "description": "Heliocentric Distance"
+            },
+            {
+              "name": "dnft1",
+              "type": "double",
+              "units": "1/cm^3",
+              "description": "Proton density of first population"
+            },
+            {
+              "name": "dnft2",
+              "type": "double",
+              "units": "1/cm^3",
+              "description": "Proton density of second population"
+            },
+            {
+              "name": "vft1",
+              "type": "double",
+              "units": "km/s",
+              "description": "Speed of first population (relative to <Vparallel>)"
+            },
+            {
+              "name": "vft2",
+              "type": "double",
+              "units": "km/s",
+              "description": "Speed of second population (relative to <Vparallel>)"
+            },
+            {
+              "name": "wpar1",
+              "type": "double",
+              "units": "km/s",
+              "description": "Proton thermal parallel speed of first population"
+            },
+            {
+              "name": "wpar2",
+              "type": "double",
+              "units": "km/s",
+              "description": "Proton thermal parallel speed of second population"
+            },
+            {
+              "name": "wper1",
+              "type": "double",
+              "units": "km/s",
+              "description": "Proton thermal perpendicular speed of first population"
+            },
+            {
+              "name": "wper2",
+              "type": "double",
+              "units": "km/s",
+              "description": "Proton thermal perpendicular speed of second population"
+            },
+            {
+              "name": "anis1",
+              "type": "double",
+              "units": " ",
+              "description": "Proton T_par/T_per for first population"
+            },
+            {
+              "name": "anis2",
+              "type": "double",
+              "units": " ",
+              "description": "Proton T_par/T_per for second population"
+            },
+            {
+              "name": "denrat",
+              "type": "double",
+              "units": " ",
+              "description": "Normalized total density (dnft1+dnft2)/dens"
+            },
+            {
+              "name": "V_MAG",
+              "type": "double",
+              "units": "km/s",
+              "description": "Proton speed in inertial RTN coordinates"
+            },
+            {
+              "name": "Valf",
+              "type": "double",
+              "units": "km/s",
+              "description": "Alfven speed               "
+            },
+            {
+              "name": "Vap",
+              "type": "double",
+              "units": "km/s",
+              "description": "Magnitude of proton-alpha streaming vector"
+            },
+            {
+              "name": "BR",
+              "type": "double",
+              "units": "nT",
+              "description": "Magnetic field component BR in inertial RTN coordinates"
+            },
+            {
+              "name": "BT",
+              "type": "double",
+              "units": "nT",
+              "description": "Magnetic field component BT in inertial RTN coordinates"
+            },
+            {
+              "name": "BN",
+              "type": "double",
+              "units": "nT",
+              "description": "Magnetic field component BN in inertial RTN coordinates"
+            },
+            {
+              "name": "B_MAG",
+              "type": "double",
+              "units": "nT",
+              "description": "Magnetic field magnitude"
+            }
+          ]
+        },
+        "UY_PROTON-MOMENTS_SWOOPS": {
+          "description": "",
+          "start_date": "1990-11-18T02:52:56Z",
+          "stop_date": "2009-06-30T15:54:11Z",
+          "parameters": [
+            {
+              "name": "heliographicLatitude",
+              "type": "double",
+              "units": "deg",
+              "description": "Heliographic latitude"
+            },
+            {
+              "name": "heliocentricDistance",
+              "type": "double",
+              "units": "AU",
+              "description": "Heliocentric Distance"
+            },
+            {
+              "name": "BR",
+              "type": "double",
+              "units": "nT",
+              "description": "Magnetic field component BR in inertial RTN coordinates"
+            },
+            {
+              "name": "BT",
+              "type": "double",
+              "units": "nT",
+              "description": "Magnetic field component BT in inertial RTN coordinates"
+            },
+            {
+              "name": "BN",
+              "type": "double",
+              "units": "nT",
+              "description": "Magnetic field component BN in inertial RTN coordinates"
+            },
+            {
+              "name": "B_MAG",
+              "type": "double",
+              "units": "nT",
+              "description": "Magnetic field magnitude"
+            },
+            {
+              "name": "V_MAG",
+              "type": "double",
+              "units": "km/s",
+              "description": "Proton speed in inertial RTN coordinates"
+            },
+            {
+              "name": "VR",
+              "type": "double",
+              "units": "km/s",
+              "description": "Proton velocity component VR in inertial RTN coordinates"
+            },
+            {
+              "name": "VT",
+              "type": "double",
+              "units": "km/s",
+              "description": "Proton velocity component VT in inertial RTN coordinates"
+            },
+            {
+              "name": "VN",
+              "type": "double",
+              "units": "km/s",
+              "description": "Proton velocity component VN in inertial RTN coordinates"
+            },
+            {
+              "name": "Tpar",
+              "type": "double",
+              "units": "K",
+              "description": "Proton temperature parallel to the magnetic field"
+            },
+            {
+              "name": "Tper",
+              "type": "double",
+              "units": "K",
+              "description": "Proton temperature perpendicular to the magnetic field"
+            },
+            {
+              "name": "dens",
+              "type": "double",
+              "units": "1/cm^3",
+              "description": "Number density of protons"
+            }
+          ]
+        }
+      }
+    }
+  },
+  "_meta": {
+    "generated_at": "2026-02-08T09:24:41Z",
+    "hapi_server": "https://cdaweb.gsfc.nasa.gov/hapi"
+  }
+}

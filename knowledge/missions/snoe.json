@@ -1,0 +1,154 @@
+{
+  "id": "SNOE",
+  "name": "SNOE",
+  "keywords": [
+    "snoe"
+  ],
+  "profile": {
+    "description": "SNOE spacecraft data from CDAWeb.",
+    "coordinate_systems": [],
+    "typical_cadence": "",
+    "data_caveats": [],
+    "analysis_patterns": []
+  },
+  "instruments": {
+    "General": {
+      "name": "General",
+      "keywords": [],
+      "datasets": {
+        "SNOE_L3_GEO": {
+          "description": "",
+          "start_date": "1998-03-11T00:44:55Z",
+          "stop_date": "2000-09-30T19:11:33Z",
+          "parameters": [
+            {
+              "name": "longitude",
+              "type": "integer",
+              "units": "degrees",
+              "description": "Longitude, geographic - average for each 5 degree latitude bin "
+            },
+            {
+              "name": "orbit",
+              "type": "integer",
+              "units": " ",
+              "description": "Orbit number"
+            },
+            {
+              "name": "no",
+              "type": "double",
+              "units": "cm-3",
+              "description": "NO (nitric oxide) density [1/cm^3] vs altitude - average over  geographic latitude bins ",
+              "size": [
+                17
+              ]
+            },
+            {
+              "name": "no_100",
+              "type": "double",
+              "units": "cm-3",
+              "description": "NO density [1/cm^3] at 100km"
+            },
+            {
+              "name": "no_110",
+              "type": "double",
+              "units": "cm-3",
+              "description": "NO density [1/cm^3] at 110km"
+            },
+            {
+              "name": "no_120",
+              "type": "double",
+              "units": "cm-3",
+              "description": "NO density [1/cm^3] at 120km"
+            },
+            {
+              "name": "no_130",
+              "type": "double",
+              "units": "cm-3",
+              "description": "NO density [1/cm^3] at 130km"
+            },
+            {
+              "name": "no_140",
+              "type": "double",
+              "units": "cm-3",
+              "description": "NO density [1/cm^3] at 140km"
+            },
+            {
+              "name": "no_150",
+              "type": "double",
+              "units": "cm-3",
+              "description": "NO density [1/cm^3] at 150km"
+            }
+          ]
+        },
+        "SNOE_L3_MAG": {
+          "description": "",
+          "start_date": "1998-03-11T00:48:16Z",
+          "stop_date": "2000-09-30T19:10:39Z",
+          "parameters": [
+            {
+              "name": "longitude",
+              "type": "integer",
+              "units": "degrees",
+              "description": "Longitude, geomagnetic - average for each 5 degree latitude bin"
+            },
+            {
+              "name": "orbit",
+              "type": "integer",
+              "units": " ",
+              "description": "Orbit number"
+            },
+            {
+              "name": "no",
+              "type": "double",
+              "units": "cm-3",
+              "description": "NO (nitric oxide) density [1/cm^3] vs altitude - average over geomagnetic latitude bins",
+              "size": [
+                17
+              ]
+            },
+            {
+              "name": "no_100",
+              "type": "double",
+              "units": "cm-3",
+              "description": "NO density [1/cm^-3] at 100km"
+            },
+            {
+              "name": "no_110",
+              "type": "double",
+              "units": "1/cm^3",
+              "description": "NO density [1/cm^-3] at 110km"
+            },
+            {
+              "name": "no_120",
+              "type": "double",
+              "units": "cm-3",
+              "description": "NO density [1/cm^-3] at 120km"
+            },
+            {
+              "name": "no_130",
+              "type": "double",
+              "units": "cm-3",
+              "description": "NO density [1/cm^-3] at 130km"
+            },
+            {
+              "name": "no_140",
+              "type": "double",
+              "units": "cm-3",
+              "description": "NO density [1/cm^-3] at 140km"
+            },
+            {
+              "name": "no_150",
+              "type": "double",
+              "units": "cm-3",
+              "description": "NO density [1/cm^-3] at 150km"
+            }
+          ]
+        }
+      }
+    }
+  },
+  "_meta": {
+    "generated_at": "2026-02-08T09:24:41Z",
+    "hapi_server": "https://cdaweb.gsfc.nasa.gov/hapi"
+  }
+}

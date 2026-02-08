@@ -1,0 +1,1533 @@
+{
+  "id": "FAST",
+  "name": "FAST",
+  "keywords": [
+    "fa",
+    "fast"
+  ],
+  "profile": {
+    "description": "FAST spacecraft data from CDAWeb.",
+    "coordinate_systems": [],
+    "typical_cadence": "",
+    "data_caveats": [],
+    "analysis_patterns": []
+  },
+  "instruments": {
+    "General": {
+      "name": "General",
+      "keywords": [],
+      "datasets": {
+        "FAST_HR_DCB@0": {
+          "description": "",
+          "start_date": "1996-09-28T00:45:21Z",
+          "stop_date": "1998-10-31T23:22:32Z",
+          "parameters": [
+            {
+              "name": "DeltaB_DSC",
+              "type": "double",
+              "units": "nT",
+              "description": "DeltaB in Despun Spacecraft Coordinates",
+              "size": [
+                3
+              ]
+            },
+            {
+              "name": "DeltaB_GEI",
+              "type": "double",
+              "units": "nT",
+              "description": "DeltaB in Geocentric Equatorial Inertial Coordinates",
+              "size": [
+                3
+              ]
+            },
+            {
+              "name": "DeltaB_SM",
+              "type": "double",
+              "units": "nT",
+              "description": "DeltaB in Solar Magnetic Coordinates",
+              "size": [
+                3
+              ]
+            },
+            {
+              "name": "DeltaB_FAC",
+              "type": "double",
+              "units": "nT",
+              "description": "DeltaB in Field-Aligned Coordinates",
+              "size": [
+                3
+              ]
+            },
+            {
+              "name": "DeltaB_FAC_V",
+              "type": "double",
+              "units": "nT",
+              "description": "DeltaB in Field-Aligned Spacecraft Coordinates",
+              "size": [
+                3
+              ]
+            },
+            {
+              "name": "DeltaB_FAC_SP",
+              "type": "double",
+              "units": "nT",
+              "description": "DeltaB in Field-Aligned/Spin Plane Coordinates",
+              "size": [
+                3
+              ]
+            },
+            {
+              "name": "B_GEI",
+              "type": "double",
+              "units": "nT",
+              "description": "Full Magnetic Field in Geocentric Equatorial Inertial Coordinates",
+              "size": [
+                3
+              ]
+            },
+            {
+              "name": "DEL_MAG_FLAG",
+              "type": "integer",
+              "units": null,
+              "description": "Magnetometer Deleted Data Flag"
+            },
+            {
+              "name": "Torquer",
+              "type": "double",
+              "units": "pseudo-nT",
+              "description": "Torquer Coil Field",
+              "size": [
+                3
+              ]
+            },
+            {
+              "name": "Tweaker",
+              "type": "double",
+              "units": null,
+              "description": "Time-Varying Tweaker Matrix",
+              "size": [
+                6
+              ]
+            },
+            {
+              "name": "MAG_QUAL_FLAG",
+              "type": "integer",
+              "units": "OK<2048",
+              "description": "Magnetometer Data Quality Flag"
+            },
+            {
+              "name": "B_DSC",
+              "type": "double",
+              "units": "nT",
+              "description": "Full Magnetic Field in Despun Spacecraft Coordinates",
+              "size": [
+                3
+              ]
+            },
+            {
+              "name": "B_SSC",
+              "type": "double",
+              "units": "nT",
+              "description": "Full Magnetic Field in Spinning Spacecraft Coordinates",
+              "size": [
+                3
+              ]
+            },
+            {
+              "name": "Bharmonic_DSC",
+              "type": "double",
+              "units": "nT",
+              "description": "Removed Magnetic Field Spin-Tone Harmonic in Despun Spacecraft Coordinates",
+              "size": [
+                3
+              ]
+            }
+          ]
+        },
+        "FAST_HR_DCB@1": {
+          "description": "",
+          "start_date": "1996-09-28T00:45:21Z",
+          "stop_date": "1998-10-31T23:22:32Z",
+          "parameters": [
+            {
+              "name": "Spin_Freq",
+              "type": "double",
+              "units": "deg/s",
+              "description": "Spin Frequency"
+            },
+            {
+              "name": "Spin_Phase",
+              "type": "double",
+              "units": "deg",
+              "description": "Spin Phase"
+            }
+          ]
+        },
+        "FAST_HR_DCB@2": {
+          "description": "",
+          "start_date": "1996-09-28T00:45:21Z",
+          "stop_date": "1998-10-31T23:22:32Z",
+          "parameters": [
+            {
+              "name": "Orbit",
+              "type": "double",
+              "units": null,
+              "description": "FAST Orbit Number"
+            },
+            {
+              "name": "pos_gei",
+              "type": "double",
+              "units": "km",
+              "description": "Spacecraft Position in Geocentric Equatorial Inertial Coordinates",
+              "size": [
+                3
+              ]
+            },
+            {
+              "name": "vel_gei",
+              "type": "double",
+              "units": "km/s",
+              "description": "Spacecraft Velocity in Geocentric Equatorial Inertial Coordinates",
+              "size": [
+                3
+              ]
+            },
+            {
+              "name": "B_model_gei",
+              "type": "double",
+              "units": "nT",
+              "description": "Model Magnetic Field in Geocentric Equatorial Inertial Coordinates",
+              "size": [
+                3
+              ]
+            },
+            {
+              "name": "alt",
+              "type": "double",
+              "units": "km",
+              "description": "FAST Altitude Relative to 6378.14 km"
+            },
+            {
+              "name": "lat",
+              "type": "double",
+              "units": "deg",
+              "description": "FAST Geographic Latitude"
+            },
+            {
+              "name": "lng",
+              "type": "double",
+              "units": "deg",
+              "description": "FAST Geographic Longitude"
+            },
+            {
+              "name": "ilat",
+              "type": "double",
+              "units": "deg",
+              "description": "FAST Invariant Latitude"
+            },
+            {
+              "name": "ilng",
+              "type": "double",
+              "units": "deg",
+              "description": "FAST Invariant Longitude"
+            },
+            {
+              "name": "mlt",
+              "type": "double",
+              "units": "hour",
+              "description": "FAST Magnetic Local Time"
+            },
+            {
+              "name": "flat",
+              "type": "double",
+              "units": "deg",
+              "description": "FAST Magnetic Footprint Latitude"
+            },
+            {
+              "name": "flng",
+              "type": "double",
+              "units": "deg",
+              "description": "FAST Magnetic Footprint Longitude"
+            },
+            {
+              "name": "B_foot_gei",
+              "type": "double",
+              "units": "nT",
+              "description": "Footprint Magnetic Field in Geocentric Equatorial Inertial Coordinates",
+              "size": [
+                3
+              ]
+            },
+            {
+              "name": "sun_dir_gei",
+              "type": "double",
+              "units": null,
+              "description": "Sun Direction in Geocentric Equatorial Inertial Coordinates",
+              "size": [
+                3
+              ]
+            },
+            {
+              "name": "dip_orient_gei",
+              "type": "double",
+              "units": null,
+              "description": "Dipole Orientation in Geocentric Equatorial Inertial Coordinates",
+              "size": [
+                3
+              ]
+            }
+          ]
+        },
+        "FAST_HR_DCB@3": {
+          "description": "",
+          "start_date": "1996-09-28T00:45:21Z",
+          "stop_date": "1998-10-31T23:22:32Z",
+          "parameters": [
+            {
+              "name": "Orbit_Value",
+              "type": "double",
+              "units": null,
+              "description": "Orbit Number"
+            },
+            {
+              "name": "Coupling_Matrix",
+              "type": "double",
+              "units": null,
+              "description": "Coupling Matrix",
+              "size": [
+                9
+              ]
+            },
+            {
+              "name": "Offsets",
+              "type": "double",
+              "units": "nT",
+              "description": "Magnetometer Offsets",
+              "size": [
+                3
+              ]
+            },
+            {
+              "name": "Spin_Axis",
+              "type": "double",
+              "units": "deg",
+              "description": "Spin Axis Right Ascension and Declination",
+              "size": [
+                4
+              ]
+            },
+            {
+              "name": "Spin_Phase_Delta",
+              "type": "double",
+              "units": "deg",
+              "description": "Spin Phase Delta"
+            }
+          ]
+        },
+        "FA_ESA_L2_EEB@0": {
+          "description": "",
+          "start_date": "1996-09-16T22:43:56Z",
+          "stop_date": "2009-04-30T08:16:03Z",
+          "parameters": [
+            {
+              "name": "valid",
+              "type": "integer",
+              "units": "None",
+              "description": "Validity flag codes valid data (bit 0), non-zero values are not necessarily valid (NUM_DISTS elements)"
+            },
+            {
+              "name": "data_quality",
+              "type": "integer",
+              "units": "None",
+              "description": "---> Quality flag (NUM_DISTS elements)"
+            },
+            {
+              "name": "nbins",
+              "type": "integer",
+              "units": "None",
+              "description": "---> Number of angluar bins (NUM_DISTS elements)"
+            },
+            {
+              "name": "nenergy",
+              "type": "integer",
+              "units": "eV",
+              "description": "---> Number of energies (NUM_DISTS elements)"
+            },
+            {
+              "name": "geom_factor",
+              "type": "double",
+              "units": "None",
+              "description": "---> GEOM_FACTOR, Geometrical factor used in calibration (NUM_DISTS elements)"
+            },
+            {
+              "name": "gf_ind",
+              "type": "integer",
+              "units": "None",
+              "description": "---> Index for the value of the Geometrical factor for data (NUM_DISTS elements)"
+            },
+            {
+              "name": "mode_ind",
+              "type": "integer",
+              "units": "None",
+              "description": "---> Index for the data mode (0-2 for survey data, 0-1 for burst data) (NUM_DISTS elements)"
+            },
+            {
+              "name": "theta_shift",
+              "type": "double",
+              "units": "degrees",
+              "description": "---> Angular shift (NUM_DISTS elements)"
+            },
+            {
+              "name": "theta_max",
+              "type": "double",
+              "units": "degrees",
+              "description": "---> Angular maximum (NUM_DISTS elements)"
+            },
+            {
+              "name": "theta_min",
+              "type": "double",
+              "units": "degrees",
+              "description": "---> Angular minimum (NUM_DISTS elements)"
+            },
+            {
+              "name": "bkg",
+              "type": "double",
+              "units": "None",
+              "description": "Background counts array with dimensions (NUM_DISTS)"
+            },
+            {
+              "name": "sc_pot",
+              "type": "double",
+              "units": "volts",
+              "description": "Spacecraft potential (NUM_DISTS elements)"
+            },
+            {
+              "name": "data",
+              "type": "integer",
+              "units": "Counts",
+              "description": "Burst Electron Raw Counts data with dimensions (96, 64, NUM_DISTS)",
+              "size": [
+                64,
+                96
+              ]
+            },
+            {
+              "name": "eflux",
+              "type": "double",
+              "units": "eV/sr/sec",
+              "description": "Differential burst-mode electron energy flux array with dimensions (96, 64, NUM_DISTS) (as plasmagrams)",
+              "size": [
+                64,
+                96
+              ]
+            },
+            {
+              "name": "eflux_movie",
+              "type": "double",
+              "units": "eV/sr/sec",
+              "description": "---> Plasmagram movie",
+              "size": [
+                64,
+                96
+              ]
+            },
+            {
+              "name": "eflux_byE_atA",
+              "type": "double",
+              "units": "eV/sr/sec",
+              "description": "---> Spectrograms by energy at sample pitch angle bin nos (of varying pitch angle)",
+              "size": [
+                64,
+                96
+              ]
+            },
+            {
+              "name": "eflux_byA_atE",
+              "type": "double",
+              "units": "eV/sr/sec",
+              "description": "---> Spectrograms by pitch angle bin nos (of varying pitch angles) at sample energies",
+              "size": [
+                64,
+                96
+              ]
+            },
+            {
+              "name": "pitch_angle_median",
+              "type": "double",
+              "units": "degrees",
+              "description": "median pitch angle",
+              "size": [
+                64
+              ]
+            },
+            {
+              "name": "energy_median",
+              "type": "double",
+              "units": "eV",
+              "description": "---> median energy",
+              "size": [
+                96
+              ]
+            },
+            {
+              "name": "energy_full",
+              "type": "double",
+              "units": "eV",
+              "description": "Energy values for each distribution (96, 64, NUM_DISTS)",
+              "size": [
+                64,
+                96
+              ]
+            },
+            {
+              "name": "denergy_full",
+              "type": "double",
+              "units": "eV",
+              "description": "Energy bin size for each distribution (96, 64, NUM_DISTS)",
+              "size": [
+                64,
+                96
+              ]
+            },
+            {
+              "name": "pitch_angle",
+              "type": "double",
+              "units": "degrees",
+              "description": "---> Pitch Angle values for each distribution (96, 64, NUM_DISTS)",
+              "size": [
+                64,
+                96
+              ]
+            },
+            {
+              "name": "domega",
+              "type": "double",
+              "units": "ster",
+              "description": "---> Solid angle (DOmega) for each distribution (96, 64, NUM_DISTS)",
+              "size": [
+                64,
+                96
+              ]
+            }
+          ]
+        },
+        "FA_ESA_L2_EEB@1": {
+          "description": "",
+          "start_date": "1996-09-16T22:43:56Z",
+          "stop_date": "2009-04-30T08:16:03Z",
+          "parameters": [
+            {
+              "name": "orbit_number",
+              "type": "integer",
+              "units": "None",
+              "description": "Orbit number for this file, does not change, so only 2 entries per file"
+            }
+          ]
+        },
+        "FA_ESA_L2_EES@0": {
+          "description": "",
+          "start_date": "1996-08-30T22:07:59Z",
+          "stop_date": "2006-12-31T22:47:44Z",
+          "parameters": [
+            {
+              "name": "valid",
+              "type": "integer",
+              "units": "None",
+              "description": "Validity flag codes valid data (bit 0), non-zero values are not necessarily valid (NUM_DISTS elements)"
+            },
+            {
+              "name": "data_quality",
+              "type": "integer",
+              "units": "None",
+              "description": "---> Quality flag (NUM_DISTS elements)"
+            },
+            {
+              "name": "nbins",
+              "type": "integer",
+              "units": "None",
+              "description": "---> Number of angluar bins (NUM_DISTS elements)"
+            },
+            {
+              "name": "nenergy",
+              "type": "integer",
+              "units": "eV",
+              "description": "---> Number of energies (NUM_DISTS elements)"
+            },
+            {
+              "name": "geom_factor",
+              "type": "double",
+              "units": "None",
+              "description": "---> GEOM_FACTOR, Geometrical factor used in calibration (NUM_DISTS elements)"
+            },
+            {
+              "name": "gf_ind",
+              "type": "integer",
+              "units": "None",
+              "description": "---> Index for the value of the Geometrical factor for data (NUM_DISTS elements)"
+            },
+            {
+              "name": "mode_ind",
+              "type": "integer",
+              "units": "None",
+              "description": "---> Index for the data mode (0-2 for survey data, 0-1 for survey data) (NUM_DISTS elements)"
+            },
+            {
+              "name": "theta_shift",
+              "type": "double",
+              "units": "degrees",
+              "description": "---> Angular shift (NUM_DISTS elements)"
+            },
+            {
+              "name": "theta_max",
+              "type": "double",
+              "units": "degrees",
+              "description": "---> Angular maximum (NUM_DISTS elements)"
+            },
+            {
+              "name": "theta_min",
+              "type": "double",
+              "units": "degrees",
+              "description": "---> Angular minimum (NUM_DISTS elements)"
+            },
+            {
+              "name": "bkg",
+              "type": "double",
+              "units": "None",
+              "description": "Background counts array with dimensions (NUM_DISTS)"
+            },
+            {
+              "name": "sc_pot",
+              "type": "double",
+              "units": "volts",
+              "description": "Spacecraft potential (NUM_DISTS elements)"
+            },
+            {
+              "name": "data",
+              "type": "integer",
+              "units": "Counts",
+              "description": "Survey Electron Raw Counts data with dimensions (96, 64, NUM_DISTS)",
+              "size": [
+                64,
+                96
+              ]
+            },
+            {
+              "name": "eflux",
+              "type": "double",
+              "units": "eV/sr/sec",
+              "description": "Differential survey-mode electron energy flux array with dimensions (96, 64, NUM_DISTS) (as plasmagrams)",
+              "size": [
+                64,
+                96
+              ]
+            },
+            {
+              "name": "eflux_movie",
+              "type": "double",
+              "units": "eV/sr/sec",
+              "description": "---> Plasmagram movie",
+              "size": [
+                64,
+                96
+              ]
+            },
+            {
+              "name": "eflux_byE_atA",
+              "type": "double",
+              "units": "eV/sr/sec",
+              "description": "---> Spectrograms by energy at sample pitch angle bin nos (of varying pitch angle)",
+              "size": [
+                64,
+                96
+              ]
+            },
+            {
+              "name": "eflux_byA_atE",
+              "type": "double",
+              "units": "eV/sr/sec",
+              "description": "---> Spectrograms by pitch angle bin nos (of varying pitch angle) at sample energies",
+              "size": [
+                64,
+                96
+              ]
+            },
+            {
+              "name": "pitch_angle_median",
+              "type": "double",
+              "units": "degrees",
+              "description": "median pitch angle",
+              "size": [
+                64
+              ]
+            },
+            {
+              "name": "energy_median",
+              "type": "double",
+              "units": "eV",
+              "description": "---> median energy",
+              "size": [
+                96
+              ]
+            },
+            {
+              "name": "energy_full",
+              "type": "double",
+              "units": "eV",
+              "description": "Energy values for each distribution (96, 64, NUM_DISTS)",
+              "size": [
+                64,
+                96
+              ]
+            },
+            {
+              "name": "denergy_full",
+              "type": "double",
+              "units": "eV",
+              "description": "Energy bin size for each distribution (96, 64, NUM_DISTS)",
+              "size": [
+                64,
+                96
+              ]
+            },
+            {
+              "name": "pitch_angle",
+              "type": "double",
+              "units": "degrees",
+              "description": "---> Pitch Angle values for each distribution (96, 64, NUM_DISTS)",
+              "size": [
+                64,
+                96
+              ]
+            },
+            {
+              "name": "domega",
+              "type": "double",
+              "units": "ster",
+              "description": "---> Solid angle (DOmega) for each distribution (96, 64, NUM_DISTS)",
+              "size": [
+                64,
+                96
+              ]
+            }
+          ]
+        },
+        "FA_ESA_L2_EES@1": {
+          "description": "",
+          "start_date": "1996-08-30T22:07:59Z",
+          "stop_date": "2006-12-31T22:47:44Z",
+          "parameters": [
+            {
+              "name": "orbit_number",
+              "type": "integer",
+              "units": "None",
+              "description": "Orbit number for this file, does not change, so only 2 entries per file"
+            }
+          ]
+        },
+        "FA_ESA_L2_IEB@0": {
+          "description": "",
+          "start_date": "1996-09-16T22:43:56Z",
+          "stop_date": "2009-04-30T08:16:03Z",
+          "parameters": [
+            {
+              "name": "valid",
+              "type": "integer",
+              "units": "None",
+              "description": "Validity flag codes valid data (bit 0), non-zero values are not necessarily valid (NUM_DISTS elements)"
+            },
+            {
+              "name": "data_quality",
+              "type": "integer",
+              "units": "None",
+              "description": "---> Quality flag (NUM_DISTS elements)"
+            },
+            {
+              "name": "nbins",
+              "type": "integer",
+              "units": "None",
+              "description": "---> Number of angluar bins (NUM_DISTS elements)"
+            },
+            {
+              "name": "nenergy",
+              "type": "integer",
+              "units": "eV",
+              "description": "---> Number of energies (NUM_DISTS elements)"
+            },
+            {
+              "name": "geom_factor",
+              "type": "double",
+              "units": "None",
+              "description": "---> GEOM_FACTOR, Geometrical factor used in calibration (NUM_DISTS elements)"
+            },
+            {
+              "name": "gf_ind",
+              "type": "integer",
+              "units": "None",
+              "description": "---> Index for the value of the Geometrical factor for data (NUM_DISTS elements)"
+            },
+            {
+              "name": "mode_ind",
+              "type": "integer",
+              "units": "None",
+              "description": "---> Index for the data mode (0-2 for survey data, 0-1 for burst data) (NUM_DISTS elements)"
+            },
+            {
+              "name": "theta_shift",
+              "type": "double",
+              "units": "degrees",
+              "description": "---> Angular shift (NUM_DISTS elements)"
+            },
+            {
+              "name": "theta_max",
+              "type": "double",
+              "units": "degrees",
+              "description": "---> Angular maximum (NUM_DISTS elements)"
+            },
+            {
+              "name": "theta_min",
+              "type": "double",
+              "units": "degrees",
+              "description": "---> Angular minimum (NUM_DISTS elements)"
+            },
+            {
+              "name": "bkg",
+              "type": "double",
+              "units": "None",
+              "description": "Background counts array with dimensions (NUM_DISTS)"
+            },
+            {
+              "name": "sc_pot",
+              "type": "double",
+              "units": "volts",
+              "description": "Spacecraft potential (NUM_DISTS elements)"
+            },
+            {
+              "name": "data",
+              "type": "integer",
+              "units": "Counts",
+              "description": "Burst Ion Raw Counts data with dimensions (96, 64, NUM_DISTS)",
+              "size": [
+                64,
+                96
+              ]
+            },
+            {
+              "name": "eflux",
+              "type": "double",
+              "units": "eV/sr/sec",
+              "description": "Differential burst-mode ion energy flux array with dimensions (96, 64, NUM_DISTS) (as plasmagrams)",
+              "size": [
+                64,
+                96
+              ]
+            },
+            {
+              "name": "eflux_movie",
+              "type": "double",
+              "units": "eV/sr/sec",
+              "description": "---> Plasmagram movie",
+              "size": [
+                64,
+                96
+              ]
+            },
+            {
+              "name": "eflux_byE_atA",
+              "type": "double",
+              "units": "eV/sr/sec",
+              "description": "---> Spectrograms by energy at sample pitch angle bin nos (of varying pitch angle)",
+              "size": [
+                64,
+                96
+              ]
+            },
+            {
+              "name": "eflux_byA_atE",
+              "type": "double",
+              "units": "eV/sr/sec",
+              "description": "---> Spectrograms by pitch angle bin nos (of varying pitch angle) at sample energies",
+              "size": [
+                64,
+                96
+              ]
+            },
+            {
+              "name": "data_audio",
+              "type": "integer",
+              "units": null,
+              "description": "Burst Ion Raw Counts data as audio",
+              "size": [
+                64,
+                96
+              ]
+            },
+            {
+              "name": "pitch_angle_median",
+              "type": "double",
+              "units": "degrees",
+              "description": "median pitch angle",
+              "size": [
+                64
+              ]
+            },
+            {
+              "name": "energy_median",
+              "type": "double",
+              "units": "eV",
+              "description": "---> median energy",
+              "size": [
+                96
+              ]
+            },
+            {
+              "name": "energy_full",
+              "type": "double",
+              "units": "eV",
+              "description": "Energy values for each distribution (96, 64, NUM_DISTS)",
+              "size": [
+                64,
+                96
+              ]
+            },
+            {
+              "name": "denergy_full",
+              "type": "double",
+              "units": "eV",
+              "description": "Energy bin size for each distribution (96, 64, NUM_DISTS)",
+              "size": [
+                64,
+                96
+              ]
+            },
+            {
+              "name": "pitch_angle",
+              "type": "double",
+              "units": "degrees",
+              "description": "---> Pitch Angle values for each distribution (96, 64, NUM_DISTS)",
+              "size": [
+                64,
+                96
+              ]
+            },
+            {
+              "name": "domega",
+              "type": "double",
+              "units": "ster",
+              "description": "---> Solid angle (DOmega) for each distribution (96, 64, NUM_DISTS)",
+              "size": [
+                64,
+                96
+              ]
+            }
+          ]
+        },
+        "FA_ESA_L2_IEB@1": {
+          "description": "",
+          "start_date": "1996-09-16T22:43:56Z",
+          "stop_date": "2009-04-30T08:16:03Z",
+          "parameters": [
+            {
+              "name": "orbit_number",
+              "type": "integer",
+              "units": "None",
+              "description": "Orbit number for this file, does not change, so only 2 entries per file"
+            }
+          ]
+        },
+        "FA_ESA_L2_IES@0": {
+          "description": "",
+          "start_date": "1996-08-30T22:08:01Z",
+          "stop_date": "2009-04-30T08:19:39Z",
+          "parameters": [
+            {
+              "name": "valid",
+              "type": "integer",
+              "units": "None",
+              "description": "Validity flag codes valid data (bit 0), non-zero values are not necessarily valid (NUM_DISTS elements)"
+            },
+            {
+              "name": "data_quality",
+              "type": "integer",
+              "units": "None",
+              "description": "---> Quality flag (NUM_DISTS elements)"
+            },
+            {
+              "name": "nbins",
+              "type": "integer",
+              "units": "None",
+              "description": "---> Number of angluar bins (NUM_DISTS elements)"
+            },
+            {
+              "name": "nenergy",
+              "type": "integer",
+              "units": "eV",
+              "description": "---> Number of energies (NUM_DISTS elements)"
+            },
+            {
+              "name": "geom_factor",
+              "type": "double",
+              "units": "None",
+              "description": "---> GEOM_FACTOR, Geometrical factor used in calibration (NUM_DISTS elements)"
+            },
+            {
+              "name": "gf_ind",
+              "type": "integer",
+              "units": "None",
+              "description": "---> Index for the value of the Geometrical factor for data (NUM_DISTS elements)"
+            },
+            {
+              "name": "mode_ind",
+              "type": "integer",
+              "units": "None",
+              "description": "---> Index for the data mode (0-2 for survey data, 0-1 for survey data) (NUM_DISTS elements)"
+            },
+            {
+              "name": "theta_shift",
+              "type": "double",
+              "units": "degrees",
+              "description": "---> Angular shift (NUM_DISTS elements)"
+            },
+            {
+              "name": "theta_max",
+              "type": "double",
+              "units": "degrees",
+              "description": "---> Angular maximum (NUM_DISTS elements)"
+            },
+            {
+              "name": "theta_min",
+              "type": "double",
+              "units": "degrees",
+              "description": "---> Angular minimum (NUM_DISTS elements)"
+            },
+            {
+              "name": "bkg",
+              "type": "double",
+              "units": "None",
+              "description": "Background counts array with dimensions (NUM_DISTS)"
+            },
+            {
+              "name": "sc_pot",
+              "type": "double",
+              "units": "volts",
+              "description": "Spacecraft potential (NUM_DISTS elements)"
+            },
+            {
+              "name": "data",
+              "type": "integer",
+              "units": "Counts",
+              "description": "Survey Ion Raw Counts data with dimensions (96, 64, NUM_DISTS)",
+              "size": [
+                64,
+                96
+              ]
+            },
+            {
+              "name": "eflux",
+              "type": "double",
+              "units": "eV/sr/sec",
+              "description": "Differential survey-mode ion energy flux array with dimensions (96, 64, NUM_DISTS) (as plasmagrams)",
+              "size": [
+                64,
+                96
+              ]
+            },
+            {
+              "name": "eflux_movie",
+              "type": "double",
+              "units": "eV/sr/sec",
+              "description": "---> Plasmagram movie",
+              "size": [
+                64,
+                96
+              ]
+            },
+            {
+              "name": "eflux_byE_atA",
+              "type": "double",
+              "units": "eV/sr/sec",
+              "description": "---> Spectrograms by energy at sample pitch angle bin nos (of varying pitch angle)",
+              "size": [
+                64,
+                96
+              ]
+            },
+            {
+              "name": "eflux_byA_atE",
+              "type": "double",
+              "units": "eV/sr/sec",
+              "description": "---> Spectrograms by pitch angle bin nos (of varying pitch angle) at sample energies",
+              "size": [
+                64,
+                96
+              ]
+            },
+            {
+              "name": "pitch_angle_median",
+              "type": "double",
+              "units": "degrees",
+              "description": "median pitch angle",
+              "size": [
+                64
+              ]
+            },
+            {
+              "name": "energy_median",
+              "type": "double",
+              "units": "eV",
+              "description": "---> median energy",
+              "size": [
+                96
+              ]
+            },
+            {
+              "name": "energy_full",
+              "type": "double",
+              "units": "eV",
+              "description": "Energy values for each distribution (96, 64, NUM_DISTS)",
+              "size": [
+                64,
+                96
+              ]
+            },
+            {
+              "name": "denergy_full",
+              "type": "double",
+              "units": "eV",
+              "description": "Energy bin size for each distribution (96, 64, NUM_DISTS)",
+              "size": [
+                64,
+                96
+              ]
+            },
+            {
+              "name": "pitch_angle",
+              "type": "double",
+              "units": "degrees",
+              "description": "---> Pitch Angle values for each distribution (96, 64, NUM_DISTS)",
+              "size": [
+                64,
+                96
+              ]
+            },
+            {
+              "name": "domega",
+              "type": "double",
+              "units": "ster",
+              "description": "---> Solid angle (DOmega) for each distribution (96, 64, NUM_DISTS)",
+              "size": [
+                64,
+                96
+              ]
+            }
+          ]
+        },
+        "FA_ESA_L2_IES@1": {
+          "description": "",
+          "start_date": "1996-08-30T22:08:01Z",
+          "stop_date": "2009-04-30T08:19:39Z",
+          "parameters": [
+            {
+              "name": "orbit_number",
+              "type": "integer",
+              "units": "None",
+              "description": "Orbit number for this file, does not change, so only 2 entries per file"
+            }
+          ]
+        },
+        "FA_K0_ACF": {
+          "description": "",
+          "start_date": "1996-08-30T02:02:17Z",
+          "stop_date": "2002-10-25T00:11:32Z",
+          "parameters": [
+            {
+              "name": "HF_E_SPEC",
+              "type": "double",
+              "units": "log10((V/m)**2/Hz)",
+              "description": "Electric field power spectral density (0-2 MHz), in 59 fixed frequency bins of width 32 kHz",
+              "size": [
+                59
+              ]
+            },
+            {
+              "name": "VLF_E_SPEC",
+              "type": "double",
+              "units": "log10((V/m)**2/Hz)",
+              "description": "Electric field power spectral density (0-16 kHz), in 56 fixed frequency bins",
+              "size": [
+                56
+              ]
+            },
+            {
+              "name": "ELF_E_SPEC",
+              "type": "double",
+              "units": "log10((V/m)**2/Hz)",
+              "description": "Electric field power spectral density (0-2 kHz), in 62 fixed frequency bins",
+              "size": [
+                62
+              ]
+            },
+            {
+              "name": "HF_B_SPEC",
+              "type": "double",
+              "units": "log10(nT**2/Hz)",
+              "description": "Magnetic field power spectral density (0-2 MHz), in 59 fixed frequency bins of width 32 kHz",
+              "size": [
+                59
+              ]
+            },
+            {
+              "name": "VLF_B_SPEC",
+              "type": "double",
+              "units": "log10(nT**2/Hz)",
+              "description": "Magnetic field power spectral density (0-16 kHz), in 56 fixed frequency bins",
+              "size": [
+                56
+              ]
+            },
+            {
+              "name": "ELF_B_SPEC",
+              "type": "double",
+              "units": "log10(nT**2/Hz)",
+              "description": "Magnetic field power spectral density (0-2 kHz), in 62 fixed frequency bins",
+              "size": [
+                62
+              ]
+            },
+            {
+              "name": "HF_PWR",
+              "type": "double",
+              "units": null,
+              "description": "array containing HF Electric Power and HF Magnetic Power (0-2 MHz)",
+              "size": [
+                2
+              ]
+            },
+            {
+              "name": "VLF_PWR",
+              "type": "double",
+              "units": null,
+              "description": "array containing VLF Electric Power and VLF Magnetic Power (0-16 kHz)",
+              "size": [
+                2
+              ]
+            },
+            {
+              "name": "ELF_PWR",
+              "type": "double",
+              "units": null,
+              "description": "array containing ELF Electric Power and ELF Magnetic Power (0-2 kHz)",
+              "size": [
+                2
+              ]
+            },
+            {
+              "name": "fa_spin_ra",
+              "type": "double",
+              "units": "deg",
+              "description": "Right Ascension of Spin Axis, degrees, GEI coords"
+            },
+            {
+              "name": "fa_spin_dec",
+              "type": "double",
+              "units": "deg",
+              "description": "Declination of Spin Axis, degrees, GEI coords"
+            },
+            {
+              "name": "r",
+              "type": "double",
+              "units": "km",
+              "description": "FAST Spacecraft position, cartesian 3 vector, GEI coords, km",
+              "size": [
+                3
+              ]
+            },
+            {
+              "name": "v",
+              "type": "double",
+              "units": "km/s",
+              "description": "FAST Spacecraft velocity, cartesian 3 vector, GEI coords, km/s",
+              "size": [
+                3
+              ]
+            },
+            {
+              "name": "alt",
+              "type": "double",
+              "units": "km",
+              "description": "Spacecraft altitude above an equatorial earth radius of 6378.14 km, km"
+            },
+            {
+              "name": "flat",
+              "type": "double",
+              "units": "deg",
+              "description": "Geodetic latitude of magnetic footprint at 100 km above the oblate earth, deg"
+            },
+            {
+              "name": "flng",
+              "type": "double",
+              "units": "deg",
+              "description": "Geodetic longitude of magnetic footprint at 100 km above the oblate earth, deg"
+            },
+            {
+              "name": "mlt",
+              "type": "double",
+              "units": "hour",
+              "description": "Magnetic Local Time, hours"
+            },
+            {
+              "name": "ilat",
+              "type": "double",
+              "units": "deg",
+              "description": "Invariant Latitude, degrees"
+            },
+            {
+              "name": "fa_spin_raV",
+              "type": "double",
+              "units": "deg",
+              "description": "Time axis label: Right Ascension of Spin Axis, degrees, GEI coords"
+            },
+            {
+              "name": "fa_spin_decV",
+              "type": "double",
+              "units": "deg",
+              "description": "Time axis label: Declination of Spin Axis, degrees, GEI coords"
+            },
+            {
+              "name": "rV",
+              "type": "double",
+              "units": "km",
+              "description": "Time axis label: FAST Spacecraft position, cartesian 3 vector, GEI coords, km",
+              "size": [
+                3
+              ]
+            },
+            {
+              "name": "vV",
+              "type": "double",
+              "units": "km/s",
+              "description": "Time axis label: FAST Spacecraft velocity, cartesian 3 vector, GEI coords, km/s",
+              "size": [
+                3
+              ]
+            },
+            {
+              "name": "altV",
+              "type": "double",
+              "units": "km",
+              "description": "Time axis label: Spacecraft altitude above an equatorial earth radius of 6378.14 km, km"
+            },
+            {
+              "name": "flatV",
+              "type": "double",
+              "units": "deg",
+              "description": "Time axis label: Geodetic latitude of magnetic footprint at 100 km above the oblate earth, deg"
+            },
+            {
+              "name": "flngV",
+              "type": "double",
+              "units": "deg",
+              "description": "Time axis label: Geodetic longitude of magnetic footprint at 100 km above the oblate earth, deg"
+            },
+            {
+              "name": "mltV",
+              "type": "double",
+              "units": "hour",
+              "description": "Time axis label: Magnetic Local Time, hours"
+            },
+            {
+              "name": "ilatV",
+              "type": "double",
+              "units": "deg",
+              "description": "Time axis label: Invariant Latitude, degrees"
+            }
+          ]
+        },
+        "FA_K0_TMS": {
+          "description": "",
+          "start_date": "1996-10-01T01:03:06Z",
+          "stop_date": "2009-04-30T10:22:16Z",
+          "parameters": [
+            {
+              "name": "H+",
+              "type": "double",
+              "units": "eV/(cm**2-s-sr-eV)",
+              "description": "H+ diff energy flux, averaged over 0-360 pitchangle, at 48 energies, 1-12000 eV ",
+              "size": [
+                48
+              ]
+            },
+            {
+              "name": "H+_en",
+              "type": "double",
+              "units": "eV",
+              "description": "-----> [SLOWLY VARYING] H+ energies for H+ variable",
+              "size": [
+                48
+              ]
+            },
+            {
+              "name": "O+",
+              "type": "double",
+              "units": "eV/(cm**2-s-sr-eV)",
+              "description": "O+ diff energy flux, averaged over 0-360 pitchangle, at 48 energies, 1-12000 eV ",
+              "size": [
+                48
+              ]
+            },
+            {
+              "name": "O+_en",
+              "type": "double",
+              "units": "eV",
+              "description": "-----> [SLOWLY VARYING] O+ energies for O+ variable",
+              "size": [
+                48
+              ]
+            },
+            {
+              "name": "He+",
+              "type": "double",
+              "units": "eV/(cm**2-s-sr-eV)",
+              "description": "He+ diff energy flux, averaged over 0-360 pitchangle, at 48 energies, 1-12000 eV ",
+              "size": [
+                48
+              ]
+            },
+            {
+              "name": "He+_en",
+              "type": "double",
+              "units": "eV",
+              "description": "-----> [SLOWLY VARYING] He+ energies for He+ variable",
+              "size": [
+                48
+              ]
+            },
+            {
+              "name": "fa_spin_ra",
+              "type": "double",
+              "units": "deg",
+              "description": "Right Ascension of Spin Axis, degrees, GEI coords"
+            },
+            {
+              "name": "fa_spin_dec",
+              "type": "double",
+              "units": "deg",
+              "description": "Declination of Spin Axis, degrees, GEI coords"
+            },
+            {
+              "name": "r",
+              "type": "double",
+              "units": "km",
+              "description": "FAST Spacecraft position, cartesian 3 vector, GEI coords, km",
+              "size": [
+                3
+              ]
+            },
+            {
+              "name": "v",
+              "type": "double",
+              "units": "km/s",
+              "description": "FAST Spacecraft velocity, cartesian 3 vector, GEI coords, km/s",
+              "size": [
+                3
+              ]
+            },
+            {
+              "name": "alt",
+              "type": "double",
+              "units": "km",
+              "description": "Spacecraft altitude above an equatorial earth radius of 6378.14 km, km"
+            },
+            {
+              "name": "flat",
+              "type": "double",
+              "units": "deg",
+              "description": "Geodetic latitude of magnetic footprint at 100 km above the oblate earth, deg"
+            },
+            {
+              "name": "flng",
+              "type": "double",
+              "units": "deg",
+              "description": "Geodetic longitude of magnetic footprint at 100 km above the oblate earth, deg"
+            },
+            {
+              "name": "mlt",
+              "type": "double",
+              "units": "hour",
+              "description": "Magnetic Local Time, hours"
+            },
+            {
+              "name": "ilat",
+              "type": "double",
+              "units": "deg",
+              "description": "Invariant Latitude, degrees"
+            },
+            {
+              "name": "fa_spin_raV",
+              "type": "double",
+              "units": "deg",
+              "description": "Time axis label: Right Ascension of Spin Axis, degrees, GEI coords"
+            },
+            {
+              "name": "fa_spin_decV",
+              "type": "double",
+              "units": "deg",
+              "description": "Time axis label: Declination of Spin Axis, degrees, GEI coords"
+            },
+            {
+              "name": "rV",
+              "type": "double",
+              "units": "km",
+              "description": "Time axis label: FAST Spacecraft position, cartesian 3 vector, GEI coords, km",
+              "size": [
+                3
+              ]
+            },
+            {
+              "name": "vV",
+              "type": "double",
+              "units": "km/s",
+              "description": "Time axis label: FAST Spacecraft velocity, cartesian 3 vector, GEI coords, km/s",
+              "size": [
+                3
+              ]
+            },
+            {
+              "name": "altV",
+              "type": "double",
+              "units": "km",
+              "description": "Time axis label: Spacecraft altitude above an equatorial earth radius of 6378.14 km, km"
+            },
+            {
+              "name": "flatV",
+              "type": "double",
+              "units": "deg",
+              "description": "Time axis label: Geodetic latitude of magnetic footprint at 100 km above the oblate earth, deg"
+            },
+            {
+              "name": "flngV",
+              "type": "double",
+              "units": "deg",
+              "description": "Time axis label: Geodetic longitude of magnetic footprint at 100 km above the oblate earth, deg"
+            },
+            {
+              "name": "mltV",
+              "type": "double",
+              "units": "hour",
+              "description": "Time axis label: Magnetic Local Time, hours"
+            },
+            {
+              "name": "ilatV",
+              "type": "double",
+              "units": "deg",
+              "description": "Time axis label: Invariant Latitude, degrees"
+            }
+          ]
+        }
+      }
+    }
+  },
+  "_meta": {
+    "generated_at": "2026-02-08T09:24:39Z",
+    "hapi_server": "https://cdaweb.gsfc.nasa.gov/hapi"
+  }
+}

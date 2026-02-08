@@ -1,0 +1,241 @@
+{
+  "id": "MESSENGER",
+  "name": "MESSENGER",
+  "keywords": [
+    "mess",
+    "messenger"
+  ],
+  "profile": {
+    "description": "MESSENGER spacecraft data from CDAWeb.",
+    "coordinate_systems": [],
+    "typical_cadence": "",
+    "data_caveats": [],
+    "analysis_patterns": []
+  },
+  "instruments": {
+    "General": {
+      "name": "General",
+      "keywords": [],
+      "datasets": {
+        "MESSENGER_HELIO1DAY_POSITION": {
+          "description": "",
+          "start_date": "2004-08-05T00:00:00Z",
+          "stop_date": "2015-05-01T00:00:00Z",
+          "parameters": [
+            {
+              "name": "RAD_AU",
+              "type": "double",
+              "units": "AU",
+              "description": "Distance from Sun to object"
+            },
+            {
+              "name": "SE_LAT",
+              "type": "double",
+              "units": "deg",
+              "description": "Latitude in Solar Ecliptic Coordinate System (SE)"
+            },
+            {
+              "name": "SE_LON",
+              "type": "double",
+              "units": "deg",
+              "description": "Longitude in Solar Ecliptic Coordinate System (SE)"
+            },
+            {
+              "name": "HG_LAT",
+              "type": "double",
+              "units": "deg",
+              "description": "Latitude in heliographic Rotating Coordinate System (HG)"
+            },
+            {
+              "name": "HG_LON",
+              "type": "double",
+              "units": "deg",
+              "description": "Longitude in Heliographic Rotating Coordinate System (HG)"
+            },
+            {
+              "name": "HGI_LAT",
+              "type": "double",
+              "units": "deg",
+              "description": "Latitude in heliographic Inertial Coordinate System (HGI)"
+            },
+            {
+              "name": "HGI_LON",
+              "type": "double",
+              "units": "deg",
+              "description": "Longitude in heliographic Inertial Coordinate System (HGI)"
+            }
+          ]
+        },
+        "MESSENGER_HELIO1HR_POSITION": {
+          "description": "",
+          "start_date": "2004-08-04T00:00:00Z",
+          "stop_date": "2015-04-30T23:00:00Z",
+          "parameters": [
+            {
+              "name": "RAD_AU",
+              "type": "double",
+              "units": "AU",
+              "description": "Distance from Sun to object"
+            },
+            {
+              "name": "SE_LAT",
+              "type": "double",
+              "units": "deg",
+              "description": "Latitude in Solar Ecliptic Coordinate System (SE)"
+            },
+            {
+              "name": "SE_LON",
+              "type": "double",
+              "units": "deg",
+              "description": "Longitude in Solar Ecliptic Coordinate System (SE)"
+            },
+            {
+              "name": "HG_LAT",
+              "type": "double",
+              "units": "deg",
+              "description": "Latitude in heliographic Rotating Coordinate System (HG)"
+            },
+            {
+              "name": "HG_LON",
+              "type": "double",
+              "units": "deg",
+              "description": "Longitude in Heliographic Rotating Coordinate System (HG)"
+            },
+            {
+              "name": "HGI_LAT",
+              "type": "double",
+              "units": "deg",
+              "description": "Latitude in heliographic Inertial Coordinate System (HGI)"
+            },
+            {
+              "name": "HGI_LON",
+              "type": "double",
+              "units": "deg",
+              "description": "Longitude in heliographic Inertial Coordinate System (HGI)"
+            }
+          ]
+        },
+        "MESSENGER_MAG_RTN@0": {
+          "description": "",
+          "start_date": "2004-08-12T17:44:08Z",
+          "stop_date": "2015-04-30T15:08:14Z",
+          "parameters": [
+            {
+              "name": "radialDistance",
+              "type": "double",
+              "units": "km",
+              "description": "Radial distance of MESSENGER from the Sun"
+            },
+            {
+              "name": "latitude_ecliptic",
+              "type": "double",
+              "units": "deg",
+              "description": "----> North latitude from the ecliptic plane"
+            },
+            {
+              "name": "azimuth_ecliptic",
+              "type": "double",
+              "units": "deg",
+              "description": "----> Azimuthal angle from Earth-Sun line in ecliptic plane, positive in the direction of Earth's motion "
+            },
+            {
+              "name": "B_radial_q",
+              "type": "double",
+              "units": "nT",
+              "description": "(Good values only) B radial (Br) in RTN coordinates "
+            },
+            {
+              "name": "B_tangential_q",
+              "type": "double",
+              "units": "nT",
+              "description": "----> (Good values only) B tangential (Bt)"
+            },
+            {
+              "name": "B_normal_q",
+              "type": "double",
+              "units": "nT",
+              "description": "----> (Good values only) B normal (Bn)"
+            },
+            {
+              "name": "B_radial",
+              "type": "double",
+              "units": "nT",
+              "description": "(All qualities) B radial (Br) in RTN coordinates "
+            },
+            {
+              "name": "B_tangential",
+              "type": "double",
+              "units": "nT",
+              "description": "----> (All qualities) B tangential (Bt)"
+            },
+            {
+              "name": "B_normal",
+              "type": "double",
+              "units": "nT",
+              "description": "----> (All qualities) B normal (Bn)"
+            },
+            {
+              "name": "Quality_Flag",
+              "type": "integer",
+              "units": "(222/223=good)",
+              "description": "3-digit daily quality flag (222 or 223 = good = boom deployed, sensor in shadow, any heater contamination corrected)"
+            },
+            {
+              "name": "Epoch_cadence",
+              "type": "double",
+              "units": "milliseconds",
+              "description": "Data Cadence"
+            }
+          ]
+        },
+        "MESSENGER_MAG_RTN@1": {
+          "description": "",
+          "start_date": "2004-08-12T17:44:08Z",
+          "stop_date": "2015-04-30T15:08:14Z",
+          "parameters": [
+            {
+              "name": "radialDistance_200",
+              "type": "double",
+              "units": "km (>200)",
+              "description": "Radial distance of MESSENGER from the Sun (0.5 sec cadence)"
+            },
+            {
+              "name": "latitude_ecliptic_200",
+              "type": "double",
+              "units": "deg (>200)",
+              "description": "----> North latitude from the ecliptic plane (0.5 sec cadence)"
+            },
+            {
+              "name": "azimuth_ecliptic_200",
+              "type": "double",
+              "units": "deg (>200)",
+              "description": "----> Azimuthal angle from Earth-Sun line in ecliptic plane, positive in the direction of Earth's motion (0.5 sec cadence)"
+            },
+            {
+              "name": "B_radial_200",
+              "type": "double",
+              "units": "nT (>200)",
+              "description": "(Good values at 0.5 sec cadence only) B radial (Br) in RTN coordinates "
+            },
+            {
+              "name": "B_tangential_200",
+              "type": "double",
+              "units": "nT (>200)",
+              "description": "----> (Good values at 0.5 sec cadence only) B tangential (Bt)"
+            },
+            {
+              "name": "B_normal_200",
+              "type": "double",
+              "units": "nT (>200)",
+              "description": "----> (Good values at 0.5 sec cadence only) B normal (Bn)"
+            }
+          ]
+        }
+      }
+    }
+  },
+  "_meta": {
+    "generated_at": "2026-02-08T09:24:40Z",
+    "hapi_server": "https://cdaweb.gsfc.nasa.gov/hapi"
+  }
+}

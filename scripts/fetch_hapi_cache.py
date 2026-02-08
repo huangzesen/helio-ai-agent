@@ -7,16 +7,21 @@ Also generates a lightweight _index.json summary per mission.
 
 Usage:
     python scripts/fetch_hapi_cache.py --mission psp          # one mission
-    python scripts/fetch_hapi_cache.py --all                  # all 8 missions
+    python scripts/fetch_hapi_cache.py --all                  # all missions
     python scripts/fetch_hapi_cache.py --mission psp --force  # re-fetch all
+    python scripts/fetch_hapi_cache.py --all --workers 20     # faster parallel
 """
 
 import argparse
 import json
 import sys
 import time
+from concurrent.futures import ThreadPoolExecutor, as_completed
 from datetime import datetime, timezone
 from pathlib import Path
+
+# Add project root to path for knowledge imports
+sys.path.insert(0, str(Path(__file__).parent.parent))
 
 try:
     import requests
@@ -24,50 +29,13 @@ except ImportError:
     print("Error: 'requests' package is required. Install with: pip install requests")
     sys.exit(1)
 
+from knowledge.mission_prefixes import match_dataset_to_mission
 
-# Reuse constants from generate_mission_data.py
+
+# Constants
 HAPI_SERVER = "https://cdaweb.gsfc.nasa.gov/hapi"
 MISSIONS_DIR = Path(__file__).parent.parent / "knowledge" / "missions"
-REQUEST_DELAY = 0.5
-
-# Maps CDAWeb dataset ID prefixes to (mission_stem, instrument_hint)
-# Order matters: longer prefixes checked first
-MISSION_PREFIX_MAP = {
-    "PSP_FLD": ("psp", "FIELDS/MAG"),
-    "PSP_SWP_SPC": ("psp", "SWEAP"),
-    "PSP_SWP_SPI": ("psp", "SWEAP/SPAN-I"),
-    "PSP_SWP_SPA": ("psp", "SWEAP/SPAN-E"),
-    "PSP_SWP_SPB": ("psp", "SWEAP/SPAN-E"),
-    "PSP_SWP": ("psp", "SWEAP"),
-    "PSP_ISOIS": ("psp", "ISOIS"),
-    "PSP_": ("psp", None),
-    "SOLO_L2_MAG": ("solo", "MAG"),
-    "SOLO_L2_SWA": ("solo", "SWA-PAS"),
-    "SOLO_": ("solo", None),
-    "AC_H": ("ace", None),
-    "AC_K": ("ace", None),
-    "OMNI_HRO": ("omni", "Combined"),
-    "OMNI_": ("omni", "Combined"),
-    "WI_H": ("wind", None),
-    "WI_": ("wind", None),
-    "DSCOVR_H0_MAG": ("dscovr", "MAG"),
-    "DSCOVR_H1_FC": ("dscovr", "FC"),
-    "DSCOVR_": ("dscovr", None),
-    "MMS1_FGM": ("mms", "FGM"),
-    "MMS1_FPI": ("mms", "FPI-DIS"),
-    "MMS1_": ("mms", None),
-    "STA_L2_MAG": ("stereo_a", "MAG"),
-    "STA_L2_PLA": ("stereo_a", "PLASTIC"),
-    "STA_": ("stereo_a", None),
-}
-
-
-def match_dataset_to_mission(dataset_id: str) -> tuple[str | None, str | None]:
-    """Map a CDAWeb dataset ID to a mission and optional instrument hint."""
-    for prefix, (mission, instrument) in MISSION_PREFIX_MAP.items():
-        if dataset_id.startswith(prefix):
-            return mission, instrument
-    return None, None
+DEFAULT_WORKERS = 10
 
 
 def fetch_hapi_catalog() -> list[dict]:
@@ -90,8 +58,7 @@ def fetch_hapi_info(dataset_id: str) -> dict | None:
         if resp.status_code != 200:
             return None
         return resp.json()
-    except Exception as e:
-        print(f"    Warning: Failed to fetch info for {dataset_id}: {e}")
+    except Exception:
         return None
 
 
@@ -121,11 +88,48 @@ def build_index_entry(dataset_id: str, info: dict, instrument_hint: str | None) 
     }
 
 
+def ensure_calibration_exclude(mission_stem: str):
+    """Create a basic _calibration_exclude.json if one doesn't exist."""
+    hapi_dir = MISSIONS_DIR / mission_stem / "hapi"
+    hapi_dir.mkdir(parents=True, exist_ok=True)
+    exclude_file = hapi_dir / "_calibration_exclude.json"
+    if not exclude_file.exists():
+        exclude_data = {
+            "description": "Auto-generated exclusion patterns for calibration/housekeeping data",
+            "patterns": ["*_K0_*", "*_K1_*", "*_K2_*"],
+            "ids": [],
+        }
+        with open(exclude_file, "w", encoding="utf-8") as f:
+            json.dump(exclude_data, f, indent=2, ensure_ascii=False)
+            f.write("\n")
+
+
+def _fetch_and_save(ds_id: str, instrument_hint: str | None, cache_dir: Path) -> tuple[str, str, dict | None]:
+    """Fetch a single dataset's HAPI info and save to cache. Thread-safe.
+
+    Returns:
+        (dataset_id, status, index_entry_or_None)
+        status is one of: "fetched", "failed"
+    """
+    info = fetch_hapi_info(ds_id)
+    if info is None:
+        return ds_id, "failed", None
+
+    cache_file = cache_dir / f"{ds_id}.json"
+    with open(cache_file, "w", encoding="utf-8") as f:
+        json.dump(info, f, indent=2, ensure_ascii=False)
+        f.write("\n")
+
+    entry = build_index_entry(ds_id, info, instrument_hint)
+    return ds_id, "fetched", entry
+
+
 def cache_mission(
     mission_stem: str,
     hapi_catalog: list[dict],
     force: bool = False,
     verbose: bool = False,
+    workers: int = DEFAULT_WORKERS,
 ):
     """Fetch and cache HAPI /info for all datasets matching a mission.
 
@@ -134,6 +138,7 @@ def cache_mission(
         hapi_catalog: Full HAPI catalog list
         force: Re-fetch even if local file exists
         verbose: Print detailed progress
+        workers: Number of parallel fetch threads
     """
     # Verify mission JSON exists
     mission_json = MISSIONS_DIR / f"{mission_stem}.json"
@@ -146,9 +151,10 @@ def cache_mission(
 
     mission_id = mission_data.get("id", mission_stem.upper())
 
-    # Create cache directory
+    # Create cache directory and ensure calibration exclude file exists
     cache_dir = MISSIONS_DIR / mission_stem / "hapi"
     cache_dir.mkdir(parents=True, exist_ok=True)
+    ensure_calibration_exclude(mission_stem)
 
     # Find matching datasets
     matched = []
@@ -158,55 +164,51 @@ def cache_mission(
         if ds_mission == mission_stem:
             matched.append((ds_id, ds_instrument))
 
-    print(f"\n{mission_id}: {len(matched)} datasets found in HAPI catalog")
+    print(f"\n{mission_id}: {len(matched)} datasets", end="", flush=True)
 
     index_entries = []
     fetched = 0
     skipped = 0
     errors = 0
 
+    # Separate into cached (skip) and to-fetch lists
+    to_fetch = []
     for ds_id, instrument_hint in matched:
         cache_file = cache_dir / f"{ds_id}.json"
 
         if cache_file.exists() and not force:
-            # Load existing file for index
             try:
                 with open(cache_file, "r", encoding="utf-8") as f:
                     info = json.load(f)
                 index_entries.append(build_index_entry(ds_id, info, instrument_hint))
                 skipped += 1
-                if verbose:
-                    print(f"  [skip] {ds_id}")
             except json.JSONDecodeError:
-                # Re-fetch if corrupted
-                pass
-            else:
-                continue
+                to_fetch.append((ds_id, instrument_hint))
+        else:
+            to_fetch.append((ds_id, instrument_hint))
 
-        # Fetch from HAPI
-        if verbose:
-            print(f"  [fetch] {ds_id}...", end="", flush=True)
+    if to_fetch:
+        print(f" ({skipped} cached, {len(to_fetch)} to fetch)", flush=True)
 
-        info = fetch_hapi_info(ds_id)
-        if info is None:
-            errors += 1
-            if verbose:
-                print(" FAILED")
-            continue
-
-        # Save raw response
-        with open(cache_file, "w", encoding="utf-8") as f:
-            json.dump(info, f, indent=2, ensure_ascii=False)
-            f.write("\n")
-
-        index_entries.append(build_index_entry(ds_id, info, instrument_hint))
-        fetched += 1
-
-        if verbose:
-            param_count = index_entries[-1]["parameter_count"]
-            print(f" OK ({param_count} params)")
-
-        time.sleep(REQUEST_DELAY)
+        # Parallel fetch
+        with ThreadPoolExecutor(max_workers=workers) as pool:
+            futures = {
+                pool.submit(_fetch_and_save, ds_id, inst, cache_dir): (ds_id, inst)
+                for ds_id, inst in to_fetch
+            }
+            for future in as_completed(futures):
+                ds_id, status, entry = future.result()
+                if status == "fetched" and entry:
+                    index_entries.append(entry)
+                    fetched += 1
+                    if verbose:
+                        print(f"  [ok] {ds_id} ({entry['parameter_count']} params)")
+                else:
+                    errors += 1
+                    if verbose:
+                        print(f"  [FAIL] {ds_id}")
+    else:
+        print(f" (all {skipped} cached)", flush=True)
 
     # Sort index by dataset ID
     index_entries.sort(key=lambda e: e["id"])
@@ -223,8 +225,7 @@ def cache_mission(
         json.dump(index_data, f, indent=2, ensure_ascii=False)
         f.write("\n")
 
-    print(f"  Fetched: {fetched}, Skipped: {skipped}, Errors: {errors}")
-    print(f"  Index: {index_file} ({len(index_entries)} entries)")
+    print(f"  Done: {fetched} fetched, {skipped} cached, {errors} errors")
 
 
 def main():
@@ -248,27 +249,39 @@ def main():
         help="Re-fetch even if local cache exists",
     )
     parser.add_argument(
+        "--workers", "-w",
+        type=int,
+        default=DEFAULT_WORKERS,
+        help=f"Number of parallel fetch threads (default: {DEFAULT_WORKERS})",
+    )
+    parser.add_argument(
         "--verbose", "-v",
         action="store_true",
         help="Print detailed progress",
     )
     args = parser.parse_args()
 
+    start_time = time.time()
+
     # Fetch HAPI catalog once
     hapi_catalog = fetch_hapi_catalog()
 
     if args.mission:
         mission_stem = args.mission.lower()
-        cache_mission(mission_stem, hapi_catalog, force=args.force, verbose=args.verbose)
+        cache_mission(
+            mission_stem, hapi_catalog,
+            force=args.force, verbose=args.verbose, workers=args.workers,
+        )
     else:
         # All missions
         for filepath in sorted(MISSIONS_DIR.glob("*.json")):
             cache_mission(
                 filepath.stem, hapi_catalog,
-                force=args.force, verbose=args.verbose,
+                force=args.force, verbose=args.verbose, workers=args.workers,
             )
 
-    print("\nDone!")
+    elapsed = time.time() - start_time
+    print(f"\nDone in {elapsed:.0f}s")
 
 
 if __name__ == "__main__":

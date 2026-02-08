@@ -1,0 +1,1310 @@
+{
+  "id": "HELIOS",
+  "name": "Helios",
+  "keywords": [
+    "hel1",
+    "hel2",
+    "helios",
+    "helios1",
+    "helios2"
+  ],
+  "profile": {
+    "description": "Helios spacecraft data from CDAWeb.",
+    "coordinate_systems": [],
+    "typical_cadence": "",
+    "data_caveats": [],
+    "analysis_patterns": []
+  },
+  "instruments": {
+    "General": {
+      "name": "General",
+      "keywords": [],
+      "datasets": {
+        "HEL1_6SEC_NESSMAG": {
+          "description": "",
+          "start_date": "1974-12-15T00:01:00Z",
+          "stop_date": "1981-06-16T04:59:06Z",
+          "parameters": [
+            {
+              "name": "BXSSE",
+              "type": "double",
+              "units": "nT",
+              "description": "Bx (SSE)"
+            },
+            {
+              "name": "BYSSE",
+              "type": "double",
+              "units": "nT",
+              "description": "By (SSE)"
+            },
+            {
+              "name": "BZSSE",
+              "type": "double",
+              "units": "nT",
+              "description": "Bz (SSE)"
+            },
+            {
+              "name": "B",
+              "type": "double",
+              "units": "nT",
+              "description": "B (Field magnitude average)"
+            },
+            {
+              "name": "stdevBXSSE",
+              "type": "double",
+              "units": "nT",
+              "description": "standard deviation of Bx (SSE)"
+            },
+            {
+              "name": "stdevBYSSE",
+              "type": "double",
+              "units": "nT",
+              "description": "standard deviation of By (SSE)"
+            },
+            {
+              "name": "stdevBZSSE",
+              "type": "double",
+              "units": "nT",
+              "description": "standard deviation of Bz (SSE)"
+            }
+          ]
+        },
+        "HEL2_6SEC_NESSMAG": {
+          "description": "",
+          "start_date": "1976-01-17T07:34:06Z",
+          "stop_date": "1980-03-08T17:50:00Z",
+          "parameters": [
+            {
+              "name": "BXSSE",
+              "type": "double",
+              "units": "nT",
+              "description": "Bx (SSE)"
+            },
+            {
+              "name": "BYSSE",
+              "type": "double",
+              "units": "nT",
+              "description": "By (SSE)"
+            },
+            {
+              "name": "BZSSE",
+              "type": "double",
+              "units": "nT",
+              "description": "Bz (SSE)"
+            },
+            {
+              "name": "B",
+              "type": "double",
+              "units": "nT",
+              "description": "B (Field magnitude average)"
+            },
+            {
+              "name": "stdevBXSSE",
+              "type": "double",
+              "units": "nT",
+              "description": "standard deviation of Bx (SSE)"
+            },
+            {
+              "name": "stdevBYSSE",
+              "type": "double",
+              "units": "nT",
+              "description": "standard deviation of By (SSE)"
+            },
+            {
+              "name": "stdevBZSSE",
+              "type": "double",
+              "units": "nT",
+              "description": "standard deviation of Bz (SSE)"
+            }
+          ]
+        },
+        "HELIOS1_40SEC_MAG-PLASMA": {
+          "description": "",
+          "start_date": "1974-12-12T01:21:38Z",
+          "stop_date": "1985-09-04T09:52:10Z",
+          "parameters": [
+            {
+              "name": "R_Helio",
+              "type": "double",
+              "units": "AU",
+              "description": "Heliocentric distance (AU)"
+            },
+            {
+              "name": "ESS_Ang",
+              "type": "double",
+              "units": "degree",
+              "description": "Earth-sun-spacecraft angle (deg)"
+            },
+            {
+              "name": "clong",
+              "type": "double",
+              "units": "degree",
+              "description": "Carrington longitude (deg)"
+            },
+            {
+              "name": "clat",
+              "type": "double",
+              "units": "degree",
+              "description": "Carrington/HGI latitude (deg)"
+            },
+            {
+              "name": "HGIlong",
+              "type": "double",
+              "units": "degree",
+              "description": "HGI Longitude (deg)"
+            },
+            {
+              "name": "B_R",
+              "type": "double",
+              "units": "nT",
+              "description": "The HGI \"R\" component of the magnetic field (nT)"
+            },
+            {
+              "name": "B_T",
+              "type": "double",
+              "units": "nT",
+              "description": "The HGI \"T\" component of the magnetic field (nT)"
+            },
+            {
+              "name": "B_N",
+              "type": "double",
+              "units": "nT",
+              "description": "The HGI \"N\" component of the magnetic field (nT)"
+            },
+            {
+              "name": "Vp_R",
+              "type": "double",
+              "units": "km/s",
+              "description": "The HGI \"R\" component of the proton velocity  (km/s)"
+            },
+            {
+              "name": "Vp_T",
+              "type": "double",
+              "units": "km/s",
+              "description": "The HGI \"T\" component of the proton velocity  (km/s)"
+            },
+            {
+              "name": "Vp_N",
+              "type": "double",
+              "units": "km/s",
+              "description": "The HGI \"N\" component of the proton velocity  (km/s)"
+            },
+            {
+              "name": "crot",
+              "type": "double",
+              "units": " ",
+              "description": "Carrington rotation"
+            },
+            {
+              "name": "Np",
+              "type": "double",
+              "units": "cm^-3",
+              "description": "Proton number density (cm^-3)"
+            },
+            {
+              "name": "Vp",
+              "type": "double",
+              "units": "km/s",
+              "description": "Proton speed  (Km/s)"
+            },
+            {
+              "name": "Tp",
+              "type": "double",
+              "units": "K",
+              "description": "Proton Temperature  (K)"
+            },
+            {
+              "name": "V_Azimuth",
+              "type": "double",
+              "units": "degree",
+              "description": "Azimuth of the velocity vector (deg)"
+            },
+            {
+              "name": "V_Elev",
+              "type": "double",
+              "units": "degree",
+              "description": "Elevation of the velocity vector (deg)"
+            },
+            {
+              "name": "B_x",
+              "type": "double",
+              "units": "nT",
+              "description": "SSE (spacecraft) X component of the magnetic field"
+            },
+            {
+              "name": "B_y",
+              "type": "double",
+              "units": "nT",
+              "description": "SSE (spacecraft) Y component of the magnetic field"
+            },
+            {
+              "name": "B_z",
+              "type": "double",
+              "units": "nT",
+              "description": "SSE (spacecraft) Z component of the magnetic field"
+            },
+            {
+              "name": "stdev_B_x",
+              "type": "double",
+              "units": "nT",
+              "description": "Standard deviation of the B_X component over the 40.5 s"
+            },
+            {
+              "name": "stdev_B_y",
+              "type": "double",
+              "units": "nT",
+              "description": "Standard deviation of the B_Y component over the 40.5 s"
+            },
+            {
+              "name": "stdev_B_z",
+              "type": "double",
+              "units": "nT",
+              "description": "Standard deviation of the B_Z component over the 40.5 s"
+            },
+            {
+              "name": "N_a",
+              "type": "double",
+              "units": "cm^-3",
+              "description": "Alpha number density (cm^-3)"
+            },
+            {
+              "name": "V_a",
+              "type": "double",
+              "units": "km/s",
+              "description": "Alpha speed  (Km/s)"
+            },
+            {
+              "name": "T_a",
+              "type": "double",
+              "units": "K",
+              "description": "Alpha temperature (K)"
+            },
+            {
+              "name": "Np2",
+              "type": "double",
+              "units": "cm^-3",
+              "description": "Proton density (second instrument)"
+            },
+            {
+              "name": "Vp2",
+              "type": "double",
+              "units": "km/s",
+              "description": "Proton speed (second instrument)"
+            }
+          ]
+        },
+        "HELIOS1_COHO1HR_MERGED_MAG_PLASMA": {
+          "description": "",
+          "start_date": "1974-01-01T00:00:00Z",
+          "stop_date": "1981-12-31T23:00:00Z",
+          "parameters": [
+            {
+              "name": "RotationNumber",
+              "type": "integer",
+              "units": " ",
+              "description": "Carrington rotation number"
+            },
+            {
+              "name": "heliocentricDistance",
+              "type": "double",
+              "units": "AU",
+              "description": "Heliocentric distance (start of data interval)"
+            },
+            {
+              "name": "heliographicLatitude",
+              "type": "double",
+              "units": "deg",
+              "description": "HelioGraphic Inertial (HGI) latitude"
+            },
+            {
+              "name": "heliographicLongitude",
+              "type": "double",
+              "units": "deg",
+              "description": "HGI longitude"
+            },
+            {
+              "name": "sepAngle",
+              "type": "double",
+              "units": "deg",
+              "description": "Earth-Sun-Helios1 separation angle"
+            },
+            {
+              "name": "BX",
+              "type": "double",
+              "units": "nT",
+              "description": "BX in SSE (Sun-centered Solar Ecliptic) coordinate system"
+            },
+            {
+              "name": "BY",
+              "type": "double",
+              "units": "nT",
+              "description": "BY in SSE coordinate system"
+            },
+            {
+              "name": "BZ",
+              "type": "double",
+              "units": "nT",
+              "description": "BZ in SSE coordinate system"
+            },
+            {
+              "name": "BR",
+              "type": "double",
+              "units": "nT",
+              "description": "BR in RTN (Radial-Tangential-Normal) coordinate system"
+            },
+            {
+              "name": "BT",
+              "type": "double",
+              "units": "nT",
+              "description": "BT in RTN coordinate system"
+            },
+            {
+              "name": "BN",
+              "type": "double",
+              "units": "nT",
+              "description": "BN in RTN coordinate system"
+            },
+            {
+              "name": "B",
+              "type": "double",
+              "units": "nT",
+              "description": "B-Field magnitude (average of fine scale field magnitudes)"
+            },
+            {
+              "name": "flowSpeed",
+              "type": "double",
+              "units": "km/s",
+              "description": "Proton flow speed"
+            },
+            {
+              "name": "elevAngle",
+              "type": "double",
+              "units": "deg",
+              "description": "Proton flow elevation angle / latitude (RTN)"
+            },
+            {
+              "name": "azimuthAngle",
+              "type": "double",
+              "units": "deg",
+              "description": "Proton flow azimuth angle / longitude (RTN)"
+            },
+            {
+              "name": "protonDensity",
+              "type": "double",
+              "units": "N/cm3",
+              "description": "Proton density"
+            },
+            {
+              "name": "protonTemp",
+              "type": "double",
+              "units": "deg K",
+              "description": "Proton temperature"
+            },
+            {
+              "name": "protonFlux1_E6",
+              "type": "double",
+              "units": "1/(sec-cm**2-ster-MeV)",
+              "description": "Proton Flux 4.0 - 13.0, MeV, E6"
+            },
+            {
+              "name": "protonFlux2_E6",
+              "type": "double",
+              "units": "1/(sec-cm**2-ster-MeV)",
+              "description": "Proton Flux 13.0 - 27.0, MeV, E6"
+            },
+            {
+              "name": "protonFlux3_E6",
+              "type": "double",
+              "units": "1/(sec-cm**2-ster-MeV)",
+              "description": "Proton Flux 27.0 - 37.0, MeV, E6"
+            },
+            {
+              "name": "protonFlux4_E6",
+              "type": "double",
+              "units": "1/(sec-cm**2-ster-MeV)",
+              "description": "Proton Flux 37.0 - 51.0, MeV, E6"
+            },
+            {
+              "name": "protonFlux1_E7",
+              "type": "double",
+              "units": "1/(sec-cm**2-ster-MeV)",
+              "description": "Proton Flux 3.4 - 6.05, MeV, E7"
+            },
+            {
+              "name": "protonFlux2_E7",
+              "type": "double",
+              "units": "1/(sec-cm**2-ster-MeV)",
+              "description": "Proton Flux 6.05 - 11.1, MeV, E7"
+            },
+            {
+              "name": "protonFlux3_E7",
+              "type": "double",
+              "units": "1/(sec-cm**2-ster-MeV)",
+              "description": "Proton Flux 11.1 - 21.6, MeV, E7"
+            },
+            {
+              "name": "protonFlux4_E7",
+              "type": "double",
+              "units": "1/(sec-cm**2-ster-MeV)",
+              "description": "Proton Flux 24.52 - 28.82, MeV, E7"
+            },
+            {
+              "name": "protonFlux5_E7",
+              "type": "double",
+              "units": "1/(sec-cm**2-ster-MeV)",
+              "description": "Proton Flux 32.0 - 46.3, MeV, E7"
+            },
+            {
+              "name": "protonFlux6_E7",
+              "type": "double",
+              "units": "1/(sec-cm**2-ster-MeV)",
+              "description": "Proton Flux 46.3 - 57.22, MeV, E7"
+            },
+            {
+              "name": "protonFlux7_E7",
+              "type": "double",
+              "units": "1/(sec-cm**2-ster-MeV)",
+              "description": "Proton Flux 135.2 - 206.5, MeV, E7"
+            }
+          ]
+        },
+        "HELIOS1_E6_1HOUR_PARTICLE_FLUX": {
+          "description": "",
+          "start_date": "1974-12-11T21:07:00Z",
+          "stop_date": "1983-12-31T22:01:00Z",
+          "parameters": [
+            {
+              "name": "p_flux",
+              "type": "double",
+              "units": "particles/m^2  sec sr MeV/N",
+              "description": "E6 proton flux (five bands 4-51 MeV)",
+              "size": [
+                5
+              ]
+            },
+            {
+              "name": "p_flux_sd",
+              "type": "double",
+              "units": "particles/m^2  sec sr MeV/N",
+              "description": "---> Proton Flux standard deviation",
+              "size": [
+                5
+              ]
+            },
+            {
+              "name": "e_flux",
+              "type": "double",
+              "units": "particles/m^2  sec sr MeV/N",
+              "description": "E6 electron flux (3 bands 0.3-2 MeV)",
+              "size": [
+                3
+              ]
+            },
+            {
+              "name": "e_flux_sd",
+              "type": "double",
+              "units": "particles/m^2  sec sr MeV/N",
+              "description": "---> Electron flux standard deviation",
+              "size": [
+                3
+              ]
+            },
+            {
+              "name": "He_flux",
+              "type": "double",
+              "units": "particles/m^2  sec sr MeV/N",
+              "description": "E6 He Flux (6 bands 2-48 MeV/N",
+              "size": [
+                6
+              ]
+            },
+            {
+              "name": "He_flux_sd",
+              "type": "double",
+              "units": "particles/m^2  sec sr MeV/N",
+              "description": "---> He flux standard deviation",
+              "size": [
+                6
+              ]
+            }
+          ]
+        },
+        "HELIOS1_E6_KUNOW_1HOUR_PARTICLE-FLUX": {
+          "description": "",
+          "start_date": "1974-12-11T21:07:00Z",
+          "stop_date": "1983-12-31T14:35:00Z",
+          "parameters": [
+            {
+              "name": "p_flux",
+              "type": "double",
+              "units": "particles/m^2  sec sr MeV/N",
+              "description": "Proton flux (4 bands 7-44 MeV",
+              "size": [
+                4
+              ]
+            },
+            {
+              "name": "p_flux_sd",
+              "type": "double",
+              "units": "particles/m^2  sec sr MeV/N",
+              "description": "---> Proton flux standard deviation",
+              "size": [
+                4
+              ]
+            },
+            {
+              "name": "p_flux_int",
+              "type": "double",
+              "units": "particles/m^2  sec sr",
+              "description": "Integral proton flux >51 MeV"
+            },
+            {
+              "name": "p_flux_int_sd",
+              "type": "double",
+              "units": "particles/m^2  sec sr",
+              "description": "---> integral 51+ MeV proton flux standard deviation"
+            },
+            {
+              "name": "e_flux",
+              "type": "double",
+              "units": "particles/m^2  sec sr MeV/N",
+              "description": "Electron flux (2 bands 0.5 and 1.26 MeV)",
+              "size": [
+                2
+              ]
+            },
+            {
+              "name": "e_flux_sd",
+              "type": "double",
+              "units": "particles/m^2  sec sr MeV/N",
+              "description": "---> electron flux standard deviation",
+              "size": [
+                2
+              ]
+            },
+            {
+              "name": "He_flux",
+              "type": "double",
+              "units": "particles/m^2  sec sr MeV/N",
+              "description": "He flux (5 bands 2.8-41 MeV)",
+              "size": [
+                5
+              ]
+            },
+            {
+              "name": "He_flux_sd",
+              "type": "double",
+              "units": "particles/m^2  sec sr MeV/N",
+              "description": "---> He flux standard deviation",
+              "size": [
+                5
+              ]
+            },
+            {
+              "name": "He_flux_int",
+              "type": "double",
+              "units": "particles/m^2  sec sr",
+              "description": "integral He flux"
+            },
+            {
+              "name": "He_flux_int_sd",
+              "type": "double",
+              "units": "particles/m^2  sec sr",
+              "description": "---> integral He flux standard deviation"
+            }
+          ]
+        },
+        "HELIOS1_HELIO1DAY_POSITION": {
+          "description": "",
+          "start_date": "1974-12-10T00:00:00Z",
+          "stop_date": "1985-12-30T00:00:00Z",
+          "parameters": [
+            {
+              "name": "RAD_AU",
+              "type": "double",
+              "units": "AU",
+              "description": "Distance from Sun to object"
+            },
+            {
+              "name": "SE_LAT",
+              "type": "double",
+              "units": "deg",
+              "description": "Latitude in Solar Ecliptic Coordinate System (SE)"
+            },
+            {
+              "name": "SE_LON",
+              "type": "double",
+              "units": "deg",
+              "description": "Longitude in Solar Ecliptic Coordinate System (SE)"
+            },
+            {
+              "name": "HG_LAT",
+              "type": "double",
+              "units": "deg",
+              "description": "Latitude in heliographic Rotating Coordinate System (HG)"
+            },
+            {
+              "name": "HG_LON",
+              "type": "double",
+              "units": "deg",
+              "description": "Longitude in Heliographic Rotating Coordinate System (HG)"
+            },
+            {
+              "name": "HGI_LAT",
+              "type": "double",
+              "units": "deg",
+              "description": "Latitude in heliographic Inertial Coordinate System (HGI)"
+            },
+            {
+              "name": "HGI_LON",
+              "type": "double",
+              "units": "deg",
+              "description": "Longitude in heliographic Inertial Coordinate System (HGI)"
+            }
+          ]
+        },
+        "HELIOS1_HELIO1HR_POSITION": {
+          "description": "",
+          "start_date": "1974-12-10T00:00:00Z",
+          "stop_date": "1985-12-30T23:00:00Z",
+          "parameters": [
+            {
+              "name": "RAD_AU",
+              "type": "double",
+              "units": "AU",
+              "description": "Distance from Sun to object"
+            },
+            {
+              "name": "SE_LAT",
+              "type": "double",
+              "units": "deg",
+              "description": "Latitude in Solar Ecliptic Coordinate System (SE)"
+            },
+            {
+              "name": "SE_LON",
+              "type": "double",
+              "units": "deg",
+              "description": "Longitude in Solar Ecliptic Coordinate System (SE)"
+            },
+            {
+              "name": "HG_LAT",
+              "type": "double",
+              "units": "deg",
+              "description": "Latitude in heliographic Rotating Coordinate System (HG)"
+            },
+            {
+              "name": "HG_LON",
+              "type": "double",
+              "units": "deg",
+              "description": "Longitude in Heliographic Rotating Coordinate System (HG)"
+            },
+            {
+              "name": "HGI_LAT",
+              "type": "double",
+              "units": "deg",
+              "description": "Latitude in heliographic Inertial Coordinate System (HGI)"
+            },
+            {
+              "name": "HGI_LON",
+              "type": "double",
+              "units": "deg",
+              "description": "Longitude in heliographic Inertial Coordinate System (HGI)"
+            }
+          ]
+        },
+        "HELIOS2_40SEC_MAG-PLASMA": {
+          "description": "",
+          "start_date": "1976-01-17T01:21:36Z",
+          "stop_date": "1980-03-08T17:43:50Z",
+          "parameters": [
+            {
+              "name": "R_Helio",
+              "type": "double",
+              "units": "AU",
+              "description": "Heliocentric distance (AU)"
+            },
+            {
+              "name": "ESS_Ang",
+              "type": "double",
+              "units": "degree",
+              "description": "Earth-sun-spacecraft angle (deg)"
+            },
+            {
+              "name": "clong",
+              "type": "double",
+              "units": "degree",
+              "description": "Carrington longitude (deg)"
+            },
+            {
+              "name": "clat",
+              "type": "double",
+              "units": "degree",
+              "description": "Carrington/HGI latitude (deg)"
+            },
+            {
+              "name": "HGIlong",
+              "type": "double",
+              "units": "degree",
+              "description": "HGI Longitude (deg)"
+            },
+            {
+              "name": "B_R",
+              "type": "double",
+              "units": "nT",
+              "description": "The HGI \"R\" component of the magnetic field (nT)"
+            },
+            {
+              "name": "B_T",
+              "type": "double",
+              "units": "nT",
+              "description": "The HGI \"T\" component of the magnetic field (nT)"
+            },
+            {
+              "name": "B_N",
+              "type": "double",
+              "units": "nT",
+              "description": "The HGI \"N\" component of the magnetic field (nT)"
+            },
+            {
+              "name": "Vp_R",
+              "type": "double",
+              "units": "km/s",
+              "description": "The HGI \"R\" component of the proton velocity  (km/s)"
+            },
+            {
+              "name": "Vp_T",
+              "type": "double",
+              "units": "km/s",
+              "description": "The HGI \"T\" component of the proton velocity  (km/s)"
+            },
+            {
+              "name": "Vp_N",
+              "type": "double",
+              "units": "km/s",
+              "description": "The HGI \"N\" component of the proton velocity  (km/s)"
+            },
+            {
+              "name": "crot",
+              "type": "double",
+              "units": " ",
+              "description": "Carrington rotation"
+            },
+            {
+              "name": "Np",
+              "type": "double",
+              "units": "cm^-3",
+              "description": "Proton number density (cm^-3)"
+            },
+            {
+              "name": "Vp",
+              "type": "double",
+              "units": "km/s",
+              "description": "Proton speed  (Km/s)"
+            },
+            {
+              "name": "Tp",
+              "type": "double",
+              "units": "K",
+              "description": "Proton Temperature  (K)"
+            },
+            {
+              "name": "V_Azimuth",
+              "type": "double",
+              "units": "degree",
+              "description": "Azimuth of the velocity vector (deg)"
+            },
+            {
+              "name": "V_Elev",
+              "type": "double",
+              "units": "degree",
+              "description": "Elevation of the velocity vector (deg)"
+            },
+            {
+              "name": "B_x",
+              "type": "double",
+              "units": "nT",
+              "description": "SSE (spacecraft) X component of the magnetic field"
+            },
+            {
+              "name": "B_y",
+              "type": "double",
+              "units": "nT",
+              "description": "SSE (spacecraft) Y component of the magnetic field"
+            },
+            {
+              "name": "B_z",
+              "type": "double",
+              "units": "nT",
+              "description": "SSE (spacecraft) Z component of the magnetic field"
+            },
+            {
+              "name": "stdev_B_x",
+              "type": "double",
+              "units": "nT",
+              "description": "Standard deviation of the B_X component over the 40.5 s"
+            },
+            {
+              "name": "stdev_B_y",
+              "type": "double",
+              "units": "nT",
+              "description": "Standard deviation of the B_Y component over the 40.5 s"
+            },
+            {
+              "name": "stdev_B_z",
+              "type": "double",
+              "units": "nT",
+              "description": "Standard deviation of the B_Z component over the 40.5 s"
+            },
+            {
+              "name": "N_a",
+              "type": "double",
+              "units": "cm^-3",
+              "description": "Alpha number density (cm^-3)"
+            },
+            {
+              "name": "V_a",
+              "type": "double",
+              "units": "km/s",
+              "description": "Alpha speed  (Km/s)"
+            },
+            {
+              "name": "T_a",
+              "type": "double",
+              "units": "K",
+              "description": "Alpha temperature (K)"
+            },
+            {
+              "name": "Np2",
+              "type": "double",
+              "units": "cm^-3",
+              "description": "Proton density (second instrument)"
+            },
+            {
+              "name": "Vp2",
+              "type": "double",
+              "units": "km/s",
+              "description": "Proton speed (second instrument)"
+            }
+          ]
+        },
+        "HELIOS2_COHO1HR_MERGED_MAG_PLASMA": {
+          "description": "",
+          "start_date": "1976-01-01T00:00:00Z",
+          "stop_date": "1980-12-31T23:00:00Z",
+          "parameters": [
+            {
+              "name": "heliocentricDistance",
+              "type": "double",
+              "units": "Au",
+              "description": "Heliocentric Distance (start of data interval)"
+            },
+            {
+              "name": "heliographicLatitude",
+              "type": "double",
+              "units": "deg",
+              "description": "HelioGraphic Inertial (HGI) latitude"
+            },
+            {
+              "name": "heliographicLongitude",
+              "type": "double",
+              "units": "deg",
+              "description": "HGI longitude"
+            },
+            {
+              "name": "sepAngle",
+              "type": "double",
+              "units": "deg",
+              "description": "Earth-Sun-Helios2 separation angle"
+            },
+            {
+              "name": "BX",
+              "type": "double",
+              "units": "nT",
+              "description": "BX in SSE (Sun-centered Solar Ecliptic) coordinate system"
+            },
+            {
+              "name": "BY",
+              "type": "double",
+              "units": "nT",
+              "description": "BY in SSE coordinate system"
+            },
+            {
+              "name": "BZ",
+              "type": "double",
+              "units": "nT",
+              "description": "BZ in SSE coordinate system"
+            },
+            {
+              "name": "BR",
+              "type": "double",
+              "units": "nT",
+              "description": "BR in RTN (Radial-Tangential-Normal) coordinate system"
+            },
+            {
+              "name": "BT",
+              "type": "double",
+              "units": "nT",
+              "description": "BT in RTN coordinate system"
+            },
+            {
+              "name": "BN",
+              "type": "double",
+              "units": "nT",
+              "description": "BN in RTN coordinate system"
+            },
+            {
+              "name": "B",
+              "type": "double",
+              "units": "nT",
+              "description": "B-Field magnitude (average of fine scale field magnitudes)"
+            },
+            {
+              "name": "flowSpeed",
+              "type": "double",
+              "units": "km/s",
+              "description": "Proton flow speed"
+            },
+            {
+              "name": "elevAngle",
+              "type": "double",
+              "units": "deg",
+              "description": "Proton flow elevation angle / latitude (RTN)"
+            },
+            {
+              "name": "azimuthAngle",
+              "type": "double",
+              "units": "deg",
+              "description": "Proton flow azimuth angle / longitude (RTN)"
+            },
+            {
+              "name": "protonDensity",
+              "type": "double",
+              "units": "N/cm3",
+              "description": "Proton density"
+            },
+            {
+              "name": "protonTemp",
+              "type": "double",
+              "units": "deg K",
+              "description": "Proton temperature"
+            },
+            {
+              "name": "protonFlux1_E6",
+              "type": "double",
+              "units": "1/(sec-cm**2-ster-MeV)",
+              "description": "Proton Flux 4.0 - 13.0, MeV, E6"
+            },
+            {
+              "name": "protonFlux2_E6",
+              "type": "double",
+              "units": "1/(sec-cm**2-ster-MeV)",
+              "description": "Proton Flux 13.0 - 27.0, MeV, E6"
+            },
+            {
+              "name": "protonFlux3_E6",
+              "type": "double",
+              "units": "1/(sec-cm**2-ster-MeV)",
+              "description": "Proton Flux 27.0 - 37.0, MeV, E6"
+            },
+            {
+              "name": "protonFlux4_E6",
+              "type": "double",
+              "units": "1/(sec-cm**2-ster-MeV)",
+              "description": "Proton Flux 37.0 - 51.0, MeV, E6"
+            },
+            {
+              "name": "protonFlux1_E7",
+              "type": "double",
+              "units": "1/(sec-cm**2-ster-MeV)",
+              "description": "Proton Flux 3.42 - 5.40, MeV, E7"
+            },
+            {
+              "name": "protonFlux2_E7",
+              "type": "double",
+              "units": "1/(sec-cm**2-ster-MeV)",
+              "description": "Proton Flux 6.40-11.95, MeV, E7"
+            },
+            {
+              "name": "protonFlux3_E7",
+              "type": "double",
+              "units": "1/(sec-cm**2-ster-MeV)",
+              "description": "Proton Flux 11.1 - 21.6, MeV, E7"
+            },
+            {
+              "name": "protonFlux4_E7",
+              "type": "double",
+              "units": "1/(sec-cm**2-ster-MeV)",
+              "description": "Proton Flux 24.59 - 28.74, MeV, E7"
+            },
+            {
+              "name": "protonFlux5_E7",
+              "type": "double",
+              "units": "1/(sec-cm**2-ster-MeV)",
+              "description": "Proton Flux 32.20 - 45.93, MeV, E7"
+            },
+            {
+              "name": "protonFlux6_E7",
+              "type": "double",
+              "units": "1/(sec-cm**2-ster-MeV)",
+              "description": "Proton Flux 45.93 - 57.56, MeV, E7"
+            },
+            {
+              "name": "protonFlux7_E7",
+              "type": "double",
+              "units": "1/(sec-cm**2-ster-MeV)",
+              "description": "Proton Flux 143.2 - 204.5, MeV, E7"
+            }
+          ]
+        },
+        "HELIOS2_E6_1HOUR_PARTICLE_FLUX": {
+          "description": "",
+          "start_date": "1976-01-16T21:07:00Z",
+          "stop_date": "1980-03-08T16:25:00Z",
+          "parameters": [
+            {
+              "name": "p_flux",
+              "type": "double",
+              "units": "particles/m^2  sec sr MeV/N",
+              "description": "E6 proton flux (five bands 4-51 MeV)",
+              "size": [
+                5
+              ]
+            },
+            {
+              "name": "p_flux_sd",
+              "type": "double",
+              "units": "particles/m^2  sec sr MeV/N",
+              "description": "---> Proton Flux standard deviation",
+              "size": [
+                5
+              ]
+            },
+            {
+              "name": "e_flux",
+              "type": "double",
+              "units": "particles/m^2  sec sr MeV/N",
+              "description": "E6 electron flux (3 bands 0.3-2 MeV)",
+              "size": [
+                3
+              ]
+            },
+            {
+              "name": "e_flux_sd",
+              "type": "double",
+              "units": "particles/m^2  sec sr MeV/N",
+              "description": "---> Electron flux standard deviation",
+              "size": [
+                3
+              ]
+            },
+            {
+              "name": "He_flux",
+              "type": "double",
+              "units": "particles/m^2  sec sr MeV/N",
+              "description": "E6 He Flux (6 bands 2-48 MeV/N",
+              "size": [
+                6
+              ]
+            },
+            {
+              "name": "He_flux_sd",
+              "type": "double",
+              "units": "particles/m^2  sec sr MeV/N",
+              "description": "---> He flux standard deviation",
+              "size": [
+                6
+              ]
+            }
+          ]
+        },
+        "HELIOS2_E6_KUNOW_1HOUR_PARTICLE-FLUX": {
+          "description": "",
+          "start_date": "1976-01-16T21:07:00Z",
+          "stop_date": "1980-03-08T16:25:00Z",
+          "parameters": [
+            {
+              "name": "p_flux",
+              "type": "double",
+              "units": "particles/m^2  sec sr MeV/N",
+              "description": "Proton flux (4 bands 7-44 MeV",
+              "size": [
+                4
+              ]
+            },
+            {
+              "name": "p_flux_sd",
+              "type": "double",
+              "units": "particles/m^2  sec sr MeV/N",
+              "description": "---> Proton flux standard deviation",
+              "size": [
+                4
+              ]
+            },
+            {
+              "name": "p_flux_int",
+              "type": "double",
+              "units": "particles/m^2  sec sr",
+              "description": "Integral proton flux >51 MeV"
+            },
+            {
+              "name": "p_flux_int_sd",
+              "type": "double",
+              "units": "particles/m^2  sec sr",
+              "description": "---> integral 51+ MeV proton flux standard deviation"
+            },
+            {
+              "name": "e_flux",
+              "type": "double",
+              "units": "particles/m^2  sec sr MeV/N",
+              "description": "Electron flux (2 bands 0.5 and 1.26 MeV)",
+              "size": [
+                2
+              ]
+            },
+            {
+              "name": "e_flux_sd",
+              "type": "double",
+              "units": "particles/m^2  sec sr MeV/N",
+              "description": "---> electron flux standard deviation",
+              "size": [
+                2
+              ]
+            },
+            {
+              "name": "He_flux",
+              "type": "double",
+              "units": "particles/m^2  sec sr MeV/N",
+              "description": "He flux (5 bands 2.8-41 MeV)",
+              "size": [
+                5
+              ]
+            },
+            {
+              "name": "He_flux_sd",
+              "type": "double",
+              "units": "particles/m^2  sec sr MeV/N",
+              "description": "---> He flux standard deviation",
+              "size": [
+                5
+              ]
+            },
+            {
+              "name": "He_flux_int",
+              "type": "double",
+              "units": "particles/m^2  sec sr",
+              "description": "integral He flux"
+            },
+            {
+              "name": "He_flux_int_sd",
+              "type": "double",
+              "units": "particles/m^2  sec sr",
+              "description": "---> integral He flux standard deviation"
+            }
+          ]
+        },
+        "HELIOS2_HELIO1DAY_POSITION": {
+          "description": "",
+          "start_date": "1976-01-01T00:00:00Z",
+          "stop_date": "1985-12-31T00:00:00Z",
+          "parameters": [
+            {
+              "name": "RAD_AU",
+              "type": "double",
+              "units": "AU",
+              "description": "Distance from Sun to object"
+            },
+            {
+              "name": "SE_LAT",
+              "type": "double",
+              "units": "deg",
+              "description": "Latitude in Solar Ecliptic Coordinate System (SE)"
+            },
+            {
+              "name": "SE_LON",
+              "type": "double",
+              "units": "deg",
+              "description": "Longitude in Solar Ecliptic Coordinate System (SE)"
+            },
+            {
+              "name": "HG_LAT",
+              "type": "double",
+              "units": "deg",
+              "description": "Latitude in heliographic Rotating Coordinate System (HG)"
+            },
+            {
+              "name": "HG_LON",
+              "type": "double",
+              "units": "deg",
+              "description": "Longitude in Heliographic Rotating Coordinate System (HG)"
+            },
+            {
+              "name": "HGI_LAT",
+              "type": "double",
+              "units": "deg",
+              "description": "Latitude in heliographic Inertial Coordinate System (HGI)"
+            },
+            {
+              "name": "HGI_LON",
+              "type": "double",
+              "units": "deg",
+              "description": "Longitude in heliographic Inertial Coordinate System (HGI)"
+            }
+          ]
+        },
+        "HELIOS2_HELIO1HR_POSITION": {
+          "description": "",
+          "start_date": "1976-01-01T00:00:00Z",
+          "stop_date": "1985-12-31T23:00:00Z",
+          "parameters": [
+            {
+              "name": "RAD_AU",
+              "type": "double",
+              "units": "AU",
+              "description": "Distance from Sun to object"
+            },
+            {
+              "name": "SE_LAT",
+              "type": "double",
+              "units": "deg",
+              "description": "Latitude in Solar Ecliptic Coordinate System (SE)"
+            },
+            {
+              "name": "SE_LON",
+              "type": "double",
+              "units": "deg",
+              "description": "Longitude in Solar Ecliptic Coordinate System (SE)"
+            },
+            {
+              "name": "HG_LAT",
+              "type": "double",
+              "units": "deg",
+              "description": "Latitude in heliographic Rotating Coordinate System (HG)"
+            },
+            {
+              "name": "HG_LON",
+              "type": "double",
+              "units": "deg",
+              "description": "Longitude in Heliographic Rotating Coordinate System (HG)"
+            },
+            {
+              "name": "HGI_LAT",
+              "type": "double",
+              "units": "deg",
+              "description": "Latitude in heliographic Inertial Coordinate System (HGI)"
+            },
+            {
+              "name": "HGI_LON",
+              "type": "double",
+              "units": "deg",
+              "description": "Longitude in heliographic Inertial Coordinate System (HGI)"
+            }
+          ]
+        }
+      }
+    }
+  },
+  "_meta": {
+    "generated_at": "2026-02-08T09:24:39Z",
+    "hapi_server": "https://cdaweb.gsfc.nasa.gov/hapi"
+  }
+}

@@ -459,11 +459,13 @@ class TestFeature03AutoOpenPNG:
 class TestFeature04MoreSpacecraft:
     """Behavioral tests for the expanded spacecraft catalog."""
 
-    def test_catalog_has_8_spacecraft(self):
+    def test_catalog_has_all_spacecraft(self):
         spacecraft = list_spacecraft()
-        assert len(spacecraft) == 8
+        assert len(spacecraft) >= 8  # 8 curated + auto-generated missions
         ids = {s["id"] for s in spacecraft}
-        assert ids == {"PSP", "SolO", "ACE", "OMNI", "WIND", "DSCOVR", "MMS", "STEREO_A"}
+        # Original 8 curated missions must be present
+        for expected in ("PSP", "SolO", "ACE", "OMNI", "WIND", "DSCOVR", "MMS", "STEREO_A"):
+            assert expected in ids
 
     # --- Wind ---
 
@@ -514,7 +516,7 @@ class TestFeature04MoreSpacecraft:
         assert result is not None
         assert result["spacecraft"] == "DSCOVR"
         assert result["instrument"] is None
-        assert len(result["available_instruments"]) == 2
+        assert len(result["available_instruments"]) >= 2  # MAG, FC + possible General
 
     # --- MMS ---
 
@@ -601,11 +603,10 @@ class TestFeature04MoreSpacecraft:
         # thing is that when the user says "dscovr" explicitly it works
         assert result is not None
 
-    def test_ace_in_space_collision(self):
-        """'ace' is a substring of 'space' — documented limitation."""
-        # "deep space" matches ACE because 'ace' in 'deep space'
+    def test_deep_space_matches_dscovr(self):
+        """'deep space' correctly matches DSCOVR (Deep Space Climate Observatory)."""
         result = match_spacecraft("deep space")
-        assert result == "ACE"  # Known false positive
+        assert result == "DSCOVR"
 
     # --- Dataset ID format verification ---
 

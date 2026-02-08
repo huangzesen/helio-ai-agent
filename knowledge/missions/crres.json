@@ -1,0 +1,158 @@
+{
+  "id": "CRRES",
+  "name": "CRRES",
+  "keywords": [
+    "crres"
+  ],
+  "profile": {
+    "description": "CRRES spacecraft data from CDAWeb.",
+    "coordinate_systems": [],
+    "typical_cadence": "",
+    "data_caveats": [],
+    "analysis_patterns": []
+  },
+  "instruments": {
+    "General": {
+      "name": "General",
+      "keywords": [],
+      "datasets": {
+        "CRRES_H0_MEA": {
+          "description": "",
+          "start_date": "1990-07-28T06:58:00Z",
+          "stop_date": "1991-10-12T00:35:00Z",
+          "parameters": [
+            {
+              "name": "Doy",
+              "type": "double",
+              "units": "Day (since 1990)",
+              "description": "Day since 1990"
+            },
+            {
+              "name": "Longitude",
+              "type": "double",
+              "units": "Deg E",
+              "description": "Longitude"
+            },
+            {
+              "name": "Latitude",
+              "type": "double",
+              "units": "Deg N",
+              "description": "Latitude"
+            },
+            {
+              "name": "Altitude",
+              "type": "double",
+              "units": "km",
+              "description": "Altitude"
+            },
+            {
+              "name": "L",
+              "type": "double",
+              "units": "RE",
+              "description": "L value"
+            },
+            {
+              "name": "Local_Time",
+              "type": "double",
+              "units": "Hour",
+              "description": "Local Time"
+            },
+            {
+              "name": "B",
+              "type": "double",
+              "units": "nT",
+              "description": "B field"
+            },
+            {
+              "name": "MLT",
+              "type": "double",
+              "units": "Hour",
+              "description": "MLT"
+            },
+            {
+              "name": "Inv_Lat",
+              "type": "double",
+              "units": "Deg N",
+              "description": "Invariant Latitude"
+            },
+            {
+              "name": "Bmin",
+              "type": "double",
+              "units": "nT",
+              "description": "Mimimum B on field line"
+            },
+            {
+              "name": "FLUX",
+              "type": "double",
+              "units": "1/[cm**2-s-sr-keV]",
+              "description": "MEA FLux (all 17 channels)",
+              "size": [
+                19,
+                17
+              ]
+            },
+            {
+              "name": "FLUX_SEL_ENER_SPEC",
+              "type": "double",
+              "units": "1/[cm**2-s-sr-keV]",
+              "description": "MEA FLux (only odd channels)",
+              "size": [
+                19,
+                17
+              ]
+            },
+            {
+              "name": "J_ave",
+              "type": "double",
+              "units": "1/[cm**2-s-sr-keV]",
+              "description": "Average MEA flux",
+              "size": [
+                17
+              ]
+            },
+            {
+              "name": "N",
+              "type": "double",
+              "units": " ",
+              "description": "N",
+              "size": [
+                17
+              ]
+            },
+            {
+              "name": "delta_N",
+              "type": "double",
+              "units": " ",
+              "description": "delta_N",
+              "size": [
+                17
+              ]
+            },
+            {
+              "name": "Jper",
+              "type": "double",
+              "units": "1/[cm**2-s-sr-keV]",
+              "description": "90 deg MEA flux",
+              "size": [
+                17
+              ]
+            },
+            {
+              "name": "delta_Jper",
+              "type": "double",
+              "units": "1/[cm**2-s-sr-keV]",
+              "description": "Variance of Jper",
+              "size": [
+                17
+              ]
+            }
+          ]
+        }
+      }
+    }
+  },
+  "_meta": {
+    "generated_at": "2026-02-08T09:24:39Z",
+    "hapi_server": "https://cdaweb.gsfc.nasa.gov/hapi"
+  }
+}

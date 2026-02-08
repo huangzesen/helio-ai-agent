@@ -1,0 +1,2571 @@
+{
+  "id": "IMP8",
+  "name": "IMP-8",
+  "keywords": [
+    "i1",
+    "i2",
+    "i8",
+    "ia",
+    "imp-8",
+    "imp8"
+  ],
+  "profile": {
+    "description": "IMP-8 spacecraft data from CDAWeb.",
+    "coordinate_systems": [],
+    "typical_cadence": "",
+    "data_caveats": [],
+    "analysis_patterns": []
+  },
+  "instruments": {
+    "General": {
+      "name": "General",
+      "keywords": [],
+      "datasets": {
+        "I1_AV2_OTT": {
+          "description": "",
+          "start_date": "1969-01-30T14:50:12Z",
+          "stop_date": "1983-12-17T13:08:05Z",
+          "parameters": [
+            {
+              "name": "geo_coord",
+              "type": "double",
+              "units": null,
+              "description": "Geographic coordinates (Lat,Long,Hgt)",
+              "size": [
+                3
+              ]
+            },
+            {
+              "name": "FH",
+              "type": "double",
+              "units": "MHz",
+              "description": "Local Gyrofrequency"
+            },
+            {
+              "name": "ampl",
+              "type": "integer",
+              "units": " ",
+              "description": "Sounder amplitude at 335 virtual heights for fixed & swept frequency",
+              "size": [
+                335
+              ]
+            },
+            {
+              "name": "freq",
+              "type": "double",
+              "units": "MHz",
+              "description": "Interpolated fixed & sweep frequencies"
+            }
+          ]
+        },
+        "I1_AV2_QUI": {
+          "description": "",
+          "start_date": "1969-01-31T04:20:04Z",
+          "stop_date": "1972-03-29T04:06:03Z",
+          "parameters": [
+            {
+              "name": "geo_coord",
+              "type": "double",
+              "units": null,
+              "description": "Geographic coordinates (Lat,Long,Hgt)",
+              "size": [
+                3
+              ]
+            },
+            {
+              "name": "FH",
+              "type": "double",
+              "units": "MHz",
+              "description": "Local Gyrofrequency"
+            },
+            {
+              "name": "ampl",
+              "type": "integer",
+              "units": " ",
+              "description": "Sounder amplitude at 335 virtual heights for fixed & swept frequency",
+              "size": [
+                335
+              ]
+            },
+            {
+              "name": "freq",
+              "type": "double",
+              "units": "MHz",
+              "description": "Interpolated fixed & sweep frequencies"
+            }
+          ]
+        },
+        "I1_AV2_SNT": {
+          "description": "",
+          "start_date": "1969-01-31T04:32:48Z",
+          "stop_date": "1970-12-28T00:45:37Z",
+          "parameters": [
+            {
+              "name": "geo_coord",
+              "type": "double",
+              "units": null,
+              "description": "Geographic coordinates (Lat,Long,Hgt)",
+              "size": [
+                3
+              ]
+            },
+            {
+              "name": "FH",
+              "type": "double",
+              "units": "MHz",
+              "description": "Local Gyrofrequency"
+            },
+            {
+              "name": "ampl",
+              "type": "integer",
+              "units": " ",
+              "description": "Sounder amplitude at 335 virtual heights for fixed & swept frequency",
+              "size": [
+                335
+              ]
+            },
+            {
+              "name": "freq",
+              "type": "double",
+              "units": "MHz",
+              "description": "Interpolated fixed & sweep frequencies"
+            }
+          ]
+        },
+        "I1_AV2_ULA": {
+          "description": "",
+          "start_date": "1975-01-04T18:15:50Z",
+          "stop_date": "1979-09-14T12:06:30Z",
+          "parameters": [
+            {
+              "name": "geo_coord",
+              "type": "double",
+              "units": null,
+              "description": "Geographic coordinates (Lat,Long,Hgt)",
+              "size": [
+                3
+              ]
+            },
+            {
+              "name": "FH",
+              "type": "double",
+              "units": "MHz",
+              "description": "Local Gyrofrequency"
+            },
+            {
+              "name": "ampl",
+              "type": "integer",
+              "units": " ",
+              "description": "Sounder amplitude at 335 virtual heights for fixed & swept frequency",
+              "size": [
+                335
+              ]
+            },
+            {
+              "name": "freq",
+              "type": "double",
+              "units": "MHz",
+              "description": "Interpolated fixed & sweep frequencies"
+            }
+          ]
+        },
+        "I1_AV_ALL@0": {
+          "description": "",
+          "start_date": "1969-01-30T14:50:12Z",
+          "stop_date": "1983-12-30T15:19:33Z",
+          "parameters": [
+            {
+              "name": "ampl2d",
+              "type": "integer",
+              "units": " ",
+              "description": "IONOGRAM: expandable thumbnails of color-coded relative amplitude (0-255) on ionogram time (x) vs. apparent range from satellite down (y) grid",
+              "size": [
+                1300,
+                335
+              ]
+            }
+          ]
+        },
+        "I1_AV_ALL@1": {
+          "description": "",
+          "start_date": "1969-01-30T14:50:12Z",
+          "stop_date": "1983-12-30T15:19:33Z",
+          "parameters": [
+            {
+              "name": "ampl",
+              "type": "integer",
+              "units": " ",
+              "description": "IONOGRAM: continuous-film display of color-coded relative amplitude (0-255) on ionogram time (x) vs. apparent range from satellite down (y) grid",
+              "size": [
+                335
+              ]
+            },
+            {
+              "name": "freq",
+              "type": "double",
+              "units": "MHz",
+              "description": "-- Sounder frequency in MHz (incl. fixed and swept frequency parts) - ONLY positively identified frequencies are shown"
+            },
+            {
+              "name": "swept_start",
+              "type": "integer",
+              "units": " ",
+              "description": "-- Scan line number of start of swept portion (before is fixed portion)"
+            },
+            {
+              "name": "mergedFH",
+              "type": "double",
+              "units": "MHz",
+              "description": "-- Electron Gyrofrequency in MHz"
+            },
+            {
+              "name": "height",
+              "type": "double",
+              "units": "km",
+              "description": "ORBIT PARAMETERS: Satellite altitude in km"
+            },
+            {
+              "name": "lat",
+              "type": "double",
+              "units": "deg",
+              "description": "-- Latitude (-90 to 90) in degree"
+            },
+            {
+              "name": "lon",
+              "type": "double",
+              "units": "deg",
+              "description": "-- Longitude (-180 to 180) in degree"
+            },
+            {
+              "name": "GMLAT",
+              "type": "double",
+              "units": "deg",
+              "description": "-- Geomagnetic latitude in degree"
+            },
+            {
+              "name": "GMLONG",
+              "type": "double",
+              "units": "deg",
+              "description": "-- Geomagnetic longitude (-180 to 180) in degree"
+            },
+            {
+              "name": "DIP",
+              "type": "integer",
+              "units": "deg",
+              "description": "-- Magnetic inclination (Dip angle of magnetic field direction) in degrees"
+            },
+            {
+              "name": "INV_LAT",
+              "type": "double",
+              "units": "deg",
+              "description": "-- Invariant latitude in degree"
+            },
+            {
+              "name": "L",
+              "type": "double",
+              "units": " ",
+              "description": "-- L shell (McIlwain parameter)"
+            },
+            {
+              "name": "CHI",
+              "type": "integer",
+              "units": "deg",
+              "description": "-- Solar zenith angle in degree"
+            },
+            {
+              "name": "LMT",
+              "type": "double",
+              "units": "hour",
+              "description": "-- Local Mean Time (LMT) in decimal hours"
+            },
+            {
+              "name": "GMLMT",
+              "type": "double",
+              "units": " ",
+              "description": "-- Geomagnetic Local Time in decimal hours"
+            },
+            {
+              "name": "sun",
+              "type": "integer",
+              "units": " ",
+              "description": "-- Spacecraft in(=1)/out(=2) sunlight         "
+            },
+            {
+              "name": "satellite",
+              "type": "integer",
+              "units": " ",
+              "description": "CODES & MODES: Satellite-ID: 1=Alouette-1, 2=Aloutte-2,  3=ISIS-1, 4=ISIS-2"
+            },
+            {
+              "name": "station_id",
+              "type": "integer",
+              "units": " ",
+              "description": "-- Telemetry station ID (nn) (https://nssdc.gsfc.nasa.gov/space/isis/isis-table1-new.html"
+            },
+            {
+              "name": "power_code",
+              "type": "integer",
+              "units": " ",
+              "description": "-- Transmitter power code: 1=Prim(400W) 2=Sec(400W)"
+            },
+            {
+              "name": "sr_code",
+              "type": "integer",
+              "units": " ",
+              "description": "-- Sounder/receiver code: 0 = off, 1 = on"
+            },
+            {
+              "name": "pps_code",
+              "type": "integer",
+              "units": " ",
+              "description": "-- Pulses per second code: 0 = 30 pps, 1 = 60 pps "
+            },
+            {
+              "name": "DMODE",
+              "type": "integer",
+              "units": " ",
+              "description": "-- DMODE (transmitter on/off for alternate frame pairs): 0 = off, 1 = on"
+            },
+            {
+              "name": "GMODE",
+              "type": "integer",
+              "units": " ",
+              "description": "-- GMODE (transmission of alternate frames of swept and fixed frequency): 0 = off, 1 = on"
+            },
+            {
+              "name": "mixed_mode",
+              "type": "integer",
+              "units": " ",
+              "description": "-- MMODE (sounder mixed mode): 0 = off, 1 = on"
+            },
+            {
+              "name": "fix_freq",
+              "type": "integer",
+              "units": " ",
+              "description": "-- Fixed frequency code: 0=off, 1=0.25, 2=0.48, 3=1.00, 4=1.95, 5=4.00, 6=9.303 MHz"
+            },
+            {
+              "name": "CEP",
+              "type": "integer",
+              "units": " ",
+              "description": "-- Cylindrical Electrostatic Probe (CEP) on(1)/off(0)"
+            },
+            {
+              "name": "VLF",
+              "type": "integer",
+              "units": " ",
+              "description": "-- VLF (0.05-30 kHz) instrument on(1)/off(0)"
+            },
+            {
+              "name": "SEA",
+              "type": "integer",
+              "units": " ",
+              "description": "-- Spherical Electrostatic Analyzer on(1)/off(0)"
+            },
+            {
+              "name": "IMS1",
+              "type": "integer",
+              "units": " ",
+              "description": "-- Ion Mass Spectrometer 1 on(1)/off(0)"
+            },
+            {
+              "name": "IMS2",
+              "type": "integer",
+              "units": " ",
+              "description": "-- Ion Mass Spectrometer 2 on(1)/off(0)"
+            },
+            {
+              "name": "SPS",
+              "type": "integer",
+              "units": " ",
+              "description": "-- Soft Particle Spectrometer on(1)/off(0)"
+            },
+            {
+              "name": "EPD",
+              "type": "integer",
+              "units": " ",
+              "description": "-- Energetic Particle Detector on(1)/off(0)"
+            }
+          ]
+        },
+        "I1_AV_KER": {
+          "description": "",
+          "start_date": "1983-08-24T15:21:21Z",
+          "stop_date": "1983-12-30T15:19:33Z",
+          "parameters": [
+            {
+              "name": "ampl",
+              "type": "integer",
+              "units": " ",
+              "description": "Sounder amplitude at 335 virtual heights for fixed & swept frequency (ionogram)",
+              "size": [
+                335
+              ]
+            },
+            {
+              "name": "freq",
+              "type": "double",
+              "units": "MHz",
+              "description": "Interpolated fixed & sweep frequencies"
+            },
+            {
+              "name": "height",
+              "type": "double",
+              "units": "km",
+              "description": "Satellite Altitude in km"
+            },
+            {
+              "name": "FH",
+              "type": "double",
+              "units": "MHz",
+              "description": "Electron Gyrofrequency"
+            }
+          ]
+        },
+        "I1_AV_KSH": {
+          "description": "",
+          "start_date": "1978-01-06T04:52:17Z",
+          "stop_date": "1981-12-30T16:22:49Z",
+          "parameters": [
+            {
+              "name": "ampl",
+              "type": "integer",
+              "units": " ",
+              "description": "Sounder amplitude at 335 virtual heights for fixed & swept frequency",
+              "size": [
+                335
+              ]
+            },
+            {
+              "name": "freq",
+              "type": "double",
+              "units": "MHz",
+              "description": "Interpolated fixed & sweep frequencies"
+            },
+            {
+              "name": "height",
+              "type": "double",
+              "units": "km",
+              "description": "Altitude"
+            },
+            {
+              "name": "FH",
+              "type": "double",
+              "units": "MHz",
+              "description": "Electron Gyrofrequency"
+            }
+          ]
+        },
+        "I1_AV_KWA": {
+          "description": "",
+          "start_date": "1978-01-03T04:13:25Z",
+          "stop_date": "1978-12-30T21:34:08Z",
+          "parameters": [
+            {
+              "name": "ampl",
+              "type": "integer",
+              "units": " ",
+              "description": "Sounder amplitude at 335 virtual heights for fixed & swept frequency",
+              "size": [
+                335
+              ]
+            },
+            {
+              "name": "freq",
+              "type": "double",
+              "units": "MHz",
+              "description": "Interpolated fixed & sweep frequencies"
+            },
+            {
+              "name": "height",
+              "type": "double",
+              "units": "km",
+              "description": "Altitude"
+            },
+            {
+              "name": "FH",
+              "type": "double",
+              "units": "MHz",
+              "description": "Electron Gyrofrequency"
+            }
+          ]
+        },
+        "I1_AV_ODG": {
+          "description": "",
+          "start_date": "1969-02-03T13:27:25Z",
+          "stop_date": "1976-06-28T17:19:36Z",
+          "parameters": [
+            {
+              "name": "ampl",
+              "type": "integer",
+              "units": " ",
+              "description": "Sounder amplitude at 335 virtual heights for fixed & swept frequency",
+              "size": [
+                335
+              ]
+            },
+            {
+              "name": "freq",
+              "type": "double",
+              "units": "MHz",
+              "description": "Interpolated fixed & sweep frequencies"
+            },
+            {
+              "name": "height",
+              "type": "double",
+              "units": "km",
+              "description": "Altitude"
+            },
+            {
+              "name": "FH",
+              "type": "double",
+              "units": "MHz",
+              "description": "Electron Gyrofrequency"
+            }
+          ]
+        },
+        "I1_AV_ORR": {
+          "description": "",
+          "start_date": "1970-01-28T09:47:09Z",
+          "stop_date": "1981-08-24T14:00:56Z",
+          "parameters": [
+            {
+              "name": "ampl",
+              "type": "integer",
+              "units": " ",
+              "description": "Sounder amplitude at 335 virtual heights for fixed & swept frequency",
+              "size": [
+                335
+              ]
+            },
+            {
+              "name": "freq",
+              "type": "double",
+              "units": "MHz",
+              "description": "Interpolated fixed & sweep frequencies"
+            },
+            {
+              "name": "height",
+              "type": "double",
+              "units": "km",
+              "description": "Altitude"
+            },
+            {
+              "name": "FH",
+              "type": "double",
+              "units": "MHz",
+              "description": "Electron Gyrofrequency"
+            }
+          ]
+        },
+        "I1_AV_OTT": {
+          "description": "",
+          "start_date": "1969-01-30T14:50:12Z",
+          "stop_date": "1983-12-17T13:08:05Z",
+          "parameters": [
+            {
+              "name": "ampl",
+              "type": "integer",
+              "units": " ",
+              "description": "Sounder amplitude at 335 virtual heights for fixed & swept frequency",
+              "size": [
+                335
+              ]
+            },
+            {
+              "name": "freq",
+              "type": "double",
+              "units": "MHz",
+              "description": "Interpolated fixed & sweep frequencies"
+            },
+            {
+              "name": "height",
+              "type": "double",
+              "units": "km",
+              "description": "Altitude"
+            },
+            {
+              "name": "FH",
+              "type": "double",
+              "units": "MHz",
+              "description": "Electron Gyrofrequency"
+            }
+          ]
+        },
+        "I1_AV_QUI": {
+          "description": "",
+          "start_date": "1969-01-31T04:20:04Z",
+          "stop_date": "1978-06-22T04:44:35Z",
+          "parameters": [
+            {
+              "name": "ampl",
+              "type": "integer",
+              "units": " ",
+              "description": "Sounder amplitude at 335 virtual heights for fixed & swept frequency",
+              "size": [
+                335
+              ]
+            },
+            {
+              "name": "freq",
+              "type": "double",
+              "units": "MHz",
+              "description": "Interpolated fixed & sweep frequencies"
+            },
+            {
+              "name": "height",
+              "type": "double",
+              "units": "km",
+              "description": "Altitude"
+            },
+            {
+              "name": "FH",
+              "type": "double",
+              "units": "MHz",
+              "description": "Electron Gyrofrequency"
+            }
+          ]
+        },
+        "I1_AV_RES": {
+          "description": "",
+          "start_date": "1969-01-30T21:18:14Z",
+          "stop_date": "1976-02-22T19:07:32Z",
+          "parameters": [
+            {
+              "name": "ampl",
+              "type": "integer",
+              "units": " ",
+              "description": "Sounder amplitude at 335 virtual heights for fixed & swept frequency",
+              "size": [
+                335
+              ]
+            },
+            {
+              "name": "freq",
+              "type": "double",
+              "units": "MHz",
+              "description": "Interpolated fixed & sweep frequencies"
+            },
+            {
+              "name": "height",
+              "type": "double",
+              "units": "km",
+              "description": "Altitude"
+            },
+            {
+              "name": "FH",
+              "type": "double",
+              "units": "MHz",
+              "description": "Electron Gyrofrequency"
+            }
+          ]
+        },
+        "I1_AV_SNT": {
+          "description": "",
+          "start_date": "1969-01-31T01:29:39Z",
+          "stop_date": "1972-12-25T07:01:13Z",
+          "parameters": [
+            {
+              "name": "ampl",
+              "type": "integer",
+              "units": " ",
+              "description": "Sounder amplitude at 335 virtual heights for fixed & swept frequency",
+              "size": [
+                335
+              ]
+            },
+            {
+              "name": "freq",
+              "type": "double",
+              "units": "MHz",
+              "description": "Interpolated fixed & sweep frequencies"
+            },
+            {
+              "name": "height",
+              "type": "double",
+              "units": "km",
+              "description": "Altitude"
+            },
+            {
+              "name": "FH",
+              "type": "double",
+              "units": "MHz",
+              "description": "Electron Gyrofrequency"
+            }
+          ]
+        },
+        "I1_AV_SOD": {
+          "description": "",
+          "start_date": "1977-12-14T22:30:46Z",
+          "stop_date": "1979-03-30T14:10:33Z",
+          "parameters": [
+            {
+              "name": "ampl",
+              "type": "integer",
+              "units": " ",
+              "description": "Sounder amplitude at 335 virtual heights for fixed & swept frequency",
+              "size": [
+                335
+              ]
+            },
+            {
+              "name": "freq",
+              "type": "double",
+              "units": "MHz",
+              "description": "Interpolated fixed & sweep frequencies"
+            },
+            {
+              "name": "height",
+              "type": "double",
+              "units": "km",
+              "description": "Altitude"
+            },
+            {
+              "name": "FH",
+              "type": "double",
+              "units": "MHz",
+              "description": "Electron Gyrofrequency"
+            }
+          ]
+        },
+        "I1_AV_TRO": {
+          "description": "",
+          "start_date": "1969-02-05T18:15:49Z",
+          "stop_date": "1969-12-28T15:12:00Z",
+          "parameters": [
+            {
+              "name": "ampl",
+              "type": "integer",
+              "units": " ",
+              "description": "Sounder amplitude at 335 virtual heights for fixed & swept frequency",
+              "size": [
+                335
+              ]
+            },
+            {
+              "name": "freq",
+              "type": "double",
+              "units": "MHz",
+              "description": "Interpolated fixed & sweep frequencies"
+            },
+            {
+              "name": "height",
+              "type": "double",
+              "units": "km",
+              "description": "Altitude"
+            },
+            {
+              "name": "FH",
+              "type": "double",
+              "units": "MHz",
+              "description": "Electron Gyrofrequency"
+            }
+          ]
+        },
+        "I1_AV_ULA": {
+          "description": "",
+          "start_date": "1975-01-04T18:15:16Z",
+          "stop_date": "1979-09-14T12:06:35Z",
+          "parameters": [
+            {
+              "name": "ampl",
+              "type": "integer",
+              "units": " ",
+              "description": "Sounder amplitude at 335 virtual heights for fixed & swept frequency",
+              "size": [
+                335
+              ]
+            },
+            {
+              "name": "freq",
+              "type": "double",
+              "units": "MHz",
+              "description": "Interpolated fixed & sweep frequencies"
+            },
+            {
+              "name": "height",
+              "type": "double",
+              "units": "km",
+              "description": "Altitude"
+            },
+            {
+              "name": "FH",
+              "type": "double",
+              "units": "MHz",
+              "description": "Electron Gyrofrequency"
+            }
+          ]
+        },
+        "I1_AV_WNK": {
+          "description": "",
+          "start_date": "1969-02-03T01:02:10Z",
+          "stop_date": "1975-07-18T05:06:36Z",
+          "parameters": [
+            {
+              "name": "ampl",
+              "type": "integer",
+              "units": " ",
+              "description": "Sounder amplitude at 335 virtual heights for fixed & swept frequency",
+              "size": [
+                335
+              ]
+            },
+            {
+              "name": "freq",
+              "type": "double",
+              "units": "MHz",
+              "description": "Interpolated fixed & sweep frequencies"
+            },
+            {
+              "name": "height",
+              "type": "double",
+              "units": "km",
+              "description": "Altitude"
+            },
+            {
+              "name": "FH",
+              "type": "double",
+              "units": "MHz",
+              "description": "Electron Gyrofrequency"
+            }
+          ]
+        },
+        "I1_NEPROF_TOPS": {
+          "description": "",
+          "start_date": "1969-02-01T15:50:12Z",
+          "stop_date": "1980-05-30T02:41:08Z",
+          "parameters": [
+            {
+              "name": "density",
+              "type": "double",
+              "units": "cm-3",
+              "description": "Topside electon density in cm-3 from F peak to orbit altitude",
+              "size": [
+                42
+              ]
+            },
+            {
+              "name": "log_density",
+              "type": "double",
+              "units": " ",
+              "description": "Logarithm (base 10) of topside Ne in cm-3",
+              "size": [
+                42
+              ]
+            },
+            {
+              "name": "tec",
+              "type": "double",
+              "units": "1E16 m-2 ",
+              "description": "Total Electron Content in TECU (=1E16 m-2)"
+            },
+            {
+              "name": "tec_iri",
+              "type": "double",
+              "units": "1.E16 m-2",
+              "description": "IRI-95 value for TEC in TECU"
+            },
+            {
+              "name": "IRI_F2peak",
+              "type": "double",
+              "units": "IRI-95",
+              "description": "IRI-95 value for the natural logarithm of the F2 peak density in cm-3"
+            },
+            {
+              "name": "IRI_F2peakHeight",
+              "type": "double",
+              "units": "km",
+              "description": "IRI-95 value for F2 peak height in km"
+            },
+            {
+              "name": "qualityIndex",
+              "type": "integer",
+              "units": " ",
+              "description": "Quality Index ( 0-best, 10-worst)"
+            },
+            {
+              "name": "lon",
+              "type": "double",
+              "units": "degree",
+              "description": "Longitude in degree (-180 to 180)"
+            },
+            {
+              "name": "lat",
+              "type": "double",
+              "units": "degree",
+              "description": "Latitude in degree"
+            },
+            {
+              "name": "dip",
+              "type": "double",
+              "units": "degree",
+              "description": "Magnetic Inclination in degree"
+            },
+            {
+              "name": "L",
+              "type": "double",
+              "units": " ",
+              "description": "L value"
+            },
+            {
+              "name": "sza",
+              "type": "double",
+              "units": "degree",
+              "description": "Solar zenith angle at 100 km"
+            },
+            {
+              "name": "sunspotNumber",
+              "type": "integer",
+              "units": " ",
+              "description": "12-month-running mean of sunspot number"
+            },
+            {
+              "name": "IGindex",
+              "type": "integer",
+              "units": " ",
+              "description": "12-month-running mean of IG ionosonde index"
+            }
+          ]
+        },
+        "I2_AV_ACN": {
+          "description": "",
+          "start_date": "1975-01-09T01:22:59Z",
+          "stop_date": "1978-09-28T16:37:11Z",
+          "parameters": [
+            {
+              "name": "ampl",
+              "type": "integer",
+              "units": " ",
+              "description": "Sounder amplitude at 223 virtual heights for fixed & swept frequency",
+              "size": [
+                223
+              ]
+            },
+            {
+              "name": "freq",
+              "type": "double",
+              "units": "MHz",
+              "description": "interpolated fixed & sweep frequencies"
+            }
+          ]
+        },
+        "I2_AV_ADL": {
+          "description": "",
+          "start_date": "1973-01-12T10:18:21Z",
+          "stop_date": "1983-02-03T18:47:56Z",
+          "parameters": [
+            {
+              "name": "ampl",
+              "type": "integer",
+              "units": " ",
+              "description": "Sounder amplitude at 223 virtual heights for fixed & swept frequency",
+              "size": [
+                223
+              ]
+            },
+            {
+              "name": "freq",
+              "type": "double",
+              "units": "MHz",
+              "description": "Interpolated fixed & sweep frequencies"
+            },
+            {
+              "name": "height",
+              "type": "double",
+              "units": "km",
+              "description": "Altitude"
+            },
+            {
+              "name": "FH",
+              "type": "double",
+              "units": "MHz",
+              "description": "Electron Gyrofrequency"
+            }
+          ]
+        },
+        "I2_AV_AME": {
+          "description": "",
+          "start_date": "1973-02-03T04:00:26Z",
+          "stop_date": "1978-01-23T07:28:43Z",
+          "parameters": [
+            {
+              "name": "ampl",
+              "type": "integer",
+              "units": " ",
+              "description": "Sounder amplitude at 223 virtual heights for fixed & swept frequency",
+              "size": [
+                223
+              ]
+            },
+            {
+              "name": "freq",
+              "type": "double",
+              "units": "MHz",
+              "description": "Interpolated fixed & sweep frequencies"
+            },
+            {
+              "name": "height",
+              "type": "double",
+              "units": "km",
+              "description": "Altitude"
+            },
+            {
+              "name": "FH",
+              "type": "double",
+              "units": "MHz",
+              "description": "Electron Gyrofrequency"
+            }
+          ]
+        },
+        "I2_AV_BRZ": {
+          "description": "",
+          "start_date": "1972-08-05T16:17:40Z",
+          "stop_date": "1975-09-25T16:12:59Z",
+          "parameters": [
+            {
+              "name": "ampl",
+              "type": "integer",
+              "units": " ",
+              "description": "Sounder amplitude at 223 virtual heights for fixed & swept frequency",
+              "size": [
+                223
+              ]
+            },
+            {
+              "name": "freq",
+              "type": "double",
+              "units": "MHz",
+              "description": "Interpolated fixed & sweep frequencies"
+            },
+            {
+              "name": "height",
+              "type": "double",
+              "units": "km",
+              "description": "Altitude"
+            },
+            {
+              "name": "FH",
+              "type": "double",
+              "units": "MHz",
+              "description": "Electron Gyrofrequency"
+            }
+          ]
+        },
+        "I2_AV_BUR": {
+          "description": "",
+          "start_date": "1972-08-07T15:26:03Z",
+          "stop_date": "1976-01-16T19:18:39Z",
+          "parameters": [
+            {
+              "name": "ampl",
+              "type": "integer",
+              "units": " ",
+              "description": "Sounder amplitude at 223 virtual heights for fixed & swept frequency",
+              "size": [
+                223
+              ]
+            },
+            {
+              "name": "freq",
+              "type": "double",
+              "units": "MHz",
+              "description": "Interpolated fixed & sweep frequencies"
+            },
+            {
+              "name": "height",
+              "type": "double",
+              "units": "km",
+              "description": "Altitude"
+            },
+            {
+              "name": "FH",
+              "type": "double",
+              "units": "MHz",
+              "description": "Electron Gyrofrequency"
+            }
+          ]
+        },
+        "I2_AV_CNA": {
+          "description": "",
+          "start_date": "1974-01-16T17:42:39Z",
+          "stop_date": "1976-02-01T11:15:40Z",
+          "parameters": [
+            {
+              "name": "ampl",
+              "type": "integer",
+              "units": " ",
+              "description": "Sounder amplitude at 223 virtual heights for fixed & swept frequency",
+              "size": [
+                223
+              ]
+            },
+            {
+              "name": "freq",
+              "type": "double",
+              "units": "MHz",
+              "description": "Interpolated fixed & sweep frequencies"
+            },
+            {
+              "name": "height",
+              "type": "double",
+              "units": "km",
+              "description": "Altitude"
+            },
+            {
+              "name": "FH",
+              "type": "double",
+              "units": "MHz",
+              "description": "Electron Gyrofrequency"
+            }
+          ]
+        },
+        "I2_AV_KER": {
+          "description": "",
+          "start_date": "1977-01-01T00:01:37Z",
+          "stop_date": "1984-01-27T18:16:53Z",
+          "parameters": [
+            {
+              "name": "ampl",
+              "type": "integer",
+              "units": " ",
+              "description": "Sounder amplitude at 223 virtual heights for fixed & swept frequency",
+              "size": [
+                223
+              ]
+            },
+            {
+              "name": "freq",
+              "type": "double",
+              "units": "MHz",
+              "description": "Interpolated fixed & sweep frequencies"
+            },
+            {
+              "name": "height",
+              "type": "double",
+              "units": "km",
+              "description": "Altitude"
+            },
+            {
+              "name": "FH",
+              "type": "double",
+              "units": "MHz",
+              "description": "Electron Gyrofrequency"
+            }
+          ]
+        },
+        "I2_AV_KRU": {
+          "description": "",
+          "start_date": "1973-02-06T01:16:08Z",
+          "stop_date": "1978-07-23T22:07:30Z",
+          "parameters": [
+            {
+              "name": "ampl",
+              "type": "integer",
+              "units": " ",
+              "description": "Sounder amplitude at 223 virtual heights for fixed & swept frequency",
+              "size": [
+                223
+              ]
+            },
+            {
+              "name": "freq",
+              "type": "double",
+              "units": "MHz",
+              "description": "Interpolated fixed & sweep frequencies"
+            },
+            {
+              "name": "height",
+              "type": "double",
+              "units": "km",
+              "description": "Altitude"
+            },
+            {
+              "name": "FH",
+              "type": "double",
+              "units": "MHz",
+              "description": "Electron Gyrofrequency"
+            }
+          ]
+        },
+        "I2_AV_KSH": {
+          "description": "",
+          "start_date": "1972-01-01T00:01:10Z",
+          "stop_date": "1984-01-06T14:08:01Z",
+          "parameters": [
+            {
+              "name": "ampl",
+              "type": "integer",
+              "units": " ",
+              "description": "Sounder amplitude at 223 virtual heights for fixed & swept frequency",
+              "size": [
+                223
+              ]
+            },
+            {
+              "name": "freq",
+              "type": "double",
+              "units": "MHz",
+              "description": "Interpolated fixed & sweep frequencies"
+            },
+            {
+              "name": "height",
+              "type": "double",
+              "units": "km",
+              "description": "Altitude"
+            },
+            {
+              "name": "FH",
+              "type": "double",
+              "units": "MHz",
+              "description": "Electron Gyrofrequency"
+            }
+          ]
+        },
+        "I2_AV_KWA": {
+          "description": "",
+          "start_date": "1978-01-10T08:46:53Z",
+          "stop_date": "1978-11-09T07:38:18Z",
+          "parameters": [
+            {
+              "name": "ampl",
+              "type": "integer",
+              "units": " ",
+              "description": "Sounder amplitude at 223 virtual heights for fixed & swept frequency",
+              "size": [
+                223
+              ]
+            },
+            {
+              "name": "freq",
+              "type": "double",
+              "units": "MHz",
+              "description": "interpolated fixed & sweep frequencies"
+            }
+          ]
+        },
+        "I2_AV_LAU": {
+          "description": "",
+          "start_date": "1973-01-01T04:14:29Z",
+          "stop_date": "1981-01-18T15:47:50Z",
+          "parameters": [
+            {
+              "name": "ampl",
+              "type": "integer",
+              "units": " ",
+              "description": "Sounder amplitude at 223 virtual heights for fixed & swept frequency",
+              "size": [
+                223
+              ]
+            },
+            {
+              "name": "freq",
+              "type": "double",
+              "units": "MHz",
+              "description": "Interpolated fixed & sweep frequencies"
+            },
+            {
+              "name": "height",
+              "type": "double",
+              "units": "km",
+              "description": "Altitude"
+            },
+            {
+              "name": "FH",
+              "type": "double",
+              "units": "MHz",
+              "description": "Electron Gyrofrequency"
+            }
+          ]
+        },
+        "I2_AV_ODG": {
+          "description": "",
+          "start_date": "1972-08-06T05:36:37Z",
+          "stop_date": "1979-11-22T15:25:12Z",
+          "parameters": [
+            {
+              "name": "ampl",
+              "type": "integer",
+              "units": " ",
+              "description": "Sounder amplitude at 223 virtual heights for fixed & swept frequency",
+              "size": [
+                223
+              ]
+            },
+            {
+              "name": "freq",
+              "type": "double",
+              "units": "MHz",
+              "description": "Interpolated fixed & sweep frequencies"
+            },
+            {
+              "name": "height",
+              "type": "double",
+              "units": "km",
+              "description": "Altitude"
+            },
+            {
+              "name": "FH",
+              "type": "double",
+              "units": "MHz",
+              "description": "Electron Gyrofrequency"
+            }
+          ]
+        },
+        "I2_AV_ORR": {
+          "description": "",
+          "start_date": "1973-03-15T03:33:11Z",
+          "stop_date": "1981-07-20T20:42:22Z",
+          "parameters": [
+            {
+              "name": "ampl",
+              "type": "integer",
+              "units": " ",
+              "description": "Sounder amplitude at 223 virtual heights for fixed & swept frequency",
+              "size": [
+                223
+              ]
+            },
+            {
+              "name": "freq",
+              "type": "double",
+              "units": "MHz",
+              "description": "Interpolated fixed & sweep frequencies"
+            },
+            {
+              "name": "height",
+              "type": "double",
+              "units": "km",
+              "description": "Altitude"
+            },
+            {
+              "name": "FH",
+              "type": "double",
+              "units": "MHz",
+              "description": "Electron Gyrofrequency"
+            }
+          ]
+        },
+        "I2_AV_OTT": {
+          "description": "",
+          "start_date": "1971-11-11T18:18:16Z",
+          "stop_date": "1984-01-04T05:16:00Z",
+          "parameters": [
+            {
+              "name": "ampl",
+              "type": "integer",
+              "units": " ",
+              "description": "Sounder amplitude at 223 virtual heights for fixed & swept frequency",
+              "size": [
+                223
+              ]
+            },
+            {
+              "name": "freq",
+              "type": "double",
+              "units": "MHz",
+              "description": "Interpolated fixed & sweep frequencies"
+            },
+            {
+              "name": "height",
+              "type": "double",
+              "units": "km",
+              "description": "Altitude"
+            },
+            {
+              "name": "FH",
+              "type": "double",
+              "units": "MHz",
+              "description": "Electron Gyrofrequency"
+            }
+          ]
+        },
+        "I2_AV_QUI": {
+          "description": "",
+          "start_date": "1973-01-03T02:22:10Z",
+          "stop_date": "1979-10-18T04:22:30Z",
+          "parameters": [
+            {
+              "name": "ampl",
+              "type": "integer",
+              "units": " ",
+              "description": "Sounder amplitude at 223 virtual heights for fixed & swept frequency",
+              "size": [
+                223
+              ]
+            },
+            {
+              "name": "freq",
+              "type": "double",
+              "units": "MHz",
+              "description": "Interpolated fixed & sweep frequencies"
+            },
+            {
+              "name": "height",
+              "type": "double",
+              "units": "km",
+              "description": "Altitude"
+            },
+            {
+              "name": "FH",
+              "type": "double",
+              "units": "MHz",
+              "description": "Electron Gyrofrequency"
+            }
+          ]
+        },
+        "I2_AV_RES": {
+          "description": "",
+          "start_date": "1971-04-01T09:22:52Z",
+          "stop_date": "1983-01-13T11:06:43Z",
+          "parameters": [
+            {
+              "name": "ampl",
+              "type": "integer",
+              "units": " ",
+              "description": "Sounder amplitude at 223 virtual heights for fixed & swept frequency",
+              "size": [
+                223
+              ]
+            },
+            {
+              "name": "freq",
+              "type": "double",
+              "units": "MHz",
+              "description": "Interpolated fixed & sweep frequencies"
+            },
+            {
+              "name": "height",
+              "type": "double",
+              "units": "km",
+              "description": "Altitude"
+            },
+            {
+              "name": "FH",
+              "type": "double",
+              "units": "MHz",
+              "description": "Electron Gyrofrequency"
+            }
+          ]
+        },
+        "I2_AV_SNT": {
+          "description": "",
+          "start_date": "1973-06-15T09:48:17Z",
+          "stop_date": "1980-03-21T09:09:03Z",
+          "parameters": [
+            {
+              "name": "ampl",
+              "type": "integer",
+              "units": " ",
+              "description": "Sounder amplitude at 223 virtual heights for fixed & swept frequency",
+              "size": [
+                223
+              ]
+            },
+            {
+              "name": "freq",
+              "type": "double",
+              "units": "MHz",
+              "description": "interpolated fixed & sweep frequencies"
+            }
+          ]
+        },
+        "I2_AV_SOD": {
+          "description": "",
+          "start_date": "1977-12-11T21:47:50Z",
+          "stop_date": "1978-09-13T21:01:48Z",
+          "parameters": [
+            {
+              "name": "ampl",
+              "type": "integer",
+              "units": " ",
+              "description": "Sounder amplitude at 223 virtual heights for fixed & swept frequency",
+              "size": [
+                223
+              ]
+            },
+            {
+              "name": "freq",
+              "type": "double",
+              "units": "MHz",
+              "description": "interpolated fixed & sweep frequencies"
+            }
+          ]
+        },
+        "I2_AV_SOL": {
+          "description": "",
+          "start_date": "1972-01-12T16:31:05Z",
+          "stop_date": "1972-12-10T00:57:02Z",
+          "parameters": [
+            {
+              "name": "ampl",
+              "type": "integer",
+              "units": " ",
+              "description": "Sounder amplitude at 223 virtual heights for fixed & swept frequency",
+              "size": [
+                223
+              ]
+            },
+            {
+              "name": "freq",
+              "type": "double",
+              "units": "MHz",
+              "description": "interpolated fixed & sweep frequencies"
+            }
+          ]
+        },
+        "I2_AV_SYO": {
+          "description": "",
+          "start_date": "1973-02-03T05:49:37Z",
+          "stop_date": "1983-01-13T11:06:43Z",
+          "parameters": [
+            {
+              "name": "ampl",
+              "type": "integer",
+              "units": " ",
+              "description": "Sounder amplitude at 223 virtual heights for fixed & swept frequency",
+              "size": [
+                223
+              ]
+            },
+            {
+              "name": "freq",
+              "type": "double",
+              "units": "MHz",
+              "description": "Interpolated fixed & sweep frequencies"
+            },
+            {
+              "name": "height",
+              "type": "double",
+              "units": "km",
+              "description": "Altitude"
+            },
+            {
+              "name": "FH",
+              "type": "double",
+              "units": "MHz",
+              "description": "Electron Gyrofrequency"
+            }
+          ]
+        },
+        "I2_AV_TRO": {
+          "description": "",
+          "start_date": "1973-01-19T10:38:36Z",
+          "stop_date": "1977-10-06T20:20:00Z",
+          "parameters": [
+            {
+              "name": "ampl",
+              "type": "integer",
+              "units": " ",
+              "description": "Sounder amplitude at 223 virtual heights for fixed & swept frequency",
+              "size": [
+                223
+              ]
+            },
+            {
+              "name": "freq",
+              "type": "double",
+              "units": "MHz",
+              "description": "interpolated fixed & sweep frequencies"
+            }
+          ]
+        },
+        "I2_AV_ULA": {
+          "description": "",
+          "start_date": "1972-12-31T00:00:00Z",
+          "stop_date": "1979-07-30T02:17:45Z",
+          "parameters": [
+            {
+              "name": "ampl",
+              "type": "integer",
+              "units": " ",
+              "description": "Sounder amplitude at 223 virtual heights for fixed & swept frequency",
+              "size": [
+                223
+              ]
+            },
+            {
+              "name": "freq",
+              "type": "double",
+              "units": "MHz",
+              "description": "interpolated fixed & sweep frequencies"
+            }
+          ]
+        },
+        "I2_AV_WNK": {
+          "description": "",
+          "start_date": "1973-03-14T11:55:35Z",
+          "stop_date": "1979-07-15T04:35:11Z",
+          "parameters": [
+            {
+              "name": "ampl",
+              "type": "integer",
+              "units": " ",
+              "description": "Sounder amplitude at 223 virtual heights for fixed & swept frequency",
+              "size": [
+                223
+              ]
+            },
+            {
+              "name": "freq",
+              "type": "double",
+              "units": "MHz",
+              "description": "interpolated fixed & sweep frequencies"
+            }
+          ]
+        },
+        "I2_NEPROF_TOPIST": {
+          "description": "",
+          "start_date": "1971-11-11T18:18:40Z",
+          "stop_date": "1984-01-04T05:15:38Z",
+          "parameters": [
+            {
+              "name": "ni",
+              "type": "double",
+              "units": "cm-3",
+              "description": "Topside electron density along orbit in cm-3 (Image)",
+              "size": [
+                1000
+              ]
+            },
+            {
+              "name": "niLog10",
+              "type": "double",
+              "units": " ",
+              "description": "Log10 of Topside electron density along orbit in cm-3 (Image)",
+              "size": [
+                1000
+              ]
+            },
+            {
+              "name": "alt",
+              "type": "double",
+              "units": "km",
+              "description": "Satellite altitude in km"
+            },
+            {
+              "name": "lon",
+              "type": "double",
+              "units": "deg",
+              "description": "Longitude in degree (0 to 360)"
+            },
+            {
+              "name": "lat",
+              "type": "double",
+              "units": "deg",
+              "description": "Latitude in degree (-90 to +90)"
+            },
+            {
+              "name": "mlt",
+              "type": "double",
+              "units": "h",
+              "description": "Magnetic Local Time (MLT) in hours"
+            },
+            {
+              "name": "sza",
+              "type": "double",
+              "units": "deg",
+              "description": "Solar zenith angle in degree"
+            },
+            {
+              "name": "L",
+              "type": "double",
+              "units": " ",
+              "description": "McIlwain L parameter"
+            },
+            {
+              "name": "ilat",
+              "type": "double",
+              "units": "deg",
+              "description": "Invariant Latitude in degree"
+            },
+            {
+              "name": "diplat",
+              "type": "double",
+              "units": "deg",
+              "description": "Dip Latitude in degree"
+            },
+            {
+              "name": "invdip",
+              "type": "double",
+              "units": "deg",
+              "description": "Invdip - A new coordinate that combines Invariant Latitude and Dip Latitude"
+            },
+            {
+              "name": "mlat",
+              "type": "double",
+              "units": "deg",
+              "description": "Magnetic Latitude in degree"
+            },
+            {
+              "name": "mlon",
+              "type": "double",
+              "units": "deg",
+              "description": "Magnetic Longitude (0-360) in degree"
+            }
+          ]
+        },
+        "I2_NEPROF_TOPS": {
+          "description": "",
+          "start_date": "1971-04-08T22:27:48Z",
+          "stop_date": "1979-08-27T17:52:25Z",
+          "parameters": [
+            {
+              "name": "density",
+              "type": "double",
+              "units": "cm-3",
+              "description": "Topside electon density in cm-3 from F peak to orbit altitude",
+              "size": [
+                26
+              ]
+            },
+            {
+              "name": "log_density",
+              "type": "double",
+              "units": " ",
+              "description": "Logarithm (base 10) of topside Ne in cm-3",
+              "size": [
+                26
+              ]
+            },
+            {
+              "name": "tec",
+              "type": "double",
+              "units": "1E16 m-2 ",
+              "description": "Total Electron Content in TECU (=1E16 m-2)"
+            },
+            {
+              "name": "tec_iri",
+              "type": "double",
+              "units": "1.E16 m-2",
+              "description": "IRI-95 value for TEC in TECU"
+            },
+            {
+              "name": "IRI_F2peak",
+              "type": "double",
+              "units": "IRI95",
+              "description": "IRI-95 value for the natural logarithm of the F2 peak density in cm-3"
+            },
+            {
+              "name": "IRI_F2peakHeight",
+              "type": "double",
+              "units": "km",
+              "description": "IRI-95 value for F2 peak height in km"
+            },
+            {
+              "name": "qualityIndex",
+              "type": "integer",
+              "units": " ",
+              "description": "Quality Index ( 0-best, 10-worst)"
+            },
+            {
+              "name": "lon",
+              "type": "double",
+              "units": "degree",
+              "description": "Longitude in degree (-180 to 180)"
+            },
+            {
+              "name": "lat",
+              "type": "double",
+              "units": "degree",
+              "description": "Latitude in degree"
+            },
+            {
+              "name": "dip",
+              "type": "double",
+              "units": "degree",
+              "description": "Magnetic Inclination in degree"
+            },
+            {
+              "name": "L",
+              "type": "double",
+              "units": " ",
+              "description": "L value"
+            },
+            {
+              "name": "sza",
+              "type": "double",
+              "units": "degree",
+              "description": "solar zenith angle at 100 km"
+            },
+            {
+              "name": "sunspotNumber",
+              "type": "integer",
+              "units": " ",
+              "description": "12-month-running mean of sunspot number"
+            },
+            {
+              "name": "IGindex",
+              "type": "integer",
+              "units": " ",
+              "description": "12-month-running mean of IG ionosonde index"
+            }
+          ]
+        },
+        "I8_15SEC_MAG": {
+          "description": "",
+          "start_date": "1973-10-30T00:00:00Z",
+          "stop_date": "2000-06-10T23:59:44Z",
+          "parameters": [
+            {
+              "name": "SourceFlag",
+              "type": "integer",
+              "units": null,
+              "description": "Data source flag =1 if based on 320ms data, = 2 if based  on old V2 15.36s data"
+            },
+            {
+              "name": "N_of_points",
+              "type": "integer",
+              "units": null,
+              "description": "Number of points in 15.36 second average. Max. number is 48(12) for data source flag equal 1(2)"
+            },
+            {
+              "name": "SC_Pos_GSE",
+              "type": "double",
+              "units": "Earth Radii",
+              "description": "Spacecraft position, GSE coordinates (orbit plot)",
+              "size": [
+                3
+              ]
+            },
+            {
+              "name": "SC_Pos_GSET",
+              "type": "double",
+              "units": "Earth Radii",
+              "description": "Spacecraft position, GSE coordinates (time-series plot)",
+              "size": [
+                3
+              ]
+            },
+            {
+              "name": "SC_Pos_GSM",
+              "type": "double",
+              "units": "Earth Radii",
+              "description": "Spacecraft position, GSM coordinates (orbit plot)",
+              "size": [
+                3
+              ]
+            },
+            {
+              "name": "SC_Pos_GSMT",
+              "type": "double",
+              "units": "Earth Radii",
+              "description": "Spacecraft position, GSM coordinates (time-series plot)",
+              "size": [
+                3
+              ]
+            },
+            {
+              "name": "F1_Average_B_15s",
+              "type": "double",
+              "units": "nT",
+              "description": "B magnitude, <|B|>"
+            },
+            {
+              "name": "B_Vector_GSE",
+              "type": "double",
+              "units": "nT",
+              "description": "B vector, GSE cartesian components",
+              "size": [
+                3
+              ]
+            },
+            {
+              "name": "B_Vector_GSM",
+              "type": "double",
+              "units": "nT",
+              "description": "B vector, GSM cartesian components",
+              "size": [
+                3
+              ]
+            },
+            {
+              "name": "B_jj_Variances",
+              "type": "double",
+              "units": "nT**2",
+              "description": "Variances; diagonal elements Bxx, Byy, Bzz; GSE coordinates ",
+              "size": [
+                3
+              ]
+            },
+            {
+              "name": "B_jk_Variances",
+              "type": "double",
+              "units": "nT**2",
+              "description": "Variances; off-diagonal elements Byx, Bzx, Bzy; GSE coordinates ",
+              "size": [
+                3
+              ]
+            },
+            {
+              "name": "TimeShift",
+              "type": "double",
+              "units": "seconds",
+              "description": "Difference between record time tag and start of average,Relevant to data source flag = 2 records only."
+            },
+            {
+              "name": "SW_flag",
+              "type": "integer",
+              "units": null,
+              "description": "Solar wind flag =0 if IMP in solar wind =1 otherwise "
+            }
+          ]
+        },
+        "I8_320MSEC_MAG": {
+          "description": "",
+          "start_date": "1973-10-30T15:00:40Z",
+          "stop_date": "2000-06-10T15:09:24Z",
+          "parameters": [
+            {
+              "name": "BX",
+              "type": "double",
+              "units": "nT",
+              "description": "Bx (GSE)"
+            },
+            {
+              "name": "BY",
+              "type": "double",
+              "units": "nT",
+              "description": "By (GSE)"
+            },
+            {
+              "name": "BZ",
+              "type": "double",
+              "units": "nT",
+              "description": "Bz (GSE)"
+            },
+            {
+              "name": "B",
+              "type": "double",
+              "units": "nT",
+              "description": "B (Field magnitude)"
+            }
+          ]
+        },
+        "I8_H0_GME": {
+          "description": "",
+          "start_date": "1973-11-01T00:15:00Z",
+          "stop_date": "2001-10-26T14:15:00Z",
+          "parameters": [
+            {
+              "name": "Proton_DIntn",
+              "type": "double",
+              "units": "1/[cm2-s-sr-MeV]",
+              "description": "(Spectrogram-Full List) Proton Diff Intens (no bckgrd subtract), 30 energies 0.5-500 MeV, spin-avg",
+              "size": [
+                30
+              ]
+            },
+            {
+              "name": "Proton_DIntn2",
+              "type": "double",
+              "units": "1/[cm2-s-sr-MeV]",
+              "description": "(Stacked time-series) Proton Diff Intens (no bckgrd subtract), 8 energies 0.5-20 MeV, spin-avg",
+              "size": [
+                30
+              ]
+            },
+            {
+              "name": "Proton_DIntn3",
+              "type": "double",
+              "units": "1/[cm2-s-sr-MeV]",
+              "description": "(Stacked time-series) Proton Diff Intens (no bckgrd subtract), 8 energies 20-500 MeV, spin-avg",
+              "size": [
+                30
+              ]
+            },
+            {
+              "name": "Proton_DIntn4",
+              "type": "double",
+              "units": "1/[cm2-s-sr-MeV]",
+              "description": "(Individual time-series) Proton Diff Intens (no bckgrd subtract), spin-avg",
+              "size": [
+                30
+              ]
+            },
+            {
+              "name": "Proton_DIntn4_errorbars",
+              "type": "double",
+              "units": "1/[cm2-s-sr-MeV]",
+              "description": "(Individual time-series) Proton Diff Intens (no bckgrd subtract), spin-avg, with error bars",
+              "size": [
+                30
+              ]
+            },
+            {
+              "name": "Proton_DIntn_Unc",
+              "type": "double",
+              "units": "1/[cm2-s-sr-MeV]",
+              "description": "(Individual time-series) Uncertainty, Proton Differential  Intensity",
+              "size": [
+                30
+              ]
+            },
+            {
+              "name": "C_Rate",
+              "type": "double",
+              "units": "cts/sec",
+              "description": "GME/LED C Singles Rate (C<200 ct/sec implies enhanced/variable background <20 MeV/nuc)",
+              "size": [
+                7
+              ]
+            },
+            {
+              "name": "Alpha_DIntn",
+              "type": "double",
+              "units": "1/[cm2-s-sr-MeV/nuc]",
+              "description": "(Spectrogram-Full List) Alpha Diff Intens (no bckgrd subtract), 21 energies 1-80 MeV/nuc, spin-avg",
+              "size": [
+                21
+              ]
+            },
+            {
+              "name": "Alpha_DIntn2",
+              "type": "double",
+              "units": "1/[cm2-s-sr-MeV/nuc]",
+              "description": "(Stacked time-series) Alpha Diff Intens (no bckgrd subtract), 7 energies 1-20 MeV/nuc, spin-avg",
+              "size": [
+                21
+              ]
+            },
+            {
+              "name": "Alpha_DIntn3",
+              "type": "double",
+              "units": "1/[cm2-s-sr-MeV/nuc]",
+              "description": "(Stacked time-series) Alpha Diff Intens (no bckgrd subtract), 4 energies 20-80 MeV/nuc, spin-avg",
+              "size": [
+                21
+              ]
+            },
+            {
+              "name": "Alpha_DIntn4",
+              "type": "double",
+              "units": "1/[cm2-s-sr-MeV/nuc]",
+              "description": "(Individual time-series) Alpha Diff Intens (no bckgrd subtract), spin-avg",
+              "size": [
+                21
+              ]
+            },
+            {
+              "name": "Alpha_DIntn4_errorbars",
+              "type": "double",
+              "units": "1/[cm2-s-sr-MeV/nuc]",
+              "description": "(Individual time-series) Alpha Diff Intens (no bckgrd subtract), spin-avg, with error bars",
+              "size": [
+                21
+              ]
+            },
+            {
+              "name": "Alpha_DIntn_Unc",
+              "type": "double",
+              "units": "1/[cm2-s-sr-MeV/nuc]",
+              "description": "(Individual time-series) Uncertainty, Alpha Differential Intensity",
+              "size": [
+                21
+              ]
+            },
+            {
+              "name": "Elec_Intn",
+              "type": "double",
+              "units": "1/[cm2-s-sr-MeV]",
+              "description": "Electron Intensity, 0.3-18 MeV (no bckgrd subtract), spin-avg"
+            },
+            {
+              "name": "Elec_Intn_errorbars",
+              "type": "double",
+              "units": "1/[cm2-s-sr-MeV]",
+              "description": "Electron Intensity, 0.3-18 MeV (no bckgrd subtract), spin-avg, with error bars"
+            },
+            {
+              "name": "Elec_Intn_Unc",
+              "type": "double",
+              "units": "1/[cm**2-s-sr-MeV]",
+              "description": "Unc, Electron Intensity, 0.3-18 MeV"
+            },
+            {
+              "name": "Elec_BackIntn",
+              "type": "double",
+              "units": "1/[cm2-s-sr-MeV]",
+              "description": "Electron Background Intensity, 0.3-18 MeV, spin-avg"
+            },
+            {
+              "name": "Elec_BackIntn_errorbars",
+              "type": "double",
+              "units": "1/[cm2-s-sr-MeV]",
+              "description": "Electron Background Intensity, 0.3-18 MeV, spin-avg, with error bars"
+            },
+            {
+              "name": "Elec_BackIntn_Unc",
+              "type": "double",
+              "units": "1/[cm2-s-sr-MeV]",
+              "description": "Uncertainty, Electron Background  Intensity 0.3-18 MeV"
+            },
+            {
+              "name": "Event_Rates",
+              "type": "double",
+              "units": "cts/sec",
+              "description": "11 I8 GME Event Type Rates ",
+              "size": [
+                11
+              ]
+            },
+            {
+              "name": "Event_Rates_errorbars",
+              "type": "double",
+              "units": "cts/sec",
+              "description": "11 I8 GME Event Type Rates with error bars",
+              "size": [
+                11
+              ]
+            },
+            {
+              "name": "Event_Rates_Unc",
+              "type": "double",
+              "units": "cts/sec",
+              "description": "Uncertainty, 11 GME Event Type Rates",
+              "size": [
+                11
+              ]
+            },
+            {
+              "name": "Singles_Rates",
+              "type": "double",
+              "units": "cts/sec",
+              "description": "7 GME Singles Type Rates ",
+              "size": [
+                7
+              ]
+            },
+            {
+              "name": "Singles_Rates_errorbars",
+              "type": "double",
+              "units": "cts/sec",
+              "description": "7 GME Singles Type Rates with error bars",
+              "size": [
+                7
+              ]
+            },
+            {
+              "name": "Singles_Rates_Unc",
+              "type": "double",
+              "units": "cts/sec",
+              "description": "Uncertainty, 7 GME Singles Rates",
+              "size": [
+                7
+              ]
+            }
+          ]
+        },
+        "I8_H0_MITPLASMA": {
+          "description": "",
+          "start_date": "1973-10-31T20:10:27Z",
+          "stop_date": "2006-07-26T17:10:35Z",
+          "parameters": [
+            {
+              "name": "Spacecraft",
+              "type": "integer",
+              "units": "8=IMP8 ",
+              "description": "Spacecraft flag (6/7/8 =IMP 6/7/8)"
+            },
+            {
+              "name": "decimal_year",
+              "type": "double",
+              "units": " ",
+              "description": "Decimal Year"
+            },
+            {
+              "name": "Region",
+              "type": "integer",
+              "units": "(1=SW,2=MULT,3=NSW)",
+              "description": "Region flag (1=Solar Wind, 2= Solar Wind or Magnetosheath, 3= Not Solar Wind)"
+            },
+            {
+              "name": "mode",
+              "type": "integer",
+              "units": "(1=NTMS,2=TMS,3=AQM)",
+              "description": "Operating mode flag [1:Non-tracking (NTMS), 2:Tracking (TMS), 3:Acquisition (AQM)]"
+            },
+            {
+              "name": "xyzgse",
+              "type": "double",
+              "units": "Re",
+              "description": "IMP8 Position, Cartesian-GSE - orbit plot",
+              "size": [
+                3
+              ]
+            },
+            {
+              "name": "xyzgse_t",
+              "type": "double",
+              "units": "Re",
+              "description": "IMP8 Position, Cartesian-GSE - time series plots X/Y/Z",
+              "size": [
+                3
+              ]
+            },
+            {
+              "name": "ygsm",
+              "type": "double",
+              "units": "Re",
+              "description": "IMP8 position, Y-component, GSM"
+            },
+            {
+              "name": "zgsm",
+              "type": "double",
+              "units": "Re",
+              "description": "IMP8 position, Z-component, GSM"
+            },
+            {
+              "name": "V_fit",
+              "type": "double",
+              "units": "km/sec (from fits)",
+              "description": "(Fits-based, no region selected) Proton Flow Speed"
+            },
+            {
+              "name": "V_fit_rfilt",
+              "type": "double",
+              "units": "km/sec (from fits)",
+              "description": "--> (Fits-based, solar wind only) Proton Flow Speed"
+            },
+            {
+              "name": "V_mom",
+              "type": "double",
+              "units": "km/sec (from moments)",
+              "description": "--> (Moments-based, no region selected) Proton Flow Speed"
+            },
+            {
+              "name": "V_mom_rfilt",
+              "type": "double",
+              "units": "km/sec (from moments)",
+              "description": "--> (Moments-based, solar wind only) Proton Flow Speed"
+            },
+            {
+              "name": "protonV_thermal_fit",
+              "type": "double",
+              "units": "km/sec (from fits)",
+              "description": "(Fits-based, no region selected) Proton most-probable thermal speed "
+            },
+            {
+              "name": "protonV_thermal_fit_rfilt",
+              "type": "double",
+              "units": "km/sec (from fits)",
+              "description": "--> (Fits-based, solar wind only) Proton most-probable thermal speed"
+            },
+            {
+              "name": "protonV_thermal_mom",
+              "type": "double",
+              "units": "km/sec (from moments)",
+              "description": "--> (Moments-based, no region selected) Proton most-probable thermal speed"
+            },
+            {
+              "name": "protonV_thermal_mom_rfilt",
+              "type": "double",
+              "units": "km/sec (from moments)",
+              "description": "--> (Moments-based, solar wind only) Proton most-probable thermal speed"
+            },
+            {
+              "name": "proton_density_fit",
+              "type": "double",
+              "units": "n/cc (from fits)",
+              "description": "(Fits-based, no region selected) Proton number density"
+            },
+            {
+              "name": "proton_density_fit_rfilt",
+              "type": "double",
+              "units": "n/cc (from fits)",
+              "description": "--> (Fits-based, solar wind only) Proton number density"
+            },
+            {
+              "name": "proton_density_mom",
+              "type": "double",
+              "units": "n/cc (from moments)",
+              "description": "--> (Moments-based, no region selected) Proton number density"
+            },
+            {
+              "name": "proton_density_mom_rfilt",
+              "type": "double",
+              "units": "n/cc (from moments)",
+              "description": "--> (Moments-based, solar wind only) Proton number density"
+            },
+            {
+              "name": "EW_flowangle_best",
+              "type": "double",
+              "units": "deg (from fits)",
+              "description": "(Fits-based, no region selected) Proton East/West flow angle (aberration corrected)"
+            },
+            {
+              "name": "EW_flowangle_best_rfilt",
+              "type": "double",
+              "units": "deg (from fits)",
+              "description": "--> (Fits-based, solar wind only) Proton East/West flow angle (aberration corrected)"
+            },
+            {
+              "name": "EW_flowangle_mom",
+              "type": "double",
+              "units": "deg (from moments)",
+              "description": "--> (Moments-based, no region selected) Proton East/West flow angle (no aberration correction)"
+            },
+            {
+              "name": "EW_flowangle_mom_rfilt",
+              "type": "double",
+              "units": "deg (from moments)",
+              "description": "--> (Moments-based, solar wind only) Proton East/West flow angle (no aberration correction)"
+            },
+            {
+              "name": "Flow_elevation_threshsp",
+              "type": "double",
+              "units": "deg (from fits)",
+              "description": "(Fits-based, no region selected) Proton flow elevation angle (from currents above noise threshold)"
+            },
+            {
+              "name": "Flow_elevation_threshsp_rfilt",
+              "type": "double",
+              "units": "deg (from fits)",
+              "description": "--> (Fits-based, solar wind only) Proton flow elevation angle (from currents above noise threshold)"
+            },
+            {
+              "name": "Flow_elevation_thresh",
+              "type": "double",
+              "units": "deg (from moments)",
+              "description": "--> (Moments-based, no region selected) Proton flow elevation angle (all currents)"
+            },
+            {
+              "name": "Flow_elevation_thresh_rfilt",
+              "type": "double",
+              "units": "deg (from moments)",
+              "description": "--> (Moments-based, solar wind only) Proton flow elevation angle (all currents)"
+            }
+          ]
+        },
+        "I8_OR_SSC": {
+          "description": "",
+          "start_date": "1973-10-30T00:00:00Z",
+          "stop_date": "2004-06-30T23:48:00Z",
+          "parameters": [
+            {
+              "name": "XYZ_GSE",
+              "type": "double",
+              "units": "RE",
+              "description": "GSE cartesian coordinates, orbit plot, IMP-8",
+              "size": [
+                3
+              ]
+            },
+            {
+              "name": "XYZ_GSE_Time",
+              "type": "double",
+              "units": "RE",
+              "description": "GSE cartesian coordinates, time-series plot, IMP-8",
+              "size": [
+                3
+              ]
+            },
+            {
+              "name": "XYZ_GSM",
+              "type": "double",
+              "units": "RE",
+              "description": "GSM cartesian coordinates, orbit plot, IMP-8",
+              "size": [
+                3
+              ]
+            },
+            {
+              "name": "XYZ_GSM_Time",
+              "type": "double",
+              "units": "RE",
+              "description": "GSM cartesian coordinates, time-series plot, IMP-8",
+              "size": [
+                3
+              ]
+            },
+            {
+              "name": "RADIUS",
+              "type": "double",
+              "units": "RE",
+              "description": "Orbital radius, IMP-8"
+            },
+            {
+              "name": "GSE_LAT",
+              "type": "double",
+              "units": "Deg",
+              "description": "GSE Latitude, IMP-8"
+            },
+            {
+              "name": "GSE_LON",
+              "type": "double",
+              "units": "Deg",
+              "description": "GSE Longitude, IMP-8"
+            },
+            {
+              "name": "GSE_LCT_T",
+              "type": "double",
+              "units": "hr",
+              "description": "GSE Local Time, IMP-8"
+            },
+            {
+              "name": "GSM_LAT",
+              "type": "double",
+              "units": "Deg",
+              "description": "GSM Latitude, IMP-8"
+            },
+            {
+              "name": "GSM_LON",
+              "type": "double",
+              "units": "Deg",
+              "description": "GSM Longitude, IMP-8"
+            }
+          ]
+        },
+        "IA_K0_ENF": {
+          "description": "",
+          "start_date": "1996-09-20T01:03:00Z",
+          "stop_date": "1997-03-28T23:59:00Z",
+          "parameters": [
+            {
+              "name": "E1",
+              "type": "double",
+              "units": "cnts",
+              "description": "electrons counts/s,  EM-1-1"
+            },
+            {
+              "name": "E2",
+              "type": "double",
+              "units": "cnts",
+              "description": "electrons counts/s,  EM-1-2"
+            }
+          ]
+        },
+        "IA_K0_EPI": {
+          "description": "",
+          "start_date": "1996-09-03T09:39:00Z",
+          "stop_date": "1997-10-30T12:51:00Z",
+          "parameters": [
+            {
+              "name": "Fe1",
+              "type": "double",
+              "units": "no/cm^2/s/keV/st",
+              "description": "Electron Flux, 26-29 keV (DOK-2 firstelectron sensor, fixed)"
+            },
+            {
+              "name": "Fe2",
+              "type": "double",
+              "units": "no/cm^2/s/keV/st",
+              "description": "Electron Flux, 25-28 keV (DOK-2 firstelectron sensor, fixed)"
+            },
+            {
+              "name": "Fp1",
+              "type": "double",
+              "units": "no/cm^2/s/keV/st",
+              "description": "Proton Flux, 18-24 keV (DOK-2 first proton sensor, fixed)"
+            },
+            {
+              "name": "Fp2",
+              "type": "double",
+              "units": "no/cm^2/s/keV/st",
+              "description": "Proton Flux, 20-26 keV (DOK-2 second proton sensor, scan)"
+            }
+          ]
+        },
+        "IA_K0_ICD": {
+          "description": "",
+          "start_date": "1996-09-18T09:23:36Z",
+          "stop_date": "1998-05-01T09:28:02Z",
+          "parameters": [
+            {
+              "name": "D6_H",
+              "type": "integer",
+              "units": "cnts",
+              "description": "H+ counts, 2 min sum from TRICS2 D6 antisunward detector"
+            },
+            {
+              "name": "D8_H",
+              "type": "integer",
+              "units": "cnts",
+              "description": "H+ counts, 2 min sum from TRICS2 D8 (GSE YZ plane) detector"
+            },
+            {
+              "name": "D10_H",
+              "type": "integer",
+              "units": "cnts",
+              "description": "H+ counts, 2 min sum from TRICS2 D10 sunward detector"
+            },
+            {
+              "name": "D6_O",
+              "type": "integer",
+              "units": "cnts",
+              "description": "O+ counts, 2 min sum from TRICS2 D6 antisunward detector"
+            },
+            {
+              "name": "D8_O",
+              "type": "integer",
+              "units": "cnts",
+              "description": "O+ counts, 2 min sum from TRICS2 D8 (GSE YZ plane) detector"
+            },
+            {
+              "name": "D10_O",
+              "type": "integer",
+              "units": "cnts",
+              "description": "O+ counts, 2 min sum from TRICS2 D10 sunward detector"
+            }
+          ]
+        },
+        "IA_K0_MFI": {
+          "description": "",
+          "start_date": "1996-09-01T04:25:00Z",
+          "stop_date": "1997-06-17T04:25:00Z",
+          "parameters": [
+            {
+              "name": "B_abs",
+              "type": "double",
+              "units": "nT",
+              "description": "Magnetic Field average of magnitudes,  scalar"
+            },
+            {
+              "name": "Ib",
+              "type": "double",
+              "units": "nT",
+              "description": "Magnetic Field Index "
+            }
+          ]
+        },
+        "IA_OR_DEF": {
+          "description": "",
+          "start_date": "1996-09-19T00:00:00Z",
+          "stop_date": "1997-06-04T23:50:00Z",
+          "parameters": [
+            {
+              "name": "SC_pos_GSE",
+              "type": "double",
+              "units": "Re",
+              "description": "IA s/c position in GSE, 3 comp. in RE(6370km)",
+              "size": [
+                3
+              ]
+            },
+            {
+              "name": "SC_pos_GSM",
+              "type": "double",
+              "units": "Re",
+              "description": "IA s/c position in GSM, 3 comp. in RE(6370km)",
+              "size": [
+                3
+              ]
+            },
+            {
+              "name": "SC_vel_GSE",
+              "type": "double",
+              "units": "km/s",
+              "description": "IA s/c velocity in km/s",
+              "size": [
+                3
+              ]
+            }
+          ]
+        }
+      }
+    }
+  },
+  "_meta": {
+    "generated_at": "2026-02-08T09:24:40Z",
+    "hapi_server": "https://cdaweb.gsfc.nasa.gov/hapi"
+  }
+}
