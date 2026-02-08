@@ -12,9 +12,9 @@
 
 | Feature | Status |
 |---------|--------|
-| 3-agent architecture (Orchestrator, Mission, Visualization) | Done |
-| 13 tool schemas, 16 visualization methods | Done |
-| 8 curated spacecraft (PSP, SolO, ACE, OMNI, Wind, DSCOVR, MMS, STEREO-A) | Done |
+| 4-agent architecture (Orchestrator, Mission, DataOps, Visualization) | Done |
+| 18 tool schemas, 5 registry methods + custom_visualization | Done |
+| 52 spacecraft (8 curated + 44 auto-generated) | Done |
 | Plotly renderer (interactive plots, no Java) | Done |
 | Gradio web UI with inline plots + data preview | Done |
 | Data pipeline: HAPI -> pandas -> compute -> Plotly | Done |
@@ -172,49 +172,19 @@ Upload a plot from a published paper → "This appears to be ACE magnetic field 
 
 ---
 
-## Priority 3: Google Search Grounding
+## Priority 3: Google Search Grounding [DONE]
 
 **Effort:** ~1-2 hours | **Impact:** Medium — another Gemini-specific feature
 
-### Problem
+**Status:** Implemented as a custom function tool (`google_search`). The Gemini API does not support combining `google_search` with `function_declarations` in the same request, so the implementation uses an isolated Gemini API call with only `GoogleSearch` configured. The orchestrator calls `google_search(query)` via function calling, which triggers a separate `generate_content` call. Returns grounded text with source URLs.
 
-Users often want context: "What was happening with the Sun last month?" The agent currently can only show data — it can't explain what happened.
-
-### Solution
-
-Enable Gemini's built-in Google Search grounding. The LLM decides when web context is useful (e.g., space weather events, solar flare dates, CME arrivals) and seamlessly blends it with data access.
-
-### Implementation
-
-```python
-# In agent/core.py, when creating the Gemini client:
-from google.genai.types import Tool, GoogleSearch
-
-tools = [
-    ...,  # existing function declarations
-    Tool(google_search=GoogleSearch()),
-]
-```
-
-**System prompt addition:**
-```
-You have access to Google Search for real-world context. Use it when the user asks about:
-- Solar events, flares, CMEs, geomagnetic storms
-- Space weather conditions for a specific date
-- Context about what was happening during a time period
-Combine search results with data access: "There was an X-class flare on Jan 10 — let me pull the solar wind data..."
-```
-
-### Demo Value
-
-"What happened in space weather last month?" → Google Search grounded answer + "Want me to show you the data?" → fetches and plots.
-
-### Files
+### Files Modified
 
 | File | Change |
 |------|--------|
-| `agent/core.py` | Add `GoogleSearch` tool to Gemini config |
-| `knowledge/prompt_builder.py` | Add grounding instructions to system prompt |
+| `agent/tools.py` | Added `google_search` tool schema |
+| `agent/core.py` | Added `_google_search()` handler with isolated Gemini API call |
+| `knowledge/prompt_builder.py` | Added grounding instructions to system prompt |
 
 ---
 
@@ -311,7 +281,7 @@ A conversational AI agent that gives anyone — from experienced researchers to 
 students — instant access to 2000+ NASA datasets through natural language.
 
 ## How It Uses Gemini
-- Function calling: 14 tools across 3 specialized agents
+- Function calling: 18 tools across 4 specialized agents
 - Multimodal: Upload a plot screenshot, get it reproduced
 - Google Search grounding: Real-time space weather context
 - JSON mode: Structured task decomposition for complex queries

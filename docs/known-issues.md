@@ -67,6 +67,15 @@ The task instruction includes the expected labels (e.g., "compute running averag
 
 ## Resolved Issues
 
+### Fixed in 2026-02-08 stability batch
+
+| Issue | Description | Fix |
+|-------|-------------|-----|
+| Agent loops forever | Requesting data outside available time range caused ~100 API calls (10 orchestrator × 10 mission agent iterations) | Reduced sub-agent iterations 10→5, added duplicate call detection, consecutive error tracking (break after 2), "STOP: Do not retry" in error messages |
+| Duplicate Plotly labels | `process_request()` in VisualizationAgent and DataOpsAgent lacked duplicate call detection, causing double-plotting | Added `previous_calls` tracking to all sub-agent `process_request()` methods |
+| Black Plotly plots | Gradio dark theme CSS inherited into Plotly figures, making plots appear black | Added explicit `_DEFAULT_LAYOUT` (white backgrounds, dark font) in `plotly_renderer.py` |
+| Time range out of bounds | Fetching data for dates outside dataset availability caused errors or empty results | Auto-clamp time ranges to dataset availability window in `_validate_time_range()` |
+
 ### Fixed in 2026-02-07 refactor batch
 
 | Issue | Description | Fix |

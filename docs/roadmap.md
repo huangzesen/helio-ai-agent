@@ -15,7 +15,7 @@ Future development plan for the helio-ai-agent project.
 | Agent Core | Done | Gemini 3 Pro/Flash Preview with function calling |
 | Plotly Renderer | Done | Interactive Plotly figures, multi-panel, WebGL, PNG/PDF export via kaleido |
 | Custom Visualization | Done | LLM-generated Plotly code sandbox for any customization |
-| Dataset Catalog | Done | 8 spacecraft with keyword search, per-mission JSON knowledge |
+| Dataset Catalog | Done | 52 spacecraft (8 curated + 44 auto-generated) with keyword search, per-mission JSON knowledge |
 | HAPI Client | Done | CDAWeb parameter metadata fetching (3-tier cache: memory/local/network) |
 | Data Pipeline | Done | fetch -> store -> custom_operation -> plot (pandas-backed) |
 | Custom Operations | Done | LLM-generated pandas/numpy code, AST-validated sandbox |
@@ -41,7 +41,7 @@ Future development plan for the helio-ai-agent project.
 
 ### Supported Spacecraft (8 curated + full CDAWeb catalog)
 
-PSP, Solar Orbiter, ACE, OMNI, Wind, DSCOVR, MMS, STEREO-A (curated with rich prompts) + all 2000+ CDAWeb datasets searchable via `search_full_catalog`
+52 missions total: PSP, Solar Orbiter, ACE, OMNI, Wind, DSCOVR, MMS, STEREO-A (8 curated with rich prompts) + 44 auto-generated missions (Cluster, Voyager, THEMIS, GOES, Van Allen Probes, etc.) + all 2000+ CDAWeb datasets searchable via `search_full_catalog`
 
 ---
 
@@ -156,7 +156,7 @@ PSP, Solar Orbiter, ACE, OMNI, Wind, DSCOVR, MMS, STEREO-A (curated with rich pr
 
 ### Reliability
 - [ ] Retry logic for network failures
-- [ ] Graceful degradation when services unavailable
+- [x] Graceful degradation when services unavailable — auto-clamp time ranges to dataset availability, consecutive error tracking breaks agent loops
 - [x] Session recovery after crashes — via TaskStore persistence
 - [ ] Input validation and sanitization
 
@@ -171,7 +171,7 @@ PSP, Solar Orbiter, ACE, OMNI, Wind, DSCOVR, MMS, STEREO-A (curated with rich pr
 ## User Experience
 
 ### Interfaces
-- [x] Web UI (Gradio) — `gradio_app.py` with inline Plotly plots
+- [x] Web UI (Gradio) — `gradio_app.py` with inline Plotly plots, real-time streaming of verbose output
 - [ ] Jupyter notebook integration
 - [ ] VS Code extension
 - [ ] REST API for programmatic access

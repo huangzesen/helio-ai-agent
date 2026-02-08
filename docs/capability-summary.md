@@ -34,21 +34,21 @@ agent/core.py  OrchestratorAgent  (LLM-driven orchestrator)
   |       VisualizationAgent         Focused Gemini session for all visualization
   |       execute_visualization()    Registry method dispatch (5 core methods)
   |       custom_visualization()     Free-form Plotly code sandbox
-  |       process_request()          Full conversational mode (max 10 iter)
+  |       process_request()          Full conversational mode (max 5 iter, duplicate detection)
   |       execute_task()             Forced function calling for plan tasks (max 3 iter)
   |                                  System prompt includes method catalog + Plotly cookbook
   |
   +---> agent/data_ops_agent.py   DataOps sub-agent (compute/describe/export tools)
   |       DataOpsAgent            Focused Gemini session for data transformations
   |       execute_task()          Forced function calling for plan tasks (max 3 iter)
-  |       process_request()       Full conversational mode (max 10 iter)
+  |       process_request()       Full conversational mode (max 5 iter, duplicate detection)
   |                               System prompt with computation patterns + code guidelines
   |                               No fetch or plot tools — operates on in-memory data
   |
   +---> agent/mission_agent.py    Mission sub-agents (fetch-only tools)
   |       MissionAgent            Focused Gemini session per spacecraft mission
   |       execute_task()          Forced function calling for plan tasks (max 3 iter)
-  |       process_request()       Full conversational mode (max 10 iter)
+  |       process_request()       Full conversational mode (max 5 iter, duplicate + error detection)
   |                               Rich system prompt with recommended datasets + analysis patterns
   |                               No compute or plot tools — reports fetched labels to orchestrator
   |
@@ -65,7 +65,7 @@ agent/core.py  OrchestratorAgent  (LLM-driven orchestrator)
   |       TaskStore               JSON persistence to ~/.helio-agent/tasks/
   |
   +---> knowledge/                Dataset discovery + prompt generation
-  |       missions/*.json          Per-mission JSON files (8 curated + auto-generated via --create-new)
+  |       missions/*.json          Per-mission JSON files (8 curated + 44 auto-generated, 52 total)
   |       mission_loader.py        Lazy-loading cache, routing table, dataset access
   |       mission_prefixes.py      Shared CDAWeb dataset ID prefix map (40+ missions)
   |       cdaweb_catalog.py        Full CDAWeb HAPI catalog fetch/cache/search (2000+ datasets)
@@ -218,7 +218,8 @@ All times are UTC. Outputs `TimeRange` objects with `start`/`end` datetimes.
 ### Agent Loop (`agent/core.py`)
 - Gemini decides which tools to call via function calling.
 - Tool results are fed back to Gemini as function responses.
-- Loop continues until Gemini produces a text response (or 10 iterations).
+- Orchestrator loop continues until Gemini produces a text response (or 10 iterations), with consecutive delegation error tracking (breaks after 2 failures).
+- Sub-agent loops limited to 5 iterations with duplicate call detection and consecutive error tracking.
 - Token usage accumulated from `response.usage_metadata` (prompt_token_count, candidates_token_count).
 
 ### LLM-Driven Routing (`agent/core.py`, `agent/mission_agent.py`, `agent/data_ops_agent.py`, `agent/visualization_agent.py`)
@@ -231,20 +232,34 @@ All times are UTC. Outputs `TimeRange` objects with `start`/`end` datetimes.
 - **Slim orchestrator**: System prompt contains a routing table (mission names + capabilities) plus delegation instructions. No dataset IDs or analysis tips — those live in mission sub-agents.
 
 ### Multi-Step Requests
-- The orchestrator naturally chains tool calls in its conversation loop (up to 10 iterations)
+- The orchestrator naturally chains tool calls in its conversation loop (up to 10 iterations, with consecutive delegation error guard)
 - "Compare PSP and ACE" -> `delegate_to_mission("PSP", ...)` -> `delegate_to_mission("ACE", ...)` -> `delegate_to_visualization(plot both)` — all in one `process_message` call
 - "Fetch ACE mag, compute magnitude, plot" -> `delegate_to_mission("ACE", fetch)` -> `delegate_to_data_ops(compute magnitude)` -> `delegate_to_visualization(plot)`
 - Complex plans tag tasks with `mission="__visualization__"` for visualization dispatch, `mission="__data_ops__"` for compute dispatch
 - Planner infrastructure (`agent/planner.py`, `agent/tasks.py`) supports programmatic multi-step plans
 
 ### Per-Mission JSON Knowledge (`knowledge/missions/*.json`)
-- **8 curated JSON files** + auto-generated skeletons for 30+ additional missions. Curated missions have hand-written profiles (analysis patterns, coordinate systems, data caveats). Auto-generated missions have minimal profiles populated from HAPI metadata.
+- **8 curated JSON files** + 44 auto-generated skeletons (52 total). Curated missions have hand-written profiles (analysis patterns, coordinate systems, data caveats). Auto-generated missions have minimal profiles populated from HAPI metadata.
 - **Shared prefix map**: `knowledge/mission_prefixes.py` maps CDAWeb dataset ID prefixes to mission identifiers (40+ mission groups).
 - **Full catalog search**: `knowledge/cdaweb_catalog.py` provides `search_full_catalog` tool — searches all 2000+ CDAWeb datasets by keyword, with 24-hour local cache.
 - **Recommended datasets**: All datasets in the instrument section are shown as recommended. Additional datasets are discoverable via `browse_datasets`.
 - **Calibration exclusion lists**: Per-mission `_calibration_exclude.json` files filter out calibration, housekeeping, and ephemeris datasets from browse results. Uses glob patterns and exact IDs.
 - **Auto-generation**: `scripts/generate_mission_data.py` queries CDAWeb HAPI to populate parameters, dates, descriptions. Use `--create-new` to create skeleton JSON files for new missions.
 - **Loader**: `knowledge/mission_loader.py` provides lazy-loading cache, routing table, and dataset access.
+
+### Auto-Clamping Time Ranges
+- `_validate_time_range()` in `agent/core.py` auto-adjusts requested time ranges to fit dataset availability windows
+- Handles partial overlaps (clamps to available range) and full mismatches (informs user of available range)
+- Fail-open: if HAPI metadata call fails, proceeds without validation
+
+### Default Plot Styling
+- `_DEFAULT_LAYOUT` in `rendering/plotly_renderer.py` sets explicit white backgrounds (`paper_bgcolor`, `plot_bgcolor`) and dark font color
+- Prevents Gradio dark theme CSS from making plots appear black
+- Applied in `_ensure_figure()` and `_grow_panels()`
+
+### Gradio Streaming
+- `gradio_app.py` supports real-time streaming of agent verbose output
+- Agent output unified through Python logging (commit 413eada)
 
 ### Google Search Grounding
 - `google_search` tool provides web search via Google Search grounding API
@@ -306,7 +321,7 @@ Displays interactive Plotly figures inline, data table sidebar, and token usage 
 
 ```bash
 python -m pytest tests/test_store.py tests/test_custom_ops.py   # Data ops tests
-python -m pytest tests/                                          # All tests (584 tests)
+python -m pytest tests/                                          # All tests (660 tests)
 ```
 
 ## Dependencies

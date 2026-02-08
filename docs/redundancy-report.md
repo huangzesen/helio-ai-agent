@@ -1,6 +1,6 @@
 # Code Redundancy Report
 
-**Date**: 2026-02-07 (updated after Autoplot removal)
+**Date**: 2026-02-08 (updated — findings still valid post-stability fixes)
 **Scope**: Full codebase (active source files, excluding tests and deleted `autoplot_bridge/`)
 **Estimated total refactoring effort**: 12-18 hours
 
@@ -52,7 +52,7 @@ class TaskExecutorMixin:
 - `agent/data_ops_agent.py::process_request()`
 - `agent/visualization_agent.py::process_request()`
 
-**Description**: All four agents have nearly identical tool-calling loops: extract function_calls from response parts, execute each tool, build function_responses, send back to model. ~80 lines duplicated across 4 files.
+**Description**: All four agents have nearly identical tool-calling loops: extract function_calls from response parts, execute each tool, build function_responses, send back to model. ~80 lines duplicated across 4 files. Note: duplicate call detection and consecutive error tracking were added to all sub-agents (2026-02-08), which increased the duplicated code.
 
 **Fix**: Extract into a shared utility:
 ```python
