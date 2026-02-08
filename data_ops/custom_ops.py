@@ -101,6 +101,8 @@ def execute_custom_operation(df: pd.DataFrame, code: str) -> pd.DataFrame:
         RuntimeError: If code execution fails.
         ValueError: If result is not a DataFrame/Series or loses DatetimeIndex.
     """
+    import gc
+
     df = df.copy()
     # Ensure DatetimeIndex so time-based rolling windows (e.g., '2H') work
     if not isinstance(df.index, pd.DatetimeIndex):
@@ -121,6 +123,10 @@ def execute_custom_operation(df: pd.DataFrame, code: str) -> pd.DataFrame:
         raise RuntimeError(f"Execution error: {type(e).__name__}: {e}") from e
 
     result = namespace.get("result")
+
+    # Free the working copy and namespace intermediates
+    del df, namespace
+    gc.collect()
 
     if result is None:
         raise ValueError("Code did not assign a value to 'result'")

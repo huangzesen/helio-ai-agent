@@ -93,6 +93,7 @@ def fetch_hapi_data(
         index_col=0,
         parse_dates=[0],
     )
+    del text  # free raw response text early
     df.index.name = "time"
 
     if len(df) == 0:
@@ -101,14 +102,15 @@ def fetch_hapi_data(
             f"in range {time_min} to {time_max}"
         )
 
-    # Ensure float64 dtype
-    df = df.apply(pd.to_numeric, errors="coerce")
+    # Ensure float64 dtype (in-place, column by column)
+    for col in df.columns:
+        df[col] = pd.to_numeric(df[col], errors="coerce")
 
-    # Replace fill values with NaN
+    # Replace fill values with NaN (in-place)
     if fill_value is not None:
         try:
             fill_f = float(fill_value)
-            df = df.replace(fill_f, np.nan)
+            df.replace(fill_f, np.nan, inplace=True)
         except (ValueError, TypeError):
             pass
 

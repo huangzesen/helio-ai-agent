@@ -13,10 +13,12 @@ Usage:
 """
 
 import argparse
+import gc
 import sys
 from datetime import datetime, timedelta, timezone
 
 import gradio as gr
+import pandas as pd
 
 
 # ---------------------------------------------------------------------------
@@ -59,13 +61,23 @@ def _build_data_table() -> list[list]:
 
 
 def _format_tokens() -> str:
-    """Format token usage as markdown for the sidebar."""
+    """Format token usage and memory as markdown for the sidebar."""
+    from data_ops.store import get_store
+    store = get_store()
+    mem_bytes = store.memory_usage_bytes()
+    if mem_bytes < 1024 * 1024:
+        mem_str = f"{mem_bytes / 1024:.0f} KB"
+    else:
+        mem_str = f"{mem_bytes / (1024 * 1024):.1f} MB"
+    mem_line = f"**Data in RAM:** {mem_str} ({len(store)} entries)"
+
     if _agent is None:
-        return ""
+        return mem_line
     usage = _agent.get_token_usage()
     if usage["api_calls"] == 0:
-        return "*No API calls yet*"
+        return f"{mem_line}  \n*No API calls yet*"
     return (
+        f"{mem_line}  \n"
         f"**Input:** {usage['input_tokens']:,}  \n"
         f"**Output:** {usage['output_tokens']:,}  \n"
         f"**Total:** {usage['total_tokens']:,}  \n"
@@ -196,6 +208,8 @@ def _on_fetch_click(mission, dataset, param, start_time, end_time, history):
     )
     get_store().put(entry)
     n_points = len(result["data"])
+    del result  # free fetch intermediates
+    gc.collect()
 
     # Notify the agent so it has context for follow-up questions
     notify_msg = (
@@ -238,18 +252,24 @@ def _preview_data(label: str) -> list[list] | None:
     entry = get_store().get(label)
     if entry is None:
         return None
-    df = entry.data.copy()
-    df.insert(0, "timestamp", df.index.strftime("%Y-%m-%d %H:%M:%S"))
-    df = df.reset_index(drop=True)
-    num_cols = df.select_dtypes(include="number").columns
-    df[num_cols] = df[num_cols].round(4)
+    df = entry.data
     n = len(df)
+    # Slice FIRST to avoid copying the entire DataFrame
     if n <= 20:
-        return df.values.tolist()
-    head = df.head(10)
-    tail = df.tail(10)
-    sep = [["..."] * len(df.columns)]
-    return head.values.tolist() + sep + tail.values.tolist()
+        subset = df
+    else:
+        subset = pd.concat([df.head(10), df.tail(10)])
+    # Only copy the small subset for formatting
+    subset = subset.copy()
+    subset.insert(0, "timestamp", subset.index.strftime("%Y-%m-%d %H:%M:%S"))
+    subset = subset.reset_index(drop=True)
+    num_cols = subset.select_dtypes(include="number").columns
+    subset[num_cols] = subset[num_cols].round(4)
+    if n <= 20:
+        return subset.values.tolist()
+    rows = subset.values.tolist()
+    sep = [["..."] * len(subset.columns)]
+    return rows[:10] + sep + rows[10:]
 
 
 # ---------------------------------------------------------------------------

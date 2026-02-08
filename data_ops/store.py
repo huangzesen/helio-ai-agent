@@ -93,6 +93,13 @@ class DataStore:
         """Remove all entries."""
         self._entries.clear()
 
+    def memory_usage_bytes(self) -> int:
+        """Return approximate total memory usage of all stored DataFrames."""
+        return sum(
+            entry.data.memory_usage(deep=True).sum()
+            for entry in self._entries.values()
+        )
+
     def __len__(self) -> int:
         return len(self._entries)
 
