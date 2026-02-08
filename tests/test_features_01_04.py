@@ -3,7 +3,7 @@ Comprehensive behavioral tests for Features 01-04.
 
 Tests the actual tool handler logic as it runs inside the agent,
 using a lightweight harness that exercises _execute_tool() paths
-without requiring a Gemini API key or Autoplot JVM.
+without requiring a Gemini API key.
 
 Run with: python -m pytest tests/test_features_01_04.py -v -s
 """

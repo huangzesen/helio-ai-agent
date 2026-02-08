@@ -1,1 +1,1 @@
-"""Tests for ai-autoplot."""
+"""Tests for helio-ai-agent."""

@@ -37,29 +37,29 @@ class TestParseTimeRange:
 
     def test_month_year(self):
         result = parse_time_range("January 2024")
-        assert result.to_autoplot_string() == "2024-01-01 to 2024-02-01"
+        assert result.to_time_range_string() == "2024-01-01 to 2024-02-01"
 
     def test_december_year(self):
         result = parse_time_range("December 2024")
-        assert result.to_autoplot_string() == "2024-12-01 to 2025-01-01"
+        assert result.to_time_range_string() == "2024-12-01 to 2025-01-01"
 
     def test_single_date(self):
         result = parse_time_range("2024-06-15")
-        assert result.to_autoplot_string() == "2024-06-15 to 2024-06-16"
+        assert result.to_time_range_string() == "2024-06-15 to 2024-06-16"
 
     def test_already_formatted(self):
         result = parse_time_range("2024-01-01 to 2024-01-31")
-        assert result.to_autoplot_string() == "2024-01-01 to 2024-01-31"
+        assert result.to_time_range_string() == "2024-01-01 to 2024-01-31"
 
     def test_abbreviated_month(self):
         result = parse_time_range("Jan 2024")
-        assert result.to_autoplot_string() == "2024-01-01 to 2024-02-01"
+        assert result.to_time_range_string() == "2024-01-01 to 2024-02-01"
 
     def test_datetime_range(self):
         result = parse_time_range("2024-01-15T06:00 to 2024-01-15T18:00")
         assert result.start == datetime(2024, 1, 15, 6, 0, tzinfo=timezone.utc)
         assert result.end == datetime(2024, 1, 15, 18, 0, tzinfo=timezone.utc)
-        assert "T" in result.to_autoplot_string()
+        assert "T" in result.to_time_range_string()
 
     def test_datetime_range_with_seconds(self):
         result = parse_time_range("2024-01-15T06:00:30 to 2024-01-15T18:30:45")
@@ -80,13 +80,13 @@ class TestParseTimeRange:
 
     def test_day_precision_omits_time(self):
         result = parse_time_range("2024-01-15 to 2024-01-20")
-        s = result.to_autoplot_string()
+        s = result.to_time_range_string()
         assert "T" not in s
         assert s == "2024-01-15 to 2024-01-20"
 
     def test_sub_day_includes_time(self):
         result = parse_time_range("2024-01-15T06:00 to 2024-01-15T18:00")
-        s = result.to_autoplot_string()
+        s = result.to_time_range_string()
         assert "T" in s
         assert s == "2024-01-15T06:00:00 to 2024-01-15T18:00:00"
 
@@ -171,8 +171,8 @@ class TestAgentToolExecution:
             yield mock
 
     @pytest.fixture
-    def mock_autoplot(self):
-        """Mock autoplot commands."""
+    def mock_renderer(self):
+        """Mock renderer commands."""
         with patch("agent.core.get_commands") as mock:
             mock_commands = MagicMock()
             mock.return_value = mock_commands
@@ -194,7 +194,7 @@ class TestAgentToolExecution:
 
                 agent = OrchestratorAgent.__new__(OrchestratorAgent)
                 agent.verbose = False
-                agent._autoplot = None
+                agent._renderer = None
 
                 result = agent._execute_tool("search_datasets", {"query": "parker magnetic"})
 
@@ -213,7 +213,7 @@ class TestAgentToolExecution:
 
                 agent = OrchestratorAgent.__new__(OrchestratorAgent)
                 agent.verbose = False
-                agent._autoplot = None
+                agent._renderer = None
 
                 result = agent._execute_tool("list_parameters", {"dataset_id": "AC_H2_MFI"})
 
@@ -227,7 +227,7 @@ class TestAgentToolExecution:
         with patch("agent.core.genai"):
             agent = OrchestratorAgent.__new__(OrchestratorAgent)
             agent.verbose = False
-            agent._autoplot = None
+            agent._renderer = None
 
             result = agent._execute_tool("ask_clarification", {
                 "question": "Which parameter?",

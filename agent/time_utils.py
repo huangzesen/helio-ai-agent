@@ -45,8 +45,8 @@ class TimeRange:
         self.start = start
         self.end = end
 
-    def to_autoplot_string(self) -> str:
-        """Format for Autoplot URI / DatumRangeUtil.parseTimeRange().
+    def to_time_range_string(self) -> str:
+        """Format as 'YYYY-MM-DD to YYYY-MM-DD' for CDAWeb HAPI queries.
 
         Omits the time component when both start and end are at midnight
         (day-precision). Includes T%H:%M:%S otherwise.

@@ -42,7 +42,7 @@ _DEFAULT_COLORS = [
 
 
 class PlotlyRenderer:
-    """Stateful Plotly renderer that mirrors AutoplotCommands."""
+    """Stateful Plotly renderer for heliophysics data visualization."""
 
     def __init__(self, verbose: bool = False, gui_mode: bool = False):
         self.verbose = verbose
@@ -210,7 +210,7 @@ class PlotlyRenderer:
     # ------------------------------------------------------------------
 
     def set_time_range(self, time_range: TimeRange) -> dict:
-        tr_str = time_range.to_autoplot_string()
+        tr_str = time_range.to_time_range_string()
         self._log(f"Setting time range: {tr_str}")
         fig = self._ensure_figure()
         fig.update_xaxes(range=[time_range.start, time_range.end])
@@ -275,7 +275,7 @@ class PlotlyRenderer:
         return {"status": "success", "message": "Canvas reset."}
 
     def get_current_state(self) -> dict:
-        tr_str = self._current_time_range.to_autoplot_string() if self._current_time_range else None
+        tr_str = self._current_time_range.to_time_range_string() if self._current_time_range else None
         return {
             "uri": None,
             "time_range": tr_str,

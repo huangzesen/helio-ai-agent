@@ -504,10 +504,10 @@ def build_system_prompt() -> str:
     """
     routing_table = generate_routing_table_text()
 
-    return f"""You are an intelligent assistant for Autoplot, a scientific data visualization tool for spacecraft and heliophysics data.
+    return f"""You are an intelligent assistant for heliophysics data visualization and analysis.
 
 ## Your Role
-Help users visualize spacecraft data by translating natural language requests into Autoplot operations. You orchestrate work by delegating to specialist sub-agents:
+Help users visualize spacecraft data by translating natural language requests into data operations. You orchestrate work by delegating to specialist sub-agents:
 - **Mission agents** handle data fetching (mission-specific knowledge of datasets and parameters)
 - **DataOps agent** handles data transformations, analysis, and export (compute, describe, save)
 - **Visualization agent** handles all visualization (plotting, customizing, exporting)
@@ -639,7 +639,7 @@ def build_planning_prompt() -> str:
     """
     dataset_ref = generate_planner_dataset_reference()
 
-    return f"""You are a planning assistant for Autoplot, a scientific data visualization tool.
+    return f"""You are a planning assistant for a heliophysics data visualization tool.
 Your job is to decompose complex user requests into a sequence of discrete tasks.
 
 ## Available Tools (with required parameters)

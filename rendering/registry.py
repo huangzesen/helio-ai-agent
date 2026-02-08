@@ -18,7 +18,7 @@ Adding a new capability:
 METHODS = [
     {
         "name": "plot_stored_data",
-        "description": "Plot one or more in-memory timeseries in the Autoplot canvas. Preferred method when data has been fetched or computed. Use labels from list_fetched_data.",
+        "description": "Plot one or more in-memory timeseries in the plot canvas. Preferred method when data has been fetched or computed. Use labels from list_fetched_data.",
         "parameters": [
             {"name": "labels", "type": "string", "required": True,
              "description": "Comma-separated labels of data to plot (e.g., 'Bmag' or 'ACE_Bmag,PSP_Bmag')"},
@@ -56,7 +56,7 @@ METHODS = [
     },
     {
         "name": "reset",
-        "description": "Reset the Autoplot canvas, clearing all plots and state. Use when starting fresh.",
+        "description": "Reset the plot canvas, clearing all plots and state. Use when starting fresh.",
         "parameters": [],
     },
 ]

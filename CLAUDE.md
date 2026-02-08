@@ -4,7 +4,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project Overview
 
-helio-ai-agent is an AI-powered natural language interface for [Autoplot](https://autoplot.org/), a Java-based scientific data visualization tool for spacecraft/heliophysics data. Users type conversational commands (e.g., "Show me ACE magnetic field data for last week") and the agent translates them into Autoplot operations and Python-side data computations.
+helio-ai-agent is an AI-powered natural language interface for spacecraft and heliophysics data visualization. Users type conversational commands (e.g., "Show me ACE magnetic field data for last week") and the agent translates them into data operations and Plotly visualizations.
 
 **Current status:** Fully functional. See `docs/capability-summary.md` for a detailed breakdown of all implemented features, tools, and architecture. Keep that file updated when adding new capabilities.
 
@@ -29,7 +29,7 @@ Data flows: User input → Gemini function calling → tool execution → result
 
 - **Python 3** with virtualenv
 - **Google Gemini** (`google-genai`) — LLM with function calling for tool routing
-- **Plotly** (`plotly`) — Interactive scientific data visualization (replaces Autoplot Java canvas)
+- **Plotly** (`plotly`) — Interactive scientific data visualization
 - **Kaleido** (`kaleido`) — Static image export for Plotly (PNG, PDF)
 - **NumPy** — Array operations for data pipeline
 
@@ -102,7 +102,7 @@ Requires a `.env` file at project root with:
 
 PSP (Parker Solar Probe), Solar Orbiter, ACE, OMNI, Wind, DSCOVR, MMS, and STEREO-A. Each mission has a JSON file in `knowledge/missions/` with keywords, profile, and datasets. The catalog in `knowledge/catalog.py` loads from these JSON files. Prompts are auto-generated from the JSON data.
 
-## Autoplot URI Format
+## CDAWeb URI Format
 
 CDAWeb URIs follow the pattern: `vap+cdaweb:ds={DATASET_ID}&id={PARAMETER}&timerange={TIME_RANGE}`
 
@@ -116,5 +116,5 @@ Time ranges use `YYYY-MM-DD to YYYY-MM-DD` format. The agent accepts flexible in
 - Most Plotly customizations (titles, labels, scales, render types, etc.) are handled by `custom_visualization` — no code changes needed. For new core methods that need special logic (like `plot_stored_data`): add entry to `rendering/registry.py`, implement in `rendering/plotly_renderer.py`, add dispatch in `agent/core.py:_dispatch_viz_method()`. For non-visualization tools: add schema in `agent/tools.py`, handler in `agent/core.py:_execute_tool()`. Update `docs/capability-summary.md` either way.
 - When adding new spacecraft: create a JSON file in `knowledge/missions/` (copy an existing one as template). Include `id`, `name`, `keywords`, `profile`, and `instruments` with `datasets` dict. Then run `python scripts/generate_mission_data.py --mission <id>` to populate HAPI metadata. The catalog, prompts, and routing table are all auto-generated from the JSON files.
 - Data operations (`data_ops/custom_ops.py`) use an AST-validated sandbox for LLM-generated pandas/numpy code — easy to test.
-- Plotting always goes through the Plotly renderer (`rendering/plotly_renderer.py`), not matplotlib or Autoplot.
+- Plotting always goes through the Plotly renderer (`rendering/plotly_renderer.py`), not matplotlib.
 - **Ignore `docs/archive/`** — contains outdated historical documents that are no longer relevant.

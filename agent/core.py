@@ -37,7 +37,7 @@ from data_ops.custom_ops import run_custom_operation
 from rendering.custom_viz_ops import run_custom_visualization
 
 # Orchestrator sees discovery, conversation, and routing tools
-# (NOT autoplot or data_ops — handled by sub-agents)
+# (NOT data fetching or data_ops — handled by sub-agents)
 ORCHESTRATOR_CATEGORIES = ["discovery", "conversation", "routing"]
 ORCHESTRATOR_EXTRA_TOOLS = ["list_fetched_data"]
 
@@ -53,7 +53,7 @@ class OrchestratorAgent:
 
         Args:
             verbose: If True, print debug info about tool calls.
-            gui_mode: If True, launch Autoplot with visible GUI window.
+            gui_mode: If True, launch with visible GUI window.
             model: Gemini model name (default: DEFAULT_MODEL).
         """
         self.verbose = verbose
@@ -1244,7 +1244,7 @@ def create_agent(verbose: bool = False, gui_mode: bool = False, model: str | Non
 
     Args:
         verbose: If True, print debug info about tool calls.
-        gui_mode: If True, launch Autoplot with visible GUI window.
+        gui_mode: If True, launch with visible GUI window.
         model: Gemini model name (default: gemini-2.5-flash).
 
     Returns:

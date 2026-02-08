@@ -1,5 +1,5 @@
 """
-Tests for the Autoplot method registry.
+Tests for the visualization method registry.
 
 Run with: python -m pytest tests/test_registry.py -v
 """
@@ -145,4 +145,4 @@ class TestRenderMethodCatalog:
     def test_descriptions_included(self):
         result = render_method_catalog()
         assert "Plot one or more in-memory" in result
-        assert "Reset the Autoplot canvas" in result
+        assert "Reset the plot canvas" in result

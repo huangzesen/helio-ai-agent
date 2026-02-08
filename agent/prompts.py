@@ -19,7 +19,7 @@ def get_system_prompt(gui_mode: bool = False) -> str:
 
     Args:
         gui_mode: If True, the orchestrator knows GUI mode is active (passed
-            through to the autoplot agent, not appended to orchestrator prompt).
+            through to the visualization agent, not appended to orchestrator prompt).
     """
     return _SYSTEM_PROMPT_TEMPLATE.replace("{today}", datetime.now().strftime("%Y-%m-%d"))
 

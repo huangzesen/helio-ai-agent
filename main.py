@@ -1,8 +1,8 @@
 #!/usr/bin/env python3
 """
-Autoplot Natural Language Interface - Main Entry Point
+Helio AI Agent - Main Entry Point
 
-Run this to start an interactive conversation with the Autoplot agent.
+Run this to start an interactive conversation with the heliophysics data agent.
 
 Usage:
     python main.py           # Normal mode
@@ -30,7 +30,7 @@ try:
 except ImportError:
     READLINE_AVAILABLE = False
 
-HISTORY_FILE = Path.home() / ".autoplot_history"
+HISTORY_FILE = Path.home() / ".helio_agent_history"
 
 
 def setup_readline():
@@ -47,7 +47,7 @@ def setup_readline():
 def print_welcome():
     """Print welcome message."""
     print("=" * 60)
-    print("  Autoplot Natural Language Interface")
+    print("  Helio AI Agent")
     print("=" * 60)
     print()
     print("I can help you explore and visualize spacecraft data")
@@ -130,7 +130,7 @@ def check_incomplete_plans(agent, verbose: bool):
 
 def main():
     """Main conversation loop."""
-    parser = argparse.ArgumentParser(description="Autoplot Natural Language Interface")
+    parser = argparse.ArgumentParser(description="Helio AI Agent")
     parser.add_argument(
         "--verbose", "-v",
         action="store_true",
@@ -139,7 +139,7 @@ def main():
     parser.add_argument(
         "--gui",
         action="store_true",
-        help="Launch Autoplot with visible GUI window for interactive plots",
+        help="Launch with visible GUI window for interactive plots",
     )
     parser.add_argument(
         "--model", "-m",
@@ -195,7 +195,7 @@ def main():
         os._exit(0)
 
     if args.gui:
-        print("GUI Mode: Autoplot window will appear when plotting.")
+        print("GUI Mode: Plot window will appear when plotting.")
 
     print(f"Model: {agent.model_name}")
     print()
