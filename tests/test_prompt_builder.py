@@ -360,13 +360,13 @@ class TestBuildVisualizationPrompt:
         prompt = build_visualization_prompt()
         assert "## Available Methods" in prompt
         assert "plot_stored_data" in prompt
-        assert "set_render_type" in prompt
-        assert "export_png" in prompt
+        assert "export" in prompt
 
-    def test_contains_render_type_guidance(self):
+    def test_contains_custom_visualization_guidance(self):
         prompt = build_visualization_prompt()
-        assert "scatter" in prompt
-        assert "spectrogram" in prompt
+        assert "custom_visualization" in prompt
+        assert "Plotly Cookbook" in prompt
+        assert "fig.update_layout" in prompt
 
     def test_contains_workflow(self):
         prompt = build_visualization_prompt()
@@ -397,7 +397,20 @@ class TestBuildVisualizationPrompt:
         prompt = build_visualization_prompt()
         assert '"index": 1' in prompt or '"index": 1' in prompt
 
-    def test_has_not_supported_notes(self):
+    def test_has_fetch_data_note(self):
         prompt = build_visualization_prompt()
         assert "fetch_data first" in prompt
-        assert "Session save/load" in prompt
+
+    def test_describes_three_tools(self):
+        prompt = build_visualization_prompt()
+        assert "execute_visualization" in prompt
+        assert "custom_visualization" in prompt
+        assert "list_fetched_data" in prompt
+
+    def test_no_deleted_method_references(self):
+        """Deleted registry methods should not appear in the prompt."""
+        prompt = build_visualization_prompt()
+        assert "set_render_type" not in prompt
+        assert "set_color_table" not in prompt
+        assert "save_session" not in prompt
+        assert "load_session" not in prompt

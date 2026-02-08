@@ -33,11 +33,13 @@ _DANGEROUS_BUILTINS = frozenset({
 _ALLOWED_NAMES = frozenset({"df", "pd", "np", "result"})
 
 
-def validate_pandas_code(code: str) -> list[str]:
+def validate_pandas_code(code: str, require_result: bool = True) -> list[str]:
     """Validate pandas code for safety using AST analysis.
 
     Args:
         code: Python code string to validate.
+        require_result: If True (default), require ``result = ...`` assignment.
+            Set to False for code that mutates objects in place (e.g., Plotly figures).
 
     Returns:
         List of violation descriptions. Empty list means code is safe.
@@ -81,7 +83,7 @@ def validate_pandas_code(code: str) -> list[str]:
             if isinstance(node.target, ast.Name) and node.target.id == "result":
                 has_result_assignment = True
 
-    if not has_result_assignment:
+    if require_result and not has_result_assignment:
         violations.append("Code must assign to 'result'")
 
     return violations

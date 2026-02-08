@@ -387,8 +387,8 @@ def build_data_ops_prompt() -> str:
 def build_visualization_prompt(gui_mode: bool = False) -> str:
     """Generate the system prompt for the visualization sub-agent.
 
-    Includes the method catalog from the registry, render type guidance,
-    and workflow instructions.
+    Includes the method catalog from the registry, custom_visualization
+    cookbook, and workflow instructions.
 
     Args:
         gui_mode: If True, append GUI-mode specific instructions.
@@ -401,8 +401,10 @@ def build_visualization_prompt(gui_mode: bool = False) -> str:
     lines = [
         "You are a visualization specialist for a scientific data visualization tool.",
         "",
-        "Your job is to execute visualization operations using the `execute_visualization` tool.",
-        "You also have access to `list_fetched_data` to see what data is available in memory.",
+        "You have three tools:",
+        "- `execute_visualization` — core plotting operations (5 methods, see catalog below)",
+        "- `custom_visualization` — free-form Plotly code for any customization",
+        "- `list_fetched_data` — see what data is available in memory",
         "",
         catalog,
         "## Using execute_visualization",
@@ -412,17 +414,41 @@ def build_visualization_prompt(gui_mode: bool = False) -> str:
         "Examples:",
         "- Plot stored data: `execute_visualization(method=\"plot_stored_data\", args={\"labels\": \"ACE_Bmag,PSP_Bmag\", \"title\": \"Comparison\"})`",
         "- Plot in specific panel: `execute_visualization(method=\"plot_stored_data\", args={\"labels\": \"Bmag\", \"index\": 1})`",
-        "- Change render: `execute_visualization(method=\"set_render_type\", args={\"render_type\": \"scatter\"})`",
-        "- Export PDF: `execute_visualization(method=\"export_pdf\", args={\"filename\": \"output.pdf\"})`",
-        "- Set canvas: `execute_visualization(method=\"set_canvas_size\", args={\"width\": 1920, \"height\": 1080})`",
+        "- Export PNG: `execute_visualization(method=\"export\", args={\"filename\": \"output.png\"})`",
+        "- Export PDF: `execute_visualization(method=\"export\", args={\"filename\": \"output.pdf\", \"format\": \"pdf\"})`",
         "",
-        "## Render Types",
+        "## Using custom_visualization",
         "",
-        "- **series** (default): Line plot for timeseries data",
-        "- **scatter**: Individual points, useful for sparse data",
-        "- **fill_to_zero**: Area fill between data and zero line",
-        "- **staircase**: Step function, good for discrete/quantized data",
-        "- **digital**: On/off states, good for flags or status data",
+        "For ANY customization not covered by the 5 core methods, use `custom_visualization(plotly_code=\"...\")` to write Plotly code that modifies `fig` in place.",
+        "",
+        "Available variables: `fig` (Plotly Figure), `go` (plotly.graph_objects), `np` (numpy).",
+        "No imports allowed — only fig, go, and np.",
+        "",
+        "### Plotly Cookbook",
+        "",
+        "**Layout:**",
+        "- Title: `fig.update_layout(title_text=\"Solar Wind Speed\")`",
+        "- Y-axis label: `fig.update_yaxes(title_text=\"B (nT)\", row=1, col=1)`",
+        "- Log scale: `fig.update_yaxes(type=\"log\", row=1, col=1)`",
+        "- Linear scale: `fig.update_yaxes(type=\"linear\", row=1, col=1)`",
+        "- Axis range: `fig.update_yaxes(range=[-10, 10], row=1, col=1)`",
+        "- Canvas size: `fig.update_layout(width=1920, height=1080)`",
+        "",
+        "**Trace styling:**",
+        "- Scatter mode: `fig.data[0].mode = \"markers\"`",
+        "- Fill to zero: `fig.data[0].fill = \"tozeroy\"`",
+        "- Staircase: `fig.data[0].line = dict(shape=\"hv\", color=fig.data[0].line.color)`",
+        "- Trace color: `fig.data[0].line.color = \"red\"`",
+        "",
+        "**Annotations & lines:**",
+        "- Horizontal line: `fig.add_hline(y=0, line_dash=\"dash\", line_color=\"gray\")`",
+        "- Vertical line: `fig.add_vline(x=\"2024-01-15\", line_dash=\"dot\", line_color=\"red\")`",
+        "- Annotation: `fig.add_annotation(x=\"2024-01-15\", y=5, text=\"Event\")`",
+        "",
+        "**Legend & fonts:**",
+        "- Legend off: `fig.update_layout(showlegend=False)`",
+        "- Font size: `fig.update_layout(font=dict(size=14))`",
+        "- Theme: `fig.update_layout(template=\"plotly_dark\")`",
         "",
         "## Time Range Format",
         "",
@@ -430,17 +456,17 @@ def build_visualization_prompt(gui_mode: bool = False) -> str:
         "- Relative: 'last week', 'last 3 days'",
         "- IMPORTANT: Never use '/' as a date separator.",
         "",
-        "## Notes",
-        "",
-        "- Always use fetch_data first to load data into memory, then plot_stored_data to visualize it",
-        "- Session save/load (.vap files) is not available",
-        "- Vector data (e.g., magnetic field Bx/By/Bz) is automatically decomposed into x/y/z components",
-        "",
         "## Workflow",
         "",
         "1. Always call `list_fetched_data` first to see what data is in memory",
-        "2. Use **plot_stored_data** for data already fetched/computed (labels from list_fetched_data)",
-        "3. Chain multiple operations (e.g., plot -> set title -> set axis label -> export)",
+        "2. Use **plot_stored_data** to plot data (labels from list_fetched_data)",
+        "3. Use **custom_visualization** for customization (title, labels, log scale, colors, render type, annotations, etc.)",
+        "4. Use **export** when the user wants to save the plot to a file",
+        "",
+        "## Notes",
+        "",
+        "- Always use fetch_data first to load data into memory, then plot_stored_data to visualize it",
+        "- Vector data (e.g., magnetic field Bx/By/Bz) is automatically decomposed into x/y/z components",
         "",
         "## Response Style",
         "",
@@ -525,6 +551,23 @@ Supported formats:
 If the system returns a time-range parsing error, relay the error message to the user.
 
 Today's date is {{today}}.
+
+## Google Search Grounding
+
+You have access to Google Search for real-world context. Gemini will automatically
+use search when helpful. It is particularly useful when the user asks about:
+- Solar events, flares, CMEs, geomagnetic storms
+- Space weather conditions for a specific date
+- Scientific context about what was happening during a time period
+- Explanations of heliophysics phenomena
+
+Combine search results with data access when possible. For example:
+"There was an X-class flare on January 10 — let me pull the solar wind data
+to show the impact."
+
+IMPORTANT: Always use your function-calling tools for data operations (fetching,
+computing, plotting). Google Search is for contextual knowledge only, NOT for
+finding datasets or fetching spacecraft data.
 
 ## When to Ask for Clarification
 

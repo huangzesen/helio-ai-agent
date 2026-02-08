@@ -290,7 +290,7 @@ If no filename is given, one is auto-generated from the label.""",
             "properties": {
                 "method": {
                     "type": "string",
-                    "description": "Method name from the catalog (e.g., 'plot_stored_data', 'set_render_type', 'export_png')"
+                    "description": "Method name from the catalog (e.g., 'plot_stored_data', 'set_time_range', 'export')"
                 },
                 "args": {
                     "type": "object",
@@ -298,6 +298,44 @@ If no filename is given, one is auto-generated from the label.""",
                 }
             },
             "required": ["method"]
+        }
+    },
+    {
+        "category": "visualization",
+        "name": "custom_visualization",
+        "description": """Execute free-form Plotly code to customize the current plot. Use this for ANY plot customization not covered by the core methods (plot_stored_data, set_time_range, export, reset, get_plot_state).
+
+The code runs with these variables available:
+- `fig` — the current Plotly Figure (mutate in place)
+- `go` — plotly.graph_objects
+- `np` — numpy
+
+Common patterns:
+- Title: `fig.update_layout(title_text="Solar Wind Speed")`
+- Y-axis label: `fig.update_yaxes(title_text="B (nT)", row=1, col=1)`
+- Log scale: `fig.update_yaxes(type="log", row=1, col=1)`
+- Axis range: `fig.update_yaxes(range=[-10, 10], row=1, col=1)`
+- Canvas size: `fig.update_layout(width=1920, height=1080)`
+- Scatter mode: `fig.data[0].mode = "markers"`
+- Fill to zero: `fig.data[0].fill = "tozeroy"`
+- Staircase: `fig.data[0].line = dict(shape="hv", color=fig.data[0].line.color)`
+- Horizontal line: `fig.add_hline(y=0, line_dash="dash", line_color="gray")`
+- Annotation: `fig.add_annotation(x="2024-01-15", y=5, text="Event")`
+- Trace color: `fig.data[0].line.color = "red"`
+- Legend off: `fig.update_layout(showlegend=False)`
+- Font size: `fig.update_layout(font=dict(size=14))`
+- Theme: `fig.update_layout(template="plotly_dark")`
+
+Do NOT use imports — only fig, go, and np are available.""",
+        "parameters": {
+            "type": "object",
+            "properties": {
+                "plotly_code": {
+                    "type": "string",
+                    "description": "Python code that modifies fig in place. Access: fig, go, np."
+                }
+            },
+            "required": ["plotly_code"]
         }
     },
 

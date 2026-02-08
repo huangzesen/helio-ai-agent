@@ -30,8 +30,8 @@ class TestRegistryStructure:
         names = [m["name"] for m in METHODS]
         assert len(names) == len(set(names)), f"Duplicate method names: {[n for n in names if names.count(n) > 1]}"
 
-    def test_method_count_is_15(self):
-        assert len(METHODS) == 15
+    def test_method_count_is_5(self):
+        assert len(METHODS) == 5
 
     def test_parameters_have_required_fields(self):
         for m in METHODS:
@@ -40,7 +40,6 @@ class TestRegistryStructure:
                 assert "type" in p, f"{m['name']}.{p.get('name', '?')}: missing 'type'"
                 assert "required" in p, f"{m['name']}.{p['name']}: missing 'required'"
                 assert "description" in p, f"{m['name']}.{p['name']}: missing 'description'"
-
 
     def test_plot_stored_data_has_index_param(self):
         m = get_method("plot_stored_data")
@@ -51,6 +50,16 @@ class TestRegistryStructure:
         assert idx_param["required"] is False
         assert idx_param["default"] == -1
         assert idx_param["type"] == "integer"
+
+    def test_export_has_format_param(self):
+        m = get_method("export")
+        assert m is not None
+        param_names = [p["name"] for p in m["parameters"]]
+        assert "format" in param_names
+        fmt_param = next(p for p in m["parameters"] if p["name"] == "format")
+        assert fmt_param["required"] is False
+        assert fmt_param["default"] == "png"
+        assert set(fmt_param["enum"]) == {"png", "pdf"}
 
 
 class TestGetMethod:
@@ -65,6 +74,14 @@ class TestGetMethod:
     def test_all_methods_retrievable(self):
         for m in METHODS:
             assert get_method(m["name"]) is m
+
+    def test_deleted_methods_not_found(self):
+        """Thin wrapper methods should no longer exist in the registry."""
+        for name in ("set_title", "set_axis_label", "toggle_log_scale",
+                      "set_axis_range", "set_canvas_size", "set_render_type",
+                      "set_color_table", "save_session", "load_session",
+                      "export_png", "export_pdf"):
+            assert get_method(name) is None, f"{name} should have been removed"
 
 
 class TestValidateArgs:
@@ -82,21 +99,17 @@ class TestValidateArgs:
         errors = validate_args("nonexistent", {})
         assert any("Unknown method" in e for e in errors)
 
-    def test_enum_validation(self):
-        errors = validate_args("set_render_type", {"render_type": "invalid_type"})
+    def test_export_format_enum_validation(self):
+        errors = validate_args("export", {"filename": "test", "format": "invalid"})
         assert any("Invalid value" in e for e in errors)
 
-    def test_enum_valid_value(self):
-        errors = validate_args("set_render_type", {"render_type": "scatter"})
+    def test_export_format_enum_valid(self):
+        errors = validate_args("export", {"filename": "test", "format": "pdf"})
         assert errors == []
 
     def test_no_params_method(self):
         errors = validate_args("reset", {})
         assert errors == []
-
-    def test_optional_params_not_required(self):
-        errors = validate_args("set_render_type", {"render_type": "scatter"})
-        assert errors == []  # index is optional
 
     def test_plot_stored_data_with_index(self):
         errors = validate_args("plot_stored_data", {
@@ -107,14 +120,6 @@ class TestValidateArgs:
 
     def test_plot_stored_data_without_index(self):
         errors = validate_args("plot_stored_data", {"labels": "ACE_Bmag"})
-        assert errors == []
-
-    def test_axis_enum_validation(self):
-        errors = validate_args("set_axis_label", {"axis": "x", "label": "test"})
-        assert any("Invalid value" in e for e in errors)
-
-    def test_axis_enum_valid(self):
-        errors = validate_args("set_axis_label", {"axis": "y", "label": "B (nT)"})
         assert errors == []
 
 
@@ -134,8 +139,8 @@ class TestRenderMethodCatalog:
 
     def test_enum_values_shown(self):
         result = render_method_catalog()
-        assert "`scatter`" in result
-        assert "`spectrogram`" in result
+        assert "`png`" in result
+        assert "`pdf`" in result
 
     def test_descriptions_included(self):
         result = render_method_catalog()

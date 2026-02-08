@@ -1,9 +1,13 @@
 """
 Method registry for visualization operations.
 
-Describes every visualization capability as structured data. The VisualizationAgent
+Describes core visualization capabilities as structured data. The VisualizationAgent
 sub-agent uses this registry to understand what operations are available
 and validate arguments before dispatching to PlotlyRenderer.
+
+Thin wrappers (title, axis labels, log scale, canvas size, render type, etc.)
+have been replaced by the ``custom_visualization`` tool, which lets the LLM
+write free-form Plotly code against the current figure.
 
 Adding a new capability:
     1. Add an entry to METHODS below
@@ -35,19 +39,14 @@ METHODS = [
         ],
     },
     {
-        "name": "export_png",
-        "description": "Export the current plot to a PNG image file.",
+        "name": "export",
+        "description": "Export the current plot to a file (PNG or PDF).",
         "parameters": [
             {"name": "filename", "type": "string", "required": True,
-             "description": "Output filename (.png extension added if missing)"},
-        ],
-    },
-    {
-        "name": "export_pdf",
-        "description": "Export the current plot to a PDF file.",
-        "parameters": [
-            {"name": "filename", "type": "string", "required": True,
-             "description": "Output filename (.pdf extension added if missing)"},
+             "description": "Output filename (extension added if missing)"},
+            {"name": "format", "type": "string", "required": False, "default": "png",
+             "enum": ["png", "pdf"],
+             "description": "Export format: 'png' (default) or 'pdf'"},
         ],
     },
     {
@@ -60,100 +59,6 @@ METHODS = [
         "description": "Reset the Autoplot canvas, clearing all plots and state. Use when starting fresh.",
         "parameters": [],
     },
-    {
-        "name": "set_title",
-        "description": "Set or change the title displayed above the current plot.",
-        "parameters": [
-            {"name": "title", "type": "string", "required": True,
-             "description": "The title text"},
-        ],
-    },
-    {
-        "name": "set_axis_label",
-        "description": "Set a label on an axis of the current plot. Only y and z axes are supported.",
-        "parameters": [
-            {"name": "axis", "type": "string", "required": True,
-             "enum": ["y", "z"],
-             "description": "Which axis: 'y' or 'z'"},
-            {"name": "label", "type": "string", "required": True,
-             "description": "The text label"},
-        ],
-    },
-    {
-        "name": "toggle_log_scale",
-        "description": "Enable or disable logarithmic scale on a plot axis.",
-        "parameters": [
-            {"name": "axis", "type": "string", "required": True,
-             "enum": ["y", "z"],
-             "description": "Which axis: 'y' or 'z'"},
-            {"name": "enabled", "type": "boolean", "required": True,
-             "description": "True for log scale, False for linear"},
-        ],
-    },
-    {
-        "name": "set_axis_range",
-        "description": "Manually set the value range of a plot axis for zooming into specific values.",
-        "parameters": [
-            {"name": "axis", "type": "string", "required": True,
-             "enum": ["y", "z"],
-             "description": "Which axis: 'y' or 'z'"},
-            {"name": "min", "type": "number", "required": True,
-             "description": "Minimum value"},
-            {"name": "max", "type": "number", "required": True,
-             "description": "Maximum value"},
-        ],
-    },
-    {
-        "name": "save_session",
-        "description": "Save the current Autoplot session to a .vap file for later restoration.",
-        "parameters": [
-            {"name": "filepath", "type": "string", "required": True,
-             "description": "Output .vap file path"},
-        ],
-    },
-    {
-        "name": "load_session",
-        "description": "Load a previously saved Autoplot session from a .vap file.",
-        "parameters": [
-            {"name": "filepath", "type": "string", "required": True,
-             "description": "Path to the .vap file"},
-        ],
-    },
-    {
-        "name": "set_render_type",
-        "description": "Change how data is rendered in the plot. Use 'spectrogram' for 2D data, 'scatter' for sparse data, 'series' (default) for timeseries.",
-        "parameters": [
-            {"name": "render_type", "type": "string", "required": True,
-             "enum": ["series", "scatter", "spectrogram", "fill_to_zero",
-                      "staircase", "color_scatter", "digital", "image",
-                      "pitch_angle_distribution", "events_bar", "orbit"],
-             "description": "The render type to use"},
-            {"name": "index", "type": "integer", "required": False, "default": 0,
-             "description": "Plot element index (0 for first/only plot)"},
-        ],
-    },
-    {
-        "name": "set_color_table",
-        "description": "Set the color table (colormap) for spectrogram or color scatter plots.",
-        "parameters": [
-            {"name": "name", "type": "string", "required": True,
-             "enum": ["apl_rainbow_black0", "black_blue_green_yellow_white",
-                      "black_green", "black_red", "blue_white_red",
-                      "color_wedge", "grayscale", "matlab_jet",
-                      "rainbow", "reverse_rainbow", "wrapped_color_wedge"],
-             "description": "Color table name"},
-        ],
-    },
-    {
-        "name": "set_canvas_size",
-        "description": "Set the canvas (image) size in pixels. Useful before exporting high-resolution images.",
-        "parameters": [
-            {"name": "width", "type": "integer", "required": True,
-             "description": "Canvas width in pixels"},
-            {"name": "height", "type": "integer", "required": True,
-             "description": "Canvas height in pixels"},
-        ],
-    },
 ]
 
 # Build lookup dict for fast access
@@ -164,7 +69,7 @@ def get_method(name: str) -> dict | None:
     """Look up a method by name.
 
     Args:
-        name: Method name (e.g., 'set_render_type')
+        name: Method name (e.g., 'export')
 
     Returns:
         Method definition dict, or None if not found.

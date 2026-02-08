@@ -20,6 +20,14 @@ class TestVizAgentToolFiltering:
         names = {t["name"] for t in tools}
         assert "execute_visualization" in names
 
+    def test_viz_tools_include_custom_visualization(self):
+        tools = get_tool_schemas(
+            categories=VIZ_TOOL_CATEGORIES,
+            extra_names=VIZ_EXTRA_TOOLS,
+        )
+        names = {t["name"] for t in tools}
+        assert "custom_visualization" in names
+
     def test_viz_tools_include_list_fetched_data(self):
         tools = get_tool_schemas(
             categories=VIZ_TOOL_CATEGORIES,
@@ -28,12 +36,12 @@ class TestVizAgentToolFiltering:
         names = {t["name"] for t in tools}
         assert "list_fetched_data" in names
 
-    def test_viz_tools_count_is_2(self):
+    def test_viz_tools_count_is_3(self):
         tools = get_tool_schemas(
             categories=VIZ_TOOL_CATEGORIES,
             extra_names=VIZ_EXTRA_TOOLS,
         )
-        assert len(tools) == 2  # execute_visualization + list_fetched_data
+        assert len(tools) == 3  # execute_visualization + custom_visualization + list_fetched_data
 
     def test_viz_tools_exclude_routing(self):
         tools = get_tool_schemas(

@@ -34,13 +34,15 @@ from knowledge.hapi_client import list_parameters as hapi_list_parameters, get_d
 from data_ops.store import get_store, DataEntry
 from data_ops.fetch import fetch_hapi_data
 from data_ops.custom_ops import run_custom_operation
+from rendering.custom_viz_ops import run_custom_visualization
 
 # Orchestrator sees discovery, conversation, and routing tools
 # (NOT autoplot or data_ops — handled by sub-agents)
 ORCHESTRATOR_CATEGORIES = ["discovery", "conversation", "routing"]
 ORCHESTRATOR_EXTRA_TOOLS = ["list_fetched_data"]
 
-DEFAULT_MODEL = "gemini-3-flash-preview"
+DEFAULT_MODEL = "gemini-3-pro-preview"
+SUB_AGENT_MODEL = "gemini-3-flash-preview"
 
 
 class OrchestratorAgent:
@@ -75,8 +77,12 @@ class OrchestratorAgent:
             )
             function_declarations.append(fd)
 
-        # Create tool object with all function declarations
-        tool = types.Tool(function_declarations=function_declarations)
+        # Create tool object for function calling + Google Search grounding
+        # Both must be in the SAME Tool object (separate Tool objects cause API error)
+        tool = types.Tool(
+            function_declarations=function_declarations,
+            google_search=types.GoogleSearch(),
+        )
 
         # Store model name and config
         self.model_name = model or DEFAULT_MODEL
@@ -122,6 +128,29 @@ class OrchestratorAgent:
             self._total_input_tokens += getattr(meta, "prompt_token_count", 0) or 0
             self._total_output_tokens += getattr(meta, "candidates_token_count", 0) or 0
         self._api_calls += 1
+
+    def _extract_grounding_sources(self, response) -> str:
+        """Extract source citations from Google Search grounding metadata."""
+        if not response.candidates:
+            return ""
+        candidate = response.candidates[0]
+        meta = getattr(candidate, "grounding_metadata", None)
+        if not meta:
+            return ""
+        chunks = getattr(meta, "grounding_chunks", None) or []
+        sources = []
+        seen = set()
+        for chunk in chunks:
+            web = getattr(chunk, "web", None)
+            if web:
+                uri = getattr(web, "uri", None)
+                title = getattr(web, "title", None)
+                if uri and uri not in seen:
+                    seen.add(uri)
+                    sources.append(f"- [{title or uri}]({uri})")
+        if not sources:
+            return ""
+        return "\n\nSources:\n" + "\n".join(sources)
 
     def get_token_usage(self) -> dict:
         """Return cumulative token usage for this session (including sub-agents)."""
@@ -219,9 +248,10 @@ class OrchestratorAgent:
     def _dispatch_viz_method(self, method: str, args: dict) -> dict:
         """Dispatch an execute_visualization call to the appropriate renderer method.
 
-        Consolidates all Autoplot command handling in one place. Simple methods
-        are passthroughs; complex ones (export_png, etc.) have
-        pre/post-processing logic.
+        Core methods (plot_stored_data, set_time_range, export, reset,
+        get_plot_state) are dispatched here.  Thin wrappers (title, axis
+        labels, log scale, canvas size, render type, etc.) have been
+        replaced by the ``custom_visualization`` tool.
 
         Args:
             method: Method name from the registry
@@ -235,45 +265,12 @@ class OrchestratorAgent:
         if errors:
             return {"status": "error", "message": "; ".join(errors)}
 
-        # --- Simple passthroughs ---
         if method == "reset":
             return self._renderer.reset()
-
-        elif method == "set_title":
-            return self._renderer.set_plot_title(args["title"])
-
-        elif method == "set_axis_label":
-            return self._renderer.set_axis_label(args["axis"], args["label"])
-
-        elif method == "toggle_log_scale":
-            return self._renderer.toggle_log_scale(args["axis"], args["enabled"])
-
-        elif method == "set_axis_range":
-            return self._renderer.set_axis_range(args["axis"], args["min"], args["max"])
-
-        elif method == "save_session":
-            return self._renderer.save_session(args["filepath"])
-
-        elif method == "load_session":
-            return self._renderer.load_session(args["filepath"])
 
         elif method == "get_plot_state":
             return self._renderer.get_current_state()
 
-        # --- New methods ---
-        elif method == "set_render_type":
-            return self._renderer.set_render_type(
-                render_type=args["render_type"],
-                index=args.get("index", 0),
-            )
-
-        elif method == "set_color_table":
-            return self._renderer.set_color_table(args["name"])
-
-        elif method == "set_canvas_size":
-            return self._renderer.set_canvas_size(args["width"], args["height"])
-
-        # --- Methods with pre/post-processing ---
         elif method == "plot_stored_data":
             store = get_store()
             labels = [l.strip() for l in args["labels"].split(",")]
@@ -301,11 +298,10 @@ class OrchestratorAgent:
                 return {"status": "error", "message": str(e)}
             return self._renderer.set_time_range(time_range)
 
-        elif method == "export_png":
+        elif method == "export":
+            fmt = args.get("format", "png")
             filename = args["filename"]
-            if not filename.endswith(".png"):
-                filename += ".png"
-            result = self._renderer.export_png(filename)
+            result = self._renderer.export(filename, format=fmt)
 
             # Auto-open the exported file in default viewer (skip in GUI mode)
             if result.get("status") == "success" and not self.gui_mode and not self.web_mode:
@@ -328,9 +324,6 @@ class OrchestratorAgent:
                     result["auto_opened"] = False
 
             return result
-
-        elif method == "export_pdf":
-            return self._renderer.export_pdf(args["filename"])
 
         else:
             return {"status": "error", "message": f"Unknown visualization method: {method}"}
@@ -422,6 +415,19 @@ class OrchestratorAgent:
             method = tool_args["method"]
             args = tool_args.get("args", {})
             return self._dispatch_viz_method(method, args)
+
+        elif tool_name == "custom_visualization":
+            fig = self._renderer.get_figure()
+            if fig is None:
+                self._renderer._ensure_figure()
+                fig = self._renderer.get_figure()
+            try:
+                run_custom_visualization(fig, tool_args["plotly_code"])
+            except ValueError as e:
+                return {"status": "error", "message": f"Validation error: {e}"}
+            except RuntimeError as e:
+                return {"status": "error", "message": f"Execution error: {e}"}
+            return {"status": "success", "message": "Figure updated.", "display": "plotly"}
 
         # --- Data Operations Tools ---
 
@@ -860,7 +866,9 @@ class OrchestratorAgent:
                     if hasattr(part, "text") and part.text:
                         text_parts.append(part.text)
 
-            return "\n".join(text_parts) if text_parts else plan.progress_summary()
+            text = "\n".join(text_parts) if text_parts else plan.progress_summary()
+            text += self._extract_grounding_sources(response)
+            return text
 
         except Exception as e:
             log_error("Error generating plan summary", exc=e, context={"plan_id": plan.id})
@@ -966,6 +974,10 @@ class OrchestratorAgent:
         self._track_usage(response)
         if self.verbose:
             print(f"  [Gemini] Response received.")
+            if response.candidates:
+                meta = getattr(response.candidates[0], "grounding_metadata", None)
+                if meta and getattr(meta, "web_search_queries", None):
+                    print(f"  [Search] Queries: {meta.web_search_queries}")
 
         max_iterations = 10
         iteration = 0
@@ -1018,6 +1030,10 @@ class OrchestratorAgent:
             self._track_usage(response)
             if self.verbose:
                 print(f"  [Gemini] Response received.")
+                if response.candidates:
+                    meta = getattr(response.candidates[0], "grounding_metadata", None)
+                    if meta and getattr(meta, "web_search_queries", None):
+                        print(f"  [Search] Queries: {meta.web_search_queries}")
 
         # Extract text response
         text_parts = []
@@ -1031,7 +1047,9 @@ class OrchestratorAgent:
                 if hasattr(part, "text") and part.text:
                     text_parts.append(part.text)
 
-        return "\n".join(text_parts) if text_parts else "Done."
+        text = "\n".join(text_parts) if text_parts else "Done."
+        text += self._extract_grounding_sources(response)
+        return text
 
     def _get_or_create_mission_agent(self, mission_id: str) -> MissionAgent:
         """Get a cached mission agent or create a new one."""
@@ -1039,12 +1057,12 @@ class OrchestratorAgent:
             self._mission_agents[mission_id] = MissionAgent(
                 mission_id=mission_id,
                 client=self.client,
-                model_name=self.model_name,
+                model_name=SUB_AGENT_MODEL,
                 tool_executor=self._execute_tool_safe,
                 verbose=self.verbose,
             )
             if self.verbose:
-                print(f"  [Router] Created {mission_id} mission agent")
+                print(f"  [Router] Created {mission_id} mission agent ({SUB_AGENT_MODEL})")
         return self._mission_agents[mission_id]
 
     def _get_or_create_viz_agent(self) -> VisualizationAgent:
@@ -1052,13 +1070,13 @@ class OrchestratorAgent:
         if self._viz_agent is None:
             self._viz_agent = VisualizationAgent(
                 client=self.client,
-                model_name=self.model_name,
+                model_name=SUB_AGENT_MODEL,
                 tool_executor=self._execute_tool_safe,
                 verbose=self.verbose,
                 gui_mode=self.gui_mode,
             )
             if self.verbose:
-                print(f"  [Router] Created Visualization agent")
+                print(f"  [Router] Created Visualization agent ({SUB_AGENT_MODEL})")
         return self._viz_agent
 
     def _get_or_create_dataops_agent(self) -> DataOpsAgent:
@@ -1066,7 +1084,7 @@ class OrchestratorAgent:
         if self._dataops_agent is None:
             self._dataops_agent = DataOpsAgent(
                 client=self.client,
-                model_name=self.model_name,
+                model_name=SUB_AGENT_MODEL,
                 tool_executor=self._execute_tool_safe,
                 verbose=self.verbose,
             )

@@ -1,8 +1,11 @@
 """
 Plotly-based renderer for visualization.
 
-Provides all visualization methods dispatched by agent/core.py via the
-method registry in rendering/registry.py.
+Provides core visualization methods dispatched by agent/core.py via the
+method registry in rendering/registry.py. Thin wrappers (title, axis
+labels, log scale, canvas size, render type, etc.) have been removed —
+those are now handled by the ``custom_visualization`` tool, which lets
+the LLM write free-form Plotly code against the figure.
 
 State is kept in a mutable go.Figure that accumulates traces / layout
 changes across calls.
@@ -194,7 +197,7 @@ class PlotlyRenderer:
         if filename:
             if not filename.endswith(".png"):
                 filename += ".png"
-            export_result = self.export_png(filename)
+            export_result = self.export(filename, format="png")
             if export_result.get("status") == "success":
                 result["filepath"] = export_result["filepath"]
             else:
@@ -203,7 +206,7 @@ class PlotlyRenderer:
         return result
 
     # ------------------------------------------------------------------
-    # Axis / layout methods
+    # Time range
     # ------------------------------------------------------------------
 
     def set_time_range(self, time_range: TimeRange) -> dict:
@@ -214,125 +217,26 @@ class PlotlyRenderer:
         self._current_time_range = time_range
         return {"status": "success", "time_range": tr_str}
 
-    def set_plot_title(self, title: str) -> dict:
-        self._log(f"Setting plot title: {title}")
-        fig = self._ensure_figure()
-        fig.update_layout(title_text=title)
-        return {"status": "success", "title": title}
-
-    def set_axis_label(self, axis: str, label: str) -> dict:
-        self._log(f"Setting {axis}-axis label: {label}")
-        if axis.lower() not in ("y", "z"):
-            return {"status": "error", "message": f"Unsupported axis '{axis}'. Use 'y' or 'z'."}
-        fig = self._ensure_figure()
-        if axis.lower() == "y":
-            fig.update_yaxes(title_text=label, row=1, col=1)
-        else:
-            # z-axis has no direct Plotly analog for line plots
-            return {"status": "error",
-                    "message": "z-axis label only applies to spectrograms, which are not yet supported in the Plotly renderer."}
-        return {"status": "success", "axis": axis, "label": label}
-
-    def toggle_log_scale(self, axis: str, enabled: bool) -> dict:
-        self._log(f"Setting {axis}-axis log scale: {enabled}")
-        if axis.lower() not in ("y", "z"):
-            return {"status": "error", "message": f"Unsupported axis '{axis}'. Use 'y' or 'z'."}
-        fig = self._ensure_figure()
-        scale_type = "log" if enabled else "linear"
-        if axis.lower() == "y":
-            fig.update_yaxes(type=scale_type, row=1, col=1)
-        return {"status": "success", "axis": axis, "log_scale": enabled}
-
-    def set_axis_range(self, axis: str, min_val: float, max_val: float) -> dict:
-        self._log(f"Setting {axis}-axis range: {min_val} to {max_val}")
-        if axis.lower() not in ("y", "z"):
-            return {"status": "error", "message": f"Unsupported axis '{axis}'. Use 'y' or 'z'."}
-        fig = self._ensure_figure()
-        if axis.lower() == "y":
-            fig.update_yaxes(range=[min_val, max_val], row=1, col=1)
-        return {"status": "success", "axis": axis, "min": min_val, "max": max_val}
-
-    # ------------------------------------------------------------------
-    # Render type
-    # ------------------------------------------------------------------
-
-    def set_render_type(self, render_type: str, index: int = 0) -> dict:
-        """Map Autoplot render types to Plotly trace modes."""
-        self._log(f"Setting render type to '{render_type}' for trace {index}")
-        fig = self._ensure_figure()
-        if index >= len(fig.data):
-            return {"status": "error",
-                    "message": f"Trace index {index} out of range (have {len(fig.data)} traces)"}
-
-        mode_map = {
-            "series": "lines",
-            "scatter": "markers",
-            "fill_to_zero": "lines",
-            "staircase": "lines",
-            "digital": "lines",
-        }
-        mode = mode_map.get(render_type)
-        if mode is None:
-            return {"status": "error",
-                    "message": f"Render type '{render_type}' is not supported by the Plotly renderer."}
-
-        trace = fig.data[index]
-        trace.mode = mode
-
-        # Fill and step shapes
-        if render_type == "fill_to_zero":
-            trace.fill = "tozeroy"
-        elif render_type == "staircase":
-            trace.line = dict(shape="hv", **(dict(color=trace.line.color) if trace.line and trace.line.color else {}))
-        elif render_type == "digital":
-            trace.line = dict(shape="hv", **(dict(color=trace.line.color) if trace.line and trace.line.color else {}))
-
-        return {"status": "success", "render_type": render_type, "index": index}
-
-    def set_color_table(self, name: str) -> dict:
-        return {
-            "status": "error",
-            "message": "Color tables are not supported by the Plotly renderer (only for spectrograms).",
-        }
-
-    def set_canvas_size(self, width: int, height: int) -> dict:
-        self._log(f"Setting canvas size to {width}x{height}")
-        fig = self._ensure_figure()
-        fig.update_layout(width=width, height=height)
-        return {"status": "success", "width": width, "height": height}
-
     # ------------------------------------------------------------------
     # Export
     # ------------------------------------------------------------------
 
-    def export_png(self, filepath: str) -> dict:
-        filepath = str(Path(filepath).resolve())
-        parent = Path(filepath).parent
-        if parent and not parent.exists():
-            parent.mkdir(parents=True, exist_ok=True)
+    def export(self, filepath: str, format: str = "png") -> dict:
+        """Export the current plot to a file (PNG or PDF).
 
-        if self._figure is None or len(self._figure.data) == 0:
-            return {"status": "error",
-                    "message": "No plot to export. Plot data first before exporting."}
+        Args:
+            filepath: Output file path.
+            format: 'png' (default) or 'pdf'.
 
-        self._log(f"Exporting PNG to {filepath}...")
-        try:
-            self._figure.write_image(filepath, format="png")
-        except Exception as e:
-            return {"status": "error", "message": f"PNG export failed: {e}"}
-
-        path_obj = Path(filepath)
-        if path_obj.exists() and path_obj.stat().st_size > 0:
-            return {
-                "status": "success",
-                "filepath": str(path_obj.resolve()),
-                "size_bytes": path_obj.stat().st_size,
-            }
-        return {"status": "error", "message": f"PNG file not created or is empty: {filepath}"}
-
-    def export_pdf(self, filepath: str) -> dict:
-        if not filepath.endswith(".pdf"):
+        Returns:
+            Result dict with status, filepath, and size_bytes.
+        """
+        # Ensure correct extension
+        if format == "pdf" and not filepath.endswith(".pdf"):
             filepath += ".pdf"
+        elif format == "png" and not filepath.endswith(".png"):
+            filepath += ".png"
+
         filepath = str(Path(filepath).resolve())
         parent = Path(filepath).parent
         if parent and not parent.exists():
@@ -342,11 +246,11 @@ class PlotlyRenderer:
             return {"status": "error",
                     "message": "No plot to export. Plot data first before exporting."}
 
-        self._log(f"Exporting PDF to {filepath}...")
+        self._log(f"Exporting {format.upper()} to {filepath}...")
         try:
-            self._figure.write_image(filepath, format="pdf")
+            self._figure.write_image(filepath, format=format)
         except Exception as e:
-            return {"status": "error", "message": f"PDF export failed: {e}"}
+            return {"status": "error", "message": f"{format.upper()} export failed: {e}"}
 
         path_obj = Path(filepath)
         if path_obj.exists() and path_obj.stat().st_size > 0:
@@ -355,7 +259,7 @@ class PlotlyRenderer:
                 "filepath": str(path_obj.resolve()),
                 "size_bytes": path_obj.stat().st_size,
             }
-        return {"status": "error", "message": f"PDF file not created or is empty: {filepath}"}
+        return {"status": "error", "message": f"{format.upper()} file not created or is empty: {filepath}"}
 
     # ------------------------------------------------------------------
     # State management
@@ -378,21 +282,6 @@ class PlotlyRenderer:
             "panel_count": self._panel_count,
             "has_plot": self._figure is not None and len(self._figure.data) > 0,
         }
-
-    # ------------------------------------------------------------------
-    # Not-supported passthrough stubs
-    # ------------------------------------------------------------------
-
-    def save_session(self, filepath: str) -> dict:
-        return {"status": "error", "message": "Session save (.vap) is not supported by the Plotly renderer."}
-
-    def load_session(self, filepath: str) -> dict:
-        return {"status": "error", "message": "Session load (.vap) is not supported by the Plotly renderer."}
-
-    def execute_script(self, code: str) -> dict:
-        return {"status": "error",
-                "message": "Direct ScriptContext/DOM scripting is not supported by the Plotly renderer. "
-                           "Use execute_visualization methods instead."}
 
     # ------------------------------------------------------------------
     # Accessor for Gradio / external use

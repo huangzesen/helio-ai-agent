@@ -20,9 +20,10 @@ class TestToolCategoryFiltering:
 
     def test_no_filter_returns_all_tools(self):
         all_tools = get_tool_schemas()
-        assert len(all_tools) == 15  # 14 + get_dataset_docs
+        assert len(all_tools) == 16  # 15 + custom_visualization
         names = {t["name"] for t in all_tools}
         assert "execute_visualization" in names
+        assert "custom_visualization" in names
         assert "fetch_data" in names
         assert "delegate_to_mission" in names
         assert "delegate_to_visualization" in names
@@ -51,7 +52,7 @@ class TestToolCategoryFiltering:
     def test_visualization_category_only(self):
         viz_tools = get_tool_schemas(categories=VIZ_TOOL_CATEGORIES)
         names = {t["name"] for t in viz_tools}
-        assert names == {"execute_visualization"}
+        assert names == {"execute_visualization", "custom_visualization"}
 
     def test_visualization_with_extras(self):
         tools = get_tool_schemas(
@@ -59,7 +60,7 @@ class TestToolCategoryFiltering:
             extra_names=VIZ_EXTRA_TOOLS,
         )
         names = {t["name"] for t in tools}
-        assert names == {"execute_visualization", "list_fetched_data"}
+        assert names == {"execute_visualization", "custom_visualization", "list_fetched_data"}
 
     def test_orchestrator_categories(self):
         orch_tools = get_tool_schemas(categories=ORCHESTRATOR_CATEGORIES, extra_names=ORCHESTRATOR_EXTRA_TOOLS)

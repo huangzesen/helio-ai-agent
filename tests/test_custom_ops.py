@@ -98,6 +98,26 @@ class TestValidatePandasCode:
         violations = validate_pandas_code("async def f(): pass\nresult = df")
         assert any("Async" in v or "async" in v for v in violations)
 
+    def test_require_result_false_allows_no_assignment(self):
+        violations = validate_pandas_code("x = 42", require_result=False)
+        assert violations == []
+
+    def test_require_result_false_still_blocks_imports(self):
+        violations = validate_pandas_code("import os", require_result=False)
+        assert any("Import" in v for v in violations)
+
+    def test_require_result_false_still_blocks_exec(self):
+        violations = validate_pandas_code("exec('x=1')", require_result=False)
+        assert any("exec" in v for v in violations)
+
+    def test_require_result_false_still_blocks_dunder(self):
+        violations = validate_pandas_code("x = obj.__class__", require_result=False)
+        assert any("__class__" in v for v in violations)
+
+    def test_require_result_default_is_true(self):
+        violations = validate_pandas_code("x = 42")
+        assert any("result" in v for v in violations)
+
 
 # ── Executor Tests ───────────────────────────────────────────────────────────
 
