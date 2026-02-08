@@ -15,7 +15,7 @@ from google.genai import types
 
 from .tools import get_tool_schemas
 from .tasks import Task, TaskStatus
-from .logging import log_error
+from .logging import get_logger, log_error
 from knowledge.prompt_builder import build_data_ops_prompt
 
 # DataOps agent gets compute tools + list_fetched_data to discover available data
@@ -53,6 +53,7 @@ class DataOpsAgent:
         self.model_name = model_name
         self.tool_executor = tool_executor
         self.verbose = verbose
+        self.logger = get_logger()
 
         # Build data-ops-focused system prompt
         self.system_prompt = build_data_ops_prompt()
@@ -113,8 +114,7 @@ class DataOpsAgent:
         Returns:
             The text response from Gemini after processing.
         """
-        if self.verbose:
-            print(f"  [DataOps Agent] Processing: {user_message[:80]}...")
+        self.logger.debug(f"[DataOps Agent] Processing: {user_message[:80]}...")
 
         try:
             # Conversational config: no forced function calling
@@ -168,8 +168,7 @@ class DataOpsAgent:
                     args_str = str(sorted(dict(fc.args).items())) if fc.args else ""
                     call_keys.add((fc.name, args_str))
                 if call_keys and call_keys.issubset(previous_calls):
-                    if self.verbose:
-                        print(f"  [DataOps Agent] Duplicate tool call detected, stopping")
+                    self.logger.debug("[DataOps Agent] Duplicate tool call detected, stopping")
                     break
 
                 # Execute tools via the shared executor
@@ -178,13 +177,12 @@ class DataOpsAgent:
                     tool_name = fc.name
                     tool_args = dict(fc.args) if fc.args else {}
 
-                    if self.verbose:
-                        print(f"  [DataOps Agent] Tool: {tool_name}({tool_args})")
+                    self.logger.debug(f"[DataOps Agent] Tool: {tool_name}({tool_args})")
 
                     result = self.tool_executor(tool_name, tool_args)
 
-                    if self.verbose and result.get("status") == "error":
-                        print(f"  [DataOps Agent] Tool error: {result.get('message', '')}")
+                    if result.get("status") == "error":
+                        self.logger.warning(f"[DataOps Agent] Tool error: {result.get('message', '')}")
 
                     function_responses.append(
                         types.Part.from_function_response(
@@ -197,8 +195,7 @@ class DataOpsAgent:
                     args_str = str(sorted(tool_args.items()))
                     previous_calls.add((tool_name, args_str))
 
-                if self.verbose:
-                    print(f"  [DataOps Agent] Sending {len(function_responses)} tool result(s) back...")
+                self.logger.debug(f"[DataOps Agent] Sending {len(function_responses)} tool result(s) back...")
                 response = chat.send_message(message=function_responses)
                 self._track_usage(response)
 
@@ -222,8 +219,7 @@ class DataOpsAgent:
                 exc=e,
                 context={"request": user_message[:200]}
             )
-            if self.verbose:
-                print(f"  [DataOps Agent] Failed: {e}")
+            self.logger.warning(f"[DataOps Agent] Failed: {e}")
             return f"Error processing data operations request: {e}"
 
     def execute_task(self, task: Task) -> str:
@@ -240,8 +236,7 @@ class DataOpsAgent:
         task.status = TaskStatus.IN_PROGRESS
         task.tool_calls = []
 
-        if self.verbose:
-            print(f"  [DataOps Agent] Executing: {task.description}")
+        self.logger.debug(f"[DataOps Agent] Executing: {task.description}")
 
         try:
             # Fresh chat per task with forced function calling
@@ -277,8 +272,7 @@ class DataOpsAgent:
                     args_str = str(sorted(dict(fc.args).items())) if fc.args else ""
                     call_keys.add((fc.name, args_str))
                 if call_keys and call_keys.issubset(previous_calls):
-                    if self.verbose:
-                        print(f"  [DataOps Agent] Duplicate tool call detected, stopping")
+                    self.logger.debug("[DataOps Agent] Duplicate tool call detected, stopping")
                     break
 
                 # Execute tools via the shared executor
@@ -290,8 +284,8 @@ class DataOpsAgent:
                     task.tool_calls.append(tool_name)
                     result = self.tool_executor(tool_name, tool_args)
 
-                    if self.verbose and result.get("status") == "error":
-                        print(f"  [DataOps Agent] Tool error: {result.get('message', '')}")
+                    if result.get("status") == "error":
+                        self.logger.warning(f"[DataOps Agent] Tool error: {result.get('message', '')}")
 
                     function_responses.append(
                         types.Part.from_function_response(
@@ -303,8 +297,7 @@ class DataOpsAgent:
                     args_str = str(sorted(tool_args.items()))
                     previous_calls.add((tool_name, args_str))
 
-                if self.verbose:
-                    print(f"  [DataOps Agent] Sending {len(function_responses)} tool result(s) back...")
+                self.logger.debug(f"[DataOps Agent] Sending {len(function_responses)} tool result(s) back...")
                 response = chat.send_message(message=function_responses)
                 self._track_usage(response)
 
@@ -320,8 +313,7 @@ class DataOpsAgent:
             task.status = TaskStatus.COMPLETED
             task.result = result_text
 
-            if self.verbose:
-                print(f"  [DataOps Agent] Completed: {task.description}")
+            self.logger.debug(f"[DataOps Agent] Completed: {task.description}")
 
             return result_text
 
@@ -333,6 +325,5 @@ class DataOpsAgent:
                 exc=e,
                 context={"task": task.description}
             )
-            if self.verbose:
-                print(f"  [DataOps Agent] Failed: {task.description} - {e}")
+            self.logger.warning(f"[DataOps Agent] Failed: {task.description} - {e}")
             return f"Error: {e}"

@@ -30,6 +30,7 @@ from .logging import (
 from rendering.registry import get_method, validate_args
 from rendering.plotly_renderer import PlotlyRenderer
 from knowledge.catalog import search_by_keywords
+from knowledge.cdaweb_catalog import search_catalog as search_full_cdaweb_catalog
 from knowledge.hapi_client import list_parameters as hapi_list_parameters, get_dataset_time_range
 from data_ops.store import get_store, DataEntry
 from data_ops.fetch import fetch_hapi_data
@@ -47,6 +48,9 @@ SUB_AGENT_MODEL = GEMINI_SUB_AGENT_MODEL
 
 class OrchestratorAgent:
     """Main orchestrator agent that routes to mission and visualization sub-agents."""
+
+    # Class-level fallback so tests using __new__ don't crash on self.logger
+    logger = get_logger()
 
     def __init__(self, verbose: bool = False, gui_mode: bool = False, model: str | None = None):
         """Initialize the orchestrator agent.
@@ -182,11 +186,10 @@ class OrchestratorAgent:
             # Extract sources from grounding metadata
             sources_text = self._extract_grounding_sources(response)
 
-            if self.verbose:
-                if response.candidates:
-                    meta = getattr(response.candidates[0], "grounding_metadata", None)
-                    if meta and getattr(meta, "web_search_queries", None):
-                        print(f"  [Search] Queries: {meta.web_search_queries}")
+            if response.candidates:
+                meta = getattr(response.candidates[0], "grounding_metadata", None)
+                if meta and getattr(meta, "web_search_queries", None):
+                    self.logger.debug(f"[Search] Queries: {meta.web_search_queries}")
 
             return {
                 "status": "success",
@@ -369,8 +372,7 @@ class OrchestratorAgent:
                         subprocess.Popen(["xdg-open", filepath])
                     result["auto_opened"] = True
                 except Exception as e:
-                    if self.verbose:
-                        print(f"  [Export] Could not auto-open: {e}")
+                    self.logger.debug(f"[Export] Could not auto-open: {e}")
                     result["auto_opened"] = False
 
             return result
@@ -391,28 +393,22 @@ class OrchestratorAgent:
         # Log the tool call
         log_tool_call(tool_name, tool_args)
 
-        if self.verbose:
-            print(f"  [Tool: {tool_name}({tool_args})]")
+        self.logger.debug(f"[Tool: {tool_name}({tool_args})]")
 
         if tool_name == "search_datasets":
-            if self.verbose:
-                print(f"  [Catalog] Searching for: {tool_args['query']}")
+            self.logger.debug(f"[Catalog] Searching for: {tool_args['query']}")
             result = search_by_keywords(tool_args["query"])
             if result:
-                if self.verbose:
-                    print(f"  [Catalog] Found matches.")
+                self.logger.debug("[Catalog] Found matches.")
                 return {"status": "success", **result}
             else:
-                if self.verbose:
-                    print(f"  [Catalog] No matches found.")
+                self.logger.debug("[Catalog] No matches found.")
                 return {"status": "success", "message": "No matching datasets found."}
 
         elif tool_name == "list_parameters":
-            if self.verbose:
-                print(f"  [HAPI] Fetching parameters for {tool_args['dataset_id']}...")
+            self.logger.debug(f"[HAPI] Fetching parameters for {tool_args['dataset_id']}...")
             params = hapi_list_parameters(tool_args["dataset_id"])
-            if self.verbose:
-                print(f"  [HAPI] Got {len(params)} parameters.")
+            self.logger.debug(f"[HAPI] Got {len(params)} parameters.")
             return {"status": "success", "parameters": params}
 
         elif tool_name == "get_data_availability":
@@ -451,8 +447,7 @@ class OrchestratorAgent:
                 return result
 
         elif tool_name == "google_search":
-            if self.verbose:
-                print(f"  [Search] Query: {tool_args['query']}")
+            self.logger.debug(f"[Search] Query: {tool_args['query']}")
             return self._google_search(tool_args["query"])
 
         elif tool_name == "ask_clarification":
@@ -515,8 +510,7 @@ class OrchestratorAgent:
             )
             store = get_store()
             store.put(entry)
-            if self.verbose:
-                print(f"  [DataOps] Stored '{label}' ({len(entry.time)} points)")
+            self.logger.debug(f"[DataOps] Stored '{label}' ({len(entry.time)} points)")
             response = {"status": "success", **entry.summary()}
             if validation:
                 response["warning"] = validation
@@ -547,8 +541,7 @@ class OrchestratorAgent:
                 source="computed",
             )
             store.put(entry)
-            if self.verbose:
-                print(f"  [DataOps] Custom operation -> '{tool_args['output_label']}' ({len(result_df)} points)")
+            self.logger.debug(f"[DataOps] Custom operation -> '{tool_args['output_label']}' ({len(result_df)} points)")
             return {"status": "success", **entry.summary()}
 
         # --- Describe & Export Tools ---
@@ -633,8 +626,7 @@ class OrchestratorAgent:
             filepath = str(Path(filename).resolve())
             file_size = Path(filename).stat().st_size
 
-            if self.verbose:
-                print(f"  [DataOps] Exported '{entry.label}' to {filepath} ({file_size:,} bytes)")
+            self.logger.debug(f"[DataOps] Exported '{entry.label}' to {filepath} ({file_size:,} bytes)")
 
             return {
                 "status": "success",
@@ -650,8 +642,7 @@ class OrchestratorAgent:
         elif tool_name == "delegate_to_mission":
             mission_id = tool_args["mission_id"]
             request = tool_args["request"]
-            if self.verbose:
-                print(f"  [Router] Delegating to {mission_id} specialist")
+            self.logger.debug(f"[Router] Delegating to {mission_id} specialist")
             try:
                 agent = self._get_or_create_mission_agent(mission_id)
                 sub_result = agent.process_request(request)
@@ -669,8 +660,7 @@ class OrchestratorAgent:
         elif tool_name == "delegate_to_visualization":
             request = tool_args["request"]
             context = tool_args.get("context", "")
-            if self.verbose:
-                print(f"  [Router] Delegating to Visualization specialist")
+            self.logger.debug("[Router] Delegating to Visualization specialist")
             agent = self._get_or_create_viz_agent()
             full_request = f"{request}\n\nContext: {context}" if context else request
             sub_result = agent.process_request(full_request)
@@ -682,8 +672,7 @@ class OrchestratorAgent:
         elif tool_name == "delegate_to_data_ops":
             request = tool_args["request"]
             context = tool_args.get("context", "")
-            if self.verbose:
-                print(f"  [Router] Delegating to DataOps specialist")
+            self.logger.debug("[Router] Delegating to DataOps specialist")
             agent = self._get_or_create_dataops_agent()
             full_request = f"{request}\n\nContext: {context}" if context else request
             sub_result = agent.process_request(full_request)
@@ -752,9 +741,8 @@ class OrchestratorAgent:
         task.status = TaskStatus.IN_PROGRESS
         task.tool_calls = []
 
-        if self.verbose:
-            print(f"  [Task] Executing: {task.description}")
-            print(f"  [Gemini] Sending task instruction...")
+        self.logger.debug(f"[Task] Executing: {task.description}")
+        self.logger.debug("[Gemini] Sending task instruction...")
 
         try:
             # Create a fresh chat session for task execution with forced function calling
@@ -799,8 +787,7 @@ class OrchestratorAgent:
 
                 # Break if Gemini is trying to ask for clarification (not supported in task execution)
                 if any(fc.name == "ask_clarification" for fc in function_calls):
-                    if self.verbose:
-                        print(f"  [Task] Skipping clarification request")
+                    self.logger.debug("[Task] Skipping clarification request")
                     break
 
                 # Detect duplicate tool calls (mode="ANY" forces repeated calls)
@@ -809,8 +796,7 @@ class OrchestratorAgent:
                     args_str = str(sorted(dict(fc.args).items())) if fc.args else ""
                     call_keys.add((fc.name, args_str))
                 if call_keys and call_keys.issubset(previous_calls):
-                    if self.verbose:
-                        print(f"  [Task] Duplicate tool call detected, stopping")
+                    self.logger.debug("[Task] Duplicate tool call detected, stopping")
                     break
 
                 function_responses = []
@@ -821,8 +807,8 @@ class OrchestratorAgent:
                     task.tool_calls.append(tool_name)
                     result = self._execute_tool_safe(tool_name, tool_args)
 
-                    if self.verbose and result.get("status") == "error":
-                        print(f"  [Tool Result: ERROR] {result.get('message', '')}")
+                    if result.get("status") == "error":
+                        self.logger.warning(f"[Tool Result: ERROR] {result.get('message', '')}")
 
                     function_responses.append(
                         types.Part.from_function_response(
@@ -835,8 +821,7 @@ class OrchestratorAgent:
                     args_str = str(sorted(tool_args.items()))
                     previous_calls.add((tool_name, args_str))
 
-                if self.verbose:
-                    print(f"  [Gemini] Sending {len(function_responses)} tool result(s) back...")
+                self.logger.debug(f"[Gemini] Sending {len(function_responses)} tool result(s) back...")
                 response = task_chat.send_message(message=function_responses)
                 self._track_usage(response)
 
@@ -846,8 +831,7 @@ class OrchestratorAgent:
                     f"Task completed without any tool calls: {task.description}",
                     context={"task_instruction": task.instruction}
                 )
-                if self.verbose:
-                    print(f"  [WARNING] No tools were called for this task")
+                self.logger.warning("[WARNING] No tools were called for this task")
 
             # Extract text response
             text_parts = []
@@ -861,16 +845,14 @@ class OrchestratorAgent:
             task.status = TaskStatus.COMPLETED
             task.result = result_text
 
-            if self.verbose:
-                print(f"  [Task] Completed: {task.description}")
+            self.logger.debug(f"[Task] Completed: {task.description}")
 
             return result_text
 
         except Exception as e:
             task.status = TaskStatus.FAILED
             task.error = str(e)
-            if self.verbose:
-                print(f"  [Task] Failed: {task.description} - {e}")
+            self.logger.warning(f"[Task] Failed: {task.description} - {e}")
             return f"Error: {e}"
 
     def _summarize_plan_execution(self, plan: TaskPlan) -> str:
@@ -903,8 +885,7 @@ class OrchestratorAgent:
 
         prompt = "\n".join(summary_parts)
 
-        if self.verbose:
-            print(f"  [Gemini] Generating execution summary...")
+        self.logger.debug("[Gemini] Generating execution summary...")
 
         try:
             response = self.chat.send_message(message=prompt)
@@ -927,14 +908,12 @@ class OrchestratorAgent:
 
         except Exception as e:
             log_error("Error generating plan summary", exc=e, context={"plan_id": plan.id})
-            if self.verbose:
-                print(f"  [Summary] Error generating summary: {e}")
+            self.logger.warning(f"[Summary] Error generating summary: {e}")
             return plan.progress_summary()
 
     def _process_complex_request(self, user_message: str) -> str:
         """Process a complex multi-step request."""
-        if self.verbose:
-            print(f"  [Planner] Detected complex request, creating plan...")
+        self.logger.debug("[Planner] Detected complex request, creating plan...")
 
         plan = create_plan_from_request(
             client=self.client,
@@ -944,8 +923,7 @@ class OrchestratorAgent:
         )
 
         if plan is None:
-            if self.verbose:
-                print(f"  [Planner] Falling back to direct execution")
+            self.logger.debug("[Planner] Falling back to direct execution")
             return self._process_single_message(user_message)
 
         self._current_plan = plan
@@ -955,8 +933,7 @@ class OrchestratorAgent:
 
         log_plan_event("created", plan.id, f"{len(plan.tasks)} tasks for: {user_message[:50]}...")
 
-        if self.verbose:
-            print(format_plan_for_display(plan))
+        self.logger.debug(format_plan_for_display(plan))
 
         # Get or create agents for each unique mission in the plan
         special_missions = {"__visualization__", "__data_ops__"}
@@ -966,8 +943,7 @@ class OrchestratorAgent:
                 try:
                     mission_agents[task.mission] = self._get_or_create_mission_agent(task.mission)
                 except (KeyError, FileNotFoundError):
-                    if self.verbose:
-                        print(f"  [Plan] Unknown mission '{task.mission}', will use main agent")
+                    self.logger.debug(f"[Plan] Unknown mission '{task.mission}', will use main agent")
 
         completed_task_ids = set()
 
@@ -983,14 +959,12 @@ class OrchestratorAgent:
                 if failed_deps:
                     task.status = TaskStatus.SKIPPED
                     task.error = "Skipped: dependency failed"
-                    if self.verbose:
-                        print(f"\n  [Plan] Step {i+1}/{len(plan.tasks)}: SKIPPED (dependency failed)")
+                    self.logger.debug(f"[Plan] Step {i+1}/{len(plan.tasks)}: SKIPPED (dependency failed)")
                     store.save(plan)
                     continue
 
-            if self.verbose:
-                mission_tag = f" [{task.mission}]" if task.mission else ""
-                print(f"\n  [Plan] Step {i+1}/{len(plan.tasks)}{mission_tag}: {task.description}")
+            mission_tag = f" [{task.mission}]" if task.mission else ""
+            self.logger.debug(f"[Plan] Step {i+1}/{len(plan.tasks)}{mission_tag}: {task.description}")
 
             # Route to appropriate agent
             if task.mission == "__visualization__":
@@ -1023,16 +997,14 @@ class OrchestratorAgent:
 
     def _process_single_message(self, user_message: str) -> str:
         """Process a single (non-complex) user message."""
-        if self.verbose:
-            print(f"  [Gemini] Sending message to model...")
+        self.logger.debug("[Gemini] Sending message to model...")
         response = self.chat.send_message(message=user_message)
         self._track_usage(response)
-        if self.verbose:
-            print(f"  [Gemini] Response received.")
-            if response.candidates:
-                meta = getattr(response.candidates[0], "grounding_metadata", None)
-                if meta and getattr(meta, "web_search_queries", None):
-                    print(f"  [Search] Queries: {meta.web_search_queries}")
+        self.logger.debug("[Gemini] Response received.")
+        if response.candidates:
+            meta = getattr(response.candidates[0], "grounding_metadata", None)
+            if meta and getattr(meta, "web_search_queries", None):
+                self.logger.debug(f"[Search] Queries: {meta.web_search_queries}")
 
         max_iterations = 10
         iteration = 0
@@ -1060,8 +1032,8 @@ class OrchestratorAgent:
 
                 result = self._execute_tool_safe(tool_name, tool_args)
 
-                if self.verbose and result.get("status") == "error":
-                    print(f"  [Tool Result: ERROR] {result.get('message', '')}")
+                if result.get("status") == "error":
+                    self.logger.warning(f"[Tool Result: ERROR] {result.get('message', '')}")
 
                 # Track delegation failures (mission agent couldn't fulfill request)
                 if tool_name.startswith("delegate_to_") and result.get("status") == "success":
@@ -1098,23 +1070,20 @@ class OrchestratorAgent:
                 consecutive_delegation_errors = 0
 
             if consecutive_delegation_errors >= 2:
-                if self.verbose:
-                    print(f"  [Orchestrator] {consecutive_delegation_errors} consecutive delegation failures, stopping retries")
+                self.logger.debug(f"[Orchestrator] {consecutive_delegation_errors} consecutive delegation failures, stopping retries")
                 # Send results back one more time so Gemini can produce a final text answer
                 response = self.chat.send_message(message=function_responses)
                 self._track_usage(response)
                 break
 
-            if self.verbose:
-                print(f"  [Gemini] Sending {len(function_responses)} tool result(s) back to model...")
+            self.logger.debug(f"[Gemini] Sending {len(function_responses)} tool result(s) back to model...")
             response = self.chat.send_message(message=function_responses)
             self._track_usage(response)
-            if self.verbose:
-                print(f"  [Gemini] Response received.")
-                if response.candidates:
-                    meta = getattr(response.candidates[0], "grounding_metadata", None)
-                    if meta and getattr(meta, "web_search_queries", None):
-                        print(f"  [Search] Queries: {meta.web_search_queries}")
+            self.logger.debug("[Gemini] Response received.")
+            if response.candidates:
+                meta = getattr(response.candidates[0], "grounding_metadata", None)
+                if meta and getattr(meta, "web_search_queries", None):
+                    self.logger.debug(f"[Search] Queries: {meta.web_search_queries}")
 
         # Extract text response
         text_parts = []
@@ -1142,8 +1111,7 @@ class OrchestratorAgent:
                 tool_executor=self._execute_tool_safe,
                 verbose=self.verbose,
             )
-            if self.verbose:
-                print(f"  [Router] Created {mission_id} mission agent ({SUB_AGENT_MODEL})")
+            self.logger.debug(f"[Router] Created {mission_id} mission agent ({SUB_AGENT_MODEL})")
         return self._mission_agents[mission_id]
 
     def _get_or_create_viz_agent(self) -> VisualizationAgent:
@@ -1156,8 +1124,7 @@ class OrchestratorAgent:
                 verbose=self.verbose,
                 gui_mode=self.gui_mode,
             )
-            if self.verbose:
-                print(f"  [Router] Created Visualization agent ({SUB_AGENT_MODEL})")
+            self.logger.debug(f"[Router] Created Visualization agent ({SUB_AGENT_MODEL})")
         return self._viz_agent
 
     def _get_or_create_dataops_agent(self) -> DataOpsAgent:
@@ -1169,8 +1136,7 @@ class OrchestratorAgent:
                 tool_executor=self._execute_tool_safe,
                 verbose=self.verbose,
             )
-            if self.verbose:
-                print(f"  [Router] Created DataOps agent")
+            self.logger.debug("[Router] Created DataOps agent")
         return self._dataops_agent
 
     def process_message(self, user_message: str) -> str:
@@ -1258,8 +1224,7 @@ class OrchestratorAgent:
         store = get_task_store()
         store.save(plan)
 
-        if self.verbose:
-            print(f"  [Retry] Retrying task: {task.description}")
+        self.logger.debug(f"[Retry] Retrying task: {task.description}")
 
         result = self._execute_task(task)
         store.save(plan)
@@ -1279,9 +1244,8 @@ class OrchestratorAgent:
         plan.status = PlanStatus.EXECUTING
         store = get_task_store()
 
-        if self.verbose:
-            print(f"  [Resume] Resuming plan: {plan.user_request[:50]}...")
-            print(format_plan_for_display(plan))
+        self.logger.debug(f"[Resume] Resuming plan: {plan.user_request[:50]}...")
+        self.logger.debug(format_plan_for_display(plan))
 
         pending = plan.get_pending_tasks()
         if not pending:
@@ -1296,8 +1260,7 @@ class OrchestratorAgent:
             plan.current_task_index = i
             store.save(plan)
 
-            if self.verbose:
-                print(f"\n  [Plan] Resuming step {i+1}/{len(plan.tasks)}: {task.description}")
+            self.logger.debug(f"[Plan] Resuming step {i+1}/{len(plan.tasks)}: {task.description}")
 
             self._execute_task(task)
             store.save(plan)

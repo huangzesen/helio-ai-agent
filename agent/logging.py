@@ -19,6 +19,19 @@ from typing import Optional
 LOG_DIR = Path.home() / ".helio-agent" / "logs"
 
 
+class _ConsoleFormatter(logging.Formatter):
+    """Console formatter: shows [LEVEL] prefix only for WARNING and above.
+
+    DEBUG/INFO messages print bare (e.g. ``  [Gemini] Sending...``).
+    WARNING/ERROR messages include the level (e.g. ``  [WARNING] ...``).
+    """
+
+    def format(self, record: logging.LogRecord) -> str:
+        if record.levelno >= logging.WARNING:
+            return f"  [{record.levelname}] {record.getMessage()}"
+        return f"  {record.getMessage()}"
+
+
 def setup_logging(verbose: bool = False) -> logging.Logger:
     """Configure logging for the agent.
 
@@ -51,8 +64,7 @@ def setup_logging(verbose: bool = False) -> logging.Logger:
     # Console handler - less verbose unless --verbose flag
     console_handler = logging.StreamHandler(sys.stderr)
     console_handler.setLevel(logging.DEBUG if verbose else logging.WARNING)
-    console_format = logging.Formatter("  [%(levelname)s] %(message)s")
-    console_handler.setFormatter(console_format)
+    console_handler.setFormatter(_ConsoleFormatter())
     logger.addHandler(console_handler)
 
     logger.info("=" * 60)

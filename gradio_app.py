@@ -14,7 +14,7 @@ Usage:
 
 import argparse
 import gc
-import io
+import logging
 import sys
 import threading
 from datetime import datetime, timedelta, timezone
@@ -221,10 +221,9 @@ def _on_fetch_click(mission, dataset, param, start_time, end_time, history):
         f"is now in memory as '{label}' with {n_points} points."
     )
     try:
-        agent_reply, verbose_text = _capture_agent_call(_agent.process_message, notify_msg)
+        agent_reply = _agent.process_message(notify_msg)
     except Exception:
         agent_reply = f"Fetched **{label}** — {n_points} points."
-        verbose_text = ""
 
     history = history + [
         {"role": "user", "content": notify_msg},
@@ -245,7 +244,7 @@ def _on_fetch_click(mission, dataset, param, start_time, end_time, history):
         history, fig, data_rows, token_text, "",
         gr.update(choices=label_choices, value=selected),
         preview,
-        verbose_text,
+        "",
     )
 
 
@@ -281,97 +280,132 @@ def _preview_data(label: str) -> list[list] | None:
 # Core response function
 # ---------------------------------------------------------------------------
 
-class _TeeWriter:
-    """Writes to both the original stream and a StringIO buffer."""
+class _ListHandler(logging.Handler):
+    """Logging handler that appends formatted messages to a list (thread-safe)."""
 
-    def __init__(self, original, buffer):
-        self.original = original
-        self.buffer = buffer
+    def __init__(self, target_list: list):
+        super().__init__(level=logging.DEBUG)
+        self.setFormatter(logging.Formatter("%(message)s"))
+        self._target = target_list
 
-    def write(self, text):
-        self.original.write(text)
-        self.buffer.write(text)
-
-    def flush(self):
-        self.original.flush()
-
-    def __getattr__(self, name):
-        return getattr(self.original, name)
+    def emit(self, record: logging.LogRecord) -> None:
+        self._target.append(self.format(record))
 
 
-_capture_lock = threading.Lock()
+def respond(message: str, history: list[dict]):
+    """Process a user message, streaming live progress in verbose mode.
 
+    This is a *generator* — Gradio calls it repeatedly, and each ``yield``
+    pushes an incremental UI update to the browser.
 
-def _capture_agent_call(fn, *args, **kwargs):
-    """Call a function, capturing all terminal output if verbose mode is on.
-
-    Tees stdout and stderr to a buffer so every print() and logging message
-    that would appear in the terminal also gets collected for the browser UI.
-
-    Returns (result, verbose_text). verbose_text is empty if not verbose.
-    """
-    if not _verbose:
-        return fn(*args, **kwargs), ""
-
-    buf = io.StringIO()
-
-    with _capture_lock:
-        old_stdout, old_stderr = sys.stdout, sys.stderr
-        sys.stdout = _TeeWriter(old_stdout, buf)
-        sys.stderr = _TeeWriter(old_stderr, buf)
-        try:
-            result = fn(*args, **kwargs)
-        finally:
-            sys.stdout, sys.stderr = old_stdout, old_stderr
-
-    verbose_text = buf.getvalue().rstrip()
-    return result, verbose_text
-
-
-def respond(message: str, history: list[dict]) -> tuple:
-    """Process a user message and return updated UI state.
-
-    Args:
-        message: The user's chat input.
-        history: Chat history in messages format [{role, content}, ...].
-
-    Returns:
+    Yields:
         Tuple of (history, plotly_figure, data_table, token_text, textbox_value,
-                  label_dropdown_update, preview_data, verbose_text).
+                  label_dropdown_update, preview_data, verbose_state).
     """
     if not message.strip():
-        return history, gr.skip(), gr.skip(), gr.skip(), "", gr.skip(), gr.skip(), gr.skip()
+        yield history, gr.skip(), gr.skip(), gr.skip(), "", gr.skip(), gr.skip(), gr.skip()
+        return
 
     # Append user message
     history = history + [{"role": "user", "content": message}]
 
-    # Call the agent (capture verbose output)
-    try:
-        response_text, verbose_text = _capture_agent_call(_agent.process_message, message)
-    except Exception as e:
-        response_text = f"Error: {e}"
-        verbose_text = ""
+    if not _verbose:
+        # Non-verbose: simple blocking call, no streaming
+        try:
+            response_text = _agent.process_message(message)
+        except Exception as e:
+            response_text = f"Error: {e}"
+        history = history + [{"role": "assistant", "content": response_text}]
+        fig = _get_current_figure()
+        data_rows = _build_data_table()
+        token_text = _format_tokens()
+        label_choices = _get_label_choices()
+        selected = label_choices[-1] if label_choices else None
+        preview = _preview_data(selected) if selected else None
+        yield (
+            history, fig, data_rows, token_text, "",
+            gr.update(choices=label_choices, value=selected),
+            preview, "",
+        )
+        return
 
-    # Append assistant text response
-    history = history + [{"role": "assistant", "content": response_text}]
+    # --- Verbose streaming mode ---
+    # Capture log messages into a thread-safe list
+    log_lines: list[str] = []
+    handler = _ListHandler(log_lines)
+    logger = logging.getLogger("helio-agent")
+    saved_level = logger.level
+    if logger.getEffectiveLevel() > logging.DEBUG:
+        logger.setLevel(logging.DEBUG)
+    logger.addHandler(handler)
 
-    # Get current plotly figure (may be None if nothing plotted yet)
+    # Run the agent in a background thread
+    result_box: list = [None]  # [response_text]
+    error_box: list = [None]
+
+    def _run():
+        try:
+            result_box[0] = _agent.process_message(message)
+        except Exception as exc:
+            error_box[0] = exc
+
+    thread = threading.Thread(target=_run, daemon=True)
+    thread.start()
+
+    # Show immediate "Working..." feedback
+    yield (
+        history + [{"role": "assistant", "content": "*Working...*"}],
+        gr.skip(), gr.skip(), gr.skip(), gr.skip(),
+        gr.skip(), gr.skip(), "",
+    )
+
+    # Stream live progress while the agent works
+    prev_count = 0
+    while thread.is_alive():
+        thread.join(timeout=0.4)
+        if len(log_lines) > prev_count:
+            prev_count = len(log_lines)
+            log_text = "\n".join(log_lines)
+            thinking = (
+                f"*Working...*\n\n"
+                f"<details open><summary>Live Log ({len(log_lines)} lines)</summary>\n\n"
+                f"```\n{log_text}\n```\n\n</details>"
+            )
+            yield (
+                history + [{"role": "assistant", "content": thinking}],
+                gr.skip(), gr.skip(), gr.skip(), gr.skip(),
+                gr.skip(), gr.skip(), "",
+            )
+
+    # Remove handler and restore level
+    logger.removeHandler(handler)
+    logger.setLevel(saved_level)
+
+    # Build final response
+    response_text = result_box[0] if error_box[0] is None else f"Error: {error_box[0]}"
+    verbose_text = "\n".join(log_lines)
+
+    if verbose_text:
+        full_response = (
+            f"{response_text}\n\n"
+            f"<details><summary>Debug Log ({len(log_lines)} lines)</summary>\n\n"
+            f"```\n{verbose_text}\n```\n\n</details>"
+        )
+    else:
+        full_response = response_text
+
+    history = history + [{"role": "assistant", "content": full_response}]
     fig = _get_current_figure()
-
-    # Build sidebar state
     data_rows = _build_data_table()
     token_text = _format_tokens()
-
-    # Update data preview dropdown
     label_choices = _get_label_choices()
     selected = label_choices[-1] if label_choices else None
     preview = _preview_data(selected) if selected else None
 
-    return (
+    yield (
         history, fig, data_rows, token_text, "",
         gr.update(choices=label_choices, value=selected),
-        preview,
-        verbose_text,
+        preview, "",
     )
 
 
@@ -446,16 +480,6 @@ def create_app() -> gr.Blocks:
                     label="Try these examples",
                 )
 
-                # Verbose debug output (only when --verbose)
-                if _verbose:
-                    verbose_output = gr.Textbox(
-                        label="Debug Log",
-                        value="Verbose mode enabled. Debug output will appear here after each message.",
-                        lines=6,
-                        max_lines=20,
-                        interactive=False,
-                    )
-
             # ---- Sidebar: data & controls ----
             with gr.Column(scale=1):
                 with gr.Accordion("Browse & Fetch", open=False):
@@ -519,8 +543,7 @@ def create_app() -> gr.Blocks:
                 )
                 reset_btn = gr.Button("Reset Session", variant="secondary")
 
-        if not _verbose:
-            verbose_output = gr.State("")  # hidden placeholder
+        verbose_output = gr.State("")  # captured text, embedded in chat
 
         # ---- Event wiring ----
         all_outputs = [chatbot, plotly_plot, data_table, token_display,

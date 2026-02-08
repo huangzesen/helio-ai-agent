@@ -15,8 +15,11 @@ from typing import Optional
 from google import genai
 from google.genai import types
 
+from .logging import get_logger
 from .tasks import Task, TaskPlan, create_task, create_plan
 from knowledge.prompt_builder import build_planning_prompt
+
+logger = get_logger()
 
 
 # Regex patterns that indicate a complex, multi-step request
@@ -161,13 +164,13 @@ def create_plan_from_request(
         plan_data = json.loads(response.text)
 
         if verbose:
-            print(f"  [Planner] Gemini returned: is_complex={plan_data['is_complex']}, {len(plan_data['tasks'])} tasks")
-            print(f"  [Planner] Reasoning: {plan_data['reasoning']}")
+            logger.debug("[Planner] Gemini returned: is_complex=%s, %d tasks", plan_data['is_complex'], len(plan_data['tasks']))
+            logger.debug("[Planner] Reasoning: %s", plan_data['reasoning'])
 
         # If Gemini says it's not actually complex, return None to fall back to direct execution
         if not plan_data.get("is_complex", True):
             if verbose:
-                print("  [Planner] Request is simple, skipping task decomposition")
+                logger.debug("[Planner] Request is simple, skipping task decomposition")
             return None
 
         # Build tasks from the plan
@@ -193,21 +196,21 @@ def create_plan_from_request(
 
         if not tasks:
             if verbose:
-                print("  [Planner] No tasks generated, falling back to direct execution")
+                logger.debug("[Planner] No tasks generated, falling back to direct execution")
             return None
 
         plan = create_plan(user_request, tasks)
 
         if verbose:
-            print(f"  [Planner] Created plan with {len(tasks)} tasks:")
+            logger.debug("[Planner] Created plan with %d tasks:", len(tasks))
             for i, t in enumerate(tasks):
-                print(f"    {i+1}. {t.description}")
+                logger.debug("  %d. %s", i + 1, t.description)
 
         return plan
 
     except Exception as e:
         if verbose:
-            print(f"  [Planner] Error creating plan: {e}")
+            logger.warning("[Planner] Error creating plan: %s", e)
         return None
 
 

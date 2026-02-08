@@ -16,7 +16,7 @@ from google.genai import types
 
 from .tools import get_tool_schemas
 from .tasks import Task, TaskStatus
-from .logging import log_error, log_tool_call, log_tool_result
+from .logging import get_logger, log_error, log_tool_call, log_tool_result
 from knowledge.prompt_builder import build_mission_prompt
 
 # Mission sub-agents get discovery + fetch tools — compute is handled by DataOpsAgent
@@ -55,6 +55,7 @@ class MissionAgent:
         self.model_name = model_name
         self.tool_executor = tool_executor
         self.verbose = verbose
+        self.logger = get_logger()
 
         # Build mission-focused system prompt from catalog
         self.system_prompt = build_mission_prompt(mission_id)
@@ -114,8 +115,7 @@ class MissionAgent:
         Returns:
             The text response from Gemini after processing.
         """
-        if self.verbose:
-            print(f"  [{self.mission_id} Agent] Processing request: {user_message[:80]}...")
+        self.logger.debug(f"[{self.mission_id} Agent] Processing request: {user_message[:80]}...")
 
         try:
             # Conversational config: no forced function calling, discovery + fetch tools only
@@ -167,8 +167,7 @@ class MissionAgent:
                     args_str = str(sorted(dict(fc.args).items())) if fc.args else ""
                     call_keys.add((fc.name, args_str))
                 if call_keys and call_keys.issubset(previous_calls):
-                    if self.verbose:
-                        print(f"  [{self.mission_id} Agent] Duplicate tool call detected, stopping")
+                    self.logger.debug(f"[{self.mission_id} Agent] Duplicate tool call detected, stopping")
                     break
 
                 # Execute tools via the shared executor
@@ -178,8 +177,7 @@ class MissionAgent:
                     tool_name = fc.name
                     tool_args = dict(fc.args) if fc.args else {}
 
-                    if self.verbose:
-                        print(f"  [{self.mission_id} Agent] Tool: {tool_name}({tool_args})")
+                    self.logger.debug(f"[{self.mission_id} Agent] Tool: {tool_name}({tool_args})")
 
                     result = self.tool_executor(tool_name, tool_args)
 
@@ -197,8 +195,8 @@ class MissionAgent:
                     if result.get("status") != "error":
                         all_errors_this_round = False
 
-                    if self.verbose and result.get("status") == "error":
-                        print(f"  [{self.mission_id} Agent] Tool error: {result.get('message', '')}")
+                    if result.get("status") == "error":
+                        self.logger.warning(f"[{self.mission_id} Agent] Tool error: {result.get('message', '')}")
 
                     function_responses.append(
                         types.Part.from_function_response(
@@ -219,12 +217,10 @@ class MissionAgent:
 
                 # Break early if we keep getting errors (e.g. time range out of bounds)
                 if consecutive_errors >= 2:
-                    if self.verbose:
-                        print(f"  [{self.mission_id} Agent] {consecutive_errors} consecutive error rounds, stopping")
+                    self.logger.warning(f"[{self.mission_id} Agent] {consecutive_errors} consecutive error rounds, stopping")
                     break
 
-                if self.verbose:
-                    print(f"  [{self.mission_id} Agent] Sending {len(function_responses)} tool result(s) back...")
+                self.logger.debug(f"[{self.mission_id} Agent] Sending {len(function_responses)} tool result(s) back...")
                 response = chat.send_message(message=function_responses)
                 self._track_usage(response)
 
@@ -248,8 +244,7 @@ class MissionAgent:
                 exc=e,
                 context={"mission": self.mission_id, "request": user_message[:200]}
             )
-            if self.verbose:
-                print(f"  [{self.mission_id} Agent] Failed: {e}")
+            self.logger.warning(f"[{self.mission_id} Agent] Failed: {e}")
             return f"Error processing request: {e}"
 
     def execute_task(self, task: Task) -> str:
@@ -267,8 +262,7 @@ class MissionAgent:
         task.status = TaskStatus.IN_PROGRESS
         task.tool_calls = []
 
-        if self.verbose:
-            print(f"  [{self.mission_id} Agent] Executing: {task.description}")
+        self.logger.debug(f"[{self.mission_id} Agent] Executing: {task.description}")
 
         try:
             # Fresh chat per task
@@ -300,8 +294,7 @@ class MissionAgent:
 
                 # Skip clarification requests (not supported in task execution)
                 if any(fc.name == "ask_clarification" for fc in function_calls):
-                    if self.verbose:
-                        print(f"  [{self.mission_id} Agent] Skipping clarification request")
+                    self.logger.debug(f"[{self.mission_id} Agent] Skipping clarification request")
                     break
 
                 # Detect duplicate tool calls
@@ -310,8 +303,7 @@ class MissionAgent:
                     args_str = str(sorted(dict(fc.args).items())) if fc.args else ""
                     call_keys.add((fc.name, args_str))
                 if call_keys and call_keys.issubset(previous_calls):
-                    if self.verbose:
-                        print(f"  [{self.mission_id} Agent] Duplicate tool call detected, stopping")
+                    self.logger.debug(f"[{self.mission_id} Agent] Duplicate tool call detected, stopping")
                     break
 
                 # Execute tools via the shared executor
@@ -323,8 +315,8 @@ class MissionAgent:
                     task.tool_calls.append(tool_name)
                     result = self.tool_executor(tool_name, tool_args)
 
-                    if self.verbose and result.get("status") == "error":
-                        print(f"  [{self.mission_id} Agent] Tool error: {result.get('message', '')}")
+                    if result.get("status") == "error":
+                        self.logger.warning(f"[{self.mission_id} Agent] Tool error: {result.get('message', '')}")
 
                     function_responses.append(
                         types.Part.from_function_response(
@@ -336,8 +328,7 @@ class MissionAgent:
                     args_str = str(sorted(tool_args.items()))
                     previous_calls.add((tool_name, args_str))
 
-                if self.verbose:
-                    print(f"  [{self.mission_id} Agent] Sending {len(function_responses)} tool result(s) back...")
+                self.logger.debug(f"[{self.mission_id} Agent] Sending {len(function_responses)} tool result(s) back...")
                 response = chat.send_message(message=function_responses)
                 self._track_usage(response)
 
@@ -347,8 +338,7 @@ class MissionAgent:
                     f"Mission task completed without tool calls: {task.description}",
                     context={"mission": self.mission_id, "task_instruction": task.instruction}
                 )
-                if self.verbose:
-                    print(f"  [{self.mission_id} Agent] WARNING: No tools were called")
+                self.logger.warning(f"[{self.mission_id} Agent] No tools were called")
 
             # Extract text response
             text_parts = []
@@ -362,8 +352,7 @@ class MissionAgent:
             task.status = TaskStatus.COMPLETED
             task.result = result_text
 
-            if self.verbose:
-                print(f"  [{self.mission_id} Agent] Completed: {task.description}")
+            self.logger.debug(f"[{self.mission_id} Agent] Completed: {task.description}")
 
             return result_text
 
@@ -375,6 +364,5 @@ class MissionAgent:
                 exc=e,
                 context={"mission": self.mission_id, "task": task.description}
             )
-            if self.verbose:
-                print(f"  [{self.mission_id} Agent] Failed: {task.description} - {e}")
+            self.logger.warning(f"[{self.mission_id} Agent] Failed: {task.description} - {e}")
             return f"Error: {e}"

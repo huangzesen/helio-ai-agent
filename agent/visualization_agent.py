@@ -14,7 +14,7 @@ from google.genai import types
 
 from .tools import get_tool_schemas
 from .tasks import Task, TaskStatus
-from .logging import log_error
+from .logging import get_logger, log_error
 from knowledge.prompt_builder import build_visualization_prompt
 
 # Visualization agent gets its own tool category + list_fetched_data from data_ops
@@ -56,6 +56,7 @@ class VisualizationAgent:
         self.tool_executor = tool_executor
         self.verbose = verbose
         self.gui_mode = gui_mode
+        self.logger = get_logger()
 
         # Build visualization-focused system prompt with method catalog
         self.system_prompt = build_visualization_prompt(gui_mode=gui_mode)
@@ -116,8 +117,7 @@ class VisualizationAgent:
         Returns:
             The text response from Gemini after processing.
         """
-        if self.verbose:
-            print(f"  [Visualization Agent] Processing: {user_message[:80]}...")
+        self.logger.debug(f"[Visualization Agent] Processing: {user_message[:80]}...")
 
         try:
             # Conversational config: no forced function calling
@@ -171,8 +171,7 @@ class VisualizationAgent:
                     args_str = str(sorted(dict(fc.args).items())) if fc.args else ""
                     call_keys.add((fc.name, args_str))
                 if call_keys and call_keys.issubset(previous_calls):
-                    if self.verbose:
-                        print(f"  [Visualization Agent] Duplicate tool call detected, stopping")
+                    self.logger.debug("[Visualization Agent] Duplicate tool call detected, stopping")
                     break
 
                 # Execute tools via the shared executor
@@ -181,13 +180,12 @@ class VisualizationAgent:
                     tool_name = fc.name
                     tool_args = dict(fc.args) if fc.args else {}
 
-                    if self.verbose:
-                        print(f"  [Visualization Agent] Tool: {tool_name}({tool_args})")
+                    self.logger.debug(f"[Visualization Agent] Tool: {tool_name}({tool_args})")
 
                     result = self.tool_executor(tool_name, tool_args)
 
-                    if self.verbose and result.get("status") == "error":
-                        print(f"  [Visualization Agent] Tool error: {result.get('message', '')}")
+                    if result.get("status") == "error":
+                        self.logger.warning(f"[Visualization Agent] Tool error: {result.get('message', '')}")
 
                     function_responses.append(
                         types.Part.from_function_response(
@@ -200,8 +198,7 @@ class VisualizationAgent:
                     args_str = str(sorted(tool_args.items()))
                     previous_calls.add((tool_name, args_str))
 
-                if self.verbose:
-                    print(f"  [Visualization Agent] Sending {len(function_responses)} tool result(s) back...")
+                self.logger.debug(f"[Visualization Agent] Sending {len(function_responses)} tool result(s) back...")
                 response = chat.send_message(message=function_responses)
                 self._track_usage(response)
 
@@ -225,8 +222,7 @@ class VisualizationAgent:
                 exc=e,
                 context={"request": user_message[:200]}
             )
-            if self.verbose:
-                print(f"  [Visualization Agent] Failed: {e}")
+            self.logger.warning(f"[Visualization Agent] Failed: {e}")
             return f"Error processing visualization request: {e}"
 
     def execute_task(self, task: Task) -> str:
@@ -243,8 +239,7 @@ class VisualizationAgent:
         task.status = TaskStatus.IN_PROGRESS
         task.tool_calls = []
 
-        if self.verbose:
-            print(f"  [Visualization Agent] Executing: {task.description}")
+        self.logger.debug(f"[Visualization Agent] Executing: {task.description}")
 
         try:
             # Fresh chat per task with forced function calling
@@ -280,8 +275,7 @@ class VisualizationAgent:
                     args_str = str(sorted(dict(fc.args).items())) if fc.args else ""
                     call_keys.add((fc.name, args_str))
                 if call_keys and call_keys.issubset(previous_calls):
-                    if self.verbose:
-                        print(f"  [Visualization Agent] Duplicate tool call detected, stopping")
+                    self.logger.debug("[Visualization Agent] Duplicate tool call detected, stopping")
                     break
 
                 # Execute tools via the shared executor
@@ -293,8 +287,8 @@ class VisualizationAgent:
                     task.tool_calls.append(tool_name)
                     result = self.tool_executor(tool_name, tool_args)
 
-                    if self.verbose and result.get("status") == "error":
-                        print(f"  [Visualization Agent] Tool error: {result.get('message', '')}")
+                    if result.get("status") == "error":
+                        self.logger.warning(f"[Visualization Agent] Tool error: {result.get('message', '')}")
 
                     function_responses.append(
                         types.Part.from_function_response(
@@ -306,8 +300,7 @@ class VisualizationAgent:
                     args_str = str(sorted(tool_args.items()))
                     previous_calls.add((tool_name, args_str))
 
-                if self.verbose:
-                    print(f"  [Visualization Agent] Sending {len(function_responses)} tool result(s) back...")
+                self.logger.debug(f"[Visualization Agent] Sending {len(function_responses)} tool result(s) back...")
                 response = chat.send_message(message=function_responses)
                 self._track_usage(response)
 
@@ -323,8 +316,7 @@ class VisualizationAgent:
             task.status = TaskStatus.COMPLETED
             task.result = result_text
 
-            if self.verbose:
-                print(f"  [Visualization Agent] Completed: {task.description}")
+            self.logger.debug(f"[Visualization Agent] Completed: {task.description}")
 
             return result_text
 
@@ -336,6 +328,5 @@ class VisualizationAgent:
                 exc=e,
                 context={"task": task.description}
             )
-            if self.verbose:
-                print(f"  [Visualization Agent] Failed: {task.description} - {e}")
+            self.logger.warning(f"[Visualization Agent] Failed: {task.description} - {e}")
             return f"Error: {e}"
