@@ -138,9 +138,10 @@ class DataOpsAgent:
             response = chat.send_message(user_message)
             self._track_usage(response)
 
-            # Process tool calls in a loop (up to 10 iterations)
-            max_iterations = 10
+            # Process tool calls in a loop (up to 5 iterations)
+            max_iterations = 5
             iteration = 0
+            previous_calls = set()  # Track (tool_name, args_key) to detect duplicates
 
             while iteration < max_iterations:
                 iteration += 1
@@ -159,6 +160,16 @@ class DataOpsAgent:
                         function_calls.append(part.function_call)
 
                 if not function_calls:
+                    break
+
+                # Detect duplicate tool calls
+                call_keys = set()
+                for fc in function_calls:
+                    args_str = str(sorted(dict(fc.args).items())) if fc.args else ""
+                    call_keys.add((fc.name, args_str))
+                if call_keys and call_keys.issubset(previous_calls):
+                    if self.verbose:
+                        print(f"  [DataOps Agent] Duplicate tool call detected, stopping")
                     break
 
                 # Execute tools via the shared executor
@@ -181,6 +192,10 @@ class DataOpsAgent:
                             response={"result": result}
                         )
                     )
+
+                    # Track this call
+                    args_str = str(sorted(tool_args.items()))
+                    previous_calls.add((tool_name, args_str))
 
                 if self.verbose:
                     print(f"  [DataOps Agent] Sending {len(function_responses)} tool result(s) back...")

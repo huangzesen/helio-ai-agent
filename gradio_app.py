@@ -15,8 +15,8 @@ Usage:
 import argparse
 import gc
 import io
-import logging
 import sys
+import threading
 from datetime import datetime, timedelta, timezone
 
 import gradio as gr
@@ -281,40 +281,50 @@ def _preview_data(label: str) -> list[list] | None:
 # Core response function
 # ---------------------------------------------------------------------------
 
-def _capture_agent_call(fn, *args, **kwargs):
-    """Call a function, capturing logging output if verbose mode is on.
+class _TeeWriter:
+    """Writes to both the original stream and a StringIO buffer."""
 
-    Captures log messages from the helio-agent logger, which is where
-    tool call/result debug messages go (via log_tool_call / log_tool_result).
+    def __init__(self, original, buffer):
+        self.original = original
+        self.buffer = buffer
+
+    def write(self, text):
+        self.original.write(text)
+        self.buffer.write(text)
+
+    def flush(self):
+        self.original.flush()
+
+    def __getattr__(self, name):
+        return getattr(self.original, name)
+
+
+_capture_lock = threading.Lock()
+
+
+def _capture_agent_call(fn, *args, **kwargs):
+    """Call a function, capturing all terminal output if verbose mode is on.
+
+    Tees stdout and stderr to a buffer so every print() and logging message
+    that would appear in the terminal also gets collected for the browser UI.
 
     Returns (result, verbose_text). verbose_text is empty if not verbose.
     """
     if not _verbose:
         return fn(*args, **kwargs), ""
 
-    log_buf = io.StringIO()
+    buf = io.StringIO()
 
-    # Temporarily add a logging handler that writes to our buffer
-    log_handler = logging.StreamHandler(log_buf)
-    log_handler.setLevel(logging.DEBUG)
-    log_handler.setFormatter(logging.Formatter("[%(levelname)s] %(message)s"))
-    logger = logging.getLogger("helio-agent")
+    with _capture_lock:
+        old_stdout, old_stderr = sys.stdout, sys.stderr
+        sys.stdout = _TeeWriter(old_stdout, buf)
+        sys.stderr = _TeeWriter(old_stderr, buf)
+        try:
+            result = fn(*args, **kwargs)
+        finally:
+            sys.stdout, sys.stderr = old_stdout, old_stderr
 
-    # Ensure the logger level allows DEBUG messages through.
-    # setup_logging(verbose=True) should have set this already, but
-    # guard against edge cases (e.g., level=NOTSET inheriting WARNING from root).
-    saved_level = logger.level
-    if logger.getEffectiveLevel() > logging.DEBUG:
-        logger.setLevel(logging.DEBUG)
-    logger.addHandler(log_handler)
-
-    try:
-        result = fn(*args, **kwargs)
-    finally:
-        logger.removeHandler(log_handler)
-        logger.setLevel(saved_level)
-
-    verbose_text = log_buf.getvalue().rstrip()
+    verbose_text = buf.getvalue().rstrip()
     return result, verbose_text
 
 
@@ -440,6 +450,7 @@ def create_app() -> gr.Blocks:
                 if _verbose:
                     verbose_output = gr.Textbox(
                         label="Debug Log",
+                        value="Verbose mode enabled. Debug output will appear here after each message.",
                         lines=6,
                         max_lines=20,
                         interactive=False,
