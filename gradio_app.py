@@ -436,6 +436,15 @@ def create_app() -> gr.Blocks:
                     label="Try these examples",
                 )
 
+                # Verbose debug output (only when --verbose)
+                if _verbose:
+                    verbose_output = gr.Textbox(
+                        label="Debug Log",
+                        lines=6,
+                        max_lines=20,
+                        interactive=False,
+                    )
+
             # ---- Sidebar: data & controls ----
             with gr.Column(scale=1):
                 with gr.Accordion("Browse & Fetch", open=False):
@@ -499,16 +508,7 @@ def create_app() -> gr.Blocks:
                 )
                 reset_btn = gr.Button("Reset Session", variant="secondary")
 
-        # ---- Verbose output (below main layout, only when --verbose) ----
-        if _verbose:
-            with gr.Accordion("Verbose Output", open=True):
-                verbose_output = gr.Textbox(
-                    label="Tool Calls & Debug",
-                    lines=8,
-                    max_lines=20,
-                    interactive=False,
-                )
-        else:
+        if not _verbose:
             verbose_output = gr.State("")  # hidden placeholder
 
         # ---- Event wiring ----

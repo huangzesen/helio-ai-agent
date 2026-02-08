@@ -136,9 +136,11 @@ class MissionAgent:
             response = chat.send_message(user_message)
             self._track_usage(response)
 
-            # Process tool calls in a loop (up to 10 iterations)
-            max_iterations = 10
+            # Process tool calls in a loop (up to 5 iterations)
+            max_iterations = 5
             iteration = 0
+            consecutive_errors = 0
+            previous_calls = set()  # Track (tool_name, args_key) to detect duplicates
 
             while iteration < max_iterations:
                 iteration += 1
@@ -159,8 +161,19 @@ class MissionAgent:
                 if not function_calls:
                     break
 
+                # Detect duplicate tool calls
+                call_keys = set()
+                for fc in function_calls:
+                    args_str = str(sorted(dict(fc.args).items())) if fc.args else ""
+                    call_keys.add((fc.name, args_str))
+                if call_keys and call_keys.issubset(previous_calls):
+                    if self.verbose:
+                        print(f"  [{self.mission_id} Agent] Duplicate tool call detected, stopping")
+                    break
+
                 # Execute tools via the shared executor
                 function_responses = []
+                all_errors_this_round = True
                 for fc in function_calls:
                     tool_name = fc.name
                     tool_args = dict(fc.args) if fc.args else {}
@@ -181,6 +194,9 @@ class MissionAgent:
                             )
                         return question
 
+                    if result.get("status") != "error":
+                        all_errors_this_round = False
+
                     if self.verbose and result.get("status") == "error":
                         print(f"  [{self.mission_id} Agent] Tool error: {result.get('message', '')}")
 
@@ -190,6 +206,22 @@ class MissionAgent:
                             response={"result": result}
                         )
                     )
+
+                    # Track this call
+                    args_str = str(sorted(tool_args.items()))
+                    previous_calls.add((tool_name, args_str))
+
+                # Track consecutive error rounds
+                if all_errors_this_round:
+                    consecutive_errors += 1
+                else:
+                    consecutive_errors = 0
+
+                # Break early if we keep getting errors (e.g. time range out of bounds)
+                if consecutive_errors >= 2:
+                    if self.verbose:
+                        print(f"  [{self.mission_id} Agent] {consecutive_errors} consecutive error rounds, stopping")
+                    break
 
                 if self.verbose:
                     print(f"  [{self.mission_id} Agent] Sending {len(function_responses)} tool result(s) back...")

@@ -276,7 +276,11 @@ class OrchestratorAgent:
             if req_end <= avail_start or req_start >= avail_stop:
                 return (
                     f"No data available for '{dataset_id}' in the requested time range. "
-                    f"Available range: {avail_range_str}"
+                    f"Available range: {avail_range_str}. "
+                    f"STOP: Do not retry with other datasets — the time range itself is "
+                    f"the problem. Inform the user that the requested dates are outside "
+                    f"the available data period and suggest they try a date within "
+                    f"{avail_range_str}."
                 )
 
             # Partial overlap
@@ -1032,6 +1036,7 @@ class OrchestratorAgent:
 
         max_iterations = 10
         iteration = 0
+        consecutive_delegation_errors = 0
 
         while iteration < max_iterations:
             iteration += 1
@@ -1048,6 +1053,7 @@ class OrchestratorAgent:
                 break
 
             function_responses = []
+            has_delegation_error = False
             for fc in function_calls:
                 tool_name = fc.name
                 tool_args = dict(fc.args) if fc.args else {}
@@ -1056,6 +1062,16 @@ class OrchestratorAgent:
 
                 if self.verbose and result.get("status") == "error":
                     print(f"  [Tool Result: ERROR] {result.get('message', '')}")
+
+                # Track delegation failures (mission agent couldn't fulfill request)
+                if tool_name.startswith("delegate_to_") and result.get("status") == "success":
+                    sub_result = result.get("result", "")
+                    if isinstance(sub_result, str) and (
+                        "No data available" in sub_result
+                        or "outside the available data period" in sub_result
+                        or "Error processing request" in sub_result
+                    ):
+                        has_delegation_error = True
 
                 # Handle clarification specially - return immediately
                 if result.get("status") == "clarification_needed":
@@ -1074,6 +1090,20 @@ class OrchestratorAgent:
                         response={"result": result}
                     )
                 )
+
+            # Track consecutive delegation failures
+            if has_delegation_error:
+                consecutive_delegation_errors += 1
+            else:
+                consecutive_delegation_errors = 0
+
+            if consecutive_delegation_errors >= 2:
+                if self.verbose:
+                    print(f"  [Orchestrator] {consecutive_delegation_errors} consecutive delegation failures, stopping retries")
+                # Send results back one more time so Gemini can produce a final text answer
+                response = self.chat.send_message(message=function_responses)
+                self._track_usage(response)
+                break
 
             if self.verbose:
                 print(f"  [Gemini] Sending {len(function_responses)} tool result(s) back to model...")
