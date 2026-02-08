@@ -27,36 +27,15 @@ The HAPI CSV response contains empty strings that can't be parsed as floats. "La
 
 ---
 
-### 2. JVM not running for multi-step plot_computed_data
-
-**Status**: Open
-**Severity**: Medium
-**Component**: `autoplot_bridge/`, `agent/core.py`
-
-**Description**: When running multi-step tasks, `plot_computed_data` fails with:
-```
-Java Virtual Machine is not running
-```
-
-This happens because each task uses a fresh chat session, and the JVM is only started when `plot_data` is called (which initializes Autoplot). The `plot_computed_data` tool expects the JVM to already be running.
-
-**Workaround**: Run a simple `plot_data` command first to start the JVM, then run the multi-step request.
-
-**Fix needed**: Either:
-- Lazy-initialize JVM in `plot_computed_data` if not running
-- Or start JVM at agent initialization (slower startup)
-
----
-
-### 3. Gemini doesn't follow task instructions precisely
+### 2. Gemini doesn't follow task instructions precisely
 
 **Status**: Open
 **Severity**: Low
 **Component**: `agent/core.py`, `agent/planner.py`
 
 **Description**: During multi-step task execution, Gemini sometimes calls extra tools not requested in the task instruction. For example:
-- Task: "Fetch data" → Gemini calls `fetch_data` then also tries `plot_computed_data`
-- Task: "Compute running average" → Gemini asks for clarification instead
+- Task: "Fetch data" -> Gemini calls `fetch_data` then also tries to plot
+- Task: "Compute running average" -> Gemini asks for clarification instead
 
 This happens despite using `tool_config mode="ANY"` which forces function calling.
 
@@ -68,7 +47,7 @@ This happens despite using `tool_config mode="ANY"` which forces function callin
 
 ---
 
-### 4. Multi-step tasks lose context between steps
+### 3. Multi-step tasks lose context between steps
 
 **Status**: Open
 **Severity**: Medium
@@ -86,40 +65,17 @@ The task instruction includes the expected labels (e.g., "compute running averag
 
 ---
 
-### 5. Autoplot `waitUntilIdle` race condition in headless mode
-
-**Status**: Open (upstream)
-**Severity**: Low
-**Component**: Autoplot (upstream) — `DasCanvas.waitUntilIdle()`
-
-**Description**: Autoplot intermittently logs:
-```
-INFO: strange bug where update event didn't clear dirty flags, reposting.
-```
-This occurs during multi-panel or overlay plots in headless mode. The race condition is in Autoplot's internal rendering thread synchronization (`DasCanvas.waitUntilIdle()`), not in our bridge code.
-
-**Impact**: Usually self-recovers, but may contribute to JVM crashes when creating 4+ panels rapidly (see ISSUE-01 in test log).
-
-**Workaround**: None (upstream issue). Our 3-panel maximum guard mitigates the worst case.
-
-**Fix needed**: Upstream Autoplot fix. Monitor for Autoplot updates.
-
----
-
 ## Resolved Issues
 
-### Fixed in 2026-02-07 bug fix batch
+### Fixed in 2026-02-07 refactor batch
 
 | Issue | Description | Fix |
 |-------|-------------|-----|
-| Relative paths rejected | `export_png/pdf`, `save_session` with relative paths failed | Resolve to absolute with `Path.resolve()` |
-| Render type mapping | `fill_to_zero`, `staircase`, etc. rejected by Java | Map snake_case to camelCase enum values |
-| DOM title API | Agent used non-existent `dom.setTitle()` | Updated prompt: title is on `dom.getPlots(i)` |
-| Color table on line plots | Setting color table on non-spectrogram silently failed | Guard checks render type first |
+| Autoplot bridge removed | Entire `autoplot_bridge/` package with JPype/Java dependency | Replaced with pure-Python Plotly renderer (`rendering/`) |
+| 10 thin viz wrappers | `set_title`, `set_axis_label`, `toggle_log_scale`, etc. | Replaced by single `custom_visualization` tool (Plotly sandbox) |
+| JVM crashes | 4+ panels crashed JVM, `waitUntilIdle` race condition | No longer applicable — Plotly has no JVM |
+| Relative paths rejected | `export_png/pdf` with relative paths failed | Resolve to absolute with `Path.resolve()` |
 | DatetimeIndex for rolling | Time-based rolling windows (`'2H'`) failed | Ensure DatetimeIndex before executing code |
-| CDAWeb param crash | Invalid parameter crashed JVM | Validate via HAPI before calling Autoplot |
-| to_qdataset vectors | Vector data failed with unhelpful error | Improved error with component examples |
-| 4-panel JVM crash | 4+ panels crashed JVM | 3-panel max guard in commands + script_runner |
 | MMS @0/@1 naming | MMS datasets not found | Updated JSON with @0 suffixed IDs |
 | Unnecessary clarification | Agent asked when dataset+param provided | Strengthened "Do NOT ask" prompt rules |
 | Stored labels unclear | Downstream agents couldn't find labels | Mission agent now reports exact stored labels |
@@ -132,7 +88,7 @@ This occurs during multi-panel or overlay plots in headless mode. The race condi
 |-------|-------------|-----|
 | Infinite recursion | `_execute_tool_safe` called itself | Changed to call `_execute_tool` |
 | Tasks not calling tools | Chat context pollution prevented function calling | Fresh chat per task with `mode="ANY"` |
-| Unicode encoding error | Windows can't display `○✓✗` characters | Use ASCII `o+x-` instead |
+| Unicode encoding error | Windows can't display special characters | Use ASCII characters instead |
 | NoneType iteration | `response.candidates[0].content.parts` was None | Added None check before iteration |
 | Clarification loops | `mode="ANY"` forced endless `ask_clarification` calls | Break on clarification, limit to 3 iterations |
 

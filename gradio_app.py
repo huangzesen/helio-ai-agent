@@ -17,7 +17,6 @@ import gc
 import io
 import logging
 import sys
-from contextlib import redirect_stdout
 from datetime import datetime, timedelta, timezone
 
 import gradio as gr
@@ -283,10 +282,10 @@ def _preview_data(label: str) -> list[list] | None:
 # ---------------------------------------------------------------------------
 
 def _capture_agent_call(fn, *args, **kwargs):
-    """Call a function, capturing logging and stdout if verbose mode is on.
+    """Call a function, capturing logging output if verbose mode is on.
 
-    Captures both print() output (stdout) and logging from the helio-agent
-    logger, which is where tool call/result debug messages go.
+    Captures log messages from the helio-agent logger, which is where
+    tool call/result debug messages go (via log_tool_call / log_tool_result).
 
     Returns (result, verbose_text). verbose_text is empty if not verbose.
     """
@@ -294,30 +293,29 @@ def _capture_agent_call(fn, *args, **kwargs):
         return fn(*args, **kwargs), ""
 
     log_buf = io.StringIO()
-    stdout_buf = io.StringIO()
 
     # Temporarily add a logging handler that writes to our buffer
     log_handler = logging.StreamHandler(log_buf)
     log_handler.setLevel(logging.DEBUG)
-    log_handler.setFormatter(logging.Formatter("  [%(levelname)s] %(message)s"))
+    log_handler.setFormatter(logging.Formatter("[%(levelname)s] %(message)s"))
     logger = logging.getLogger("helio-agent")
+
+    # Ensure the logger level allows DEBUG messages through.
+    # setup_logging(verbose=True) should have set this already, but
+    # guard against edge cases (e.g., level=NOTSET inheriting WARNING from root).
+    saved_level = logger.level
+    if logger.getEffectiveLevel() > logging.DEBUG:
+        logger.setLevel(logging.DEBUG)
     logger.addHandler(log_handler)
 
     try:
-        with redirect_stdout(stdout_buf):
-            result = fn(*args, **kwargs)
+        result = fn(*args, **kwargs)
     finally:
         logger.removeHandler(log_handler)
+        logger.setLevel(saved_level)
 
-    # Combine: logging output first, then any raw print output
-    parts = []
-    log_text = log_buf.getvalue()
-    stdout_text = stdout_buf.getvalue()
-    if log_text:
-        parts.append(log_text.rstrip())
-    if stdout_text:
-        parts.append(stdout_text.rstrip())
-    return result, "\n".join(parts)
+    verbose_text = log_buf.getvalue().rstrip()
+    return result, verbose_text
 
 
 def respond(message: str, history: list[dict]) -> tuple:
@@ -503,10 +501,11 @@ def create_app() -> gr.Blocks:
 
         # ---- Verbose output (below main layout, only when --verbose) ----
         if _verbose:
-            with gr.Accordion("Verbose Output", open=False):
-                verbose_output = gr.Code(
+            with gr.Accordion("Verbose Output", open=True):
+                verbose_output = gr.Textbox(
                     label="Tool Calls & Debug",
-                    language=None,
+                    lines=8,
+                    max_lines=20,
                     interactive=False,
                 )
         else:

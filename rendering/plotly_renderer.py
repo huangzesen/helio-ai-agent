@@ -137,18 +137,21 @@ class PlotlyRenderer:
                 return {"status": "error",
                         "message": f"Entry '{entry.label}' has no data points"}
 
-        # Decompose vectors into scalar components
-        series: list[tuple[str, np.ndarray, np.ndarray]] = []  # (label, time, values1d)
+        # Decompose vectors into scalar components.
+        # Convert numpy arrays to Python lists to avoid Plotly 6.x binary
+        # serialization (bdata), which can crash Gradio's Plotly.js frontend.
+        series: list[tuple[str, list, list]] = []  # (label, time_list, values_list)
         for entry in entries:
             display_name = entry.description or entry.label
+            time_list = entry.time.tolist()
             if entry.values.ndim == 2 and entry.values.shape[1] > 1:
                 comp_names = ["x", "y", "z"]
                 for col in range(entry.values.shape[1]):
                     comp = comp_names[col] if col < 3 else str(col)
-                    series.append((f"{display_name} ({comp})", entry.time, entry.values[:, col]))
+                    series.append((f"{display_name} ({comp})", time_list, entry.values[:, col].tolist()))
             else:
                 vals = entry.values.ravel() if entry.values.ndim > 1 else entry.values
-                series.append((display_name, entry.time, vals))
+                series.append((display_name, time_list, vals.tolist()))
 
         n_series = len(series)
 
@@ -156,12 +159,12 @@ class PlotlyRenderer:
             # Panel-targeted mode
             needed = index + n_series
             fig = self._grow_panels(needed)
-            for i, (label, time_arr, vals) in enumerate(series):
+            for i, (label, time_list, val_list) in enumerate(series):
                 row = index + i + 1  # plotly rows are 1-based
-                Scatter = self._scatter_cls(len(vals))
+                Scatter = self._scatter_cls(len(val_list))
                 fig.add_trace(
                     Scatter(
-                        x=time_arr, y=vals,
+                        x=time_list, y=val_list,
                         name=label, mode="lines",
                         line=dict(color=self._next_color(label)),
                     ),
@@ -171,11 +174,11 @@ class PlotlyRenderer:
         else:
             # Overlay mode — all in row 1
             fig = self._ensure_figure()
-            for label, time_arr, vals in series:
-                Scatter = self._scatter_cls(len(vals))
+            for label, time_list, val_list in series:
+                Scatter = self._scatter_cls(len(val_list))
                 fig.add_trace(
                     Scatter(
-                        x=time_arr, y=vals,
+                        x=time_list, y=val_list,
                         name=label, mode="lines",
                         line=dict(color=self._next_color(label)),
                     ),

@@ -4,7 +4,7 @@ Current state of the helio-ai-agent project as of February 2026.
 
 ## What It Does
 
-An AI agent that lets users explore and visualize spacecraft/heliophysics data through natural language. Users type requests like "Show me ACE magnetic field data for last week" and the agent searches datasets, fetches data, computes derived quantities, and renders plots — all through conversation.
+An AI agent that lets users explore and visualize spacecraft/heliophysics data through natural language. Users type requests like "Show me ACE magnetic field data for last week" and the agent searches datasets, fetches data, computes derived quantities, and renders interactive Plotly plots — all through conversation.
 
 ## Architecture
 
@@ -12,16 +12,23 @@ An AI agent that lets users explore and visualize spacecraft/heliophysics data t
 User input
   |
   v
-main.py  (readline CLI, --verbose/--gui/--model flags, token usage on exit)
+main.py  (readline CLI, --verbose/--model flags, token usage on exit)
   |  - Commands: quit, reset, status, retry, cancel, errors, capabilities, help
   |  - Single-command mode: python main.py "request"
   |  - Checks for incomplete plans on startup
+  |
+  v
+gradio_app.py  (browser-based chat UI, inline Plotly plots, data table sidebar)
+  |  - Wraps same OrchestratorAgent as main.py
+  |  - Flags: --share, --port, --verbose, --model
   |
   v
 agent/core.py  OrchestratorAgent  (LLM-driven orchestrator)
   |  - Routes: fetch -> mission agents, compute -> DataOps agent, viz -> visualization agent
   |  - Complex multi-mission requests -> planner -> sub-agents
   |  - Token usage tracking (input/output/api_calls, includes all sub-agents)
+  |  - Models: Gemini 3 Pro Preview (orchestrator), Gemini 3 Flash Preview (sub-agents)
+  |  - Configurable via GEMINI_MODEL / GEMINI_SUB_AGENT_MODEL env vars
   |
   +---> agent/visualization_agent.py  Visualization sub-agent (visualization-only tools)
   |       VisualizationAgent         Focused Gemini session for all visualization
@@ -47,7 +54,6 @@ agent/core.py  OrchestratorAgent  (LLM-driven orchestrator)
   |
   +---> agent/prompts.py           Prompt formatting + tool result formatters
   |       get_system_prompt()      Dynamic system prompt with {today} date
-  |       format_tool_result()     Format tool outputs for display (legacy, currently unused)
   |
   +---> agent/planner.py          Task planning
   |       is_complex_request()    Regex heuristics for complexity detection
@@ -69,18 +75,11 @@ agent/core.py  OrchestratorAgent  (LLM-driven orchestrator)
   |       fetch.py                  HAPI /data endpoint -> pandas DataFrames (pd.read_csv)
   |       store.py                  In-memory DataStore singleton (label -> DataEntry w/ DataFrame)
   |       custom_ops.py             AST-validated sandboxed executor for LLM-generated pandas/numpy code
-  |       plotting.py               Matplotlib fallback (DEPRECATED — plotting goes through Autoplot)
   |
-  +---> autoplot_bridge/          Java visualization via JPype
-  |       connection.py             JVM startup, ScriptContext singleton, conditional headless flag
-  |       registry.py               Method registry (15 methods) — single source of truth for capabilities
-  |       script_runner.py          AST-validated sandbox for direct ScriptContext/DOM code
-  |       commands.py               set_time_range, export_png/pdf, plot_dataset
-  |                                 set_render_type, set_color_table, set_canvas_size
-  |                                 execute_script (delegates to script_runner)
-  |                                 numpy->QDataSet conversion, overplot with color management
-  |                                 GUI mode: reset, title, axis labels, log scale, axis range,
-  |                                 save/load session (.vap)
+  +---> rendering/                Plotly-based visualization engine
+  |       plotly_renderer.py        Interactive Plotly figures, multi-panel, WebGL, PNG/PDF export via kaleido
+  |       registry.py               Method registry (5 core methods) — single source of truth for viz capabilities
+  |       custom_viz_ops.py         AST-validated sandbox for LLM-generated Plotly code (titles, labels, etc.)
   |
   +---> scripts/                  Tooling
           generate_mission_data.py  Auto-populate JSON from CDAWeb HAPI catalog
@@ -90,7 +89,7 @@ agent/core.py  OrchestratorAgent  (LLM-driven orchestrator)
           stress_test.py            Stress testing
 ```
 
-## Tools (16 tool schemas)
+## Tools (17 tool schemas)
 
 ### Dataset Discovery
 | Tool | Purpose |
@@ -100,6 +99,7 @@ agent/core.py  OrchestratorAgent  (LLM-driven orchestrator)
 | `list_parameters` | List plottable parameters for a dataset (HAPI /info) |
 | `get_data_availability` | Check available time range for a dataset (HAPI /info) |
 | `get_dataset_docs` | Fetch CDAWeb documentation for a dataset (instrument info, coordinates, PI contact) |
+| `google_search` | Web search via Google Search grounding (isolated Gemini API call) |
 
 ### Visualization
 | Tool | Purpose |
@@ -134,7 +134,7 @@ The `execute_visualization` tool dispatches to the method registry (`rendering/r
 
 ### OrchestratorAgent (agent/core.py)
 - Sees tools: discovery, conversation, routing + `list_fetched_data` extra
-- Routes: data fetching → MissionAgent, computation → DataOpsAgent, visualization → VisualizationAgent
+- Routes: data fetching -> MissionAgent, computation -> DataOpsAgent, visualization -> VisualizationAgent
 - Handles multi-step plans with mission-tagged task dispatch (`__data_ops__`, `__visualization__`)
 
 ### MissionAgent (agent/mission_agent.py)
@@ -167,7 +167,7 @@ The `execute_visualization` tool dispatches to the method registry (`rendering/r
 | Wind | MFI, SWE | `WI_H2_MFI`, `WI_H1_SWE` |
 | DSCOVR | MAG, FC | `DSCOVR_H0_MAG`, `DSCOVR_H1_FC` |
 | MMS | FGM, FPI-DIS | `MMS1_FGM_SRVY_L2` |
-| STEREO-A | MAG, PLASTIC | `STA_L2_MAG_RTN` |
+| STEREO-A | MAG, PLASTIC | `STA_L1_MAG_RTN` |
 
 ## Time Range Parsing
 
@@ -180,7 +180,7 @@ Handled by `agent/time_utils.py`. Accepts:
 - Space-separated datetime: `"2024-01-15 12:00:00 to 2024-01-16"`
 - Single datetime: `"2024-01-15T06:00"` (1-hour window)
 
-All times are UTC. Outputs `TimeRange` objects with `start`/`end` datetimes. Converts to Autoplot format via `to_autoplot_string()`.
+All times are UTC. Outputs `TimeRange` objects with `start`/`end` datetimes.
 
 ## Key Implementation Details
 
@@ -192,26 +192,14 @@ All times are UTC. Outputs `TimeRange` objects with `start`/`end` datetimes. Con
 - Thin wrappers (titles, labels, scales, render types) replaced by `custom_visualization` tool
 - Adding a new Plotly customization = LLM already knows it (no code changes needed)
 
-### Script Runner (`autoplot_bridge/script_runner.py`)
-- AST-validated sandbox for executing direct ScriptContext/DOM code (analogous to `data_ops/custom_ops.py` for pandas)
-- Pre-imported namespace: `sc` (ScriptContext), `dom` (Application), `Color`, `RenderType`, `DatumRangeUtil`, `DatumRange`, `Units`, `DDataSet`, `QDataSet`, `store` (DataStore), `to_qdataset` (converts stored data labels to QDataSet)
-- Blocks: imports, exec/eval/compile/open, JClass/jpype (prevents arbitrary Java class construction), os/sys/subprocess/socket/shutil/pathlib/importlib, dunder access, global/nonlocal, async
-- `result` assignment is optional (most Autoplot ops are void side-effects); if assigned, string value is captured
-- `print()` output is captured and returned in the result dict
-- `_format_java_exception()` unwraps JPype Java exceptions for readable error messages
-
-### Autoplot Bridge (`autoplot_bridge/commands.py`)
-- **numpy -> QDataSet conversion**: `_numpy_to_qdataset()` converts datetime64[ns] to Units.t2000 (seconds since 2000-01-01) and float64 values to DDataSet objects via JPype.
-- **Vector decomposition**: (n,3) arrays are split into 3 scalar series (`.x`, `.y`, `.z`) because rank-2 QDataSets render as spectrograms.
-- **Overplot**: `setLayoutOverplot(n)` + `plot(idx, ds)` for multiple series on one panel.
-- **Color management**: Golden ratio HSB color generation on first plot, cached per label. New additions to existing plots default to black. Colors persist across `plot_dataset` calls via `_label_colors` dict.
-- **Render types**: `set_render_type()` switches between series, scatter, spectrogram, fill_to_zero, staircase, color_scatter, digital, image, pitch_angle_distribution, events_bar, orbit.
-- **Color tables**: `set_color_table()` for apl_rainbow_black0, black_blue_green_yellow_white, black_green, black_red, blue_white_red, color_wedge, grayscale, matlab_jet, rainbow, reverse_rainbow, wrapped_color_wedge (spectrograms and 2D plots).
-- **Canvas sizing**: `set_canvas_size()` for custom width/height.
-- **PDF export**: `export_pdf()` mirrors the export_png pattern.
+### Custom Visualization Sandbox (`rendering/custom_viz_ops.py`)
+- AST-validated sandbox for LLM-generated Plotly code
+- Operates on the current `plotly.graph_objects.Figure` object
+- Handles titles, axis labels, log scale, axis ranges, canvas sizing, render types, annotations, trace styling, and any other Plotly customization
+- Same security model as `data_ops/custom_ops.py` — blocks imports, exec/eval, os/sys access, dunder access
 
 ### Data Pipeline (`data_ops/`)
-- `DataEntry` wraps a `pd.DataFrame` (DatetimeIndex + float64 columns) with backward-compat `.time` and `.values` properties for the Autoplot bridge.
+- `DataEntry` wraps a `pd.DataFrame` (DatetimeIndex + float64 columns).
 - `DataStore` is a singleton dict keyed by label. The LLM chains tools automatically: fetch -> custom_operation -> plot.
 - `custom_ops.py`: AST-validated, sandboxed executor for LLM-generated pandas/numpy code. Replaces all hardcoded compute functions — the LLM writes the pandas code directly.
 - HAPI CSV parsing uses `pd.read_csv()` with `pd.to_numeric(errors="coerce")` for robust handling. Detects HAPI JSON error responses (e.g., code 1201 "no data for time range") before attempting CSV parsing.
@@ -233,8 +221,8 @@ All times are UTC. Outputs `TimeRange` objects with `start`/`end` datetimes. Con
 
 ### Multi-Step Requests
 - The orchestrator naturally chains tool calls in its conversation loop (up to 10 iterations)
-- "Compare PSP and ACE" → `delegate_to_mission("PSP", ...)` → `delegate_to_mission("ACE", ...)` → `delegate_to_visualization(plot both)` — all in one `process_message` call
-- "Fetch ACE mag, compute magnitude, plot" → `delegate_to_mission("ACE", fetch)` → `delegate_to_data_ops(compute magnitude)` → `delegate_to_visualization(plot)`
+- "Compare PSP and ACE" -> `delegate_to_mission("PSP", ...)` -> `delegate_to_mission("ACE", ...)` -> `delegate_to_visualization(plot both)` — all in one `process_message` call
+- "Fetch ACE mag, compute magnitude, plot" -> `delegate_to_mission("ACE", fetch)` -> `delegate_to_data_ops(compute magnitude)` -> `delegate_to_visualization(plot)`
 - Complex plans tag tasks with `mission="__visualization__"` for visualization dispatch, `mission="__data_ops__"` for compute dispatch
 - Planner infrastructure (`agent/planner.py`, `agent/tasks.py`) supports programmatic multi-step plans
 
@@ -245,29 +233,40 @@ All times are UTC. Outputs `TimeRange` objects with `start`/`end` datetimes. Con
 - **Auto-generation**: `scripts/generate_mission_data.py` queries CDAWeb HAPI to populate parameters, dates, descriptions.
 - **Loader**: `knowledge/mission_loader.py` provides lazy-loading cache, routing table, and dataset access.
 
+### Google Search Grounding
+- `google_search` tool provides web search via Google Search grounding API
+- Implemented as a custom function tool that makes an isolated Gemini API call with only GoogleSearch configured (Gemini API does not support google_search + function_declarations in the same call)
+- Returns grounded text with source URLs
+
 ## Configuration
 
 `.env` file at project root:
 ```
 GOOGLE_API_KEY=<gemini-api-key>
-AUTOPLOT_JAR=<path-to-autoplot.jar>
-JAVA_HOME=<optional, auto-detected>
+GEMINI_MODEL=<optional, default: gemini-3-pro-preview>
+GEMINI_SUB_AGENT_MODEL=<optional, default: gemini-3-flash-preview>
 ```
 
 ## Running
 
 ```bash
-python main.py              # Normal mode (headless)
+python main.py              # Normal mode
 python main.py --verbose    # Show tool calls, timing, errors
-python main.py --gui        # Interactive GUI mode (Autoplot window visible)
-python main.py --gui -v     # GUI mode with verbose logging
-python main.py -m MODEL     # Specify Gemini model (default: gemini-2.5-flash)
+python main.py -m MODEL     # Specify Gemini model (overrides .env)
 python main.py "request"    # Single-command mode (non-interactive, exits after response)
 ```
 
-### GUI Mode
+### Gradio Web UI
 
-When launched with `--gui`, the application starts with its native window visible. Plots appear instantly in the GUI — no need to export to PNG. The VisualizationAgent's system prompt is adjusted to avoid suggesting PNG exports. GUI-specific operations (reset, title, labels, log scale, axis range, save/load session) are available through the same `execute_visualization` tool.
+```bash
+python gradio_app.py                # Launch on localhost:7860
+python gradio_app.py --share        # Generate a public Gradio URL
+python gradio_app.py --port 8080    # Custom port
+python gradio_app.py --verbose      # Show tool call details
+python gradio_app.py --model MODEL  # Override model
+```
+
+Displays interactive Plotly figures inline, data table sidebar, and token usage tracking.
 
 ### CLI Commands
 
@@ -278,7 +277,7 @@ When launched with `--gui`, the application starts with its native window visibl
 | `status` | Show current multi-step plan progress |
 | `retry` | Retry the first failed task in current plan |
 | `cancel` | Cancel current plan, skip remaining tasks |
-| `errors` | Show recent errors from log files |
+| `errors` | Show recent error from log files |
 | `capabilities` / `caps` | Show detailed capability summary |
 | `help` | Show welcome message and help |
 
@@ -293,21 +292,21 @@ When launched with `--gui`, the application starts with its native window visibl
 ## Tests
 
 ```bash
-python -m pytest tests/test_store.py tests/test_custom_ops.py   # 56 tests, data ops
-python -m pytest tests/                                          # All tests (~461 tests)
+python -m pytest tests/test_store.py tests/test_custom_ops.py   # Data ops tests
+python -m pytest tests/                                          # All tests (584 tests)
 ```
-
-Note: `test_agent.py` requires `google-genai` which may not be in the conda env.
 
 ## Dependencies
 
 ```
-google-genai>=1.60.0    # Gemini API (was google-generativeai, migrated)
-jpype1==1.5.0           # Java-Python bridge
+google-genai>=1.60.0    # Gemini API
 python-dotenv>=1.0.0    # .env loading
 requests>=2.28.0        # HAPI HTTP calls
 numpy>=1.24.0           # Array operations
 pandas>=2.0.0           # DataFrame-based data pipeline
-matplotlib>=3.7.0       # Fallback plotting (deprecated path)
+plotly>=5.18.0          # Interactive scientific data visualization
+kaleido>=0.2.1          # Static image export for Plotly (PNG, PDF)
+gradio>=4.44.0          # Browser-based chat UI
+matplotlib>=3.7.0       # Legacy plotting (unused in main pipeline)
 pytest>=7.0.0           # Test framework
 ```

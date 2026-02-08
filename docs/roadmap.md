@@ -12,29 +12,32 @@ Future development plan for the helio-ai-agent project.
 
 | Component | Status | Details |
 |-----------|--------|---------|
-| Agent Core | Done | Gemini 2.5-Flash with function calling |
-| Autoplot Bridge | Done | JPype connection, plot/export/time-range, overplot with color mgmt |
-| Dataset Catalog | Done | 8 spacecraft with keyword search |
-| HAPI Client | Done | CDAWeb parameter metadata fetching (cached) |
+| Agent Core | Done | Gemini 3 Pro/Flash Preview with function calling |
+| Plotly Renderer | Done | Interactive Plotly figures, multi-panel, WebGL, PNG/PDF export via kaleido |
+| Custom Visualization | Done | LLM-generated Plotly code sandbox for any customization |
+| Dataset Catalog | Done | 8 spacecraft with keyword search, per-mission JSON knowledge |
+| HAPI Client | Done | CDAWeb parameter metadata fetching (3-tier cache: memory/local/network) |
 | Data Pipeline | Done | fetch -> store -> custom_operation -> plot (pandas-backed) |
 | Custom Operations | Done | LLM-generated pandas/numpy code, AST-validated sandbox |
 | Time Parsing | Done | Relative, absolute, date ranges, sub-day precision |
 | Multi-step Planning | Done | Regex complexity detection + Gemini task decomposition |
 | Logging | Done | Daily rotation to `~/.helio-agent/logs/` |
 | Cross-platform | Done | Windows + macOS |
-| Token Tracking | Done | Per-session usage statistics |
+| Token Tracking | Done | Per-session usage statistics (includes all sub-agents) |
+| Gradio Web UI | Done | Browser-based chat with inline Plotly plots, data sidebar |
+| Google Search | Done | Web search grounding via isolated Gemini API call |
 
-### Tools (13 Tool Schemas)
+### Tools (17 Tool Schemas)
 
-**Dataset Discovery**: `search_datasets`, `list_parameters`, `get_data_availability`
+**Dataset Discovery**: `search_datasets`, `browse_datasets`, `list_parameters`, `get_data_availability`, `get_dataset_docs`, `google_search`
 
-**Visualization**: `execute_visualization` (dispatches to 16 registry methods)
+**Visualization**: `execute_visualization` (dispatches to 5 core registry methods), `custom_visualization` (free-form Plotly sandbox)
 
 **Data Operations**: `fetch_data`, `list_fetched_data`, `custom_operation`, `describe_data`, `save_data`
 
 **Conversation**: `ask_clarification`
 
-**Routing**: `delegate_to_mission`, `delegate_to_visualization`
+**Routing**: `delegate_to_mission`, `delegate_to_data_ops`, `delegate_to_visualization`
 
 ### Supported Spacecraft (8)
 
@@ -44,14 +47,22 @@ PSP, Solar Orbiter, ACE, OMNI, Wind, DSCOVR, MMS, STEREO-A
 
 ## Completed: Multi-Agent Architecture
 
-- [x] **Mission sub-agents**: Per-spacecraft data specialists with rich prompts, tiered datasets
-- [x] **Visualization sub-agent**: Visualization specialist with method registry (16 operations)
-- [x] **OrchestratorAgent**: LLM-driven routing to mission + autoplot sub-agents
-- [x] **Method registry**: Structured data describing all Autoplot capabilities (extensible)
-- [x] **Render type switching**: series, scatter, spectrogram, fill_to_zero, staircase_plus, digital
-- [x] **Color tables**: viridis, plasma, jet, etc. for spectrograms
+- [x] **4-agent architecture**: Orchestrator + Mission + DataOps + Visualization sub-agents
+- [x] **Mission sub-agents**: Per-spacecraft data specialists with rich prompts
+- [x] **DataOps sub-agent**: Data transformation specialist (compute, describe, save)
+- [x] **Visualization sub-agent**: Plotly rendering via 5 core methods + custom Plotly sandbox
+- [x] **Method registry**: Structured data describing 5 core visualization operations
+- [x] **Custom visualization**: Free-form Plotly code for titles, labels, scales, render types, annotations, etc.
 - [x] **Canvas sizing**: Custom width/height for exports
-- [x] **PDF export**: Alongside existing PNG export
+- [x] **PNG/PDF export**: Via kaleido static image export
+
+## Completed: Plotly Migration
+
+- [x] **Plotly renderer**: Replaced Java Autoplot bridge with pure-Python Plotly
+- [x] **Gradio web UI**: Browser-based chat with inline interactive plots
+- [x] **Google Search grounding**: Web search via custom function tool
+- [x] **custom_visualization tool**: Replaced 10 thin wrapper methods with single Plotly sandbox
+- [x] **JPype/Java removal**: All JVM dependencies eliminated
 
 ---
 
@@ -73,14 +84,15 @@ PSP, Solar Orbiter, ACE, OMNI, Wind, DSCOVR, MMS, STEREO-A
 - [ ] Fuzzy matching for spacecraft/instrument names
 - [ ] Dataset recommendations based on time range
 - [ ] Automatic parameter suggestions
+- [ ] Full CDAWeb catalog access (2000+ datasets beyond the curated 8 missions)
 
 ---
 
 ## Visualization Enhancements
 
 ### Layout
-- [x] Multi-panel stack plots — via `autoplot_script` (sc.plot(0, uri1); sc.plot(1, uri2))
-- [ ] Synchronized time axes
+- [x] Multi-panel stack plots — via `plot_stored_data` with panel index
+- [ ] Synchronized time axes across panels
 - [ ] Panel add/remove/reorder
 
 ### Plot Types
@@ -90,14 +102,14 @@ PSP, Solar Orbiter, ACE, OMNI, Wind, DSCOVR, MMS, STEREO-A
 - [ ] Histogram/distribution plots
 
 ### Styling
-- [x] Custom color scales (jet, viridis, plasma, etc.) — via `set_color_table`
-- [x] Configurable axis labels and titles — via `set_axis_label`, `set_title`
-- [x] Log/linear scale toggle — via `toggle_log_scale`
-- [x] Per-element line color/styling — via `autoplot_script` (dom.getPlotElements(i).getStyle().setColor(...))
+- [x] Configurable axis labels and titles — via `custom_visualization`
+- [x] Log/linear scale toggle — via `custom_visualization`
+- [x] Canvas sizing — via `custom_visualization`
+- [x] Per-trace line color/styling — via `custom_visualization`
 - [ ] Grid and tick customization
 
 ### Annotations
-- [x] Event markers, shaded regions, text annotations — accessible via `autoplot_script` (direct DOM manipulation)
+- [x] Event markers, shaded regions, text annotations — via `custom_visualization` (Plotly code)
 - [ ] Legend customization
 
 ---
@@ -134,7 +146,6 @@ PSP, Solar Orbiter, ACE, OMNI, Wind, DSCOVR, MMS, STEREO-A
 ### Testing & CI
 - [ ] GitHub Actions CI/CD pipeline
 - [ ] Integration tests with mock LLM
-- [ ] Autoplot bridge tests (headless)
 - [ ] Cross-platform matrix (Windows, macOS, Linux)
 
 ### Deployment
@@ -160,7 +171,7 @@ PSP, Solar Orbiter, ACE, OMNI, Wind, DSCOVR, MMS, STEREO-A
 ## User Experience
 
 ### Interfaces
-- [ ] Web UI (Streamlit or Gradio)
+- [x] Web UI (Gradio) — `gradio_app.py` with inline Plotly plots
 - [ ] Jupyter notebook integration
 - [ ] VS Code extension
 - [ ] REST API for programmatic access
@@ -193,18 +204,17 @@ PSP, Solar Orbiter, ACE, OMNI, Wind, DSCOVR, MMS, STEREO-A
 2. Run `python scripts/generate_mission_data.py --mission <id>` to populate HAPI metadata
 3. The catalog, prompts, and routing table are auto-generated from JSON
 
-### Adding New Autoplot Capabilities
+### Adding New Visualization Capabilities
 
-For **common operations** (add to registry):
+Most Plotly customizations already work via `custom_visualization` — no code changes needed.
+
+For **new core methods** (that need special logic like `plot_stored_data`):
 1. Add entry to `rendering/registry.py` (method definition)
 2. Implement renderer method in `rendering/plotly_renderer.py`
 3. Add dispatch handler in `agent/core.py:_dispatch_viz_method()`
 4. Update `docs/capability-summary.md`
-5. No tool schema changes needed — the registry is the single source of truth
 
-For **advanced/one-off operations**: Extend the registry and renderer as needed.
-
-### Adding New Non-Autoplot Tools
+### Adding New Non-Visualization Tools
 
 1. Add schema to `agent/tools.py`
 2. Add handler to `agent/core.py:_execute_tool()`
@@ -216,8 +226,6 @@ For **advanced/one-off operations**: Extend the registry and renderer as needed.
 ## Related Documentation
 
 - `docs/capability-summary.md` — Current feature summary
-- `docs/mission-agent-architecture.md` — Multi-agent architecture plan
-- `docs/autoplot-scripting-guide.md` — Autoplot ScriptContext API
-- `docs/jpype-autoplot-bridge.md` — JPype integration details
 - `docs/known-issues.md` — Bug tracker
-- `docs/feature-plans/` — Unimplemented feature specs (05-10)
+- `docs/feature-plans/` — Active and archived feature specs
+- `docs/redundancy-report.md` — Code redundancy analysis
