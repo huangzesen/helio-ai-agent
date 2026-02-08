@@ -24,6 +24,7 @@ from .session import SessionManager
 from .mission_agent import MissionAgent
 from .visualization_agent import VisualizationAgent
 from .data_ops_agent import DataOpsAgent
+from .data_extraction_agent import DataExtractionAgent
 from .logging import (
     setup_logging, get_logger, log_error, log_tool_call,
     log_tool_result, log_plan_event, log_session_end,
@@ -120,6 +121,9 @@ class OrchestratorAgent:
 
         # Cached data ops sub-agent
         self._dataops_agent: Optional[DataOpsAgent] = None
+
+        # Cached data extraction sub-agent
+        self._data_extraction_agent: Optional[DataExtractionAgent] = None
 
         # Session persistence
         self._session_id: Optional[str] = None
@@ -230,6 +234,13 @@ class OrchestratorAgent:
         # Include usage from data ops agent
         if self._dataops_agent:
             usage = self._dataops_agent.get_token_usage()
+            input_tokens += usage["input_tokens"]
+            output_tokens += usage["output_tokens"]
+            api_calls += usage["api_calls"]
+
+        # Include usage from data extraction agent
+        if self._data_extraction_agent:
+            usage = self._data_extraction_agent.get_token_usage()
             input_tokens += usage["input_tokens"]
             output_tokens += usage["output_tokens"]
             api_calls += usage["api_calls"]
@@ -838,6 +849,18 @@ class OrchestratorAgent:
                 "result": sub_result,
             }
 
+        elif tool_name == "delegate_to_data_extraction":
+            request = tool_args["request"]
+            context = tool_args.get("context", "")
+            self.logger.debug("[Router] Delegating to DataExtraction specialist")
+            agent = self._get_or_create_data_extraction_agent()
+            full_request = f"{request}\n\nContext: {context}" if context else request
+            sub_result = agent.process_request(full_request)
+            return {
+                "status": "success",
+                "result": sub_result,
+            }
+
         else:
             result = {"status": "error", "message": f"Unknown tool: {tool_name}"}
             log_error(
@@ -1093,7 +1116,7 @@ class OrchestratorAgent:
         self.logger.debug(format_plan_for_display(plan))
 
         # Get or create agents for each unique mission in the plan
-        special_missions = {"__visualization__", "__data_ops__"}
+        special_missions = {"__visualization__", "__data_ops__", "__data_extraction__"}
         mission_agents = {}
         for task in plan.tasks:
             if task.mission and task.mission not in special_missions and task.mission not in mission_agents:
@@ -1128,6 +1151,8 @@ class OrchestratorAgent:
                 self._get_or_create_viz_agent().execute_task(task)
             elif task.mission == "__data_ops__":
                 self._get_or_create_dataops_agent().execute_task(task)
+            elif task.mission == "__data_extraction__":
+                self._get_or_create_data_extraction_agent().execute_task(task)
             elif task.mission and task.mission in mission_agents:
                 mission_agents[task.mission].execute_task(task)
             else:
@@ -1296,6 +1321,18 @@ class OrchestratorAgent:
             self.logger.debug("[Router] Created DataOps agent")
         return self._dataops_agent
 
+    def _get_or_create_data_extraction_agent(self) -> DataExtractionAgent:
+        """Get the cached data extraction agent or create a new one."""
+        if self._data_extraction_agent is None:
+            self._data_extraction_agent = DataExtractionAgent(
+                client=self.client,
+                model_name=SUB_AGENT_MODEL,
+                tool_executor=self._execute_tool_safe,
+                verbose=self.verbose,
+            )
+            self.logger.debug("[Router] Created DataExtraction agent")
+        return self._data_extraction_agent
+
     # ---- Session persistence ----
 
     def start_session(self) -> str:
@@ -1388,6 +1425,7 @@ class OrchestratorAgent:
         self._mission_agents.clear()
         self._viz_agent = None
         self._dataops_agent = None
+        self._data_extraction_agent = None
         self._renderer.reset()
 
         self._session_id = session_id
@@ -1430,6 +1468,7 @@ class OrchestratorAgent:
         self._mission_agents.clear()
         self._viz_agent = None
         self._dataops_agent = None
+        self._data_extraction_agent = None
         self._renderer.reset()
 
         # Start a fresh session if auto-save was active

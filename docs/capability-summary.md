@@ -46,6 +46,13 @@ agent/core.py  OrchestratorAgent  (LLM-driven orchestrator)
   |                               System prompt with computation patterns + code guidelines
   |                               No fetch or plot tools — operates on in-memory data
   |
+  +---> agent/data_extraction_agent.py  DataExtraction sub-agent (text-to-DataFrame)
+  |       DataExtractionAgent     Focused Gemini session for unstructured-to-structured conversion
+  |       execute_task()          Forced function calling for plan tasks (max 3 iter)
+  |       process_request()       Full conversational mode (max 5 iter, duplicate detection)
+  |                               Tools: store_dataframe, convert_to_markdown, ask_clarification
+  |                               Turns search results, documents, event lists into DataFrames
+  |
   +---> agent/mission_agent.py    Mission sub-agents (fetch-only tools)
   |       MissionAgent            Focused Gemini session per spacecraft mission
   |       execute_task()          Forced function calling for plan tasks (max 3 iter)
@@ -96,7 +103,7 @@ agent/core.py  OrchestratorAgent  (LLM-driven orchestrator)
           stress_test.py            Stress testing
 ```
 
-## Tools (20 tool schemas)
+## Tools (21 tool schemas)
 
 ### Dataset Discovery
 | Tool | Purpose |
@@ -123,9 +130,13 @@ The `execute_visualization` tool dispatches to the method registry (`rendering/r
 | `fetch_data` | Pull HAPI data into memory (label: `DATASET.PARAM`) |
 | `list_fetched_data` | Show all in-memory timeseries |
 | `custom_operation` | LLM-generated pandas/numpy code (AST-validated, sandboxed) — handles magnitude, arithmetic, smoothing, resampling, derivatives, and any other transformation |
-| `store_dataframe` | Create a new DataFrame from scratch and store it in memory (event lists, catalogs, manual data) |
 | `describe_data` | Statistical summary of in-memory data (min/max/mean/std/percentiles/NaN) |
 | `save_data` | Export in-memory timeseries to CSV file |
+
+### Data Extraction
+| Tool | Purpose |
+|------|---------|
+| `store_dataframe` | Create a new DataFrame from scratch and store it in memory (event lists, catalogs, search results, manual data) |
 
 ### Document Conversion
 | Tool | Purpose |
@@ -142,14 +153,15 @@ The `execute_visualization` tool dispatches to the method registry (`rendering/r
 |------|---------|
 | `delegate_to_mission` | LLM-driven delegation to a mission specialist sub-agent |
 | `delegate_to_data_ops` | LLM-driven delegation to the data ops specialist sub-agent |
+| `delegate_to_data_extraction` | LLM-driven delegation to the data extraction specialist sub-agent |
 | `delegate_to_visualization` | LLM-driven delegation to the visualization sub-agent |
 
-## Sub-Agent Architecture (4 agents)
+## Sub-Agent Architecture (5 agents)
 
 ### OrchestratorAgent (agent/core.py)
 - Sees tools: discovery, conversation, routing, document + `list_fetched_data` extra
-- Routes: data fetching -> MissionAgent, computation -> DataOpsAgent, visualization -> VisualizationAgent
-- Handles multi-step plans with mission-tagged task dispatch (`__data_ops__`, `__visualization__`)
+- Routes: data fetching -> MissionAgent, computation -> DataOpsAgent, text-to-data -> DataExtractionAgent, visualization -> VisualizationAgent
+- Handles multi-step plans with mission-tagged task dispatch (`__data_ops__`, `__data_extraction__`, `__visualization__`)
 
 ### MissionAgent (agent/mission_agent.py)
 - Sees tools: discovery, data_ops_fetch, conversation + `list_fetched_data` extra
@@ -158,10 +170,17 @@ The `execute_visualization` tool dispatches to the method registry (`rendering/r
 - No compute tools — reports fetched data labels to orchestrator
 
 ### DataOpsAgent (agent/data_ops_agent.py)
-- Sees tools: data_ops_compute (`custom_operation`, `store_dataframe`, `describe_data`, `save_data`), conversation + `list_fetched_data` extra
+- Sees tools: data_ops_compute (`custom_operation`, `describe_data`, `save_data`), conversation + `list_fetched_data` extra
 - Singleton, cached per session
 - System prompt with computation patterns and code guidelines
 - No fetch tools — operates on already-fetched data in memory
+
+### DataExtractionAgent (agent/data_extraction_agent.py)
+- Sees tools: data_extraction (`store_dataframe`), document (`convert_to_markdown`), conversation (`ask_clarification`) + `list_fetched_data` extra
+- Singleton, cached per session
+- System prompt with extraction patterns, DataFrame creation guidelines, and document reading workflow
+- Turns unstructured text (search results, document tables, event catalogs) into structured DataFrames
+- No fetch, compute, or plot tools — creates data from text only
 
 ### VisualizationAgent (agent/visualization_agent.py)
 - Sees tools: `execute_visualization` + `custom_visualization` + `list_fetched_data` (3 tools total)
@@ -234,19 +253,20 @@ All times are UTC. Outputs `TimeRange` objects with `start`/`end` datetimes.
 - Token usage accumulated from `response.usage_metadata` (prompt_token_count, candidates_token_count).
 
 ### LLM-Driven Routing (`agent/core.py`, `agent/mission_agent.py`, `agent/data_ops_agent.py`, `agent/visualization_agent.py`)
-- **Routing**: The OrchestratorAgent (LLM) decides whether to handle a request directly or delegate via `delegate_to_mission` (fetching), `delegate_to_data_ops` (computation), or `delegate_to_visualization` (visualization) tools. No regex-based routing — the LLM uses conversation context and the routing table to decide.
+- **Routing**: The OrchestratorAgent (LLM) decides whether to handle a request directly or delegate via `delegate_to_mission` (fetching), `delegate_to_data_ops` (computation), `delegate_to_data_extraction` (text-to-DataFrame), or `delegate_to_visualization` (visualization) tools. No regex-based routing — the LLM uses conversation context and the routing table to decide.
 - **Mission sub-agents**: Each spacecraft has a data fetching specialist with rich system prompt (recommended datasets, analysis patterns). Agents are cached per session. Sub-agents have **fetch-only tools** (discovery, data_ops_fetch, conversation) — no compute, plot, or routing tools.
-- **DataOps sub-agent**: Data transformation specialist with `custom_operation`, `store_dataframe`, `describe_data`, `save_data` + `list_fetched_data`. System prompt includes computation patterns and code guidelines. Singleton, cached per session.
+- **DataOps sub-agent**: Data transformation specialist with `custom_operation`, `describe_data`, `save_data` + `list_fetched_data`. System prompt includes computation patterns and code guidelines. Singleton, cached per session.
+- **DataExtraction sub-agent**: Text-to-DataFrame specialist with `store_dataframe`, `convert_to_markdown`, `ask_clarification` + `list_fetched_data`. System prompt includes extraction patterns and DataFrame creation guidelines. Singleton, cached per session.
 - **Visualization sub-agent**: Visualization specialist with `execute_visualization` + `custom_visualization` + `list_fetched_data` tools. System prompt includes the method catalog and Plotly cookbook. Handles all plotting, customization, and export.
-- **Tool separation**: Tools have a `category` field (`discovery`, `visualization`, `data_ops`, `data_ops_fetch`, `data_ops_compute`, `conversation`, `routing`, `document`). `get_tool_schemas(categories=..., extra_names=...)` filters tools by category. Orchestrator sees `["discovery", "conversation", "routing", "document"]` + `list_fetched_data` extra. MissionAgent sees `["discovery", "data_ops_fetch", "conversation"]` + `list_fetched_data` extra. DataOpsAgent sees `["data_ops_compute", "conversation"]` + `list_fetched_data` extra. VisualizationAgent sees `["visualization"]` (`execute_visualization` + `custom_visualization`) + `list_fetched_data` extra.
-- **Post-delegation flow**: After `delegate_to_mission` returns data labels, the orchestrator uses `delegate_to_data_ops` for computation and then `delegate_to_visualization` to visualize results.
+- **Tool separation**: Tools have a `category` field (`discovery`, `visualization`, `data_ops`, `data_ops_fetch`, `data_ops_compute`, `data_extraction`, `conversation`, `routing`, `document`). `get_tool_schemas(categories=..., extra_names=...)` filters tools by category. Orchestrator sees `["discovery", "conversation", "routing", "document"]` + `list_fetched_data` extra. MissionAgent sees `["discovery", "data_ops_fetch", "conversation"]` + `list_fetched_data` extra. DataOpsAgent sees `["data_ops_compute", "conversation"]` + `list_fetched_data` extra. DataExtractionAgent sees `["data_extraction", "document", "conversation"]` + `list_fetched_data` extra. VisualizationAgent sees `["visualization"]` (`execute_visualization` + `custom_visualization`) + `list_fetched_data` extra.
+- **Post-delegation flow**: After `delegate_to_mission` returns data labels, the orchestrator uses `delegate_to_data_ops` for computation, `delegate_to_data_extraction` for text-to-DataFrame conversion, and then `delegate_to_visualization` to visualize results.
 - **Slim orchestrator**: System prompt contains a routing table (mission names + capabilities) plus delegation instructions. No dataset IDs or analysis tips — those live in mission sub-agents.
 
 ### Multi-Step Requests
 - The orchestrator naturally chains tool calls in its conversation loop (up to 10 iterations, with consecutive delegation error guard)
 - "Compare PSP and ACE" -> `delegate_to_mission("PSP", ...)` -> `delegate_to_mission("ACE", ...)` -> `delegate_to_visualization(plot both)` — all in one `process_message` call
 - "Fetch ACE mag, compute magnitude, plot" -> `delegate_to_mission("ACE", fetch)` -> `delegate_to_data_ops(compute magnitude)` -> `delegate_to_visualization(plot)`
-- Complex plans tag tasks with `mission="__visualization__"` for visualization dispatch, `mission="__data_ops__"` for compute dispatch
+- Complex plans tag tasks with `mission="__visualization__"` for visualization dispatch, `mission="__data_ops__"` for compute dispatch, `mission="__data_extraction__"` for text-to-DataFrame dispatch
 - Planner infrastructure (`agent/planner.py`, `agent/tasks.py`) supports programmatic multi-step plans
 
 ### Per-Mission JSON Knowledge (`knowledge/missions/*.json`)
@@ -287,7 +307,7 @@ All times are UTC. Outputs `TimeRange` objects with `start`/`end` datetimes.
 - `google_search` tool provides web search via Google Search grounding API
 - Implemented as a custom function tool that makes an isolated Gemini API call with only GoogleSearch configured (Gemini API does not support google_search + function_declarations in the same call)
 - Returns grounded text with source URLs
-- Search results can be turned into plottable datasets via the `store_dataframe` tool (google_search → delegate_to_data_ops → store_dataframe → plot)
+- Search results can be turned into plottable datasets via the `store_dataframe` tool (google_search → delegate_to_data_extraction → store_dataframe → plot)
 
 ## Configuration
 
@@ -348,7 +368,7 @@ Displays interactive Plotly figures inline, data table sidebar, and token usage 
 ```bash
 python -m pytest tests/test_store.py tests/test_custom_ops.py   # Data ops tests
 python -m pytest tests/test_session.py                           # Session persistence tests
-python -m pytest tests/                                          # All tests (675 tests)
+python -m pytest tests/                                          # All tests
 ```
 
 ## Dependencies

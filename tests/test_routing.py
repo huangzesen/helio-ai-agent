@@ -11,6 +11,7 @@ import pytest
 from agent.tools import get_tool_schemas
 from agent.mission_agent import MISSION_TOOL_CATEGORIES, MISSION_EXTRA_TOOLS
 from agent.data_ops_agent import DATAOPS_TOOL_CATEGORIES, DATAOPS_EXTRA_TOOLS
+from agent.data_extraction_agent import EXTRACTION_CATEGORIES, EXTRACTION_EXTRA_TOOLS
 from agent.visualization_agent import VIZ_TOOL_CATEGORIES, VIZ_EXTRA_TOOLS
 from agent.core import ORCHESTRATOR_CATEGORIES, ORCHESTRATOR_EXTRA_TOOLS
 
@@ -20,7 +21,7 @@ class TestToolCategoryFiltering:
 
     def test_no_filter_returns_all_tools(self):
         all_tools = get_tool_schemas()
-        assert len(all_tools) == 20  # 18 + store_dataframe + convert_to_markdown
+        assert len(all_tools) == 21  # 18 + store_dataframe + convert_to_markdown + delegate_to_data_extraction
         names = {t["name"] for t in all_tools}
         assert "execute_visualization" in names
         assert "custom_visualization" in names
@@ -28,6 +29,7 @@ class TestToolCategoryFiltering:
         assert "delegate_to_mission" in names
         assert "delegate_to_visualization" in names
         assert "delegate_to_data_ops" in names
+        assert "delegate_to_data_extraction" in names
         assert "get_dataset_docs" in names
         assert "convert_to_markdown" in names
 
@@ -72,6 +74,7 @@ class TestToolCategoryFiltering:
         assert "delegate_to_mission" in names
         assert "delegate_to_visualization" in names
         assert "delegate_to_data_ops" in names
+        assert "delegate_to_data_extraction" in names
         # Should include discovery
         assert "search_datasets" in names
         # Should include list_fetched_data (extra tool)
@@ -100,6 +103,8 @@ class TestToolCategoryFiltering:
         assert "ask_clarification" in names
         # Should NOT include fetch (mission-specific)
         assert "fetch_data" not in names
+        # Should NOT include store_dataframe (moved to data_extraction)
+        assert "store_dataframe" not in names
         # Should NOT include routing or visualization
         assert "delegate_to_mission" not in names
         assert "execute_visualization" not in names
@@ -193,6 +198,130 @@ class TestDelegateToDataOpsTool:
         )
         names = {t["name"] for t in dataops_tools}
         assert "delegate_to_data_ops" not in names
+
+
+class TestDataExtractionCategories:
+    """Test DataExtractionAgent tool filtering."""
+
+    def test_extraction_agent_gets_store_dataframe(self):
+        tools = get_tool_schemas(
+            categories=EXTRACTION_CATEGORIES,
+            extra_names=EXTRACTION_EXTRA_TOOLS,
+        )
+        names = {t["name"] for t in tools}
+        assert "store_dataframe" in names
+
+    def test_extraction_agent_gets_convert_to_markdown(self):
+        tools = get_tool_schemas(
+            categories=EXTRACTION_CATEGORIES,
+            extra_names=EXTRACTION_EXTRA_TOOLS,
+        )
+        names = {t["name"] for t in tools}
+        assert "convert_to_markdown" in names
+
+    def test_extraction_agent_gets_list_fetched_data(self):
+        tools = get_tool_schemas(
+            categories=EXTRACTION_CATEGORIES,
+            extra_names=EXTRACTION_EXTRA_TOOLS,
+        )
+        names = {t["name"] for t in tools}
+        assert "list_fetched_data" in names
+
+    def test_extraction_agent_gets_ask_clarification(self):
+        tools = get_tool_schemas(
+            categories=EXTRACTION_CATEGORIES,
+            extra_names=EXTRACTION_EXTRA_TOOLS,
+        )
+        names = {t["name"] for t in tools}
+        assert "ask_clarification" in names
+
+    def test_extraction_agent_excludes_fetch(self):
+        tools = get_tool_schemas(
+            categories=EXTRACTION_CATEGORIES,
+            extra_names=EXTRACTION_EXTRA_TOOLS,
+        )
+        names = {t["name"] for t in tools}
+        assert "fetch_data" not in names
+
+    def test_extraction_agent_excludes_compute(self):
+        tools = get_tool_schemas(
+            categories=EXTRACTION_CATEGORIES,
+            extra_names=EXTRACTION_EXTRA_TOOLS,
+        )
+        names = {t["name"] for t in tools}
+        assert "custom_operation" not in names
+        assert "describe_data" not in names
+        assert "save_data" not in names
+
+    def test_extraction_agent_excludes_routing(self):
+        tools = get_tool_schemas(
+            categories=EXTRACTION_CATEGORIES,
+            extra_names=EXTRACTION_EXTRA_TOOLS,
+        )
+        names = {t["name"] for t in tools}
+        assert "delegate_to_mission" not in names
+        assert "delegate_to_visualization" not in names
+
+    def test_extraction_agent_excludes_visualization(self):
+        tools = get_tool_schemas(
+            categories=EXTRACTION_CATEGORIES,
+            extra_names=EXTRACTION_EXTRA_TOOLS,
+        )
+        names = {t["name"] for t in tools}
+        assert "execute_visualization" not in names
+        assert "custom_visualization" not in names
+
+
+class TestDelegateToDataExtractionTool:
+    """Test that the delegate_to_data_extraction tool is properly configured."""
+
+    def test_tool_exists(self):
+        names = {t["name"] for t in get_tool_schemas()}
+        assert "delegate_to_data_extraction" in names
+
+    def test_tool_has_routing_category(self):
+        tool = next(t for t in get_tool_schemas() if t["name"] == "delegate_to_data_extraction")
+        assert tool["category"] == "routing"
+
+    def test_tool_requires_request(self):
+        tool = next(t for t in get_tool_schemas() if t["name"] == "delegate_to_data_extraction")
+        assert "request" in tool["parameters"]["properties"]
+        assert tool["parameters"]["required"] == ["request"]
+
+    def test_tool_has_optional_context(self):
+        tool = next(t for t in get_tool_schemas() if t["name"] == "delegate_to_data_extraction")
+        assert "context" in tool["parameters"]["properties"]
+
+    def test_tool_not_in_extraction_agent_tools(self):
+        tools = get_tool_schemas(
+            categories=EXTRACTION_CATEGORIES,
+            extra_names=EXTRACTION_EXTRA_TOOLS,
+        )
+        names = {t["name"] for t in tools}
+        assert "delegate_to_data_extraction" not in names
+
+
+class TestDataExtractionAgentImportAndInterface:
+    """Verify DataExtractionAgent interface."""
+
+    def test_import(self):
+        from agent.data_extraction_agent import DataExtractionAgent
+        assert DataExtractionAgent is not None
+
+    def test_process_request_method_exists(self):
+        from agent.data_extraction_agent import DataExtractionAgent
+        assert hasattr(DataExtractionAgent, "process_request")
+        assert callable(getattr(DataExtractionAgent, "process_request"))
+
+    def test_execute_task_method_exists(self):
+        from agent.data_extraction_agent import DataExtractionAgent
+        assert hasattr(DataExtractionAgent, "execute_task")
+        assert callable(getattr(DataExtractionAgent, "execute_task"))
+
+    def test_get_token_usage_method_exists(self):
+        from agent.data_extraction_agent import DataExtractionAgent
+        assert hasattr(DataExtractionAgent, "get_token_usage")
+        assert callable(getattr(DataExtractionAgent, "get_token_usage"))
 
 
 class TestMissionAgentImportAndInterface:

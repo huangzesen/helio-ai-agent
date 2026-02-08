@@ -9,9 +9,10 @@ Categories:
 - "data_ops": shared data tools (list_fetched_data)
 - "data_ops_fetch": mission-specific data fetching (fetch_data)
 - "data_ops_compute": data transformation, statistics, export (custom_operation, describe_data, save_data)
+- "data_extraction": unstructured-to-structured data conversion (store_dataframe)
 - "visualization": execute_visualization (registry-driven visualization operations)
 - "conversation": ask_clarification
-- "routing": delegate_to_mission, delegate_to_visualization, delegate_to_data_ops
+- "routing": delegate_to_mission, delegate_to_visualization, delegate_to_data_ops, delegate_to_data_extraction
 """
 
 TOOLS = [
@@ -234,7 +235,7 @@ Do NOT call this tool when the request cannot be expressed as a pandas/numpy ope
     },
 
     {
-        "category": "data_ops_compute",
+        "category": "data_extraction",
         "name": "store_dataframe",
         "description": """Create a new DataFrame from scratch and store it in memory. Use this when:
 - You have text data (event lists, search results, catalogs) that should become a plottable dataset
@@ -535,11 +536,11 @@ The specialist has access to all visualization methods and can see what data is 
 - The user wants to compute derived quantities (magnitude, smoothing, resampling, derivatives, etc.)
 - The user wants statistical summaries (describe data)
 - The user wants to export data to CSV
-- The user wants to create a dataset from text data (event lists, search results, catalogs)
 
 Do NOT delegate:
 - Data fetching (use delegate_to_mission — fetching requires mission-specific knowledge)
 - Visualization requests (use delegate_to_visualization)
+- Creating datasets from text/search results (use delegate_to_data_extraction)
 - Dataset search or parameter listing (handle directly or use delegate_to_mission)
 
 The DataOps agent can see all data currently in memory via list_fetched_data.""",
@@ -558,6 +559,36 @@ The DataOps agent can see all data currently in memory via list_fetched_data."""
             "required": ["request"]
         }
     },
+    {
+        "category": "routing",
+        "name": "delegate_to_data_extraction",
+        "description": """Delegate text-to-DataFrame conversion to the DataExtraction specialist agent. Use this when:
+- The user wants to turn unstructured text into a plottable dataset (event lists, search results, catalogs)
+- The user wants to extract data tables from a document (PDF, DOCX, etc.)
+- You have Google Search results with dates and values that should become a DataFrame
+- The user says "create a dataset from..." or "make a timeline of..."
+
+Do NOT delegate:
+- Data fetching from CDAWeb (use delegate_to_mission)
+- Data transformations on existing in-memory data (use delegate_to_data_ops)
+- Visualization requests (use delegate_to_visualization)
+
+The DataExtraction agent can read documents (convert_to_markdown), create DataFrames (store_dataframe), and see what data is in memory (list_fetched_data).""",
+        "parameters": {
+            "type": "object",
+            "properties": {
+                "request": {
+                    "type": "string",
+                    "description": "What to extract and store (e.g., 'Create a DataFrame from these X-class flares: [dates and values]. Label it xclass_flares_2024.')"
+                },
+                "context": {
+                    "type": "string",
+                    "description": "Optional: source text, search results, or file path to extract data from"
+                }
+            },
+            "required": ["request"]
+        }
+    },
 ]
 
 
@@ -571,7 +602,7 @@ def get_tool_schemas(
         categories: Optional list of categories to filter by.
             If None, returns all tools. Valid categories:
             "discovery", "visualization", "data_ops", "data_ops_fetch",
-            "data_ops_compute", "conversation", "routing".
+            "data_ops_compute", "data_extraction", "conversation", "routing".
         extra_names: Optional list of tool names to include regardless of category.
             Useful for giving a sub-agent access to specific tools outside its categories.
 
