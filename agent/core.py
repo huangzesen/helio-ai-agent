@@ -413,6 +413,21 @@ class OrchestratorAgent:
             return {"status": "success", "mission_id": tool_args["mission_id"],
                     "dataset_count": len(datasets), "datasets": datasets}
 
+        elif tool_name == "get_dataset_docs":
+            from knowledge.hapi_client import get_dataset_docs
+            docs = get_dataset_docs(tool_args["dataset_id"])
+            if docs.get("documentation"):
+                return {"status": "success", **docs}
+            else:
+                result = {"status": "partial" if docs.get("contact") else "error",
+                          "dataset_id": docs["dataset_id"],
+                          "message": "Could not fetch documentation."}
+                if docs.get("contact"):
+                    result["contact"] = docs["contact"]
+                if docs.get("resource_url"):
+                    result["resource_url"] = docs["resource_url"]
+                return result
+
         elif tool_name == "ask_clarification":
             # Return the question to show to user
             return {

@@ -82,7 +82,7 @@ def _parse_single_datetime(s: str) -> datetime:
     Raises:
         ValueError: If none of the formats match.
     """
-    s = s.strip()
+    s = s.strip().rstrip("Z")
     for fmt in ("%Y-%m-%dT%H:%M:%S", "%Y-%m-%dT%H:%M",
                 "%Y-%m-%d %H:%M:%S", "%Y-%m-%d %H:%M", "%Y-%m-%d"):
         try:

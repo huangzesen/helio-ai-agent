@@ -82,6 +82,7 @@ class TestMissionAgentToolFiltering:
         assert "search_datasets" in names
         assert "list_parameters" in names
         assert "get_data_availability" in names
+        assert "get_dataset_docs" in names
 
     def test_mission_tools_include_conversation(self):
         mission_tools = get_tool_schemas(categories=MISSION_TOOL_CATEGORIES, extra_names=MISSION_EXTRA_TOOLS)

@@ -20,13 +20,14 @@ class TestToolCategoryFiltering:
 
     def test_no_filter_returns_all_tools(self):
         all_tools = get_tool_schemas()
-        assert len(all_tools) == 14  # 13 + delegate_to_data_ops
+        assert len(all_tools) == 15  # 14 + get_dataset_docs
         names = {t["name"] for t in all_tools}
         assert "execute_visualization" in names
         assert "fetch_data" in names
         assert "delegate_to_mission" in names
         assert "delegate_to_visualization" in names
         assert "delegate_to_data_ops" in names
+        assert "get_dataset_docs" in names
 
     def test_mission_categories_exclude_visualization_and_routing(self):
         mission_tools = get_tool_schemas(categories=MISSION_TOOL_CATEGORIES, extra_names=MISSION_EXTRA_TOOLS)

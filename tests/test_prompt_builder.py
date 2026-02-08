@@ -130,6 +130,11 @@ class TestBuildMissionPrompt:
         prompt = build_mission_prompt("PSP")
         assert "## Advanced Datasets" not in prompt
 
+    def test_mission_prompt_has_dataset_documentation_section(self):
+        prompt = build_mission_prompt("PSP")
+        assert "## Dataset Documentation" in prompt
+        assert "get_dataset_docs" in prompt
+
     def test_mission_prompt_has_analysis_patterns(self):
         prompt = build_mission_prompt("PSP")
         assert "## Analysis Patterns" in prompt
@@ -160,14 +165,14 @@ class TestBuildMissionPrompt:
         assert "data specialist agent" in prompt.lower()
 
     def test_mission_prompt_has_explore_before_fetch_workflow(self):
-        """Workflow now guides: identify dataset → verify → fetch (no compute)."""
+        """Workflow guides: direct fetch when given exact IDs, browse for vague requests."""
         prompt = build_mission_prompt("PSP")
         workflow_start = prompt.index("## Data Operations Workflow")
         workflow_end = prompt.index("## Reporting Results")
         workflow_section = prompt[workflow_start:workflow_end]
-        assert "Identify the dataset" in workflow_section
-        assert "Verify if unsure" in workflow_section
+        assert "exact dataset ID and parameter" in workflow_section
         assert "fetch_data" in workflow_section
+        assert "vague request" in workflow_section
         # Compute tools no longer in mission workflow
         assert "custom_operation" not in workflow_section
         assert "describe_data" not in workflow_section

@@ -11,7 +11,9 @@ without a network request.
 
 import fnmatch
 import json
+import re
 import requests
+from html.parser import HTMLParser
 from pathlib import Path
 from typing import Optional
 
@@ -19,6 +21,9 @@ HAPI_BASE = "https://cdaweb.gsfc.nasa.gov/hapi"
 
 # Cache for HAPI responses to avoid repeated API calls
 _info_cache: dict[str, dict] = {}
+
+# Cache for CDAWeb Notes HTML pages (keyed by base URL, e.g., NotesA.html)
+_notes_cache: dict[str, str] = {}
 
 # Directory containing per-mission folders with HAPI cache files
 _MISSIONS_DIR = Path(__file__).parent / "missions"
@@ -227,7 +232,179 @@ def browse_datasets(mission_id: str) -> Optional[list[dict]]:
     return result
 
 
+class _HTMLToText(HTMLParser):
+    """Minimal HTML-to-text converter using stdlib HTMLParser.
+
+    Strips tags while preserving block structure (newlines for <br>, <p>, <hr>,
+    headings, list items). Skips <script> and <style> content.
+    """
+
+    _BLOCK_TAGS = {"p", "div", "br", "hr", "li", "tr", "h1", "h2", "h3", "h4", "h5", "h6"}
+    _SKIP_TAGS = {"script", "style"}
+
+    def __init__(self):
+        super().__init__()
+        self._parts: list[str] = []
+        self._skip_depth = 0
+
+    def handle_starttag(self, tag: str, attrs):
+        tag = tag.lower()
+        if tag in self._SKIP_TAGS:
+            self._skip_depth += 1
+        if tag in self._BLOCK_TAGS and not self._skip_depth:
+            self._parts.append("\n")
+
+    def handle_endtag(self, tag: str):
+        tag = tag.lower()
+        if tag in self._SKIP_TAGS:
+            self._skip_depth = max(0, self._skip_depth - 1)
+
+    def handle_data(self, data: str):
+        if not self._skip_depth:
+            self._parts.append(data)
+
+    def get_text(self) -> str:
+        """Return accumulated text, with collapsed whitespace."""
+        raw = "".join(self._parts)
+        # Collapse runs of blank lines to at most two newlines
+        raw = re.sub(r"\n{3,}", "\n\n", raw)
+        return raw.strip()
+
+
+def _extract_dataset_section(html: str, dataset_id: str) -> Optional[str]:
+    """Extract the section for a specific dataset from a CDAWeb Notes HTML page.
+
+    CDAWeb Notes pages use anchors like <a name="DATASET_ID"> or
+    <strong>DATASET_ID</strong> to mark section starts, with <hr> tags
+    or "Back to top" links as section boundaries.
+
+    Args:
+        html: Full HTML text of the Notes page.
+        dataset_id: CDAWeb dataset ID to look for (e.g., "AC_H2_MFI").
+
+    Returns:
+        HTML string for the dataset section, or None if not found.
+    """
+    # Try anchor patterns: name="ID", id="ID"
+    patterns = [
+        rf'(?:name|id)\s*=\s*"{re.escape(dataset_id)}"',
+        rf'<strong>\s*{re.escape(dataset_id)}\s*</strong>',
+    ]
+
+    start_pos = None
+    for pat in patterns:
+        match = re.search(pat, html, re.IGNORECASE)
+        if match:
+            start_pos = match.start()
+            break
+
+    if start_pos is None:
+        return None
+
+    # Find section end: next <hr> or "Back to top" after the anchor
+    remaining = html[start_pos:]
+    end_patterns = [
+        r'<hr\b[^>]*>',
+        r'Back to top',
+    ]
+    end_pos = len(remaining)
+    for ep in end_patterns:
+        m = re.search(ep, remaining[100:], re.IGNORECASE)  # skip first 100 chars to avoid self-match
+        if m:
+            end_pos = min(end_pos, m.start() + 100)
+
+    return remaining[:end_pos]
+
+
+def _fetch_notes_section(resource_url: str, dataset_id: str) -> Optional[str]:
+    """Fetch a CDAWeb Notes page (cached) and extract the dataset section as text.
+
+    Args:
+        resource_url: URL like "https://cdaweb.gsfc.nasa.gov/misc/NotesA.html#AC_H2_MFI"
+        dataset_id: CDAWeb dataset ID.
+
+    Returns:
+        Plain text of the dataset documentation section, or None on failure.
+    """
+    # Strip fragment to get base URL (the page to fetch)
+    base_url = resource_url.split("#")[0]
+
+    # Check cache
+    if base_url not in _notes_cache:
+        try:
+            resp = requests.get(base_url, timeout=30)
+            resp.raise_for_status()
+            _notes_cache[base_url] = resp.text
+        except requests.RequestException:
+            return None
+
+    html = _notes_cache[base_url]
+    section_html = _extract_dataset_section(html, dataset_id)
+    if section_html is None:
+        return None
+
+    parser = _HTMLToText()
+    parser.feed(section_html)
+    return parser.get_text()
+
+
+def _fallback_resource_url(dataset_id: str) -> str:
+    """Construct a plausible CDAWeb Notes URL from a dataset ID.
+
+    CDAWeb Notes pages are organized by first letter: NotesA.html, NotesB.html, etc.
+
+    Args:
+        dataset_id: CDAWeb dataset ID (e.g., "AC_H2_MFI").
+
+    Returns:
+        URL string like "https://cdaweb.gsfc.nasa.gov/misc/NotesA.html#AC_H2_MFI"
+    """
+    first_letter = dataset_id[0].upper() if dataset_id else "A"
+    return f"https://cdaweb.gsfc.nasa.gov/misc/Notes{first_letter}.html#{dataset_id}"
+
+
+def get_dataset_docs(dataset_id: str, max_chars: int = 4000) -> dict:
+    """Look up CDAWeb documentation for a dataset.
+
+    Combines HAPI /info metadata (contact, resourceURL) with the actual
+    documentation text scraped from the CDAWeb Notes page.
+
+    Args:
+        dataset_id: CDAWeb dataset ID (e.g., "AC_H2_MFI").
+        max_chars: Maximum characters for the documentation text.
+
+    Returns:
+        Dict with dataset_id, contact, resource_url, and documentation fields.
+        documentation may be None if the Notes page could not be fetched or
+        the dataset section was not found.
+    """
+    result = {"dataset_id": dataset_id, "contact": None, "resource_url": None, "documentation": None}
+
+    # Try to get contact and resource URL from HAPI /info
+    try:
+        info = get_dataset_info(dataset_id)
+        result["contact"] = info.get("contact")
+        result["resource_url"] = info.get("resourceURL")
+    except requests.RequestException:
+        pass
+
+    # Determine the resource URL to fetch
+    resource_url = result["resource_url"]
+    if not resource_url:
+        resource_url = _fallback_resource_url(dataset_id)
+        result["resource_url"] = resource_url
+
+    # Fetch and extract documentation
+    doc_text = _fetch_notes_section(resource_url, dataset_id)
+    if doc_text and len(doc_text) > max_chars:
+        doc_text = doc_text[:max_chars] + "\n[truncated]"
+    result["documentation"] = doc_text
+
+    return result
+
+
 def clear_cache():
-    """Clear the HAPI info cache."""
-    global _info_cache
+    """Clear the HAPI info cache and Notes page cache."""
+    global _info_cache, _notes_cache
     _info_cache = {}
+    _notes_cache = {}

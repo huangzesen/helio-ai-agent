@@ -94,6 +94,26 @@ Each entry has: id, description, start_date, stop_date, parameter_count, instrum
         }
     },
     {
+        "category": "discovery",
+        "name": "get_dataset_docs",
+        "description": """Look up detailed CDAWeb documentation for a dataset. Use this when:
+- User asks about coordinate systems, calibration, or data quality
+- User asks who the PI or data contact is
+- User asks what a parameter measures or how it was derived
+- You need domain context to interpret or explain data
+Returns instrument descriptions, variable definitions, coordinate info, and PI contact.""",
+        "parameters": {
+            "type": "object",
+            "properties": {
+                "dataset_id": {
+                    "type": "string",
+                    "description": "CDAWeb dataset ID (e.g., 'AC_H2_MFI')"
+                }
+            },
+            "required": ["dataset_id"]
+        }
+    },
+    {
         "category": "conversation",
         "name": "ask_clarification",
         "description": """Ask the user a clarifying question when the request is ambiguous. Use this when:
