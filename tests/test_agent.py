@@ -238,3 +238,102 @@ class TestAgentToolExecution:
             assert result["status"] == "clarification_needed"
             assert result["question"] == "Which parameter?"
             assert result["options"] == ["Magnitude", "Vector"]
+
+
+class TestValidateTimeRange:
+    """Test _validate_time_range auto-clamping logic."""
+
+    @pytest.fixture
+    def agent(self):
+        """Create a minimal OrchestratorAgent instance for testing."""
+        from agent.core import OrchestratorAgent
+        with patch("agent.core.genai"):
+            a = OrchestratorAgent.__new__(OrchestratorAgent)
+            a.verbose = False
+            a._renderer = None
+            return a
+
+    def _dt(self, s):
+        """Shorthand for UTC datetime."""
+        return datetime.fromisoformat(s).replace(tzinfo=timezone.utc)
+
+    def test_fully_within_range_returns_none(self, agent):
+        with patch("agent.core.get_dataset_time_range") as mock:
+            mock.return_value = {"start": "2020-01-01", "stop": "2025-01-01"}
+            result = agent._validate_time_range(
+                "TEST", self._dt("2024-01-01"), self._dt("2024-02-01")
+            )
+            assert result is None
+
+    def test_hapi_failure_returns_none(self, agent):
+        with patch("agent.core.get_dataset_time_range") as mock:
+            mock.return_value = None
+            result = agent._validate_time_range(
+                "TEST", self._dt("2024-01-01"), self._dt("2024-02-01")
+            )
+            assert result is None
+
+    def test_request_after_stop_shifts_window(self, agent):
+        """'Last week' when dataset ends months ago → shifts to last available week."""
+        with patch("agent.core.get_dataset_time_range") as mock:
+            mock.return_value = {"start": "2020-01-01", "stop": "2025-06-15"}
+            result = agent._validate_time_range(
+                "TEST", self._dt("2026-01-01"), self._dt("2026-01-08")
+            )
+            assert result is not None
+            assert result["end"] == self._dt("2025-06-15")
+            # Duration preserved (7 days)
+            assert result["start"] == self._dt("2025-06-08")
+            assert "after" in result["note"]
+            assert "Auto-adjusted" in result["note"]
+
+    def test_request_before_start_shifts_window(self, agent):
+        """Request for 1990 when dataset starts in 2018 → shifts to first available period."""
+        with patch("agent.core.get_dataset_time_range") as mock:
+            mock.return_value = {"start": "2018-08-12", "stop": "2025-06-15"}
+            result = agent._validate_time_range(
+                "TEST", self._dt("1990-01-01"), self._dt("1990-02-01")
+            )
+            assert result is not None
+            assert result["start"] == self._dt("2018-08-12")
+            # Duration preserved (31 days)
+            expected_end = self._dt("2018-08-12") + timedelta(days=31)
+            assert result["end"] == expected_end
+            assert "before" in result["note"]
+
+    def test_partial_overlap_clamps_start(self, agent):
+        """Request starts before available → clamps start."""
+        with patch("agent.core.get_dataset_time_range") as mock:
+            mock.return_value = {"start": "2020-01-01", "stop": "2025-06-15"}
+            result = agent._validate_time_range(
+                "TEST", self._dt("2019-06-01"), self._dt("2020-06-01")
+            )
+            assert result is not None
+            assert result["start"] == self._dt("2020-01-01")
+            assert result["end"] == self._dt("2020-06-01")
+            assert "Clamped" in result["note"]
+
+    def test_partial_overlap_clamps_end(self, agent):
+        """Request ends after available → clamps end."""
+        with patch("agent.core.get_dataset_time_range") as mock:
+            mock.return_value = {"start": "2020-01-01", "stop": "2025-06-15"}
+            result = agent._validate_time_range(
+                "TEST", self._dt("2025-05-01"), self._dt("2026-01-01")
+            )
+            assert result is not None
+            assert result["start"] == self._dt("2025-05-01")
+            assert result["end"] == self._dt("2025-06-15")
+            assert "Clamped" in result["note"]
+
+    def test_shift_preserves_duration_capped_at_available(self, agent):
+        """If requested duration exceeds available range, cap to full available range."""
+        with patch("agent.core.get_dataset_time_range") as mock:
+            # Dataset covers only 6 months, but requesting 2 years after stop
+            mock.return_value = {"start": "2025-01-01", "stop": "2025-06-15"}
+            result = agent._validate_time_range(
+                "TEST", self._dt("2026-01-01"), self._dt("2028-01-01")
+            )
+            assert result is not None
+            # Should cap start at avail_start
+            assert result["start"] == self._dt("2025-01-01")
+            assert result["end"] == self._dt("2025-06-15")

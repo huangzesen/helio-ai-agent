@@ -235,8 +235,14 @@ class OrchestratorAgent:
             "api_calls": api_calls,
         }
 
-    def _validate_time_range(self, dataset_id: str, start, end) -> str | None:
-        """Check if a requested time range overlaps with a dataset's availability.
+    def _validate_time_range(self, dataset_id: str, start, end) -> dict | None:
+        """Check and clamp a requested time range to a dataset's availability.
+
+        Auto-adjusts the time range to fit the available data window:
+        - Fully within range → returns None (no adjustment needed)
+        - Partial overlap → clamps to available window
+        - No overlap (after stop) → shifts window to end at available stop
+        - No overlap (before start) → shifts window to start at available start
 
         Args:
             dataset_id: CDAWeb dataset ID
@@ -244,8 +250,10 @@ class OrchestratorAgent:
             end: Requested end datetime (timezone-aware)
 
         Returns:
-            None if fully valid, a warning string for partial overlap,
-            or an error string (starting with "No data available") if no overlap.
+            None if fully valid, or a dict with:
+                - "start": clamped start datetime
+                - "end": clamped end datetime
+                - "note": human-readable note about the adjustment
             Returns None if the HAPI call fails (fail-open).
         """
         from datetime import datetime, timezone
@@ -273,25 +281,56 @@ class OrchestratorAgent:
             req_start = start if start.tzinfo else start.replace(tzinfo=timezone.utc)
             req_end = end if end.tzinfo else end.replace(tzinfo=timezone.utc)
 
-            avail_range_str = f"{avail_start_str} to {avail_stop_str}"
+            avail_range_str = (
+                f"{avail_start.strftime('%Y-%m-%d')} to "
+                f"{avail_stop.strftime('%Y-%m-%d')}"
+            )
+            duration = req_end - req_start
 
-            # No overlap at all
-            if req_end <= avail_start or req_start >= avail_stop:
-                return (
-                    f"No data available for '{dataset_id}' in the requested time range. "
-                    f"Available range: {avail_range_str}. "
-                    f"STOP: Do not retry with other datasets — the time range itself is "
-                    f"the problem. Inform the user that the requested dates are outside "
-                    f"the available data period and suggest they try a date within "
-                    f"{avail_range_str}."
-                )
+            # No overlap — request is entirely after available data
+            if req_start >= avail_stop:
+                new_end = avail_stop
+                new_start = max(avail_start, avail_stop - duration)
+                return {
+                    "start": new_start,
+                    "end": new_end,
+                    "note": (
+                        f"Requested dates are after the latest available data for "
+                        f"'{dataset_id}' (available: {avail_range_str}). "
+                        f"Auto-adjusted to {new_start.strftime('%Y-%m-%d')} to "
+                        f"{new_end.strftime('%Y-%m-%d')}."
+                    ),
+                }
 
-            # Partial overlap
+            # No overlap — request is entirely before available data
+            if req_end <= avail_start:
+                new_start = avail_start
+                new_end = min(avail_stop, avail_start + duration)
+                return {
+                    "start": new_start,
+                    "end": new_end,
+                    "note": (
+                        f"Requested dates are before the earliest available data for "
+                        f"'{dataset_id}' (available: {avail_range_str}). "
+                        f"Auto-adjusted to {new_start.strftime('%Y-%m-%d')} to "
+                        f"{new_end.strftime('%Y-%m-%d')}."
+                    ),
+                }
+
+            # Partial overlap — clamp to available window
             if req_start < avail_start or req_end > avail_stop:
-                return (
-                    f"Requested range partially outside available data for '{dataset_id}'. "
-                    f"Available range: {avail_range_str}"
-                )
+                new_start = max(req_start, avail_start)
+                new_end = min(req_end, avail_stop)
+                return {
+                    "start": new_start,
+                    "end": new_end,
+                    "note": (
+                        f"Requested range partially outside available data for "
+                        f"'{dataset_id}' (available: {avail_range_str}). "
+                        f"Clamped to {new_start.strftime('%Y-%m-%d')} to "
+                        f"{new_end.strftime('%Y-%m-%d')}."
+                    ),
+                }
 
         except (ValueError, TypeError):
             return None  # fail-open on parse errors
@@ -486,17 +525,30 @@ class OrchestratorAgent:
                 time_range = parse_time_range(tool_args["time_range"])
             except TimeRangeError as e:
                 return {"status": "error", "message": str(e)}
+
+            # Auto-clamp to available data window
+            fetch_start = time_range.start
+            fetch_end = time_range.end
+            adjustment_note = None
+
             validation = self._validate_time_range(
                 tool_args["dataset_id"], time_range.start, time_range.end
             )
-            if validation and validation.startswith("No data available"):
-                return {"status": "error", "message": validation}
+            if validation is not None:
+                fetch_start = validation["start"]
+                fetch_end = validation["end"]
+                adjustment_note = validation["note"]
+                self.logger.debug(
+                    f"[DataOps] Time range adjusted for {tool_args['dataset_id']}: "
+                    f"{adjustment_note}"
+                )
+
             try:
                 result = fetch_hapi_data(
                     dataset_id=tool_args["dataset_id"],
                     parameter_id=tool_args["parameter_id"],
-                    time_min=time_range.start.strftime("%Y-%m-%dT%H:%M:%SZ"),
-                    time_max=time_range.end.strftime("%Y-%m-%dT%H:%M:%SZ"),
+                    time_min=fetch_start.strftime("%Y-%m-%dT%H:%M:%SZ"),
+                    time_max=fetch_end.strftime("%Y-%m-%dT%H:%M:%SZ"),
                 )
             except Exception as e:
                 return {"status": "error", "message": str(e)}
@@ -512,8 +564,8 @@ class OrchestratorAgent:
             store.put(entry)
             self.logger.debug(f"[DataOps] Stored '{label}' ({len(entry.time)} points)")
             response = {"status": "success", **entry.summary()}
-            if validation:
-                response["warning"] = validation
+            if adjustment_note:
+                response["time_range_note"] = adjustment_note
             return response
 
         elif tool_name == "list_fetched_data":
