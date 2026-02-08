@@ -455,7 +455,8 @@ Excel (XLSX), HTML, CSV, JSON, XML, images (with EXIF), and ZIP archives. Use th
 - User uploads or references a document file
 - User wants to read, summarize, or extract content from a file
 - User asks questions about a document's contents
-Returns the file content converted to Markdown format.""",
+The converted Markdown is saved to ~/.helio-agent/documents/ for persistence across sessions.
+Returns the Markdown content and the saved file path.""",
         "parameters": {
             "type": "object",
             "properties": {

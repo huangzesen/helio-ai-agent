@@ -746,17 +746,48 @@ class OrchestratorAgent:
             if not Path(file_path).is_file():
                 return {"status": "error", "message": f"File not found: {file_path}"}
             try:
+                import shutil
+
                 md = MarkItDown(enable_plugins=False)
                 result = md.convert(file_path)
-                text = result.text_content
+                full_text = result.text_content
+
+                # Save original + markdown to ~/.helio-agent/documents/{stem}/
+                docs_dir = Path.home() / ".helio-agent" / "documents"
+                src = Path(file_path)
+                stem = src.stem
+                suffix = src.suffix
+
+                # Find a unique subfolder name
+                folder = docs_dir / stem
+                counter = 1
+                while folder.exists():
+                    folder = docs_dir / f"{stem}_{counter}"
+                    counter += 1
+                folder.mkdir(parents=True, exist_ok=True)
+
+                # Copy original file
+                original_copy = folder / src.name
+                shutil.copy2(str(src), str(original_copy))
+
+                # Save converted markdown
+                out_path = folder / f"{stem}.md"
+                out_path.write_text(full_text, encoding="utf-8")
+                self.logger.debug(f"[Document] Saved to {folder} ({len(full_text)} chars)")
+
+                # Truncate for LLM context
                 max_chars = 50_000
-                truncated = len(text) > max_chars
+                text = full_text
+                truncated = len(full_text) > max_chars
                 if truncated:
-                    text = text[:max_chars]
+                    text = full_text[:max_chars]
+
                 return {
                     "status": "success",
                     "file": Path(file_path).name,
-                    "char_count": len(result.text_content),
+                    "original_saved_to": str(original_copy),
+                    "markdown_saved_to": str(out_path),
+                    "char_count": len(full_text),
                     "truncated": truncated,
                     "markdown": text,
                 }
