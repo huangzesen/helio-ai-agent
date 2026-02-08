@@ -90,6 +90,14 @@ class AutoplotCommands:
         Returns:
             dict with status and URI
         """
+        # Reject component indexing — CDAWeb URIs with [N] crash the JVM
+        if '[' in parameter_id or ']' in parameter_id:
+            return {
+                "status": "error",
+                "message": f"CDAWeb URIs do not support component indexing '{parameter_id}'. "
+                           f"Use autoplot_script with to_qdataset('label', component=N) for vector components.",
+            }
+
         tr_str = time_range.to_autoplot_string()
         # Build CDAWeb URI with URL-encoded time range
         uri = f"vap+cdaweb:ds={dataset_id}&id={parameter_id}&timerange={tr_str.replace(' ', '+')}"

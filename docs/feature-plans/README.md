@@ -6,7 +6,7 @@ Each file contains everything needed for implementation: motivation, file change
 
 | # | Feature | Summary |
 |---|---------|---------|
-| 2 | [Gemini Hackathon Readiness](02-hackathon-readiness.md) | Gradio UI, demo video, multimodal input, Google Search grounding, Devpost polish |
+| 3 | [Plotly + Pluggable Data Backend + Hackathon](03-pluggable-rendering-backend.md) | Plotly rendering, HAPI/Autoplot data backends, Gradio UI, Gemini differentiators, demo polish |
 
 ## Completed
 

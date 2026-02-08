@@ -16,6 +16,7 @@ Mirrors the structure of data_ops/custom_ops.py but adapted for Autoplot:
 import ast
 import builtins
 import io
+import re
 import sys
 
 import numpy as np
@@ -223,6 +224,13 @@ def _build_namespace(ctx):
                 f"Panel index {int(args[0])} exceeds maximum (0-2). "
                 f"Maximum 3 panels supported. Use overlays instead of additional panels."
             )
+        # Reject CDAWeb URIs with [N] component indexing — crashes the JVM
+        for arg in args:
+            if isinstance(arg, str) and 'vap+cdaweb:' in arg and re.search(r'\w\[\d+\]', arg):
+                raise ValueError(
+                    "CDAWeb URIs do not support [N] component indexing. "
+                    "Use to_qdataset('label', component=N) for vector components."
+                )
         return _original_sc_plot(*args, **kwargs)
 
     # Monkey-patch the guarded plot onto a thin proxy so sc.plot is guarded
