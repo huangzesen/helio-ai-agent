@@ -2,7 +2,7 @@
 """
 Gradio Web UI for the Helio AI Agent.
 
-Provides a browser-based chat interface with inline plot display,
+Provides a browser-based chat interface with interactive Plotly plots,
 data table sidebar, and token usage tracking.
 
 Usage:
@@ -13,10 +13,7 @@ Usage:
 """
 
 import argparse
-import hashlib
-import os
 import sys
-import tempfile
 
 import gradio as gr
 
@@ -25,43 +22,17 @@ import gradio as gr
 # Globals (initialized in main())
 # ---------------------------------------------------------------------------
 _agent = None
-_plot_dir = None
-_last_plot_hash = None
 
 
 # ---------------------------------------------------------------------------
 # Helper functions
 # ---------------------------------------------------------------------------
 
-def _snapshot_plot() -> tuple[str | None, bool]:
-    """Export the current Autoplot canvas to a temp PNG and detect changes.
-
-    Returns:
-        (filepath_or_None, changed_bool)
-    """
-    global _last_plot_hash
-
-    if _agent is None or _agent._autoplot is None:
-        return None, False
-
-    filepath = os.path.join(_plot_dir, "current_plot.png")
-    try:
-        result = _agent.autoplot.export_png(filepath)
-        if result.get("status") != "success":
-            return None, False
-    except Exception:
-        return None, False
-
-    # Hash-based change detection
-    try:
-        with open(filepath, "rb") as f:
-            new_hash = hashlib.md5(f.read()).hexdigest()
-    except Exception:
-        return None, False
-
-    changed = new_hash != _last_plot_hash
-    _last_plot_hash = new_hash
-    return filepath, changed
+def _get_current_figure():
+    """Return the current Plotly figure from the renderer, or None."""
+    if _agent is None:
+        return None
+    return _agent.get_plotly_figure()
 
 
 def _build_data_table() -> list[list]:
@@ -113,7 +84,7 @@ def respond(message: str, history: list[dict]) -> tuple:
         history: Chat history in messages format [{role, content}, ...].
 
     Returns:
-        Tuple of (history, plot_image, data_table, token_text, textbox_value).
+        Tuple of (history, plotly_figure, data_table, token_text, textbox_value).
     """
     if not message.strip():
         return history, gr.skip(), gr.skip(), gr.skip(), ""
@@ -130,33 +101,23 @@ def respond(message: str, history: list[dict]) -> tuple:
     # Append assistant text response
     history = history + [{"role": "assistant", "content": response_text}]
 
-    # Snapshot plot and detect changes
-    plot_path, plot_changed = _snapshot_plot()
-
-    # If the plot changed, add the image inline in chat
-    if plot_changed and plot_path:
-        history = history + [
-            {"role": "assistant", "content": gr.FileData(path=plot_path)}
-        ]
+    # Get current plotly figure (may be None if nothing plotted yet)
+    fig = _get_current_figure()
 
     # Build sidebar state
     data_rows = _build_data_table()
     token_text = _format_tokens()
 
-    return history, plot_path, data_rows, token_text, ""
+    return history, fig, data_rows, token_text, ""
 
 
 def reset_session() -> tuple:
     """Reset the agent, data store, and all UI state."""
-    global _last_plot_hash
-
     if _agent is not None:
         _agent.reset()
 
     from data_ops.store import get_store
     get_store().clear()
-
-    _last_plot_hash = None
 
     return [], None, [], "*Session reset*", ""
 
@@ -189,7 +150,7 @@ def create_app() -> gr.Blocks:
         gr.Markdown(
             "# Helio AI Agent\n"
             "Natural language interface for spacecraft data visualization "
-            "powered by [Autoplot](https://autoplot.org/) and Gemini."
+            "powered by Plotly and Gemini."
         )
 
         with gr.Row():
@@ -220,11 +181,8 @@ def create_app() -> gr.Blocks:
 
             # ---- Sidebar ----
             with gr.Column(scale=1, elem_classes=["plot-sidebar"]):
-                plot_image = gr.Image(
-                    label="Current Plot",
-                    type="filepath",
-                    interactive=False,
-                    height=300,
+                plotly_plot = gr.Plot(
+                    label="Interactive Plot",
                 )
                 data_table = gr.Dataframe(
                     headers=["Label", "Shape", "Points", "Units",
@@ -244,7 +202,7 @@ def create_app() -> gr.Blocks:
         send_event_args = dict(
             fn=respond,
             inputs=[msg_input, chatbot],
-            outputs=[chatbot, plot_image, data_table, token_display, msg_input],
+            outputs=[chatbot, plotly_plot, data_table, token_display, msg_input],
         )
         send_btn.click(**send_event_args)
         msg_input.submit(**send_event_args)
@@ -252,7 +210,7 @@ def create_app() -> gr.Blocks:
         reset_btn.click(
             fn=reset_session,
             inputs=[],
-            outputs=[chatbot, plot_image, data_table, token_display, msg_input],
+            outputs=[chatbot, plotly_plot, data_table, token_display, msg_input],
         )
 
     return app
@@ -263,7 +221,7 @@ def create_app() -> gr.Blocks:
 # ---------------------------------------------------------------------------
 
 def main():
-    global _agent, _plot_dir
+    global _agent
 
     parser = argparse.ArgumentParser(description="Helio AI Agent — Gradio Web UI")
     parser.add_argument("--port", type=int, default=7860, help="Port to listen on")
@@ -272,11 +230,7 @@ def main():
     parser.add_argument("--model", "-m", default=None, help="Gemini model name")
     args = parser.parse_args()
 
-    # Create temp directory for plot snapshots
-    _plot_dir = tempfile.mkdtemp(prefix="helio_plots_")
-    print(f"Plot snapshots: {_plot_dir}")
-
-    # Initialize agent (this starts the JVM — may take a few seconds)
+    # Initialize agent
     print("Initializing agent...")
     try:
         from agent.core import create_agent
@@ -284,30 +238,22 @@ def main():
         _agent.web_mode = True  # Suppress auto-open of exported files
     except Exception as e:
         print(f"Error initializing agent: {e}")
-        print("Make sure .env has GOOGLE_API_KEY and AUTOPLOT_JAR set.")
+        print("Make sure .env has GOOGLE_API_KEY set.")
         sys.exit(1)
     print(f"Agent ready (model: {_agent.model_name})")
 
     # Build and launch the app
     app = create_app()
-    app.queue(default_concurrency_limit=1)
 
-    try:
-        app.launch(
-            server_port=args.port,
-            share=args.share,
-            show_error=True,
-            theme=gr.themes.Soft(),
-            css="""
-            .plot-sidebar img { max-height: 400px; object-fit: contain; }
-            footer { display: none !important; }
-            """,
-        )
-    except KeyboardInterrupt:
-        print("\nShutting down...")
-    finally:
-        sys.stdout.flush()
-        os._exit(0)
+    app.launch(
+        server_port=args.port,
+        share=args.share,
+        show_error=True,
+        theme=gr.themes.Soft(),
+        css="""
+        footer { display: none !important; }
+        """,
+    )
 
 
 if __name__ == "__main__":
