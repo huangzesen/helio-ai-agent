@@ -40,6 +40,13 @@ _DEFAULT_COLORS = [
     "#ccbe33",  # hue=0.326
 ]
 
+# Explicit layout defaults — prevent Gradio dark theme from overriding
+_DEFAULT_LAYOUT = dict(
+    paper_bgcolor="white",
+    plot_bgcolor="white",
+    font_color="#2a3f5f",
+)
+
 
 class PlotlyRenderer:
     """Stateful Plotly renderer for heliophysics data visualization."""
@@ -81,6 +88,7 @@ class PlotlyRenderer:
                 rows=max(rows, 1), cols=1, shared_xaxes=True,
                 vertical_spacing=0.06,
             )
+            self._figure.update_layout(**_DEFAULT_LAYOUT)
             self._panel_count = max(rows, 1)
         return self._figure
 
@@ -94,6 +102,7 @@ class PlotlyRenderer:
             rows=needed, cols=1, shared_xaxes=True,
             vertical_spacing=0.06,
         )
+        new_fig.update_layout(**_DEFAULT_LAYOUT)
 
         # Copy traces from old figure, preserving row assignment
         if old_fig is not None:
