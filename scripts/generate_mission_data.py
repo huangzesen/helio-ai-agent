@@ -17,7 +17,6 @@ Usage:
 import argparse
 import json
 import sys
-import time
 from datetime import datetime, timezone
 from pathlib import Path
 
@@ -42,9 +41,6 @@ HAPI_SERVER = "https://cdaweb.gsfc.nasa.gov/hapi"
 
 # Missions directory
 MISSIONS_DIR = Path(__file__).parent.parent / "knowledge" / "missions"
-
-# Rate limiting between HAPI /info requests (seconds)
-REQUEST_DELAY = 0.5
 
 
 def fetch_hapi_catalog() -> list[dict]:
