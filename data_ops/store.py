@@ -5,11 +5,17 @@ DataEntry holds a single timeseries as a pandas DataFrame (DatetimeIndex + value
 DataStore is a singleton dict-like container keyed by label strings.
 """
 
+import json
+import re
 from dataclasses import dataclass
+from pathlib import Path
 from typing import Optional
 
 import numpy as np
 import pandas as pd
+
+# Characters unsafe for filenames on Windows
+_UNSAFE_CHARS = re.compile(r'[/\\:*?"<>|]')
 
 
 @dataclass
@@ -99,6 +105,62 @@ class DataStore:
             entry.data.memory_usage(deep=True).sum()
             for entry in self._entries.values()
         )
+
+    def save_to_directory(self, dir_path: Path) -> None:
+        """Persist all DataEntries to a directory as pickled DataFrames.
+
+        Writes each DataFrame as ``{safe_label}.pkl`` and an ``_index.json``
+        mapping original labels to filenames and metadata.
+        """
+        dir_path = Path(dir_path)
+        dir_path.mkdir(parents=True, exist_ok=True)
+
+        index = {}
+        for label, entry in self._entries.items():
+            safe = _UNSAFE_CHARS.sub("_", label)
+            pkl_name = f"{safe}.pkl"
+            entry.data.to_pickle(dir_path / pkl_name)
+            index[label] = {
+                "filename": pkl_name,
+                "units": entry.units,
+                "description": entry.description,
+                "source": entry.source,
+            }
+
+        with open(dir_path / "_index.json", "w", encoding="utf-8") as f:
+            json.dump(index, f, indent=2)
+
+    def load_from_directory(self, dir_path: Path) -> int:
+        """Restore DataEntries from a directory written by ``save_to_directory``.
+
+        Returns:
+            Number of entries loaded.
+        """
+        dir_path = Path(dir_path)
+        index_path = dir_path / "_index.json"
+        if not index_path.exists():
+            return 0
+
+        with open(index_path, "r", encoding="utf-8") as f:
+            index = json.load(f)
+
+        count = 0
+        for label, info in index.items():
+            pkl_path = dir_path / info["filename"]
+            if not pkl_path.exists():
+                continue
+            df = pd.read_pickle(pkl_path)
+            entry = DataEntry(
+                label=label,
+                data=df,
+                units=info.get("units", ""),
+                description=info.get("description", ""),
+                source=info.get("source", "computed"),
+            )
+            self.put(entry)
+            count += 1
+
+        return count
 
     def __len__(self) -> int:
         return len(self._entries)

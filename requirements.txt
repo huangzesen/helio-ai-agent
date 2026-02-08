@@ -8,3 +8,4 @@ gradio>=4.44.0
 plotly>=5.18.0
 kaleido>=0.2.1
 pytest>=7.0.0
+markitdown[all]>=0.1.0

@@ -20,7 +20,7 @@ class TestToolCategoryFiltering:
 
     def test_no_filter_returns_all_tools(self):
         all_tools = get_tool_schemas()
-        assert len(all_tools) == 18  # 17 + search_full_catalog
+        assert len(all_tools) == 20  # 18 + store_dataframe + convert_to_markdown
         names = {t["name"] for t in all_tools}
         assert "execute_visualization" in names
         assert "custom_visualization" in names
@@ -29,6 +29,7 @@ class TestToolCategoryFiltering:
         assert "delegate_to_visualization" in names
         assert "delegate_to_data_ops" in names
         assert "get_dataset_docs" in names
+        assert "convert_to_markdown" in names
 
     def test_mission_categories_exclude_visualization_and_routing(self):
         mission_tools = get_tool_schemas(categories=MISSION_TOOL_CATEGORIES, extra_names=MISSION_EXTRA_TOOLS)
@@ -48,6 +49,8 @@ class TestToolCategoryFiltering:
         assert "custom_operation" not in names
         assert "describe_data" not in names
         assert "save_data" not in names
+        # Should NOT include document tools
+        assert "convert_to_markdown" not in names
 
     def test_visualization_category_only(self):
         viz_tools = get_tool_schemas(categories=VIZ_TOOL_CATEGORIES)
@@ -73,6 +76,8 @@ class TestToolCategoryFiltering:
         assert "search_datasets" in names
         # Should include list_fetched_data (extra tool)
         assert "list_fetched_data" in names
+        # Should include document tools
+        assert "convert_to_markdown" in names
         # Should NOT include data_ops (delegated to sub-agents)
         assert "fetch_data" not in names
         assert "custom_operation" not in names

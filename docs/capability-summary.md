@@ -13,9 +13,10 @@ User input
   |
   v
 main.py  (readline CLI, --verbose/--model flags, token usage on exit)
-  |  - Commands: quit, reset, status, retry, cancel, errors, capabilities, help
+  |  - Commands: quit, reset, status, retry, cancel, errors, sessions, capabilities, help
+  |  - Flags: --continue/-c (resume latest), --session/-s ID (resume specific)
   |  - Single-command mode: python main.py "request"
-  |  - Checks for incomplete plans on startup
+  |  - Auto-saves session every turn; checks for incomplete plans on startup
   |
   v
 gradio_app.py  (browser-based chat UI, inline Plotly plots, data table sidebar)
@@ -60,6 +61,10 @@ agent/core.py  OrchestratorAgent  (LLM-driven orchestrator)
   |       create_plan_from_request()  Gemini JSON output for task decomposition
   |                                   Tags tasks with mission IDs, __visualization__, dependencies
   |
+  +---> agent/session.py           Session persistence
+  |       SessionManager          Save/load chat history + DataStore to ~/.helio-agent/sessions/
+  |                                Auto-save every turn, --continue/--session CLI flags
+  |
   +---> agent/tasks.py            Task management
   |       Task, TaskPlan          Data structures (mission, depends_on fields)
   |       TaskStore               JSON persistence to ~/.helio-agent/tasks/
@@ -91,7 +96,7 @@ agent/core.py  OrchestratorAgent  (LLM-driven orchestrator)
           stress_test.py            Stress testing
 ```
 
-## Tools (18 tool schemas)
+## Tools (20 tool schemas)
 
 ### Dataset Discovery
 | Tool | Purpose |
@@ -118,8 +123,14 @@ The `execute_visualization` tool dispatches to the method registry (`rendering/r
 | `fetch_data` | Pull HAPI data into memory (label: `DATASET.PARAM`) |
 | `list_fetched_data` | Show all in-memory timeseries |
 | `custom_operation` | LLM-generated pandas/numpy code (AST-validated, sandboxed) — handles magnitude, arithmetic, smoothing, resampling, derivatives, and any other transformation |
+| `store_dataframe` | Create a new DataFrame from scratch and store it in memory (event lists, catalogs, manual data) |
 | `describe_data` | Statistical summary of in-memory data (min/max/mean/std/percentiles/NaN) |
 | `save_data` | Export in-memory timeseries to CSV file |
+
+### Document Conversion
+| Tool | Purpose |
+|------|---------|
+| `convert_to_markdown` | Convert files (PDF, DOCX, PPTX, XLSX, HTML, images, etc.) to Markdown using markitdown |
 
 ### Conversation
 | Tool | Purpose |
@@ -136,7 +147,7 @@ The `execute_visualization` tool dispatches to the method registry (`rendering/r
 ## Sub-Agent Architecture (4 agents)
 
 ### OrchestratorAgent (agent/core.py)
-- Sees tools: discovery, conversation, routing + `list_fetched_data` extra
+- Sees tools: discovery, conversation, routing, document + `list_fetched_data` extra
 - Routes: data fetching -> MissionAgent, computation -> DataOpsAgent, visualization -> VisualizationAgent
 - Handles multi-step plans with mission-tagged task dispatch (`__data_ops__`, `__visualization__`)
 
@@ -147,7 +158,7 @@ The `execute_visualization` tool dispatches to the method registry (`rendering/r
 - No compute tools — reports fetched data labels to orchestrator
 
 ### DataOpsAgent (agent/data_ops_agent.py)
-- Sees tools: data_ops_compute (`custom_operation`, `describe_data`, `save_data`), conversation + `list_fetched_data` extra
+- Sees tools: data_ops_compute (`custom_operation`, `store_dataframe`, `describe_data`, `save_data`), conversation + `list_fetched_data` extra
 - Singleton, cached per session
 - System prompt with computation patterns and code guidelines
 - No fetch tools — operates on already-fetched data in memory
@@ -225,9 +236,9 @@ All times are UTC. Outputs `TimeRange` objects with `start`/`end` datetimes.
 ### LLM-Driven Routing (`agent/core.py`, `agent/mission_agent.py`, `agent/data_ops_agent.py`, `agent/visualization_agent.py`)
 - **Routing**: The OrchestratorAgent (LLM) decides whether to handle a request directly or delegate via `delegate_to_mission` (fetching), `delegate_to_data_ops` (computation), or `delegate_to_visualization` (visualization) tools. No regex-based routing — the LLM uses conversation context and the routing table to decide.
 - **Mission sub-agents**: Each spacecraft has a data fetching specialist with rich system prompt (recommended datasets, analysis patterns). Agents are cached per session. Sub-agents have **fetch-only tools** (discovery, data_ops_fetch, conversation) — no compute, plot, or routing tools.
-- **DataOps sub-agent**: Data transformation specialist with `custom_operation`, `describe_data`, `save_data` + `list_fetched_data`. System prompt includes computation patterns and code guidelines. Singleton, cached per session.
+- **DataOps sub-agent**: Data transformation specialist with `custom_operation`, `store_dataframe`, `describe_data`, `save_data` + `list_fetched_data`. System prompt includes computation patterns and code guidelines. Singleton, cached per session.
 - **Visualization sub-agent**: Visualization specialist with `execute_visualization` + `custom_visualization` + `list_fetched_data` tools. System prompt includes the method catalog and Plotly cookbook. Handles all plotting, customization, and export.
-- **Tool separation**: Tools have a `category` field (`discovery`, `visualization`, `data_ops`, `data_ops_fetch`, `data_ops_compute`, `conversation`, `routing`). `get_tool_schemas(categories=..., extra_names=...)` filters tools by category. Orchestrator sees `["discovery", "conversation", "routing"]` + `list_fetched_data` extra. MissionAgent sees `["discovery", "data_ops_fetch", "conversation"]` + `list_fetched_data` extra. DataOpsAgent sees `["data_ops_compute", "conversation"]` + `list_fetched_data` extra. VisualizationAgent sees `["visualization"]` (`execute_visualization` + `custom_visualization`) + `list_fetched_data` extra.
+- **Tool separation**: Tools have a `category` field (`discovery`, `visualization`, `data_ops`, `data_ops_fetch`, `data_ops_compute`, `conversation`, `routing`, `document`). `get_tool_schemas(categories=..., extra_names=...)` filters tools by category. Orchestrator sees `["discovery", "conversation", "routing", "document"]` + `list_fetched_data` extra. MissionAgent sees `["discovery", "data_ops_fetch", "conversation"]` + `list_fetched_data` extra. DataOpsAgent sees `["data_ops_compute", "conversation"]` + `list_fetched_data` extra. VisualizationAgent sees `["visualization"]` (`execute_visualization` + `custom_visualization`) + `list_fetched_data` extra.
 - **Post-delegation flow**: After `delegate_to_mission` returns data labels, the orchestrator uses `delegate_to_data_ops` for computation and then `delegate_to_visualization` to visualize results.
 - **Slim orchestrator**: System prompt contains a routing table (mission names + capabilities) plus delegation instructions. No dataset IDs or analysis tips — those live in mission sub-agents.
 
@@ -247,6 +258,17 @@ All times are UTC. Outputs `TimeRange` objects with `start`/`end` datetimes.
 - **Auto-generation**: `scripts/generate_mission_data.py` queries CDAWeb HAPI to populate parameters, dates, descriptions. Use `--create-new` to create skeleton JSON files for new missions.
 - **Loader**: `knowledge/mission_loader.py` provides lazy-loading cache, routing table, and dataset access.
 
+### Session Persistence (`agent/session.py`)
+- `SessionManager` saves and restores chat history + DataStore across process restarts
+- Storage layout: `~/.helio-agent/sessions/{session_id}/` with `metadata.json`, `history.json`, and `data/*.pkl`
+- Auto-save after every turn in `process_message()` — survives crashes
+- DataStore persistence uses `save_to_directory()` / `load_from_directory()` with pickle + `_index.json`
+- Chat history round-trips via `Content.model_dump(exclude_none=True)` → JSON → `chats.create(history=...)`
+- CLI flags: `--continue` / `-c` (resume latest), `--session` / `-s ID` (resume specific)
+- CLI command: `sessions` — list saved sessions
+- Gradio: Sessions accordion in sidebar with Load / New / Delete buttons
+- Sub-agent state not persisted (fresh chats per request); PlotlyRenderer resets on load (user can re-plot)
+
 ### Auto-Clamping Time Ranges
 - `_validate_time_range()` in `agent/core.py` auto-adjusts requested time ranges to fit dataset availability windows
 - Handles partial overlaps (clamps to available range) and full mismatches (informs user of available range)
@@ -265,6 +287,7 @@ All times are UTC. Outputs `TimeRange` objects with `start`/`end` datetimes.
 - `google_search` tool provides web search via Google Search grounding API
 - Implemented as a custom function tool that makes an isolated Gemini API call with only GoogleSearch configured (Gemini API does not support google_search + function_declarations in the same call)
 - Returns grounded text with source URLs
+- Search results can be turned into plottable datasets via the `store_dataframe` tool (google_search → delegate_to_data_ops → store_dataframe → plot)
 
 ## Configuration
 
@@ -278,8 +301,10 @@ GEMINI_SUB_AGENT_MODEL=<optional, default: gemini-3-flash-preview>
 ## Running
 
 ```bash
-python main.py              # Normal mode
+python main.py              # Normal mode (auto-saves session)
 python main.py --verbose    # Show tool calls, timing, errors
+python main.py --continue   # Resume most recent session
+python main.py --session ID # Resume specific session by ID
 python main.py -m MODEL     # Specify Gemini model (overrides .env)
 python main.py "request"    # Single-command mode (non-interactive, exits after response)
 ```
@@ -301,11 +326,12 @@ Displays interactive Plotly figures inline, data table sidebar, and token usage 
 | Command | Description |
 |---------|-------------|
 | `quit` / `exit` | Exit the program |
-| `reset` | Clear conversation history |
+| `reset` | Clear conversation history (starts new session) |
 | `status` | Show current multi-step plan progress |
 | `retry` | Retry the first failed task in current plan |
 | `cancel` | Cancel current plan, skip remaining tasks |
 | `errors` | Show recent error from log files |
+| `sessions` | List saved sessions (most recent 10) |
 | `capabilities` / `caps` | Show detailed capability summary |
 | `help` | Show welcome message and help |
 
@@ -321,7 +347,8 @@ Displays interactive Plotly figures inline, data table sidebar, and token usage 
 
 ```bash
 python -m pytest tests/test_store.py tests/test_custom_ops.py   # Data ops tests
-python -m pytest tests/                                          # All tests (660 tests)
+python -m pytest tests/test_session.py                           # Session persistence tests
+python -m pytest tests/                                          # All tests (675 tests)
 ```
 
 ## Dependencies
@@ -336,5 +363,6 @@ plotly>=5.18.0          # Interactive scientific data visualization
 kaleido>=0.2.1          # Static image export for Plotly (PNG, PDF)
 gradio>=4.44.0          # Browser-based chat UI
 matplotlib>=3.7.0       # Legacy plotting (unused in main pipeline)
+markitdown[all]>=0.1.0  # Document-to-Markdown conversion (PDF, DOCX, PPTX, etc.)
 pytest>=7.0.0           # Test framework
 ```

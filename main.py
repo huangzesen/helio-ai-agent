@@ -5,8 +5,10 @@ Helio AI Agent - Main Entry Point
 Run this to start an interactive conversation with the heliophysics data agent.
 
 Usage:
-    python main.py           # Normal mode
-    python main.py --verbose # Show tool execution details
+    python main.py              # Normal mode
+    python main.py --verbose    # Show tool execution details
+    python main.py --continue   # Resume most recent session
+    python main.py --session ID # Resume specific session
 
 Commands:
     status       - Show current plan progress
@@ -14,6 +16,7 @@ Commands:
     cancel       - Cancel the current plan
     errors       - Show recent errors from logs
     capabilities - Show detailed capability summary
+    sessions     - List saved sessions
     reset        - Clear conversation history
     help         - Show help message
     quit         - Exit the program
@@ -69,7 +72,7 @@ def print_welcome():
     print("  'Compare Wind and ACE magnetic field for January 2024'")
     print()
     print("Commands: quit, reset, status, retry, cancel, errors,")
-    print("          capabilities, help")
+    print("          capabilities, sessions, help")
     print("-" * 60)
     print()
 
@@ -147,6 +150,17 @@ def main():
         help="Gemini model name (default: GEMINI_MODEL from .env)",
     )
     parser.add_argument(
+        "--continue", "-c",
+        dest="resume_latest",
+        action="store_true",
+        help="Resume the most recent session",
+    )
+    parser.add_argument(
+        "--session", "-s",
+        default=None,
+        help="Resume a specific session by ID",
+    )
+    parser.add_argument(
         "command",
         nargs="?",
         default=None,
@@ -198,6 +212,47 @@ def main():
         print("GUI Mode: Plot window will appear when plotting.")
 
     print(f"Model: {agent.model_name}")
+
+    # Session setup
+    if args.session:
+        try:
+            meta = agent.load_session(args.session)
+            turns = meta.get("turn_count", 0)
+            preview = meta.get("last_message_preview", "")
+            from data_ops.store import get_store
+            data_count = len(get_store())
+            print(f"Resumed session: {args.session}")
+            print(f"  {turns} turns, {data_count} data entries in memory")
+            if preview:
+                print(f"  Last message: {preview}")
+        except FileNotFoundError:
+            print(f"Session not found: {args.session}")
+            print("Starting new session.")
+            agent.start_session()
+    elif args.resume_latest:
+        from agent.session import SessionManager
+        sm = SessionManager()
+        latest = sm.get_most_recent_session()
+        if latest:
+            try:
+                meta = agent.load_session(latest)
+                turns = meta.get("turn_count", 0)
+                preview = meta.get("last_message_preview", "")
+                from data_ops.store import get_store
+                data_count = len(get_store())
+                print(f"Resumed session: {latest}")
+                print(f"  {turns} turns, {data_count} data entries in memory")
+                if preview:
+                    print(f"  Last message: {preview}")
+            except Exception as e:
+                print(f"Could not resume session: {e}")
+                print("Starting new session.")
+                agent.start_session()
+        else:
+            print("No previous sessions found. Starting new session.")
+            agent.start_session()
+    else:
+        agent.start_session()
     print()
 
     # Check for incomplete plans from previous sessions
@@ -256,6 +311,26 @@ def main():
 
             if user_input.lower() in ("capabilities", "caps"):
                 print_capabilities()
+                continue
+
+            if user_input.lower() == "sessions":
+                from agent.session import SessionManager
+                sm = SessionManager()
+                sessions = sm.list_sessions()[:10]
+                if not sessions:
+                    print("No saved sessions.")
+                else:
+                    print(f"Saved sessions (most recent {len(sessions)}):")
+                    for s in sessions:
+                        sid = s["id"]
+                        turns = s.get("turn_count", 0)
+                        preview = s.get("last_message_preview", "")[:40]
+                        updated = s.get("updated_at", "")[:19]
+                        current = " (current)" if sid == agent.get_session_id() else ""
+                        print(f"  {sid}  {turns} turns  {updated}  {preview}{current}")
+                    print()
+                    print("Resume with: python main.py --session <ID>")
+                print()
                 continue
 
             # Process the message

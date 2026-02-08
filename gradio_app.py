@@ -18,6 +18,7 @@ import logging
 import sys
 import threading
 from datetime import datetime, timedelta, timezone
+from pathlib import Path
 
 import gradio as gr
 import pandas as pd
@@ -177,7 +178,7 @@ def _on_dataset_change(dataset_id: str):
 def _on_fetch_click(mission, dataset, param, start_time, end_time, history):
     """Directly fetch HAPI data into the store, then notify the agent."""
     if not dataset or not param:
-        return history, gr.skip(), gr.skip(), gr.skip(), "", gr.skip(), gr.skip(), gr.skip()
+        return history, gr.skip(), gr.skip(), gr.skip(), gr.skip(), gr.skip(), gr.skip(), gr.skip()
 
     from data_ops.fetch import fetch_hapi_data
     from data_ops.store import get_store, DataEntry
@@ -199,7 +200,7 @@ def _on_fetch_click(mission, dataset, param, start_time, end_time, history):
         history = history + [
             {"role": "assistant", "content": error_msg},
         ]
-        return history, gr.skip(), gr.skip(), gr.skip(), "", gr.skip(), gr.skip(), gr.skip()
+        return history, gr.skip(), gr.skip(), gr.skip(), gr.skip(), gr.skip(), gr.skip(), gr.skip()
 
     label = f"{dataset}.{param}"
     entry = DataEntry(
@@ -241,7 +242,7 @@ def _on_fetch_click(mission, dataset, param, start_time, end_time, history):
     preview = _preview_data(selected) if selected else None
 
     return (
-        history, fig, data_rows, token_text, "",
+        history, fig, data_rows, token_text, None,
         gr.update(choices=label_choices, value=selected),
         preview,
         "",
@@ -277,6 +278,112 @@ def _preview_data(label: str) -> list[list] | None:
 
 
 # ---------------------------------------------------------------------------
+# Session management helpers
+# ---------------------------------------------------------------------------
+
+def _get_session_choices() -> list[tuple[str, str]]:
+    """Return dropdown choices for saved sessions: (display_label, session_id)."""
+    from agent.session import SessionManager
+    sm = SessionManager()
+    sessions = sm.list_sessions()[:20]
+    choices = []
+    for s in sessions:
+        turns = s.get("turn_count", 0)
+        preview = s.get("last_message_preview", "")[:30]
+        updated = s.get("updated_at", "")[:16].replace("T", " ")
+        label = f"{updated} ({turns} turns) {preview}"
+        choices.append((label, s["id"]))
+    return choices
+
+
+def _extract_display_history(contents: list[dict]) -> list[dict]:
+    """Convert Gemini Content dicts into Gradio chatbot messages.
+
+    Skips entries that only contain function_call or function_response parts
+    (no user-facing text).
+    """
+    messages = []
+    for content in contents:
+        role = content.get("role", "")
+        if role not in ("user", "model"):
+            continue
+        gradio_role = "user" if role == "user" else "assistant"
+
+        # Extract text from parts
+        parts = content.get("parts", [])
+        text_parts = []
+        for p in parts:
+            if isinstance(p, dict):
+                if "text" in p and p["text"]:
+                    text_parts.append(p["text"])
+            elif isinstance(p, str):
+                text_parts.append(p)
+
+        if not text_parts:
+            continue
+
+        messages.append({"role": gradio_role, "content": "\n".join(text_parts)})
+    return messages
+
+
+def _on_load_session(session_id: str):
+    """Load a saved session and restore chat + data."""
+    if not session_id or _agent is None:
+        return gr.skip(), gr.skip(), gr.skip(), gr.skip(), gr.skip(), gr.skip(), gr.skip()
+
+    try:
+        meta = _agent.load_session(session_id)
+    except Exception as e:
+        return gr.skip(), gr.skip(), gr.skip(), gr.skip(), gr.skip(), gr.skip(), gr.skip()
+
+    # Reconstruct display history from saved Content dicts
+    history_dicts, _, _ = _agent._session_manager.load_session(session_id)
+    display = _extract_display_history(history_dicts)
+
+    fig = _get_current_figure()
+    data_rows = _build_data_table()
+    token_text = _format_tokens()
+    label_choices = _get_label_choices()
+    selected = label_choices[-1] if label_choices else None
+    preview = _preview_data(selected) if selected else None
+
+    return (
+        display, fig, data_rows, token_text,
+        gr.update(choices=label_choices, value=selected),
+        preview,
+        gr.update(choices=_get_session_choices(), value=session_id),
+    )
+
+
+def _on_new_session():
+    """Start a fresh session (reset + create new)."""
+    if _agent is not None:
+        _agent.reset()
+
+    from data_ops.store import get_store
+    get_store().clear()
+
+    return (
+        [], None, [], "*New session started*", None,
+        gr.update(choices=[], value=None), None,
+        gr.update(choices=_get_session_choices(), value=_agent.get_session_id() if _agent else None),
+    )
+
+
+def _on_delete_session(session_id: str):
+    """Delete a saved session."""
+    if not session_id:
+        return gr.update(choices=_get_session_choices())
+    from agent.session import SessionManager
+    sm = SessionManager()
+    # Don't delete the currently active session
+    if _agent and session_id == _agent.get_session_id():
+        return gr.update(choices=_get_session_choices(), value=session_id)
+    sm.delete_session(session_id)
+    return gr.update(choices=_get_session_choices(), value=None)
+
+
+# ---------------------------------------------------------------------------
 # Core response function
 # ---------------------------------------------------------------------------
 
@@ -292,8 +399,11 @@ class _ListHandler(logging.Handler):
         self._target.append(self.format(record))
 
 
-def respond(message: str, history: list[dict]):
+def respond(message, history: list[dict]):
     """Process a user message, streaming live progress in verbose mode.
+
+    ``message`` may be a plain string (text-only) or a dict from
+    ``gr.MultimodalTextbox`` with ``{"text": ..., "files": [...]}``.
 
     This is a *generator* — Gradio calls it repeatedly, and each ``yield``
     pushes an incremental UI update to the browser.
@@ -302,12 +412,40 @@ def respond(message: str, history: list[dict]):
         Tuple of (history, plotly_figure, data_table, token_text, textbox_value,
                   label_dropdown_update, preview_data, verbose_state).
     """
-    if not message.strip():
-        yield history, gr.skip(), gr.skip(), gr.skip(), "", gr.skip(), gr.skip(), gr.skip()
+    # Extract text and files from multimodal input
+    if isinstance(message, dict):
+        text = (message.get("text") or "").strip()
+        files = message.get("files") or []
+    else:
+        text = str(message).strip()
+        files = []
+
+    # Build message for the agent: text + file path references
+    parts = []
+    if text:
+        parts.append(text)
+    for f in files:
+        path = f if isinstance(f, str) else (f.get("path", "") if isinstance(f, dict) else str(f))
+        name = Path(path).name if path else "unknown"
+        parts.append(f"[Uploaded file: {name} — path: {path}]")
+
+    agent_message = "\n".join(parts)
+    if not agent_message:
+        yield history, gr.skip(), gr.skip(), gr.skip(), None, gr.skip(), gr.skip(), gr.skip()
         return
 
+    # Display user message with file indicators
+    display_parts = []
+    if text:
+        display_parts.append(text)
+    for f in files:
+        path = f if isinstance(f, str) else (f.get("path", "") if isinstance(f, dict) else str(f))
+        name = Path(path).name if path else "unknown"
+        display_parts.append(f"Uploaded: {name}")
+
     # Append user message
-    history = history + [{"role": "user", "content": message}]
+    message = agent_message  # used by the agent below
+    history = history + [{"role": "user", "content": "\n".join(display_parts)}]
 
     if not _verbose:
         # Non-verbose: simple blocking call, no streaming
@@ -323,7 +461,7 @@ def respond(message: str, history: list[dict]):
         selected = label_choices[-1] if label_choices else None
         preview = _preview_data(selected) if selected else None
         yield (
-            history, fig, data_rows, token_text, "",
+            history, fig, data_rows, token_text, None,
             gr.update(choices=label_choices, value=selected),
             preview, "",
         )
@@ -403,7 +541,7 @@ def respond(message: str, history: list[dict]):
     preview = _preview_data(selected) if selected else None
 
     yield (
-        history, fig, data_rows, token_text, "",
+        history, fig, data_rows, token_text, None,
         gr.update(choices=label_choices, value=selected),
         preview, "",
     )
@@ -417,7 +555,7 @@ def reset_session() -> tuple:
     from data_ops.store import get_store
     get_store().clear()
 
-    return [], None, [], "*Session reset*", "", gr.update(choices=[], value=None), None, ""
+    return [], None, [], "*Session reset*", None, gr.update(choices=[], value=None), None, ""
 
 
 # ---------------------------------------------------------------------------
@@ -425,14 +563,14 @@ def reset_session() -> tuple:
 # ---------------------------------------------------------------------------
 
 EXAMPLES = [
-    "What spacecraft data is available?",
-    "Show me ACE magnetic field data for last week",
-    "Plot Solar Orbiter proton density for January 2024",
-    "Fetch Wind magnetic field and compute the magnitude",
-    "Compare ACE and Wind magnetic field magnitude for 2024-01-10 to 2024-01-17",
-    "Zoom in to January 12-14",
-    "Describe the data",
-    "Export the plot as a PNG",
+    {"text": "What spacecraft data is available?"},
+    {"text": "Show me ACE magnetic field data for last week"},
+    {"text": "Plot Solar Orbiter proton density for January 2024"},
+    {"text": "Fetch Wind magnetic field and compute the magnitude"},
+    {"text": "Compare ACE and Wind magnetic field magnitude for 2024-01-10 to 2024-01-17"},
+    {"text": "Zoom in to January 12-14"},
+    {"text": "Describe the data"},
+    {"text": "Export the plot as a PNG"},
 ]
 
 
@@ -465,14 +603,17 @@ def create_app() -> gr.Blocks:
                         "\"Show me ACE magnetic field data for last week\""
                     ),
                 )
-                with gr.Row():
-                    msg_input = gr.Textbox(
-                        placeholder="Type your message...",
-                        show_label=False,
-                        scale=5,
-                        container=False,
-                    )
-                    send_btn = gr.Button("Send", variant="primary", scale=1)
+                msg_input = gr.MultimodalTextbox(
+                    placeholder="Type your message or drop a file...",
+                    show_label=False,
+                    file_count="multiple",
+                    file_types=[".pdf", ".docx", ".pptx", ".xlsx", ".xls",
+                                ".html", ".csv", ".json", ".xml", ".zip",
+                                ".jpg", ".jpeg", ".png", ".gif", ".bmp",
+                                ".epub", ".txt", ".md"],
+                    submit_btn="Send",
+                    stop_btn=False,
+                )
 
                 gr.Examples(
                     examples=EXAMPLES,
@@ -541,6 +682,16 @@ def create_app() -> gr.Blocks:
                     value="*No API calls yet*",
                     label="Token Usage",
                 )
+                with gr.Accordion("Sessions", open=False):
+                    session_dropdown = gr.Dropdown(
+                        label="Saved Sessions",
+                        choices=_get_session_choices(),
+                        interactive=True,
+                    )
+                    with gr.Row():
+                        load_session_btn = gr.Button("Load", size="sm")
+                        new_session_btn = gr.Button("New", size="sm")
+                        delete_session_btn = gr.Button("Delete", size="sm", variant="stop")
                 reset_btn = gr.Button("Reset Session", variant="secondary")
 
         verbose_output = gr.State("")  # captured text, embedded in chat
@@ -554,7 +705,6 @@ def create_app() -> gr.Blocks:
             inputs=[msg_input, chatbot],
             outputs=all_outputs,
         )
-        send_btn.click(**send_event_args)
         msg_input.submit(**send_event_args)
 
         reset_btn.click(
@@ -587,6 +737,26 @@ def create_app() -> gr.Blocks:
             outputs=all_outputs,
         )
 
+        # Session management
+        session_outputs = [chatbot, plotly_plot, data_table, token_display,
+                           label_dropdown, data_preview, session_dropdown]
+        load_session_btn.click(
+            fn=_on_load_session,
+            inputs=[session_dropdown],
+            outputs=session_outputs,
+        )
+        new_session_btn.click(
+            fn=_on_new_session,
+            inputs=[],
+            outputs=[chatbot, plotly_plot, data_table, token_display,
+                     msg_input, label_dropdown, data_preview, session_dropdown],
+        )
+        delete_session_btn.click(
+            fn=_on_delete_session,
+            inputs=[session_dropdown],
+            outputs=[session_dropdown],
+        )
+
     return app
 
 
@@ -617,6 +787,9 @@ def main():
         print("Make sure .env has GOOGLE_API_KEY set.")
         sys.exit(1)
     print(f"Agent ready (model: {_agent.model_name})")
+
+    # Start a session for auto-save
+    _agent.start_session()
 
     # Build and launch the app
     app = create_app()

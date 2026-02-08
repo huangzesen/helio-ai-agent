@@ -20,6 +20,7 @@ from .tasks import (
     get_task_store, create_task, create_plan,
 )
 from .planner import create_plan_from_request, format_plan_for_display
+from .session import SessionManager
 from .mission_agent import MissionAgent
 from .visualization_agent import VisualizationAgent
 from .data_ops_agent import DataOpsAgent
@@ -34,12 +35,12 @@ from knowledge.cdaweb_catalog import search_catalog as search_full_cdaweb_catalo
 from knowledge.hapi_client import list_parameters as hapi_list_parameters, get_dataset_time_range
 from data_ops.store import get_store, DataEntry
 from data_ops.fetch import fetch_hapi_data
-from data_ops.custom_ops import run_custom_operation
+from data_ops.custom_ops import run_custom_operation, run_dataframe_creation
 from rendering.custom_viz_ops import run_custom_visualization
 
 # Orchestrator sees discovery, conversation, and routing tools
 # (NOT data fetching or data_ops — handled by sub-agents)
-ORCHESTRATOR_CATEGORIES = ["discovery", "conversation", "routing"]
+ORCHESTRATOR_CATEGORIES = ["discovery", "conversation", "routing", "document"]
 ORCHESTRATOR_EXTRA_TOOLS = ["list_fetched_data"]
 
 DEFAULT_MODEL = GEMINI_MODEL
@@ -119,6 +120,11 @@ class OrchestratorAgent:
 
         # Cached data ops sub-agent
         self._dataops_agent: Optional[DataOpsAgent] = None
+
+        # Session persistence
+        self._session_id: Optional[str] = None
+        self._session_manager = SessionManager()
+        self._auto_save: bool = False
 
     def get_plotly_figure(self):
         """Return the current Plotly figure (or None)."""
@@ -618,6 +624,25 @@ class OrchestratorAgent:
             self.logger.debug(f"[DataOps] Custom operation -> '{tool_args['output_label']}' ({len(result_df)} points)")
             return {"status": "success", **entry.summary()}
 
+        elif tool_name == "store_dataframe":
+            try:
+                result_df = run_dataframe_creation(tool_args["pandas_code"])
+            except ValueError as e:
+                return {"status": "error", "message": f"Validation error: {e}"}
+            except RuntimeError as e:
+                return {"status": "error", "message": f"Execution error: {e}"}
+            entry = DataEntry(
+                label=tool_args["output_label"],
+                data=result_df,
+                units=tool_args.get("units", ""),
+                description=tool_args.get("description", "Created from code"),
+                source="created",
+            )
+            store = get_store()
+            store.put(entry)
+            self.logger.debug(f"[DataOps] Created DataFrame -> '{tool_args['output_label']}' ({len(result_df)} points)")
+            return {"status": "success", **entry.summary()}
+
         # --- Describe & Export Tools ---
 
         elif tool_name == "describe_data":
@@ -710,6 +735,33 @@ class OrchestratorAgent:
                 "num_columns": len(df.columns),
                 "file_size_bytes": file_size,
             }
+
+        # --- Document Conversion ---
+
+        elif tool_name == "convert_to_markdown":
+            from markitdown import MarkItDown
+            from pathlib import Path
+
+            file_path = tool_args["file_path"]
+            if not Path(file_path).is_file():
+                return {"status": "error", "message": f"File not found: {file_path}"}
+            try:
+                md = MarkItDown(enable_plugins=False)
+                result = md.convert(file_path)
+                text = result.text_content
+                max_chars = 50_000
+                truncated = len(text) > max_chars
+                if truncated:
+                    text = text[:max_chars]
+                return {
+                    "status": "success",
+                    "file": Path(file_path).name,
+                    "char_count": len(result.text_content),
+                    "truncated": truncated,
+                    "markdown": text,
+                }
+            except Exception as e:
+                return {"status": "error", "message": f"Conversion failed: {e}"}
 
         # --- Routing ---
 
@@ -1213,6 +1265,110 @@ class OrchestratorAgent:
             self.logger.debug("[Router] Created DataOps agent")
         return self._dataops_agent
 
+    # ---- Session persistence ----
+
+    def start_session(self) -> str:
+        """Create a new session and enable auto-save.
+
+        Returns:
+            The new session_id.
+        """
+        self._session_id = self._session_manager.create_session(self.model_name)
+        self._auto_save = True
+        self.logger.debug(f"[Session] Started: {self._session_id}")
+        return self._session_id
+
+    def save_session(self) -> None:
+        """Persist the current chat history and DataStore to disk."""
+        if not self._session_id:
+            return
+        try:
+            history_dicts = [
+                content.model_dump(exclude_none=True)
+                for content in self.chat.get_history()
+            ]
+        except Exception:
+            history_dicts = []
+
+        store = get_store()
+        usage = self.get_token_usage()
+
+        # Count user turns in history
+        turn_count = sum(1 for h in history_dicts if h.get("role") == "user")
+
+        # Preview from last user message
+        last_preview = ""
+        for h in reversed(history_dicts):
+            if h.get("role") == "user":
+                parts = h.get("parts", [])
+                for p in parts:
+                    text = p.get("text", "") if isinstance(p, dict) else ""
+                    if text:
+                        last_preview = text[:80]
+                        break
+                if last_preview:
+                    break
+
+        self._session_manager.save_session(
+            session_id=self._session_id,
+            chat_history=history_dicts,
+            data_store=store,
+            metadata_updates={
+                "turn_count": turn_count,
+                "last_message_preview": last_preview,
+                "token_usage": usage,
+                "model": self.model_name,
+            },
+        )
+        self.logger.debug(f"[Session] Saved ({turn_count} turns, {len(store)} data entries)")
+
+    def load_session(self, session_id: str) -> dict:
+        """Restore chat history and DataStore from a saved session.
+
+        Args:
+            session_id: The session to load.
+
+        Returns:
+            The session metadata dict.
+        """
+        history_dicts, data_dir, metadata = self._session_manager.load_session(session_id)
+
+        # Restore chat with saved history
+        if history_dicts:
+            self.chat = self.client.chats.create(
+                model=self.model_name,
+                config=self.config,
+                history=history_dicts,
+            )
+        else:
+            self.chat = self.client.chats.create(
+                model=self.model_name,
+                config=self.config,
+            )
+
+        # Restore DataStore
+        store = get_store()
+        store.clear()
+        if data_dir.exists():
+            count = store.load_from_directory(data_dir)
+            self.logger.debug(f"[Session] Restored {count} data entries")
+
+        # Clear sub-agent caches (they'll be recreated on next use)
+        self._mission_agents.clear()
+        self._viz_agent = None
+        self._dataops_agent = None
+        self._renderer.reset()
+
+        self._session_id = session_id
+        self._auto_save = True
+
+        self.logger.debug(f"[Session] Loaded: {session_id}")
+        return metadata
+
+    def get_session_id(self) -> Optional[str]:
+        """Return the current session ID, or None."""
+        return self._session_id
+
     def process_message(self, user_message: str) -> str:
         """Process a user message and return the agent's response.
 
@@ -1222,7 +1378,16 @@ class OrchestratorAgent:
         - Direct tool calls for discovery, data ops
         - Text response for greetings, questions, summaries
         """
-        return self._process_single_message(user_message)
+        result = self._process_single_message(user_message)
+
+        # Auto-save after each turn
+        if self._auto_save and self._session_id:
+            try:
+                self.save_session()
+            except Exception as e:
+                self.logger.warning(f"Auto-save failed: {e}")
+
+        return result
 
     def reset(self):
         """Reset conversation history, mission agent cache, and sub-agents."""
@@ -1235,6 +1400,11 @@ class OrchestratorAgent:
         self._viz_agent = None
         self._dataops_agent = None
         self._renderer.reset()
+
+        # Start a fresh session if auto-save was active
+        if self._auto_save:
+            self._session_id = self._session_manager.create_session(self.model_name)
+            self.logger.debug(f"[Session] New session after reset: {self._session_id}")
 
     def get_current_plan(self) -> Optional[TaskPlan]:
         """Get the currently executing plan, if any."""

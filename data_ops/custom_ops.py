@@ -173,3 +173,85 @@ def run_custom_operation(df: pd.DataFrame, code: str) -> pd.DataFrame:
             "Code validation failed:\n" + "\n".join(f"  - {v}" for v in violations)
         )
     return execute_custom_operation(df, code)
+
+
+def execute_dataframe_creation(code: str) -> pd.DataFrame:
+    """Execute validated pandas code to create a DataFrame from scratch.
+
+    Unlike execute_custom_operation(), there is no input DataFrame — the code
+    constructs data using pd and np only.  Used by the store_dataframe tool to
+    turn text data (event catalogs, search results) into stored DataFrames.
+
+    Args:
+        code: Validated Python code that assigns to 'result'.
+
+    Returns:
+        Result DataFrame with DatetimeIndex.
+
+    Raises:
+        RuntimeError: If code execution fails.
+        ValueError: If result is not a DataFrame/Series or lacks DatetimeIndex.
+    """
+    import gc
+
+    namespace = {
+        "pd": pd,
+        "np": np,
+        "result": None,
+    }
+
+    safe_builtins = {name: getattr(builtins, name) for name in _SAFE_BUILTINS if hasattr(builtins, name)}
+
+    try:
+        exec(code, {"__builtins__": safe_builtins}, namespace)
+    except Exception as e:
+        raise RuntimeError(f"Execution error: {type(e).__name__}: {e}") from e
+
+    result = namespace.get("result")
+
+    del namespace
+    gc.collect()
+
+    if result is None:
+        raise ValueError("Code did not assign a value to 'result'")
+
+    # Convert Series to DataFrame
+    if isinstance(result, pd.Series):
+        result = result.to_frame(name="value")
+
+    if not isinstance(result, pd.DataFrame):
+        raise ValueError(
+            f"Result must be a DataFrame or Series, got {type(result).__name__}"
+        )
+
+    if not isinstance(result.index, pd.DatetimeIndex):
+        raise ValueError(
+            "Result must have a DatetimeIndex (time axis). "
+            "Use pd.to_datetime() on your date column and .set_index() to create one. "
+            "Example: df = df.set_index(pd.to_datetime(df['date']))"
+        )
+
+    return result
+
+
+def run_dataframe_creation(code: str) -> pd.DataFrame:
+    """Validate and execute code that creates a DataFrame from scratch.
+
+    Convenience function that combines validation and execution.
+
+    Args:
+        code: Python code that constructs data using pd/np and assigns to 'result'.
+
+    Returns:
+        Result DataFrame.
+
+    Raises:
+        ValueError: If validation fails or result is invalid.
+        RuntimeError: If execution fails.
+    """
+    violations = validate_pandas_code(code)
+    if violations:
+        raise ValueError(
+            "Code validation failed:\n" + "\n".join(f"  - {v}" for v in violations)
+        )
+    return execute_dataframe_creation(code)

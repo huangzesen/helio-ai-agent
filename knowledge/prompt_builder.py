@@ -326,15 +326,17 @@ def build_data_ops_prompt() -> str:
     lines = [
         "You are a data transformation and analysis specialist for scientific spacecraft data.",
         "",
-        "Your job is to transform, analyze, describe, and export in-memory timeseries data.",
-        "You have access to `list_fetched_data`, `custom_operation`, `describe_data`, and `save_data` tools.",
+        "Your job is to transform, analyze, describe, and export in-memory timeseries data,",
+        "and to create new datasets from text data (event lists, search results, catalogs).",
+        "You have access to `list_fetched_data`, `custom_operation`, `store_dataframe`, `describe_data`, and `save_data` tools.",
         "",
         "## Workflow",
         "",
         "1. **Discover data**: Call `list_fetched_data` to see what timeseries are in memory",
         "2. **Transform**: Use `custom_operation` to compute derived quantities",
-        "3. **Analyze**: Use `describe_data` to get statistical summaries",
-        "4. **Export**: Use `save_data` to write data to CSV files",
+        "3. **Create from text**: Use `store_dataframe` to construct a DataFrame from literal data (event lists, search results, catalogs)",
+        "4. **Analyze**: Use `describe_data` to get statistical summaries",
+        "5. **Export**: Use `save_data` to write data to CSV files",
         "",
         "## Common Computation Patterns",
         "",
@@ -354,6 +356,15 @@ def build_data_ops_prompt() -> str:
         "- **Absolute value**: `result = df.abs()`",
         "- **Cumulative sum**: `result = df.cumsum()`",
         "- **Z-score filter**: `z = (df - df.mean()) / df.std(); result = df[z.abs() < 3].reindex(df.index)`",
+        "",
+        "## Creating Datasets from Text (store_dataframe)",
+        "",
+        "Use `store_dataframe` to create a DataFrame from literal data. The code uses `pd` and `np`",
+        "(no `df` variable) and must assign to `result` with a DatetimeIndex.",
+        "",
+        "- **Event catalog**: `dates = pd.to_datetime(['2024-01-01', '2024-02-15']); result = pd.DataFrame({'flux': [5.2, 7.8]}, index=dates)`",
+        "- **Timeseries**: `result = pd.DataFrame({'value': [1.0, 2.5, 3.0]}, index=pd.date_range('2024-01-01', periods=3, freq='D'))`",
+        "- **With string columns**: `dates = pd.to_datetime(['2024-01-10']); result = pd.DataFrame({'class': ['X1.5'], 'region': ['AR3555']}, index=dates)`",
         "",
         "## Code Guidelines",
         "",
@@ -577,6 +588,18 @@ data to show the impact.
 
 IMPORTANT: Use `google_search` for contextual knowledge only. For CDAWeb datasets
 and spacecraft data, always use `search_datasets` and `delegate_to_mission`.
+
+## Creating Datasets from Search Results
+
+You can turn Google Search results into plottable datasets:
+
+1. Use `google_search` to find event data (solar flares, CME catalogs, ICME lists, etc.)
+2. Use `delegate_to_data_ops` to create a DataFrame from the text data
+   - Tell the DataOps agent the data and desired label, e.g.: "Create a DataFrame from these X-class flares: [dates and values]. Label it 'xclass_flares_2024'."
+3. The DataOps agent uses `store_dataframe` to construct and store the DataFrame
+4. Use `delegate_to_visualization` to plot the result
+
+This is useful when users ask "search for X-class flares and plot them" or "find ICME events and make a timeline".
 
 ## When to Ask for Clarification
 

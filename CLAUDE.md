@@ -48,11 +48,14 @@ pip install -r requirements.txt
 #   ./venv/Scripts/python.exe main.py
 
 # Run the agent
-python main.py                 # Normal mode
+python main.py                 # Normal mode (auto-saves session)
 python main.py --verbose       # Show tool calls, timing, errors
+python main.py --continue      # Resume most recent session
+python main.py --session ID    # Resume specific session by ID
 
 # Unit tests (fast, no API key needed)
 python -m pytest tests/test_store.py tests/test_custom_ops.py  # Data ops tests
+python -m pytest tests/test_session.py                          # Session persistence tests
 python -m pytest tests/                                         # All tests
 ```
 

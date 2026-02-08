@@ -12,6 +12,8 @@ from data_ops.custom_ops import (
     validate_pandas_code,
     execute_custom_operation,
     run_custom_operation,
+    execute_dataframe_creation,
+    run_dataframe_creation,
 )
 
 
@@ -304,3 +306,88 @@ class TestReplaceHardcodedOps:
         code = "dv = df.diff().iloc[1:]\ndt_s = df.index.to_series().diff().dt.total_seconds().iloc[1:]\nresult = dv.div(dt_s, axis=0)"
         result = run_custom_operation(df, code)
         np.testing.assert_allclose(result.values.squeeze(), [1.0, 2.0])
+
+
+# ── DataFrame Creation Tests ─────────────────────────────────────────────────
+
+
+class TestExecuteDataframeCreation:
+    def test_simple_creation_with_date_range(self):
+        code = "result = pd.DataFrame({'value': [1.0, 2.0, 3.0]}, index=pd.date_range('2024-01-01', periods=3, freq='D'))"
+        result = execute_dataframe_creation(code)
+        assert isinstance(result, pd.DataFrame)
+        assert isinstance(result.index, pd.DatetimeIndex)
+        assert len(result) == 3
+        np.testing.assert_allclose(result["value"].values, [1.0, 2.0, 3.0])
+
+    def test_event_catalog_from_string_dates(self):
+        code = (
+            "dates = pd.to_datetime(['2024-01-01', '2024-02-15', '2024-05-10'])\n"
+            "result = pd.DataFrame({'flux': [5.2, 7.8, 6.1]}, index=dates)"
+        )
+        result = execute_dataframe_creation(code)
+        assert len(result) == 3
+        assert "flux" in result.columns
+        assert isinstance(result.index, pd.DatetimeIndex)
+
+    def test_no_result_assignment_error(self):
+        with pytest.raises(ValueError, match="did not assign"):
+            execute_dataframe_creation("x = pd.DataFrame({'a': [1]})")
+
+    def test_non_dataframe_result_error(self):
+        with pytest.raises(ValueError, match="DataFrame or Series"):
+            execute_dataframe_creation("result = 42")
+
+    def test_missing_datetime_index_error(self):
+        with pytest.raises(ValueError, match="DatetimeIndex"):
+            execute_dataframe_creation("result = pd.DataFrame({'a': [1, 2, 3]})")
+
+    def test_series_auto_converted_to_dataframe(self):
+        code = "result = pd.Series([1.0, 2.0], index=pd.date_range('2024-01-01', periods=2, freq='D'))"
+        result = execute_dataframe_creation(code)
+        assert isinstance(result, pd.DataFrame)
+        assert "value" in result.columns
+
+    def test_no_df_in_namespace(self):
+        """Attempting to use `df` should raise a RuntimeError since it's not provided."""
+        with pytest.raises(RuntimeError, match="Execution error"):
+            execute_dataframe_creation("result = df * 2")
+
+    def test_string_columns_preserved(self):
+        code = (
+            "dates = pd.to_datetime(['2024-01-10', '2024-03-22'])\n"
+            "result = pd.DataFrame({'class': ['X1.5', 'X2.1'], 'region': ['AR3555', 'AR3590']}, index=dates)"
+        )
+        result = execute_dataframe_creation(code)
+        assert list(result.columns) == ["class", "region"]
+        assert result.iloc[0]["class"] == "X1.5"
+        assert result.iloc[1]["region"] == "AR3590"
+
+    def test_numpy_operations(self):
+        code = "result = pd.DataFrame({'sin': np.sin(np.linspace(0, 2*np.pi, 10))}, index=pd.date_range('2024-01-01', periods=10, freq='h'))"
+        result = execute_dataframe_creation(code)
+        assert len(result) == 10
+
+    def test_runtime_error(self):
+        with pytest.raises(RuntimeError, match="Execution error"):
+            execute_dataframe_creation("result = pd.DataFrame(undefined_var)")
+
+
+class TestRunDataframeCreation:
+    def test_end_to_end_success(self):
+        code = "result = pd.DataFrame({'v': [10.0, 20.0]}, index=pd.date_range('2024-06-01', periods=2, freq='D'))"
+        result = run_dataframe_creation(code)
+        assert isinstance(result, pd.DataFrame)
+        assert len(result) == 2
+
+    def test_validation_rejects_imports(self):
+        with pytest.raises(ValueError, match="validation failed"):
+            run_dataframe_creation("import os\nresult = pd.DataFrame()")
+
+    def test_validation_rejects_no_result(self):
+        with pytest.raises(ValueError, match="validation failed"):
+            run_dataframe_creation("x = pd.DataFrame()")
+
+    def test_missing_datetime_index_propagates(self):
+        with pytest.raises(ValueError, match="DatetimeIndex"):
+            run_dataframe_creation("result = pd.DataFrame({'a': [1]})")

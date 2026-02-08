@@ -233,6 +233,59 @@ Do NOT call this tool when the request cannot be expressed as a pandas/numpy ope
         }
     },
 
+    {
+        "category": "data_ops_compute",
+        "name": "store_dataframe",
+        "description": """Create a new DataFrame from scratch and store it in memory. Use this when:
+- You have text data (event lists, search results, catalogs) that should become a plottable dataset
+- The user wants to manually define data points (e.g., from a table in a paper or website)
+- You need to create a dataset that doesn't come from CDAWeb HAPI
+
+The pandas_code must:
+- Use only `pd` (pandas) and `np` (numpy) — no imports, no file I/O, no `df` variable
+- Assign the result to `result` (must be a DataFrame or Series with DatetimeIndex)
+- Create a DatetimeIndex from dates using pd.to_datetime() and .set_index()
+
+Examples:
+- Event catalog:
+  ```
+  dates = ['2024-01-01', '2024-02-15', '2024-05-10']
+  values = [5.2, 7.8, 6.1]
+  result = pd.DataFrame({'x_class_flux': values}, index=pd.to_datetime(dates))
+  ```
+- Numeric timeseries:
+  ```
+  result = pd.DataFrame({'value': [1.0, 2.5, 3.0]}, index=pd.date_range('2024-01-01', periods=3, freq='D'))
+  ```
+- Event catalog with string columns:
+  ```
+  dates = pd.to_datetime(['2024-01-10', '2024-03-22'])
+  result = pd.DataFrame({'class': ['X1.5', 'X2.1'], 'region': ['AR3555', 'AR3590']}, index=dates)
+  ```""",
+        "parameters": {
+            "type": "object",
+            "properties": {
+                "pandas_code": {
+                    "type": "string",
+                    "description": "Python code using pd (pandas) and np (numpy) that constructs data and assigns to 'result'. Must produce a DataFrame with DatetimeIndex."
+                },
+                "output_label": {
+                    "type": "string",
+                    "description": "Label for the stored dataset (e.g., 'xclass_flares_2024', 'cme_catalog')"
+                },
+                "description": {
+                    "type": "string",
+                    "description": "Human-readable description of the dataset"
+                },
+                "units": {
+                    "type": "string",
+                    "description": "Optional units for the data columns (e.g., 'W/m²', 'km/s')"
+                }
+            },
+            "required": ["pandas_code", "output_label", "description"]
+        }
+    },
+
     # --- Describe & Export Tools ---
     {
         "category": "data_ops_compute",
@@ -393,6 +446,28 @@ Returns grounded text with source URLs.""",
         }
     },
 
+    # --- Document Conversion ---
+    {
+        "category": "document",
+        "name": "convert_to_markdown",
+        "description": """Convert a file to Markdown text. Supports PDF, Word (DOCX), PowerPoint (PPTX),
+Excel (XLSX), HTML, CSV, JSON, XML, images (with EXIF), and ZIP archives. Use this when:
+- User uploads or references a document file
+- User wants to read, summarize, or extract content from a file
+- User asks questions about a document's contents
+Returns the file content converted to Markdown format.""",
+        "parameters": {
+            "type": "object",
+            "properties": {
+                "file_path": {
+                    "type": "string",
+                    "description": "Absolute path to the file to convert"
+                }
+            },
+            "required": ["file_path"]
+        }
+    },
+
     # --- Routing ---
     {
         "category": "routing",
@@ -459,6 +534,7 @@ The specialist has access to all visualization methods and can see what data is 
 - The user wants to compute derived quantities (magnitude, smoothing, resampling, derivatives, etc.)
 - The user wants statistical summaries (describe data)
 - The user wants to export data to CSV
+- The user wants to create a dataset from text data (event lists, search results, catalogs)
 
 Do NOT delegate:
 - Data fetching (use delegate_to_mission — fetching requires mission-specific knowledge)
