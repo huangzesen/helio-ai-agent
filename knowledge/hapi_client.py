@@ -335,7 +335,7 @@ def _fetch_notes_section(resource_url: str, dataset_id: str) -> Optional[str]:
             resp = requests.get(base_url, timeout=30)
             resp.raise_for_status()
             _notes_cache[base_url] = resp.text
-        except requests.RequestException:
+        except Exception:
             return None
 
     html = _notes_cache[base_url]
@@ -385,7 +385,7 @@ def get_dataset_docs(dataset_id: str, max_chars: int = 4000) -> dict:
         info = get_dataset_info(dataset_id)
         result["contact"] = info.get("contact")
         result["resource_url"] = info.get("resourceURL")
-    except requests.RequestException:
+    except Exception:
         pass
 
     # Determine the resource URL to fetch
