@@ -339,6 +339,31 @@ Do NOT use imports — only fig, go, and np are available.""",
         }
     },
 
+    # --- Search ---
+    {
+        "category": "discovery",
+        "name": "google_search",
+        "description": """Search the web using Google Search for real-world context. Use this when:
+- User asks about solar events, flares, CMEs, geomagnetic storms, or space weather
+- User asks what happened during a specific time period
+- User wants scientific context or explanations of heliophysics phenomena
+- User asks for an ICME list, event catalog, or recent news
+
+Do NOT use this for finding CDAWeb datasets or fetching spacecraft data — use search_datasets and delegate_to_mission for that.
+
+Returns grounded text with source URLs.""",
+        "parameters": {
+            "type": "object",
+            "properties": {
+                "query": {
+                    "type": "string",
+                    "description": "The search query (e.g., 'major solar storms January 2024', 'ICME list 2024', 'X-class flare events')"
+                }
+            },
+            "required": ["query"]
+        }
+    },
+
     # --- Routing ---
     {
         "category": "routing",

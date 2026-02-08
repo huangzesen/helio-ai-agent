@@ -11,7 +11,7 @@ from typing import Optional
 from google import genai
 from google.genai import types
 
-from config import GOOGLE_API_KEY
+from config import GOOGLE_API_KEY, GEMINI_MODEL, GEMINI_SUB_AGENT_MODEL
 from .tools import get_tool_schemas
 from .prompts import get_system_prompt, format_tool_result
 from .time_utils import parse_time_range, TimeRangeError
@@ -41,8 +41,8 @@ from rendering.custom_viz_ops import run_custom_visualization
 ORCHESTRATOR_CATEGORIES = ["discovery", "conversation", "routing"]
 ORCHESTRATOR_EXTRA_TOOLS = ["list_fetched_data"]
 
-DEFAULT_MODEL = "gemini-3-pro-preview"
-SUB_AGENT_MODEL = "gemini-3-flash-preview"
+DEFAULT_MODEL = GEMINI_MODEL
+SUB_AGENT_MODEL = GEMINI_SUB_AGENT_MODEL
 
 
 class OrchestratorAgent:
@@ -77,12 +77,11 @@ class OrchestratorAgent:
             )
             function_declarations.append(fd)
 
-        # Create tool object for function calling + Google Search grounding
-        # Both must be in the SAME Tool object (separate Tool objects cause API error)
-        tool = types.Tool(
-            function_declarations=function_declarations,
-            google_search=types.GoogleSearch(),
-        )
+        # Create tool object with all function declarations
+        # Note: google_search is NOT combined here — the Gemini generateContent API
+        # does not support multi-tool use (function calling + google_search together).
+        # Instead, google_search is a custom function that makes a separate API call.
+        tool = types.Tool(function_declarations=function_declarations)
 
         # Store model name and config
         self.model_name = model or DEFAULT_MODEL
@@ -151,6 +150,53 @@ class OrchestratorAgent:
         if not sources:
             return ""
         return "\n\nSources:\n" + "\n".join(sources)
+
+    def _google_search(self, query: str) -> dict:
+        """Execute a Google Search query via a separate Gemini API call.
+
+        The generateContent API does not support combining google_search with
+        function_declarations in the same request.  This method makes an
+        isolated call with only the GoogleSearch tool so Gemini can ground its
+        response in real web results.
+
+        Args:
+            query: The search query string.
+
+        Returns:
+            Dict with status, answer text, and source URLs.
+        """
+        try:
+            search_config = types.GenerateContentConfig(
+                tools=[types.Tool(google_search=types.GoogleSearch())],
+            )
+            response = self.client.models.generate_content(
+                model=self.model_name,
+                contents=query,
+                config=search_config,
+            )
+            self._track_usage(response)
+
+            # Extract text
+            text = response.text or ""
+
+            # Extract sources from grounding metadata
+            sources_text = self._extract_grounding_sources(response)
+
+            if self.verbose:
+                if response.candidates:
+                    meta = getattr(response.candidates[0], "grounding_metadata", None)
+                    if meta and getattr(meta, "web_search_queries", None):
+                        print(f"  [Search] Queries: {meta.web_search_queries}")
+
+            return {
+                "status": "success",
+                "answer": text + sources_text,
+            }
+        except Exception as e:
+            return {
+                "status": "error",
+                "message": f"Google Search failed: {e}",
+            }
 
     def get_token_usage(self) -> dict:
         """Return cumulative token usage for this session (including sub-agents)."""
@@ -399,6 +445,11 @@ class OrchestratorAgent:
                 if docs.get("resource_url"):
                     result["resource_url"] = docs["resource_url"]
                 return result
+
+        elif tool_name == "google_search":
+            if self.verbose:
+                print(f"  [Search] Query: {tool_args['query']}")
+            return self._google_search(tool_args["query"])
 
         elif tool_name == "ask_clarification":
             # Return the question to show to user

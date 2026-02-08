@@ -14,7 +14,10 @@ Usage:
 
 import argparse
 import gc
+import io
+import logging
 import sys
+from contextlib import redirect_stdout
 from datetime import datetime, timedelta, timezone
 
 import gradio as gr
@@ -25,6 +28,7 @@ import pandas as pd
 # Globals (initialized in main())
 # ---------------------------------------------------------------------------
 _agent = None
+_verbose = False
 
 
 # ---------------------------------------------------------------------------
@@ -174,7 +178,7 @@ def _on_dataset_change(dataset_id: str):
 def _on_fetch_click(mission, dataset, param, start_time, end_time, history):
     """Directly fetch HAPI data into the store, then notify the agent."""
     if not dataset or not param:
-        return history, gr.skip(), gr.skip(), gr.skip(), "", gr.skip(), gr.skip()
+        return history, gr.skip(), gr.skip(), gr.skip(), "", gr.skip(), gr.skip(), gr.skip()
 
     from data_ops.fetch import fetch_hapi_data
     from data_ops.store import get_store, DataEntry
@@ -196,7 +200,7 @@ def _on_fetch_click(mission, dataset, param, start_time, end_time, history):
         history = history + [
             {"role": "assistant", "content": error_msg},
         ]
-        return history, gr.skip(), gr.skip(), gr.skip(), "", gr.skip(), gr.skip()
+        return history, gr.skip(), gr.skip(), gr.skip(), "", gr.skip(), gr.skip(), gr.skip()
 
     label = f"{dataset}.{param}"
     entry = DataEntry(
@@ -218,9 +222,10 @@ def _on_fetch_click(mission, dataset, param, start_time, end_time, history):
         f"is now in memory as '{label}' with {n_points} points."
     )
     try:
-        agent_reply = _agent.process_message(notify_msg)
+        agent_reply, verbose_text = _capture_agent_call(_agent.process_message, notify_msg)
     except Exception:
         agent_reply = f"Fetched **{label}** — {n_points} points."
+        verbose_text = ""
 
     history = history + [
         {"role": "user", "content": notify_msg},
@@ -241,6 +246,7 @@ def _on_fetch_click(mission, dataset, param, start_time, end_time, history):
         history, fig, data_rows, token_text, "",
         gr.update(choices=label_choices, value=selected),
         preview,
+        verbose_text,
     )
 
 
@@ -276,6 +282,44 @@ def _preview_data(label: str) -> list[list] | None:
 # Core response function
 # ---------------------------------------------------------------------------
 
+def _capture_agent_call(fn, *args, **kwargs):
+    """Call a function, capturing logging and stdout if verbose mode is on.
+
+    Captures both print() output (stdout) and logging from the helio-agent
+    logger, which is where tool call/result debug messages go.
+
+    Returns (result, verbose_text). verbose_text is empty if not verbose.
+    """
+    if not _verbose:
+        return fn(*args, **kwargs), ""
+
+    log_buf = io.StringIO()
+    stdout_buf = io.StringIO()
+
+    # Temporarily add a logging handler that writes to our buffer
+    log_handler = logging.StreamHandler(log_buf)
+    log_handler.setLevel(logging.DEBUG)
+    log_handler.setFormatter(logging.Formatter("  [%(levelname)s] %(message)s"))
+    logger = logging.getLogger("helio-agent")
+    logger.addHandler(log_handler)
+
+    try:
+        with redirect_stdout(stdout_buf):
+            result = fn(*args, **kwargs)
+    finally:
+        logger.removeHandler(log_handler)
+
+    # Combine: logging output first, then any raw print output
+    parts = []
+    log_text = log_buf.getvalue()
+    stdout_text = stdout_buf.getvalue()
+    if log_text:
+        parts.append(log_text.rstrip())
+    if stdout_text:
+        parts.append(stdout_text.rstrip())
+    return result, "\n".join(parts)
+
+
 def respond(message: str, history: list[dict]) -> tuple:
     """Process a user message and return updated UI state.
 
@@ -285,19 +329,20 @@ def respond(message: str, history: list[dict]) -> tuple:
 
     Returns:
         Tuple of (history, plotly_figure, data_table, token_text, textbox_value,
-                  label_dropdown_update, preview_data).
+                  label_dropdown_update, preview_data, verbose_text).
     """
     if not message.strip():
-        return history, gr.skip(), gr.skip(), gr.skip(), "", gr.skip(), gr.skip()
+        return history, gr.skip(), gr.skip(), gr.skip(), "", gr.skip(), gr.skip(), gr.skip()
 
     # Append user message
     history = history + [{"role": "user", "content": message}]
 
-    # Call the agent
+    # Call the agent (capture verbose output)
     try:
-        response_text = _agent.process_message(message)
+        response_text, verbose_text = _capture_agent_call(_agent.process_message, message)
     except Exception as e:
         response_text = f"Error: {e}"
+        verbose_text = ""
 
     # Append assistant text response
     history = history + [{"role": "assistant", "content": response_text}]
@@ -318,6 +363,7 @@ def respond(message: str, history: list[dict]) -> tuple:
         history, fig, data_rows, token_text, "",
         gr.update(choices=label_choices, value=selected),
         preview,
+        verbose_text,
     )
 
 
@@ -329,7 +375,7 @@ def reset_session() -> tuple:
     from data_ops.store import get_store
     get_store().clear()
 
-    return [], None, [], "*Session reset*", "", gr.update(choices=[], value=None), None
+    return [], None, [], "*Session reset*", "", gr.update(choices=[], value=None), None, ""
 
 
 # ---------------------------------------------------------------------------
@@ -455,9 +501,20 @@ def create_app() -> gr.Blocks:
                 )
                 reset_btn = gr.Button("Reset Session", variant="secondary")
 
+        # ---- Verbose output (below main layout, only when --verbose) ----
+        if _verbose:
+            with gr.Accordion("Verbose Output", open=False):
+                verbose_output = gr.Code(
+                    label="Tool Calls & Debug",
+                    language=None,
+                    interactive=False,
+                )
+        else:
+            verbose_output = gr.State("")  # hidden placeholder
+
         # ---- Event wiring ----
         all_outputs = [chatbot, plotly_plot, data_table, token_display,
-                       msg_input, label_dropdown, data_preview]
+                       msg_input, label_dropdown, data_preview, verbose_output]
 
         send_event_args = dict(
             fn=respond,
@@ -505,14 +562,16 @@ def create_app() -> gr.Blocks:
 # ---------------------------------------------------------------------------
 
 def main():
-    global _agent
+    global _agent, _verbose
 
     parser = argparse.ArgumentParser(description="Helio AI Agent — Gradio Web UI")
     parser.add_argument("--port", type=int, default=7860, help="Port to listen on")
     parser.add_argument("--share", action="store_true", help="Generate a public Gradio URL")
-    parser.add_argument("--verbose", "-v", action="store_true", help="Show tool call details")
+    parser.add_argument("--verbose", "-v", action="store_true", help="Show tool call details in browser UI")
     parser.add_argument("--model", "-m", default=None, help="Gemini model name")
     args = parser.parse_args()
+
+    _verbose = args.verbose
 
     # Initialize agent
     print("Initializing agent...")

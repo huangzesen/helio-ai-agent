@@ -144,7 +144,7 @@ def main():
     parser.add_argument(
         "--model", "-m",
         default=None,
-        help="Gemini model name (default: gemini-2.5-flash)",
+        help="Gemini model name (default: GEMINI_MODEL from .env)",
     )
     parser.add_argument(
         "command",
