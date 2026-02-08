@@ -39,6 +39,26 @@
         "PSP_FLD_L2_MAG_RTN_1MIN": {
           "description": "1-minute averaged magnetic field in RTN coordinates",
           "parameters": []
+        },
+        "PSP_FLD_L2_MAG_RTN": {
+          "description": "Full-cadence magnetic field in RTN (~4-6 vectors/sec)",
+          "parameters": []
+        },
+        "PSP_FLD_L2_MAG_RTN_4_SA_PER_CYC": {
+          "description": "4 samples/cycle magnetic field in RTN (reduced cadence)",
+          "parameters": []
+        },
+        "PSP_FLD_L2_MAG_SC": {
+          "description": "Full-cadence magnetic field in spacecraft coordinates",
+          "parameters": []
+        },
+        "PSP_FLD_L2_MAG_SC_1MIN": {
+          "description": "1-minute magnetic field in spacecraft coordinates",
+          "parameters": []
+        },
+        "PSP_FLD_L2_MAG_SC_4_SA_PER_CYC": {
+          "description": "4 samples/cycle in spacecraft coordinates",
+          "parameters": []
         }
       }
     },

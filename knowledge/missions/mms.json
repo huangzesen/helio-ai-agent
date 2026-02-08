@@ -37,6 +37,10 @@
         "MMS1_FGM_SRVY_L2@0": {
           "description": "Survey-mode magnetic field (vector + magnitude) from MMS1. Use @0 suffix for field data.",
           "parameters": []
+        },
+        "MMS1_FGM_BRST_L2@0": {
+          "description": "Burst mode magnetic field (high temporal resolution for reconnection). Use @0 suffix.",
+          "parameters": []
         }
       }
     },
@@ -52,6 +56,10 @@
       "datasets": {
         "MMS1_FPI_FAST_L2_DIS-MOMS@0": {
           "description": "Fast survey ion distribution moments (density, velocity, temperature) from MMS1. Use @0 suffix for moment data.",
+          "parameters": []
+        },
+        "MMS1_FPI_FAST_L2_DES-MOMS": {
+          "description": "Fast survey electron moments (density, velocity, temperature) from MMS1",
           "parameters": []
         }
       }

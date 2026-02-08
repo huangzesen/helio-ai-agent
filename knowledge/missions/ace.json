@@ -34,6 +34,14 @@
         "AC_H2_MFI": {
           "description": "16-second magnetic field in GSE coordinates",
           "parameters": []
+        },
+        "AC_H0_MFI": {
+          "description": "16-second Level 2 magnetic field (higher quality than H2)",
+          "parameters": []
+        },
+        "AC_H3_MFI": {
+          "description": "1-second burst magnetic field",
+          "parameters": []
         }
       }
     },
@@ -50,6 +58,10 @@
       "datasets": {
         "AC_H0_SWE": {
           "description": "64-second solar wind ion moments",
+          "parameters": []
+        },
+        "AC_H2_SWE": {
+          "description": "64-second Level 2 solar wind electron/proton parameters",
           "parameters": []
         }
       }

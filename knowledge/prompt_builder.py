@@ -11,7 +11,7 @@ Mission sub-agents get rich, focused prompts with full domain knowledge.
 from .catalog import SPACECRAFT
 from .mission_loader import load_mission, load_all_missions, get_routing_table, get_mission_datasets
 from .hapi_client import list_parameters as _list_parameters
-from autoplot_bridge.registry import render_method_catalog
+from rendering.registry import render_method_catalog
 
 
 # ---------------------------------------------------------------------------
@@ -236,7 +236,7 @@ def build_mission_prompt(mission_id: str) -> str:
     # --- Recommended Datasets ---
     lines.append("## Recommended Datasets")
     lines.append("")
-    lines.append("These are the most commonly used datasets. For additional datasets, use `browse_datasets`.")
+    lines.append("These are the most commonly used datasets. **Many more are available** — use `browse_datasets` to see the full catalog.")
     lines.append("")
     for inst_id, inst in mission.get("instruments", {}).items():
         lines.append(f"### {inst['name']} ({inst_id})")
@@ -249,10 +249,17 @@ def build_mission_prompt(mission_id: str) -> str:
                 lines.append(param_summary)
         lines.append("")
 
+    # --- Dataset Discovery Rule ---
+    lines.append("## IMPORTANT: Dataset Discovery Rule")
+    lines.append("")
+    lines.append("If the user asks for a dataset, cadence, coordinate system, or instrument you don't see in the recommended list above, you MUST call `browse_datasets` to search the full catalog BEFORE telling the user it's unavailable. Never say \"I'm not familiar with that\" without checking first.")
+    lines.append("")
+
     # --- Data Operations Documentation ---
     lines.append("## Data Operations Workflow")
     lines.append("")
-    lines.append("1. **Identify the dataset**: Match the user's request to a dataset from the primary list above.")
+    lines.append("1. **Identify the dataset**: Match the user's request to a dataset from the recommended list above.")
+    lines.append("   If no match, call `browse_datasets` to search the full catalog — there are many more datasets available.")
     lines.append("   Parameter names are listed — use them directly with fetch_data.")
     lines.append("2. **Verify if unsure**: Call `list_parameters` to check parameters for any dataset (fast local lookup).")
     lines.append("   If the parameters don't match the user's request, try another dataset.")

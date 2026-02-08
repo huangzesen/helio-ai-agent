@@ -33,6 +33,14 @@
         "SOLO_L2_MAG-RTN-NORMAL-1-MINUTE": {
           "description": "1-minute normal mode magnetic field in RTN coordinates",
           "parameters": []
+        },
+        "SOLO_L2_MAG-RTN-NORMAL": {
+          "description": "Full-cadence normal mode magnetic field in RTN",
+          "parameters": []
+        },
+        "SOLO_L2_MAG-RTN-BURST": {
+          "description": "Burst mode magnetic field in RTN",
+          "parameters": []
         }
       }
     },

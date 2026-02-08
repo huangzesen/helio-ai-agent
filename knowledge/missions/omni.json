@@ -40,6 +40,10 @@
         "OMNI_HRO_1MIN": {
           "description": "1-minute high-resolution OMNI solar wind and IMF data",
           "parameters": []
+        },
+        "OMNI_HRO_5MIN": {
+          "description": "5-minute high-resolution OMNI (better for multi-day/week ranges)",
+          "parameters": []
         }
       }
     }
