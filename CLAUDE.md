@@ -15,7 +15,7 @@ The system has four layers:
 1. **Agent layer** (`agent/`) — Gemini 2.5-Flash with function calling. Three agent types:
    - `core.py` **OrchestratorAgent** — routes to sub-agents, handles data ops directly. Tools defined in `tools.py` (13 tool schemas).
    - `mission_agent.py` **MissionAgent** — per-spacecraft data specialists (discovery + data_ops tools only).
-   - `autoplot_agent.py` **AutoplotAgent** — visualization specialist using registry-driven dispatch via a single `execute_autoplot` tool + method catalog in prompt.
+   - `visualization_agent.py` **VisualizationAgent** — visualization specialist using registry-driven dispatch via a single `execute_visualization` tool + method catalog in prompt.
 
 2. **Rendering** (`rendering/`) — Pure-Python Plotly renderer (`plotly_renderer.py`) and method registry (`registry.py`). The `PlotlyRenderer` class provides interactive Plotly figures with vector decomposition, multi-panel subplots, WebGL for large datasets, and PNG/PDF export via kaleido. The `registry.py` describes 16 visualization methods as structured data — the single source of truth for visualization capabilities.
 
@@ -113,7 +113,7 @@ Time ranges use `YYYY-MM-DD to YYYY-MM-DD` format. The agent accepts flexible in
 - Read `docs/capability-summary.md` first to understand what has been implemented.
 - Read `docs/roadmap.md` for planned future development.
 - Read `tests/issue-log-20260207/ISSUE_SUMMARY.md` for known bugs from the latest test session (15 issues, 2 critical JVM crashes). Priority fixes: relative path resolution, rolling window DatetimeIndex, CDAWeb parameter validation, 4-panel plot guard.
-- When adding new visualization capabilities: add entry to `rendering/registry.py`, implement method in `rendering/plotly_renderer.py`, add handler in `agent/core.py:_dispatch_autoplot_method()`. No tool schema changes needed. For non-visualization tools: add schema in `agent/tools.py`, handler in `agent/core.py:_execute_tool()`. Update `docs/capability-summary.md` either way.
+- When adding new visualization capabilities: add entry to `rendering/registry.py`, implement method in `rendering/plotly_renderer.py`, add handler in `agent/core.py:_dispatch_viz_method()`. No tool schema changes needed. For non-visualization tools: add schema in `agent/tools.py`, handler in `agent/core.py:_execute_tool()`. Update `docs/capability-summary.md` either way.
 - When adding new spacecraft: create a JSON file in `knowledge/missions/` (copy an existing one as template). Include `id`, `name`, `keywords`, `profile`, and `instruments` with `datasets` dict. Then run `python scripts/generate_mission_data.py --mission <id>` to populate HAPI metadata. The catalog, prompts, and routing table are all auto-generated from the JSON files.
 - Data operations (`data_ops/custom_ops.py`) use an AST-validated sandbox for LLM-generated pandas/numpy code — easy to test.
 - Plotting always goes through the Plotly renderer (`rendering/plotly_renderer.py`), not matplotlib or Autoplot.

@@ -191,11 +191,14 @@ def create_app() -> gr.Blocks:
             "powered by Plotly and Gemini."
         )
 
+        # ---- Full-width plot (hero element) ----
+        plotly_plot = gr.Plot(label="Interactive Plot")
+
         with gr.Row():
             # ---- Main column: Chat ----
             with gr.Column(scale=3):
                 chatbot = gr.Chatbot(
-                    height=500,
+                    height=400,
                     label="Chat",
                     placeholder=(
                         "Ask me about spacecraft data! Try:\n"
@@ -217,11 +220,8 @@ def create_app() -> gr.Blocks:
                     label="Try these examples",
                 )
 
-            # ---- Sidebar ----
-            with gr.Column(scale=1, elem_classes=["plot-sidebar"]):
-                plotly_plot = gr.Plot(
-                    label="Interactive Plot",
-                )
+            # ---- Sidebar: data & controls ----
+            with gr.Column(scale=1):
                 data_table = gr.Dataframe(
                     headers=["Label", "Shape", "Points", "Units",
                              "Start", "End", "Source"],

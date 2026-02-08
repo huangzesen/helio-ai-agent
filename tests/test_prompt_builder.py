@@ -17,7 +17,7 @@ from knowledge.prompt_builder import (
     build_mission_prompt,
     build_system_prompt,
     build_planning_prompt,
-    build_autoplot_prompt,
+    build_visualization_prompt,
 )
 
 
@@ -222,9 +222,9 @@ class TestBuildSystemPrompt:
         assert "## Workflow" in prompt
         assert "## Time Range Handling" in prompt
 
-    def test_contains_delegate_to_autoplot_instructions(self):
+    def test_contains_delegate_to_visualization_instructions(self):
         prompt = build_system_prompt()
-        assert "delegate_to_autoplot" in prompt
+        assert "delegate_to_visualization" in prompt
 
     def test_contains_delegate_to_mission_instructions(self):
         prompt = build_system_prompt()
@@ -282,57 +282,57 @@ class TestBuildPlanningPrompt:
         assert "PSP" in prompt
         assert "ACE" in prompt
 
-    def test_plotting_tasks_use_autoplot_mission(self):
+    def test_plotting_tasks_use_visualization_mission(self):
         prompt = build_planning_prompt()
-        assert "__autoplot__" in prompt
-        assert 'mission="__autoplot__"' in prompt
+        assert "__visualization__" in prompt
+        assert 'mission="__visualization__"' in prompt
 
 
-class TestBuildAutoplotPrompt:
-    """Test the autoplot agent's system prompt builder."""
+class TestBuildVisualizationPrompt:
+    """Test the visualization agent's system prompt builder."""
 
     def test_contains_method_catalog(self):
-        prompt = build_autoplot_prompt()
+        prompt = build_visualization_prompt()
         assert "## Available Methods" in prompt
         assert "plot_cdaweb" in prompt
         assert "set_render_type" in prompt
         assert "export_png" in prompt
 
     def test_contains_render_type_guidance(self):
-        prompt = build_autoplot_prompt()
+        prompt = build_visualization_prompt()
         assert "scatter" in prompt
         assert "spectrogram" in prompt
 
     def test_contains_workflow(self):
-        prompt = build_autoplot_prompt()
+        prompt = build_visualization_prompt()
         assert "list_fetched_data" in prompt
 
     def test_no_gui_section_by_default(self):
-        prompt = build_autoplot_prompt(gui_mode=False)
+        prompt = build_visualization_prompt(gui_mode=False)
         assert "Interactive Mode" not in prompt
 
     def test_gui_mode_appends_section(self):
-        prompt = build_autoplot_prompt(gui_mode=True)
+        prompt = build_visualization_prompt(gui_mode=True)
         assert "Interactive Mode" in prompt
 
     def test_has_visualization_specialist_identity(self):
-        prompt = build_autoplot_prompt()
+        prompt = build_visualization_prompt()
         assert "visualization" in prompt.lower()
 
     def test_has_time_format_guidance(self):
-        prompt = build_autoplot_prompt()
+        prompt = build_visualization_prompt()
         assert "## Time Range Format" in prompt
         assert "NOT '/'" in prompt
 
     def test_has_plot_method_in_workflow(self):
-        prompt = build_autoplot_prompt()
+        prompt = build_visualization_prompt()
         assert "plot_stored_data" in prompt
 
     def test_has_panel_index_example(self):
-        prompt = build_autoplot_prompt()
+        prompt = build_visualization_prompt()
         assert '"index": 1' in prompt or '"index": 1' in prompt
 
     def test_has_not_supported_notes(self):
-        prompt = build_autoplot_prompt()
+        prompt = build_visualization_prompt()
         assert "plot_cdaweb is not supported" in prompt
         assert "Session save/load" in prompt

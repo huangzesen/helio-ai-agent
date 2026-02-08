@@ -7,9 +7,9 @@ Tools are executed by the agent core based on LLM decisions.
 Categories:
 - "discovery": dataset search and parameter listing
 - "data_ops": data fetching, computation, statistics, export
-- "autoplot": execute_autoplot (registry-driven Autoplot operations)
+- "visualization": execute_visualization (registry-driven visualization operations)
 - "conversation": ask_clarification
-- "routing": delegate_to_mission, delegate_to_autoplot
+- "routing": delegate_to_mission, delegate_to_visualization
 """
 
 TOOLS = [
@@ -258,11 +258,11 @@ If no filename is given, one is auto-generated from the label.""",
         }
     },
 
-    # --- Autoplot Visualization ---
+    # --- Visualization ---
     {
-        "category": "autoplot",
-        "name": "execute_autoplot",
-        "description": "Execute an Autoplot visualization method. See the method catalog in the system prompt for available methods and their parameters.",
+        "category": "visualization",
+        "name": "execute_visualization",
+        "description": "Execute a visualization method. See the method catalog in the system prompt for available methods and their parameters.",
         "parameters": {
             "type": "object",
             "properties": {
@@ -289,8 +289,8 @@ If no filename is given, one is auto-generated from the label.""",
 - You need mission-specific knowledge (dataset IDs, parameter names, analysis patterns)
 
 Do NOT delegate:
-- Visualization requests (plotting, zoom, export, render changes) — use delegate_to_autoplot
-- Requests to plot already-loaded data — use delegate_to_autoplot
+- Visualization requests (plotting, zoom, export, render changes) — use delegate_to_visualization
+- Requests to plot already-loaded data — use delegate_to_visualization
 - General questions about capabilities
 
 The specialist will search datasets, fetch data, run computations, and report back what was done. You then decide whether to visualize the results.""",
@@ -311,8 +311,8 @@ The specialist will search datasets, fetch data, run computations, and report ba
     },
     {
         "category": "routing",
-        "name": "delegate_to_autoplot",
-        "description": """Delegate a visualization request to the Autoplot specialist agent. Use this when:
+        "name": "delegate_to_visualization",
+        "description": """Delegate a visualization request to the visualization specialist agent. Use this when:
 - The user asks to plot, display, or visualize data
 - The user wants to change plot appearance (render type, colors, axis labels, title, log scale)
 - The user wants to zoom, export (PNG/PDF), or save/load sessions
@@ -322,7 +322,7 @@ Do NOT delegate:
 - Data requests (fetch, compute, describe) — use delegate_to_mission
 - Dataset search or parameter listing — handle directly
 
-The specialist has access to all Autoplot visualization methods and can see what data is in memory.""",
+The specialist has access to all visualization methods and can see what data is in memory.""",
         "parameters": {
             "type": "object",
             "properties": {
@@ -350,7 +350,7 @@ def get_tool_schemas(
     Args:
         categories: Optional list of categories to filter by.
             If None, returns all tools. Valid categories:
-            "discovery", "autoplot", "data_ops", "conversation", "routing".
+            "discovery", "visualization", "data_ops", "conversation", "routing".
         extra_names: Optional list of tool names to include regardless of category.
             Useful for giving a sub-agent access to specific tools outside its categories.
 

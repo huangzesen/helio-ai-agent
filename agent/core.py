@@ -3,7 +3,7 @@ Core agent logic - orchestrates Gemini calls and tool execution.
 
 The OrchestratorAgent routes requests to:
 - MissionAgent sub-agents for data operations (per spacecraft)
-- AutoplotAgent sub-agent for all visualization
+- VisualizationAgent sub-agent for all visualization
 """
 
 from typing import Optional
@@ -21,7 +21,7 @@ from .tasks import (
 )
 from .planner import create_plan_from_request, format_plan_for_display
 from .mission_agent import MissionAgent
-from .autoplot_agent import AutoplotAgent
+from .visualization_agent import VisualizationAgent
 from .logging import (
     setup_logging, get_logger, log_error, log_tool_call,
     log_tool_result, log_plan_event, log_session_end,
@@ -43,7 +43,7 @@ DEFAULT_MODEL = "gemini-2.5-flash"
 
 
 class OrchestratorAgent:
-    """Main orchestrator agent that routes to mission and autoplot sub-agents."""
+    """Main orchestrator agent that routes to mission and visualization sub-agents."""
 
     def __init__(self, verbose: bool = False, gui_mode: bool = False, model: str | None = None):
         """Initialize the orchestrator agent.
@@ -104,8 +104,8 @@ class OrchestratorAgent:
         # Cache of mission sub-agents, reused across requests in the session
         self._mission_agents: dict[str, MissionAgent] = {}
 
-        # Cached autoplot sub-agent
-        self._autoplot_agent: Optional[AutoplotAgent] = None
+        # Cached visualization sub-agent
+        self._viz_agent: Optional[VisualizationAgent] = None
 
     def get_plotly_figure(self):
         """Return the current Plotly figure (or None)."""
@@ -132,9 +132,9 @@ class OrchestratorAgent:
             output_tokens += usage["output_tokens"]
             api_calls += usage["api_calls"]
 
-        # Include usage from autoplot agent
-        if self._autoplot_agent:
-            usage = self._autoplot_agent.get_token_usage()
+        # Include usage from visualization agent
+        if self._viz_agent:
+            usage = self._viz_agent.get_token_usage()
             input_tokens += usage["input_tokens"]
             output_tokens += usage["output_tokens"]
             api_calls += usage["api_calls"]
@@ -205,8 +205,8 @@ class OrchestratorAgent:
 
         return None  # fully valid
 
-    def _dispatch_autoplot_method(self, method: str, args: dict) -> dict:
-        """Dispatch an execute_autoplot call to the appropriate bridge method.
+    def _dispatch_viz_method(self, method: str, args: dict) -> dict:
+        """Dispatch an execute_visualization call to the appropriate renderer method.
 
         Consolidates all Autoplot command handling in one place. Simple methods
         are passthroughs; complex ones (plot_cdaweb, export_png, etc.) have
@@ -279,7 +279,7 @@ class OrchestratorAgent:
             if fetch_result.get("status") == "error":
                 return fetch_result
             label = fetch_result["label"]
-            return self._dispatch_autoplot_method("plot_stored_data", {
+            return self._dispatch_viz_method("plot_stored_data", {
                 "labels": label,
                 "title": args.get("title", ""),
             })
@@ -343,7 +343,7 @@ class OrchestratorAgent:
             return self._renderer.export_pdf(args["filename"])
 
         else:
-            return {"status": "error", "message": f"Unknown autoplot method: {method}"}
+            return {"status": "error", "message": f"Unknown visualization method: {method}"}
 
     def _execute_tool(self, tool_name: str, tool_args: dict) -> dict:
         """Execute a tool and return the result.
@@ -411,12 +411,12 @@ class OrchestratorAgent:
                 "context": tool_args.get("context", ""),
             }
 
-        # --- Autoplot visualization (registry-driven dispatch) ---
+        # --- Visualization (registry-driven dispatch) ---
 
-        elif tool_name == "execute_autoplot":
+        elif tool_name == "execute_visualization":
             method = tool_args["method"]
             args = tool_args.get("args", {})
-            return self._dispatch_autoplot_method(method, args)
+            return self._dispatch_viz_method(method, args)
 
         # --- Data Operations Tools ---
 
@@ -600,12 +600,12 @@ class OrchestratorAgent:
                     "message": f"Unknown mission '{mission_id}'. Check the supported missions table.",
                 }
 
-        elif tool_name == "delegate_to_autoplot":
+        elif tool_name == "delegate_to_visualization":
             request = tool_args["request"]
             context = tool_args.get("context", "")
             if self.verbose:
-                print(f"  [Router] Delegating to Autoplot specialist")
-            agent = self._get_or_create_autoplot_agent()
+                print(f"  [Router] Delegating to Visualization specialist")
+            agent = self._get_or_create_viz_agent()
             full_request = f"{request}\n\nContext: {context}" if context else request
             sub_result = agent.process_request(full_request)
             return {
@@ -880,7 +880,7 @@ class OrchestratorAgent:
         # Get or create agents for each unique mission in the plan
         mission_agents = {}
         for task in plan.tasks:
-            if task.mission and task.mission != "__autoplot__" and task.mission not in mission_agents:
+            if task.mission and task.mission != "__visualization__" and task.mission not in mission_agents:
                 try:
                     mission_agents[task.mission] = self._get_or_create_mission_agent(task.mission)
                 except (KeyError, FileNotFoundError):
@@ -911,8 +911,8 @@ class OrchestratorAgent:
                 print(f"\n  [Plan] Step {i+1}/{len(plan.tasks)}{mission_tag}: {task.description}")
 
             # Route to appropriate agent
-            if task.mission == "__autoplot__":
-                self._get_or_create_autoplot_agent().execute_task(task)
+            if task.mission == "__visualization__":
+                self._get_or_create_viz_agent().execute_task(task)
             elif task.mission and task.mission in mission_agents:
                 mission_agents[task.mission].execute_task(task)
             else:
@@ -1026,10 +1026,10 @@ class OrchestratorAgent:
                 print(f"  [Router] Created {mission_id} mission agent")
         return self._mission_agents[mission_id]
 
-    def _get_or_create_autoplot_agent(self) -> AutoplotAgent:
-        """Get the cached autoplot agent or create a new one."""
-        if self._autoplot_agent is None:
-            self._autoplot_agent = AutoplotAgent(
+    def _get_or_create_viz_agent(self) -> VisualizationAgent:
+        """Get the cached visualization agent or create a new one."""
+        if self._viz_agent is None:
+            self._viz_agent = VisualizationAgent(
                 client=self.client,
                 model_name=self.model_name,
                 tool_executor=self._execute_tool_safe,
@@ -1037,29 +1037,29 @@ class OrchestratorAgent:
                 gui_mode=self.gui_mode,
             )
             if self.verbose:
-                print(f"  [Router] Created Autoplot agent")
-        return self._autoplot_agent
+                print(f"  [Router] Created Visualization agent")
+        return self._viz_agent
 
     def process_message(self, user_message: str) -> str:
         """Process a user message and return the agent's response.
 
         Every message goes to the orchestrator, which decides what to do:
         - delegate_to_mission for data requests
-        - delegate_to_autoplot for visualization requests
+        - delegate_to_visualization for visualization requests
         - Direct tool calls for discovery, data ops
         - Text response for greetings, questions, summaries
         """
         return self._process_single_message(user_message)
 
     def reset(self):
-        """Reset conversation history, mission agent cache, and autoplot agent."""
+        """Reset conversation history, mission agent cache, and visualization agent."""
         self.chat = self.client.chats.create(
             model=self.model_name,
             config=self.config
         )
         self._current_plan = None
         self._mission_agents.clear()
-        self._autoplot_agent = None
+        self._viz_agent = None
         self._renderer.reset()
 
     def get_current_plan(self) -> Optional[TaskPlan]:

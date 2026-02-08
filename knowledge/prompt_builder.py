@@ -301,11 +301,11 @@ def build_mission_prompt(mission_id: str) -> str:
 
 
 # ---------------------------------------------------------------------------
-# Autoplot sub-agent prompt builder
+# Visualization sub-agent prompt builder
 # ---------------------------------------------------------------------------
 
-def build_autoplot_prompt(gui_mode: bool = False) -> str:
-    """Generate the system prompt for the Autoplot visualization sub-agent.
+def build_visualization_prompt(gui_mode: bool = False) -> str:
+    """Generate the system prompt for the visualization sub-agent.
 
     Includes the method catalog from the registry, render type guidance,
     and workflow instructions.
@@ -314,27 +314,27 @@ def build_autoplot_prompt(gui_mode: bool = False) -> str:
         gui_mode: If True, append GUI-mode specific instructions.
 
     Returns:
-        System prompt string for the AutoplotAgent.
+        System prompt string for the VisualizationAgent.
     """
     catalog = render_method_catalog()
 
     lines = [
-        "You are a visualization specialist for Autoplot, a scientific data visualization tool.",
+        "You are a visualization specialist for a scientific data visualization tool.",
         "",
-        "Your job is to execute visualization operations using the `execute_autoplot` tool.",
+        "Your job is to execute visualization operations using the `execute_visualization` tool.",
         "You also have access to `list_fetched_data` to see what data is available in memory.",
         "",
         catalog,
-        "## Using execute_autoplot",
+        "## Using execute_visualization",
         "",
-        "Call `execute_autoplot(method=\"method_name\", args={...})` with the method name and arguments from the catalog above.",
+        "Call `execute_visualization(method=\"method_name\", args={...})` with the method name and arguments from the catalog above.",
         "",
         "Examples:",
-        "- Plot stored data: `execute_autoplot(method=\"plot_stored_data\", args={\"labels\": \"ACE_Bmag,PSP_Bmag\", \"title\": \"Comparison\"})`",
-        "- Plot in specific panel: `execute_autoplot(method=\"plot_stored_data\", args={\"labels\": \"Bmag\", \"index\": 1})`",
-        "- Change render: `execute_autoplot(method=\"set_render_type\", args={\"render_type\": \"scatter\"})`",
-        "- Export PDF: `execute_autoplot(method=\"export_pdf\", args={\"filename\": \"output.pdf\"})`",
-        "- Set canvas: `execute_autoplot(method=\"set_canvas_size\", args={\"width\": 1920, \"height\": 1080})`",
+        "- Plot stored data: `execute_visualization(method=\"plot_stored_data\", args={\"labels\": \"ACE_Bmag,PSP_Bmag\", \"title\": \"Comparison\"})`",
+        "- Plot in specific panel: `execute_visualization(method=\"plot_stored_data\", args={\"labels\": \"Bmag\", \"index\": 1})`",
+        "- Change render: `execute_visualization(method=\"set_render_type\", args={\"render_type\": \"scatter\"})`",
+        "- Export PDF: `execute_visualization(method=\"export_pdf\", args={\"filename\": \"output.pdf\"})`",
+        "- Set canvas: `execute_visualization(method=\"set_canvas_size\", args={\"width\": 1920, \"height\": 1080})`",
         "",
         "## Render Types",
         "",
@@ -403,7 +403,7 @@ def build_system_prompt() -> str:
 ## Your Role
 Help users visualize spacecraft data by translating natural language requests into Autoplot operations. You orchestrate work by delegating to specialist sub-agents:
 - **Mission agents** handle data requests (fetching, computing, describing data)
-- **Autoplot agent** handles all visualization (plotting, customizing, exporting)
+- **Visualization agent** handles all visualization (plotting, customizing, exporting)
 
 ## Supported Missions
 
@@ -413,14 +413,14 @@ Help users visualize spacecraft data by translating natural language requests in
 
 1. **Identify the mission**: Match the user's request to a spacecraft from the table above
 2. **Delegate data requests**: ALWAYS use `delegate_to_mission` for ALL data operations (fetch, compute, describe, save). You do NOT have direct data tools — mission specialists handle all data work.
-3. **Delegate visualization**: Use `delegate_to_autoplot` for plotting, customizing, exporting, or any visual operation
-4. **Multi-mission**: Call `delegate_to_mission` for each mission, then `delegate_to_autoplot` to plot results together
+3. **Delegate visualization**: Use `delegate_to_visualization` for plotting, customizing, exporting, or any visual operation
+4. **Multi-mission**: Call `delegate_to_mission` for each mission, then `delegate_to_visualization` to plot results together
 5. **Memory check**: Use `list_fetched_data` to see what data is currently in memory before delegating to autoplot
 
 ## After Data Delegation
 
 When `delegate_to_mission` returns:
-- If the user asked to "show", "plot", or "display" data, use `delegate_to_autoplot` with the labels the specialist reported
+- If the user asked to "show", "plot", or "display" data, use `delegate_to_visualization` with the labels the specialist reported
 - If the specialist only described or saved data, summarize the results without plotting
 - Always relay the specialist's findings to the user in your response
 
@@ -472,16 +472,16 @@ Use `get_data_availability` when:
 
 User: "show me parker magnetic field data"
 -> delegate_to_mission(mission_id="PSP", request="fetch magnetic field data for last week")
--> delegate_to_autoplot(request="plot the PSP magnetic field data", context="Labels: PSP_FLD_L2_MAG_RTN_1MIN.psp_fld_l2_mag_RTN_1min")
+-> delegate_to_visualization(request="plot the PSP magnetic field data", context="Labels: PSP_FLD_L2_MAG_RTN_1MIN.psp_fld_l2_mag_RTN_1min")
 
 User: "zoom in to last 2 days"
--> delegate_to_autoplot(request="set time range to last 2 days")
+-> delegate_to_visualization(request="set time range to last 2 days")
 
 User: "export this as psp_mag.png"
--> delegate_to_autoplot(request="export plot as psp_mag.png")
+-> delegate_to_visualization(request="export plot as psp_mag.png")
 
 User: "switch to scatter plot"
--> delegate_to_autoplot(request="change render type to scatter")
+-> delegate_to_visualization(request="change render type to scatter")
 
 User: "what data is available for Solar Orbiter?"
 -> delegate_to_mission(mission_id="SolO", request="what datasets and parameters are available?")
@@ -492,7 +492,7 @@ For complex requests (like "compare PSP and ACE magnetic fields"), chain multipl
 
 1. delegate_to_mission("PSP", "fetch magnetic field data for last week")
 2. delegate_to_mission("ACE", "fetch magnetic field data for last week")
-3. delegate_to_autoplot("plot PSP and ACE magnetic field data together", context="Labels: PSP_label, ACE_label")
+3. delegate_to_visualization("plot PSP and ACE magnetic field data together", context="Labels: PSP_label, ACE_label")
 4. Summarize the comparison
 """
 
@@ -545,10 +545,10 @@ to discover exact parameter names before fetching. Do NOT guess parameter names.
 ## Mission Tagging
 Tag each task with the spacecraft mission it belongs to using the "mission" field:
 - Use spacecraft IDs: PSP, SolO, ACE, OMNI, WIND, DSCOVR, MMS, STEREO_A
-- Set mission="__autoplot__" for visualization tasks (plotting, exporting, render changes)
+- Set mission="__visualization__" for visualization tasks (plotting, exporting, render changes)
 - Set mission=null for cross-mission data tasks (combined analyses that don't involve visualization)
 - Tasks that list_parameters or fetch_data for a specific spacecraft should be tagged with that mission
-- Plotting tasks (plot_data, plot_computed_data, export_plot) should use mission="__autoplot__"
+- Plotting tasks (plot_data, plot_computed_data, export_plot) should use mission="__visualization__"
 
 ## Task Dependencies
 Use "depends_on" to declare which tasks must complete before another can start:
@@ -567,8 +567,8 @@ Example instructions:
 - "Fetch data from dataset AC_H2_MFI, parameter BGSEc, for last week" (mission: "ACE")
 - "Compute the magnitude of AC_H2_MFI.BGSEc, save as ACE_Bmag" (mission: "ACE")
 - "Describe the data labeled ACE_Bmag" (mission: "ACE")
-- "Plot ACE_Bmag and Wind_Bmag together" (mission: "__autoplot__", depends_on: [indices of ACE and Wind tasks])
-- "Export the plot to output.png" (mission: "__autoplot__")
+- "Plot ACE_Bmag and Wind_Bmag together" (mission: "__visualization__", depends_on: [indices of ACE and Wind tasks])
+- "Export the plot to output.png" (mission: "__visualization__")
 
 Analyze the request and return a JSON plan. If the request is actually simple (single step), set is_complex=false and provide a single task.
 

@@ -42,7 +42,7 @@ class TestPlotDataset:
         result = renderer.plot_dataset([entry])
         assert result["status"] == "success"
         assert result["num_series"] == 1
-        assert result["labels"] == ["mag"]
+        assert result["labels"] == ["test data"]  # uses description for display
         fig = renderer.get_figure()
         assert fig is not None
         assert len(fig.data) == 1
@@ -53,7 +53,7 @@ class TestPlotDataset:
         result = renderer.plot_dataset([entry])
         assert result["status"] == "success"
         assert result["num_series"] == 3
-        assert result["labels"] == ["Bvec.x", "Bvec.y", "Bvec.z"]
+        assert result["labels"] == ["test data (x)", "test data (y)", "test data (z)"]
         fig = renderer.get_figure()
         assert len(fig.data) == 3
 

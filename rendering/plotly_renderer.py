@@ -137,15 +137,15 @@ class PlotlyRenderer:
         # Decompose vectors into scalar components
         series: list[tuple[str, np.ndarray, np.ndarray]] = []  # (label, time, values1d)
         for entry in entries:
+            display_name = entry.description or entry.label
             if entry.values.ndim == 2 and entry.values.shape[1] > 1:
                 comp_names = ["x", "y", "z"]
                 for col in range(entry.values.shape[1]):
                     comp = comp_names[col] if col < 3 else str(col)
-                    comp_label = f"{entry.label}.{comp}"
-                    series.append((comp_label, entry.time, entry.values[:, col]))
+                    series.append((f"{display_name} ({comp})", entry.time, entry.values[:, col]))
             else:
                 vals = entry.values.ravel() if entry.values.ndim > 1 else entry.values
-                series.append((entry.label, entry.time, vals))
+                series.append((display_name, entry.time, vals))
 
         n_series = len(series)
 
@@ -400,7 +400,7 @@ class PlotlyRenderer:
     def execute_script(self, code: str) -> dict:
         return {"status": "error",
                 "message": "Direct ScriptContext/DOM scripting is not supported by the Plotly renderer. "
-                           "Use execute_autoplot methods instead."}
+                           "Use execute_visualization methods instead."}
 
     # ------------------------------------------------------------------
     # Accessor for Gradio / external use

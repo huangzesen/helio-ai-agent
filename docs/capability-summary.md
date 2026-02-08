@@ -19,17 +19,16 @@ main.py  (readline CLI, --verbose/--gui/--model flags, token usage on exit)
   |
   v
 agent/core.py  OrchestratorAgent  (LLM-driven orchestrator)
-  |  - Routes: data requests -> mission agents, visualization -> autoplot agent
+  |  - Routes: data requests -> mission agents, visualization -> visualization agent
   |  - Complex multi-mission requests -> planner -> sub-agents
   |  - Token usage tracking (input/output/api_calls, includes all sub-agents)
   |
-  +---> agent/autoplot_agent.py   Autoplot sub-agent (visualization-only tools)
-  |       AutoplotAgent           Focused Gemini session for all visualization
-  |       execute_autoplot()      Registry method dispatch (16 methods)
-  |       autoplot_script()       Direct ScriptContext/DOM code (AST-validated sandbox)
-  |       process_request()       Full conversational mode (max 10 iter)
-  |       execute_task()          Forced function calling for plan tasks (max 3 iter)
-  |                               System prompt includes method catalog + DOM reference
+  +---> agent/visualization_agent.py  Visualization sub-agent (visualization-only tools)
+  |       VisualizationAgent         Focused Gemini session for all visualization
+  |       execute_visualization()    Registry method dispatch (16 methods)
+  |       process_request()          Full conversational mode (max 10 iter)
+  |       execute_task()             Forced function calling for plan tasks (max 3 iter)
+  |                                  System prompt includes method catalog
   |
   +---> agent/mission_agent.py    Mission sub-agents (data-only tools)
   |       MissionAgent            Focused Gemini session per spacecraft mission
@@ -45,7 +44,7 @@ agent/core.py  OrchestratorAgent  (LLM-driven orchestrator)
   +---> agent/planner.py          Task planning
   |       is_complex_request()    Regex heuristics for complexity detection
   |       create_plan_from_request()  Gemini JSON output for task decomposition
-  |                                   Tags tasks with mission IDs, __autoplot__, dependencies
+  |                                   Tags tasks with mission IDs, __visualization__, dependencies
   |
   +---> agent/tasks.py            Task management
   |       Task, TaskPlan          Data structures (mission, depends_on fields)
@@ -55,7 +54,7 @@ agent/core.py  OrchestratorAgent  (LLM-driven orchestrator)
   |       missions/*.json          Per-mission JSON files (8 files, HAPI-derived + hand-curated)
   |       mission_loader.py        Lazy-loading cache, routing table, dataset access
   |       catalog.py               Thin routing layer (loads from JSON, backward-compat SPACECRAFT dict)
-  |       prompt_builder.py        Slim system prompt (routing table only) + rich mission/autoplot prompts
+  |       prompt_builder.py        Slim system prompt (routing table only) + rich mission/visualization prompts
   |       hapi_client.py           CDAWeb HAPI /info endpoint (parameter metadata, cached, browse_datasets)
   |
   +---> data_ops/                 Python-side data pipeline (pandas-backed)
@@ -93,15 +92,12 @@ agent/core.py  OrchestratorAgent  (LLM-driven orchestrator)
 | `list_parameters` | List plottable parameters for a dataset (HAPI /info) |
 | `get_data_availability` | Check available time range for a dataset (HAPI /info) |
 
-### Autoplot Visualization
+### Visualization
 | Tool | Purpose |
 |------|---------|
-| `execute_autoplot` | Execute any of 16 Autoplot methods via the method registry |
-| `autoplot_script` | Execute custom ScriptContext/DOM code for advanced visualization (multi-panel, annotations, styling) |
+| `execute_visualization` | Execute any of 16 visualization methods via the method registry |
 
-The `execute_autoplot` tool dispatches to the method registry (`autoplot_bridge/registry.py`), which describes 16 operations: `plot_cdaweb`, `plot_stored_data`, `set_time_range`, `export_png`, `export_pdf`, `get_plot_state`, `reset`, `set_title`, `set_axis_label`, `toggle_log_scale`, `set_axis_range`, `save_session`, `load_session`, `set_render_type`, `set_color_table`, `set_canvas_size`.
-
-The `autoplot_script` tool provides direct access to Autoplot's ScriptContext and DOM API via an AST-validated sandbox (`autoplot_bridge/script_runner.py`). Pre-imported namespace includes `sc` (ScriptContext), `dom` (Application), `Color`, `RenderType`, `DatumRangeUtil`, `DatumRange`, `Units`, `DDataSet`, `QDataSet`, `store` (DataStore), and `to_qdataset` (converts stored data labels to QDataSet). Blocks imports, exec/eval, JClass/jpype, and dunder access.
+The `execute_visualization` tool dispatches to the method registry (`rendering/registry.py`), which describes 16 operations: `plot_cdaweb`, `plot_stored_data`, `set_time_range`, `export_png`, `export_pdf`, `get_plot_state`, `reset`, `set_title`, `set_axis_label`, `toggle_log_scale`, `set_axis_range`, `save_session`, `load_session`, `set_render_type`, `set_color_table`, `set_canvas_size`.
 
 ### Data Operations (fetch -> custom_operation -> plot)
 | Tool | Purpose |
@@ -121,13 +117,13 @@ The `autoplot_script` tool provides direct access to Autoplot's ScriptContext an
 | Tool | Purpose |
 |------|---------|
 | `delegate_to_mission` | LLM-driven delegation to a mission specialist sub-agent |
-| `delegate_to_autoplot` | LLM-driven delegation to the Autoplot visualization sub-agent |
+| `delegate_to_visualization` | LLM-driven delegation to the visualization sub-agent |
 
 ## Sub-Agent Architecture
 
 ### OrchestratorAgent (agent/core.py)
-- Sees tools: discovery, data_ops, conversation, routing (NOT autoplot)
-- Routes data requests to MissionAgent, visualization to AutoplotAgent
+- Sees tools: discovery, data_ops, conversation, routing (NOT visualization)
+- Routes data requests to MissionAgent, visualization to VisualizationAgent
 - Handles multi-step plans with mission-tagged task dispatch
 
 ### MissionAgent (agent/mission_agent.py)
@@ -135,11 +131,10 @@ The `autoplot_script` tool provides direct access to Autoplot's ScriptContext an
 - One agent per spacecraft, cached per session
 - Rich system prompt with recommended datasets, data ops docs, analysis patterns
 
-### AutoplotAgent (agent/autoplot_agent.py)
-- Sees tools: `execute_autoplot` + `autoplot_script` + `list_fetched_data` (3 tools total)
-- System prompt includes the method catalog, DOM hierarchy reference, and script examples
-- `execute_autoplot`: Registry-driven dispatch for standard operations (16 methods)
-- `autoplot_script`: Direct ScriptContext/DOM code for advanced visualization (multi-panel, styling, annotations)
+### VisualizationAgent (agent/visualization_agent.py)
+- Sees tools: `execute_visualization` + `list_fetched_data` (2 tools total)
+- System prompt includes the method catalog and render type guidance
+- `execute_visualization`: Registry-driven dispatch for all operations (16 methods)
 - Handles all visualization: plotting, customization, export, render type changes
 
 ## Supported Spacecraft
@@ -170,12 +165,12 @@ All times are UTC. Outputs `TimeRange` objects with `start`/`end` datetimes. Con
 
 ## Key Implementation Details
 
-### Method Registry (`autoplot_bridge/registry.py`)
-- Single source of truth for all Autoplot capabilities (16 methods)
+### Method Registry (`rendering/registry.py`)
+- Single source of truth for all visualization capabilities (16 methods)
 - Each method has: name, description, typed parameters (with enums for constrained values)
 - `render_method_catalog()` renders the registry into markdown for the LLM prompt
 - `get_method(name)` and `validate_args(name, args)` for dispatch and validation
-- Adding a new capability = add registry entry + implement bridge method. No tool schema changes needed.
+- Adding a new capability = add registry entry + implement renderer method. No tool schema changes needed.
 
 ### Script Runner (`autoplot_bridge/script_runner.py`)
 - AST-validated sandbox for executing direct ScriptContext/DOM code (analogous to `data_ops/custom_ops.py` for pandas)
@@ -207,18 +202,18 @@ All times are UTC. Outputs `TimeRange` objects with `start`/`end` datetimes. Con
 - Loop continues until Gemini produces a text response (or 10 iterations).
 - Token usage accumulated from `response.usage_metadata` (prompt_token_count, candidates_token_count).
 
-### LLM-Driven Routing (`agent/core.py`, `agent/mission_agent.py`, `agent/autoplot_agent.py`)
-- **Routing**: The OrchestratorAgent (LLM) decides whether to handle a request directly or delegate via `delegate_to_mission` (data) or `delegate_to_autoplot` (visualization) tools. No regex-based routing — the LLM uses conversation context and the routing table to decide.
+### LLM-Driven Routing (`agent/core.py`, `agent/mission_agent.py`, `agent/visualization_agent.py`)
+- **Routing**: The OrchestratorAgent (LLM) decides whether to handle a request directly or delegate via `delegate_to_mission` (data) or `delegate_to_visualization` (visualization) tools. No regex-based routing — the LLM uses conversation context and the routing table to decide.
 - **Mission sub-agents**: Each spacecraft has a data specialist with rich system prompt (recommended datasets, data ops docs, analysis patterns). Agents are cached per session. Sub-agents have **data-only tools** (discovery, data_ops, conversation) — no plotting or routing tools.
-- **Autoplot sub-agent**: Visualization specialist with `execute_autoplot` + `autoplot_script` + `list_fetched_data` tools. System prompt includes the method catalog, DOM hierarchy reference, and script examples. Handles all plotting, customization, and export.
-- **Tool separation**: Tools have a `category` field (`discovery`, `autoplot`, `data_ops`, `conversation`, `routing`). `get_tool_schemas(categories=..., extra_names=...)` filters tools by category. Orchestrator sees `["discovery", "data_ops", "conversation", "routing"]`. AutoplotAgent sees `["autoplot"]` + `list_fetched_data` extra.
-- **Post-delegation plotting**: After `delegate_to_mission` returns data, the orchestrator uses `delegate_to_autoplot` to visualize results.
+- **Visualization sub-agent**: Visualization specialist with `execute_visualization` + `list_fetched_data` tools. System prompt includes the method catalog and render type guidance. Handles all plotting, customization, and export.
+- **Tool separation**: Tools have a `category` field (`discovery`, `visualization`, `data_ops`, `conversation`, `routing`). `get_tool_schemas(categories=..., extra_names=...)` filters tools by category. Orchestrator sees `["discovery", "data_ops", "conversation", "routing"]`. VisualizationAgent sees `["visualization"]` + `list_fetched_data` extra.
+- **Post-delegation plotting**: After `delegate_to_mission` returns data, the orchestrator uses `delegate_to_visualization` to visualize results.
 - **Slim orchestrator**: System prompt contains a routing table (mission names + capabilities) plus delegation instructions. No dataset IDs or analysis tips — those live in mission sub-agents.
 
 ### Multi-Step Requests
 - The orchestrator naturally chains tool calls in its conversation loop (up to 10 iterations)
-- "Compare PSP and ACE" → `delegate_to_mission("PSP", ...)` → `delegate_to_mission("ACE", ...)` → `delegate_to_autoplot(plot both)` — all in one `process_message` call
-- Complex plans tag tasks with `mission="__autoplot__"` for visualization dispatch
+- "Compare PSP and ACE" → `delegate_to_mission("PSP", ...)` → `delegate_to_mission("ACE", ...)` → `delegate_to_visualization(plot both)` — all in one `process_message` call
+- Complex plans tag tasks with `mission="__visualization__"` for visualization dispatch
 - Legacy planner infrastructure (`agent/planner.py`, `agent/tasks.py`) is retained for programmatic use
 
 ### Per-Mission JSON Knowledge (`knowledge/missions/*.json`)
@@ -250,7 +245,7 @@ python main.py "request"    # Single-command mode (non-interactive, exits after 
 
 ### GUI Mode
 
-When launched with `--gui`, Autoplot starts with its native Swing window visible instead of headless mode. Plots appear instantly in the GUI — no need to export to PNG. The AutoplotAgent's system prompt is adjusted to avoid suggesting PNG exports. GUI-specific operations (reset, title, labels, log scale, axis range, save/load session) are available through the same `execute_autoplot` tool.
+When launched with `--gui`, the application starts with its native window visible. Plots appear instantly in the GUI — no need to export to PNG. The VisualizationAgent's system prompt is adjusted to avoid suggesting PNG exports. GUI-specific operations (reset, title, labels, log scale, axis range, save/load session) are available through the same `execute_visualization` tool.
 
 ### CLI Commands
 

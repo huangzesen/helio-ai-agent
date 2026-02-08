@@ -28,13 +28,13 @@ Future development plan for the helio-ai-agent project.
 
 **Dataset Discovery**: `search_datasets`, `list_parameters`, `get_data_availability`
 
-**Autoplot Visualization**: `execute_autoplot` (dispatches to 16 registry methods), `autoplot_script` (direct DOM/ScriptContext code)
+**Visualization**: `execute_visualization` (dispatches to 16 registry methods)
 
 **Data Operations**: `fetch_data`, `list_fetched_data`, `custom_operation`, `describe_data`, `save_data`
 
 **Conversation**: `ask_clarification`
 
-**Routing**: `delegate_to_mission`, `delegate_to_autoplot`
+**Routing**: `delegate_to_mission`, `delegate_to_visualization`
 
 ### Supported Spacecraft (8)
 
@@ -45,7 +45,7 @@ PSP, Solar Orbiter, ACE, OMNI, Wind, DSCOVR, MMS, STEREO-A
 ## Completed: Multi-Agent Architecture
 
 - [x] **Mission sub-agents**: Per-spacecraft data specialists with rich prompts, tiered datasets
-- [x] **Autoplot sub-agent**: Visualization specialist with method registry (16 operations)
+- [x] **Visualization sub-agent**: Visualization specialist with method registry (16 operations)
 - [x] **OrchestratorAgent**: LLM-driven routing to mission + autoplot sub-agents
 - [x] **Method registry**: Structured data describing all Autoplot capabilities (extensible)
 - [x] **Render type switching**: series, scatter, spectrogram, fill_to_zero, staircase_plus, digital
@@ -196,13 +196,13 @@ PSP, Solar Orbiter, ACE, OMNI, Wind, DSCOVR, MMS, STEREO-A
 ### Adding New Autoplot Capabilities
 
 For **common operations** (add to registry):
-1. Add entry to `autoplot_bridge/registry.py` (method definition)
-2. Implement bridge method in `autoplot_bridge/commands.py`
-3. Add dispatch handler in `agent/core.py:_dispatch_autoplot_method()`
+1. Add entry to `rendering/registry.py` (method definition)
+2. Implement renderer method in `rendering/plotly_renderer.py`
+3. Add dispatch handler in `agent/core.py:_dispatch_viz_method()`
 4. Update `docs/capability-summary.md`
 5. No tool schema changes needed — the registry is the single source of truth
 
-For **advanced/one-off operations**: No code changes needed — the AutoplotAgent can use `autoplot_script` to write ScriptContext/DOM code directly.
+For **advanced/one-off operations**: Extend the registry and renderer as needed.
 
 ### Adding New Non-Autoplot Tools
 

@@ -1,14 +1,14 @@
 """
 Method registry for visualization operations.
 
-Describes every visualization capability as structured data. The AutoplotAgent
+Describes every visualization capability as structured data. The VisualizationAgent
 sub-agent uses this registry to understand what operations are available
 and validate arguments before dispatching to PlotlyRenderer.
 
 Adding a new capability:
     1. Add an entry to METHODS below
     2. Implement the method in plotly_renderer.py
-    3. Add dispatch logic in agent/core.py _dispatch_autoplot_method()
+    3. Add dispatch logic in agent/core.py _dispatch_viz_method()
 """
 
 METHODS = [

@@ -1,7 +1,7 @@
 """
-Autoplot visualization sub-agent.
+Visualization sub-agent.
 
-Owns all Autoplot visualization operations via a single `execute_autoplot`
+Owns all visualization operations via a single `execute_visualization`
 tool backed by the method registry. The orchestrator delegates visualization
 requests here, keeping data operations in mission agents.
 
@@ -15,22 +15,22 @@ from google.genai import types
 from .tools import get_tool_schemas
 from .tasks import Task, TaskStatus
 from .logging import log_error
-from knowledge.prompt_builder import build_autoplot_prompt
+from knowledge.prompt_builder import build_visualization_prompt
 
-# Autoplot agent gets its own tool category + list_fetched_data from data_ops
-AUTOPLOT_TOOL_CATEGORIES = ["autoplot"]
-AUTOPLOT_EXTRA_TOOLS = ["list_fetched_data"]
+# Visualization agent gets its own tool category + list_fetched_data from data_ops
+VIZ_TOOL_CATEGORIES = ["visualization"]
+VIZ_EXTRA_TOOLS = ["list_fetched_data"]
 
 
-class AutoplotAgent:
-    """A Gemini session specialized for Autoplot visualization.
+class VisualizationAgent:
+    """A Gemini session specialized for visualization.
 
-    Uses a single `execute_autoplot` tool with a method catalog in the
+    Uses a single `execute_visualization` tool with a method catalog in the
     system prompt, plus `list_fetched_data` to discover available data.
 
     Attributes:
         verbose: Whether to print debug info
-        gui_mode: Whether Autoplot is running in GUI mode
+        gui_mode: Whether running in GUI mode
     """
 
     def __init__(
@@ -41,7 +41,7 @@ class AutoplotAgent:
         verbose: bool = False,
         gui_mode: bool = False,
     ):
-        """Initialize the Autoplot visualization agent.
+        """Initialize the visualization agent.
 
         Args:
             client: Initialized Gemini client (shared with orchestrator)
@@ -58,13 +58,13 @@ class AutoplotAgent:
         self.gui_mode = gui_mode
 
         # Build visualization-focused system prompt with method catalog
-        self.system_prompt = build_autoplot_prompt(gui_mode=gui_mode)
+        self.system_prompt = build_visualization_prompt(gui_mode=gui_mode)
 
-        # Build function declarations (autoplot + list_fetched_data)
+        # Build function declarations (visualization + list_fetched_data)
         function_declarations = []
         for tool_schema in get_tool_schemas(
-            categories=AUTOPLOT_TOOL_CATEGORIES,
-            extra_names=AUTOPLOT_EXTRA_TOOLS,
+            categories=VIZ_TOOL_CATEGORIES,
+            extra_names=VIZ_EXTRA_TOOLS,
         ):
             fd = types.FunctionDeclaration(
                 name=tool_schema["name"],
@@ -95,7 +95,7 @@ class AutoplotAgent:
         self._api_calls += 1
 
     def get_token_usage(self) -> dict:
-        """Return cumulative token usage for this autoplot agent."""
+        """Return cumulative token usage for this visualization agent."""
         return {
             "input_tokens": self._total_input_tokens,
             "output_tokens": self._total_output_tokens,
@@ -117,7 +117,7 @@ class AutoplotAgent:
             The text response from Gemini after processing.
         """
         if self.verbose:
-            print(f"  [Autoplot Agent] Processing: {user_message[:80]}...")
+            print(f"  [Visualization Agent] Processing: {user_message[:80]}...")
 
         try:
             # Conversational config: no forced function calling
@@ -129,8 +129,8 @@ class AutoplotAgent:
                         description=t["description"],
                         parameters=t["parameters"],
                     ) for t in get_tool_schemas(
-                        categories=AUTOPLOT_TOOL_CATEGORIES,
-                        extra_names=AUTOPLOT_EXTRA_TOOLS,
+                        categories=VIZ_TOOL_CATEGORIES,
+                        extra_names=VIZ_EXTRA_TOOLS,
                     )
                 ])],
             )
@@ -171,12 +171,12 @@ class AutoplotAgent:
                     tool_args = dict(fc.args) if fc.args else {}
 
                     if self.verbose:
-                        print(f"  [Autoplot Agent] Tool: {tool_name}({tool_args})")
+                        print(f"  [Visualization Agent] Tool: {tool_name}({tool_args})")
 
                     result = self.tool_executor(tool_name, tool_args)
 
                     if self.verbose and result.get("status") == "error":
-                        print(f"  [Autoplot Agent] Tool error: {result.get('message', '')}")
+                        print(f"  [Visualization Agent] Tool error: {result.get('message', '')}")
 
                     function_responses.append(
                         types.Part.from_function_response(
@@ -186,7 +186,7 @@ class AutoplotAgent:
                     )
 
                 if self.verbose:
-                    print(f"  [Autoplot Agent] Sending {len(function_responses)} tool result(s) back...")
+                    print(f"  [Visualization Agent] Sending {len(function_responses)} tool result(s) back...")
                 response = chat.send_message(message=function_responses)
                 self._track_usage(response)
 
@@ -206,12 +206,12 @@ class AutoplotAgent:
 
         except Exception as e:
             log_error(
-                "Autoplot agent request failed",
+                "Visualization agent request failed",
                 exc=e,
                 context={"request": user_message[:200]}
             )
             if self.verbose:
-                print(f"  [Autoplot Agent] Failed: {e}")
+                print(f"  [Visualization Agent] Failed: {e}")
             return f"Error processing visualization request: {e}"
 
     def execute_task(self, task: Task) -> str:
@@ -229,7 +229,7 @@ class AutoplotAgent:
         task.tool_calls = []
 
         if self.verbose:
-            print(f"  [Autoplot Agent] Executing: {task.description}")
+            print(f"  [Visualization Agent] Executing: {task.description}")
 
         try:
             # Fresh chat per task with forced function calling
@@ -266,7 +266,7 @@ class AutoplotAgent:
                     call_keys.add((fc.name, args_str))
                 if call_keys and call_keys.issubset(previous_calls):
                     if self.verbose:
-                        print(f"  [Autoplot Agent] Duplicate tool call detected, stopping")
+                        print(f"  [Visualization Agent] Duplicate tool call detected, stopping")
                     break
 
                 # Execute tools via the shared executor
@@ -279,7 +279,7 @@ class AutoplotAgent:
                     result = self.tool_executor(tool_name, tool_args)
 
                     if self.verbose and result.get("status") == "error":
-                        print(f"  [Autoplot Agent] Tool error: {result.get('message', '')}")
+                        print(f"  [Visualization Agent] Tool error: {result.get('message', '')}")
 
                     function_responses.append(
                         types.Part.from_function_response(
@@ -292,7 +292,7 @@ class AutoplotAgent:
                     previous_calls.add((tool_name, args_str))
 
                 if self.verbose:
-                    print(f"  [Autoplot Agent] Sending {len(function_responses)} tool result(s) back...")
+                    print(f"  [Visualization Agent] Sending {len(function_responses)} tool result(s) back...")
                 response = chat.send_message(message=function_responses)
                 self._track_usage(response)
 
@@ -309,7 +309,7 @@ class AutoplotAgent:
             task.result = result_text
 
             if self.verbose:
-                print(f"  [Autoplot Agent] Completed: {task.description}")
+                print(f"  [Visualization Agent] Completed: {task.description}")
 
             return result_text
 
@@ -317,10 +317,10 @@ class AutoplotAgent:
             task.status = TaskStatus.FAILED
             task.error = str(e)
             log_error(
-                "Autoplot agent task failed",
+                "Visualization agent task failed",
                 exc=e,
                 context={"task": task.description}
             )
             if self.verbose:
-                print(f"  [Autoplot Agent] Failed: {task.description} - {e}")
+                print(f"  [Visualization Agent] Failed: {task.description} - {e}")
             return f"Error: {e}"

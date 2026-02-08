@@ -322,7 +322,7 @@ def scenario_1_ace_analysis(results: TestResults):
     results.start_turn(4, "Plot the magnitude and the smoothed data together")
     r = send("Plot the magnitude and the smoothed data together")
     results.record_response(r)
-    results.check("has delegate_to_autoplot", has_tool(r, "delegate_to_autoplot"), f"tools: {tool_names(r)}")
+    results.check("has delegate_to_visualization", has_tool(r, "delegate_to_visualization"), f"tools: {tool_names(r)}")
     results.check("no error", resp_error(r) is None, str(resp_error(r)))
     results.end_turn()
 
@@ -400,7 +400,7 @@ def scenario_2_crash_guard(results: TestResults):
     results.record_response(r)
     results.check(
         "delegation tool called",
-        has_tool(r, "delegate_to_mission") or has_tool(r, "delegate_to_autoplot"),
+        has_tool(r, "delegate_to_mission") or has_tool(r, "delegate_to_visualization"),
         f"tools: {tool_names(r)}",
     )
     results.check("no error", resp_error(r) is None, str(resp_error(r)))
@@ -514,7 +514,7 @@ def scenario_3_mms_access(results: TestResults):
     results.start_turn(4, "Plot it")
     r = send("Plot it")
     results.record_response(r)
-    results.check("has delegate_to_autoplot", has_tool(r, "delegate_to_autoplot"), f"tools: {tool_names(r)}")
+    results.check("has delegate_to_visualization", has_tool(r, "delegate_to_visualization"), f"tools: {tool_names(r)}")
     results.check("no error", resp_error(r) is None, str(resp_error(r)))
     results.end_turn()
 
@@ -601,7 +601,7 @@ def scenario_4_cross_mission(results: TestResults):
     results.start_turn(5, "Plot all three magnetic field magnitudes together with title 'L1 Magnetic Field Comparison'")
     r = send("Plot all three magnetic field magnitudes together with title 'L1 Magnetic Field Comparison'")
     results.record_response(r)
-    results.check("has delegate_to_autoplot", has_tool(r, "delegate_to_autoplot"), f"tools: {tool_names(r)}")
+    results.check("has delegate_to_visualization", has_tool(r, "delegate_to_visualization"), f"tools: {tool_names(r)}")
     results.check("no error", resp_error(r) is None, str(resp_error(r)))
     results.end_turn()
 
@@ -979,7 +979,7 @@ def scenario_9_error_recovery(results: TestResults):
     results.start_turn(4, "Plot the original data and the rolling std together")
     r = send("Plot the original data and the rolling std together")
     results.record_response(r)
-    results.check("has delegate_to_autoplot", has_tool(r, "delegate_to_autoplot"), f"tools: {tool_names(r)}")
+    results.check("has delegate_to_visualization", has_tool(r, "delegate_to_visualization"), f"tools: {tool_names(r)}")
     results.check("no error", resp_error(r) is None, str(resp_error(r)))
     results.end_turn()
 

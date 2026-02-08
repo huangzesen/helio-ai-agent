@@ -10,7 +10,7 @@ Run with: python -m pytest tests/test_routing.py -v
 import pytest
 from agent.tools import get_tool_schemas
 from agent.mission_agent import MISSION_TOOL_CATEGORIES
-from agent.autoplot_agent import AUTOPLOT_TOOL_CATEGORIES, AUTOPLOT_EXTRA_TOOLS
+from agent.visualization_agent import VIZ_TOOL_CATEGORIES, VIZ_EXTRA_TOOLS
 from agent.core import ORCHESTRATOR_CATEGORIES, ORCHESTRATOR_EXTRA_TOOLS
 
 
@@ -21,44 +21,44 @@ class TestToolCategoryFiltering:
         all_tools = get_tool_schemas()
         assert len(all_tools) == 13
         names = {t["name"] for t in all_tools}
-        assert "execute_autoplot" in names
+        assert "execute_visualization" in names
         assert "fetch_data" in names
         assert "delegate_to_mission" in names
-        assert "delegate_to_autoplot" in names
+        assert "delegate_to_visualization" in names
 
-    def test_mission_categories_exclude_autoplot_and_routing(self):
+    def test_mission_categories_exclude_visualization_and_routing(self):
         mission_tools = get_tool_schemas(categories=MISSION_TOOL_CATEGORIES)
         names = {t["name"] for t in mission_tools}
-        # Should not include autoplot tools
-        assert "execute_autoplot" not in names
+        # Should not include visualization tools
+        assert "execute_visualization" not in names
         # Should not include routing tools (no recursive delegation)
         assert "delegate_to_mission" not in names
-        assert "delegate_to_autoplot" not in names
+        assert "delegate_to_visualization" not in names
         # Should include data tools
         assert "fetch_data" in names
         assert "search_datasets" in names
         assert "custom_operation" in names
         assert "ask_clarification" in names
 
-    def test_autoplot_category_only(self):
-        autoplot_tools = get_tool_schemas(categories=AUTOPLOT_TOOL_CATEGORIES)
-        names = {t["name"] for t in autoplot_tools}
-        assert names == {"execute_autoplot"}
+    def test_visualization_category_only(self):
+        viz_tools = get_tool_schemas(categories=VIZ_TOOL_CATEGORIES)
+        names = {t["name"] for t in viz_tools}
+        assert names == {"execute_visualization"}
 
-    def test_autoplot_with_extras(self):
+    def test_visualization_with_extras(self):
         tools = get_tool_schemas(
-            categories=AUTOPLOT_TOOL_CATEGORIES,
-            extra_names=AUTOPLOT_EXTRA_TOOLS,
+            categories=VIZ_TOOL_CATEGORIES,
+            extra_names=VIZ_EXTRA_TOOLS,
         )
         names = {t["name"] for t in tools}
-        assert names == {"execute_autoplot", "list_fetched_data"}
+        assert names == {"execute_visualization", "list_fetched_data"}
 
     def test_orchestrator_categories(self):
         orch_tools = get_tool_schemas(categories=ORCHESTRATOR_CATEGORIES, extra_names=ORCHESTRATOR_EXTRA_TOOLS)
         names = {t["name"] for t in orch_tools}
         # Should include routing
         assert "delegate_to_mission" in names
-        assert "delegate_to_autoplot" in names
+        assert "delegate_to_visualization" in names
         # Should include discovery
         assert "search_datasets" in names
         # Should include list_fetched_data (extra tool)
@@ -66,8 +66,8 @@ class TestToolCategoryFiltering:
         # Should NOT include data_ops (delegated to mission agents)
         assert "fetch_data" not in names
         assert "custom_operation" not in names
-        # Should NOT include autoplot
-        assert "execute_autoplot" not in names
+        # Should NOT include visualization
+        assert "execute_visualization" not in names
 
     def test_every_tool_has_category(self):
         for tool in get_tool_schemas():
@@ -105,29 +105,29 @@ class TestDelegateToMissionTool:
         assert tool["parameters"]["required"] == ["mission_id", "request"]
 
 
-class TestDelegateToAutoplotTool:
-    """Test that the delegate_to_autoplot tool is properly configured."""
+class TestDelegateToVisualizationTool:
+    """Test that the delegate_to_visualization tool is properly configured."""
 
     def test_tool_exists(self):
         names = {t["name"] for t in get_tool_schemas()}
-        assert "delegate_to_autoplot" in names
+        assert "delegate_to_visualization" in names
 
     def test_tool_has_routing_category(self):
-        tool = next(t for t in get_tool_schemas() if t["name"] == "delegate_to_autoplot")
+        tool = next(t for t in get_tool_schemas() if t["name"] == "delegate_to_visualization")
         assert tool["category"] == "routing"
 
     def test_tool_requires_request(self):
-        tool = next(t for t in get_tool_schemas() if t["name"] == "delegate_to_autoplot")
+        tool = next(t for t in get_tool_schemas() if t["name"] == "delegate_to_visualization")
         assert "request" in tool["parameters"]["properties"]
         assert tool["parameters"]["required"] == ["request"]
 
-    def test_tool_not_in_autoplot_agent_tools(self):
+    def test_tool_not_in_viz_agent_tools(self):
         tools = get_tool_schemas(
-            categories=AUTOPLOT_TOOL_CATEGORIES,
-            extra_names=AUTOPLOT_EXTRA_TOOLS,
+            categories=VIZ_TOOL_CATEGORIES,
+            extra_names=VIZ_EXTRA_TOOLS,
         )
         names = {t["name"] for t in tools}
-        assert "delegate_to_autoplot" not in names
+        assert "delegate_to_visualization" not in names
 
 
 class TestMissionAgentImportAndInterface:
