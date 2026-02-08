@@ -34,10 +34,13 @@ spikes/*/*.log
 # Test outputs
 test_output/
 tests/plots/
+tests/fetched_data/
 test.png
 test_commands.py
 tests/**/*_results*.json
+tests/**/*_report*.json
 tests/issue-log-*/
+scripts/test_*.py
 
 # Generated files
 *.vap
