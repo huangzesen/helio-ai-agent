@@ -14,6 +14,7 @@ Usage:
 
 import argparse
 import sys
+from datetime import datetime, timedelta, timezone
 
 import gradio as gr
 
@@ -76,6 +77,157 @@ def _get_label_choices() -> list[str]:
     """Return list of labels currently in the DataStore."""
     from data_ops.store import get_store
     return [e["label"] for e in get_store().list_entries()]
+
+
+def _get_mission_choices() -> list[str]:
+    """Return list of mission IDs for the browse dropdown."""
+    from knowledge.mission_loader import get_mission_ids
+    return get_mission_ids()
+
+
+def _on_mission_change(mission_id: str):
+    """Populate dataset dropdown when a mission is selected."""
+    from knowledge.hapi_client import browse_datasets
+
+    if not mission_id:
+        return (
+            gr.update(choices=[], value=None),
+            gr.update(choices=[], value=None),
+            "",
+        )
+
+    datasets = browse_datasets(mission_id) or []
+    choices = []
+    for d in datasets:
+        n_params = d.get("parameter_count", "?")
+        start = d.get("start_date", "?")[:4]
+        stop = d.get("stop_date", "?")[:4]
+        label = f"{d['id']}  ({n_params} params, {start}--{stop})"
+        choices.append((label, d["id"]))
+
+    return (
+        gr.update(choices=choices, value=None),
+        gr.update(choices=[], value=None),
+        "",
+    )
+
+
+def _on_dataset_change(dataset_id: str):
+    """Populate parameter dropdown, info, and time pickers when a dataset is selected."""
+    from knowledge.hapi_client import list_parameters, get_dataset_time_range
+
+    if not dataset_id:
+        return gr.update(choices=[], value=None), "", gr.skip(), gr.skip()
+
+    params = list_parameters(dataset_id)
+    choices = []
+    for p in params:
+        desc = p.get("description", "")
+        units = p.get("units", "")
+        parts = [p["name"]]
+        if desc:
+            parts.append(desc)
+        if units:
+            parts.append(f"[{units}]")
+        choices.append((" -- ".join(parts), p["name"]))
+
+    time_range = get_dataset_time_range(dataset_id)
+    info_parts = [f"**{dataset_id}** — {len(params)} parameters"]
+
+    # Default: end = min(dataset stop, now), start = end - 7 days
+    now = datetime.now(tz=timezone.utc).replace(microsecond=0)
+    end_dt = now
+    start_dt = now - timedelta(days=7)
+    if time_range:
+        start_avail = time_range["start"][:10]
+        stop_avail = time_range["stop"][:10]
+        info_parts.append(f"Available: {start_avail} to {stop_avail}")
+        try:
+            stop_date = datetime.fromisoformat(
+                time_range["stop"][:19]
+            ).replace(tzinfo=timezone.utc)
+            end_dt = min(stop_date, now)
+            start_dt = end_dt - timedelta(days=7)
+        except ValueError:
+            pass
+
+    return (
+        gr.update(choices=choices, value=None),
+        "\n\n".join(info_parts),
+        start_dt.strftime("%Y-%m-%d %H:%M:%S"),
+        end_dt.strftime("%Y-%m-%d %H:%M:%S"),
+    )
+
+
+def _on_fetch_click(mission, dataset, param, start_time, end_time, history):
+    """Directly fetch HAPI data into the store, then notify the agent."""
+    if not dataset or not param:
+        return history, gr.skip(), gr.skip(), gr.skip(), "", gr.skip(), gr.skip()
+
+    from data_ops.fetch import fetch_hapi_data
+    from data_ops.store import get_store, DataEntry
+
+    # Convert picker strings to ISO format for HAPI
+    start_iso = (start_time or "").replace(" ", "T") + "Z"
+    end_iso = (end_time or "").replace(" ", "T") + "Z"
+
+    # Direct fetch — exact IDs, no LLM interpretation
+    try:
+        result = fetch_hapi_data(
+            dataset_id=dataset,
+            parameter_id=param,
+            time_min=start_iso,
+            time_max=end_iso,
+        )
+    except Exception as e:
+        error_msg = f"Fetch failed: {e}"
+        history = history + [
+            {"role": "assistant", "content": error_msg},
+        ]
+        return history, gr.skip(), gr.skip(), gr.skip(), "", gr.skip(), gr.skip()
+
+    label = f"{dataset}.{param}"
+    entry = DataEntry(
+        label=label,
+        data=result["data"],
+        units=result["units"],
+        description=result["description"],
+        source="hapi",
+    )
+    get_store().put(entry)
+    n_points = len(result["data"])
+
+    # Notify the agent so it has context for follow-up questions
+    notify_msg = (
+        f"[User fetched data via sidebar] "
+        f"{param} from {dataset} ({start_time} to {end_time}) "
+        f"is now in memory as '{label}' with {n_points} points."
+    )
+    try:
+        agent_reply = _agent.process_message(notify_msg)
+    except Exception:
+        agent_reply = f"Fetched **{label}** — {n_points} points."
+
+    history = history + [
+        {"role": "user", "content": notify_msg},
+        {"role": "assistant", "content": agent_reply},
+    ]
+
+    # Refresh sidebar state
+    fig = _get_current_figure()
+    data_rows = _build_data_table()
+    token_text = _format_tokens()
+    label_choices = _get_label_choices()
+    selected = label if label in label_choices else (
+        label_choices[-1] if label_choices else None
+    )
+    preview = _preview_data(selected) if selected else None
+
+    return (
+        history, fig, data_rows, token_text, "",
+        gr.update(choices=label_choices, value=selected),
+        preview,
+    )
 
 
 def _preview_data(label: str) -> list[list] | None:
@@ -222,6 +374,42 @@ def create_app() -> gr.Blocks:
 
             # ---- Sidebar: data & controls ----
             with gr.Column(scale=1):
+                with gr.Accordion("Browse & Fetch", open=False):
+                    mission_dropdown = gr.Dropdown(
+                        label="Mission",
+                        choices=_get_mission_choices(),
+                        interactive=True,
+                    )
+                    dataset_dropdown = gr.Dropdown(
+                        label="Dataset",
+                        choices=[],
+                        interactive=True,
+                    )
+                    param_dropdown = gr.Dropdown(
+                        label="Parameter",
+                        choices=[],
+                        interactive=True,
+                    )
+                    browse_info = gr.Markdown(value="")
+                    _default_end = datetime.now(tz=timezone.utc).replace(
+                        microsecond=0,
+                    )
+                    _default_start = _default_end - timedelta(days=7)
+                    start_dt_picker = gr.DateTime(
+                        label="Start",
+                        value=_default_start.strftime("%Y-%m-%d %H:%M:%S"),
+                        include_time=True,
+                        type="string",
+                    )
+                    end_dt_picker = gr.DateTime(
+                        label="End",
+                        value=_default_end.strftime("%Y-%m-%d %H:%M:%S"),
+                        include_time=True,
+                        type="string",
+                    )
+                    fetch_btn = gr.Button(
+                        "Fetch", variant="primary",
+                    )
                 data_table = gr.Dataframe(
                     headers=["Label", "Shape", "Points", "Units",
                              "Start", "End", "Source"],
@@ -231,7 +419,7 @@ def create_app() -> gr.Blocks:
                     row_count=(0, "dynamic"),
                 )
                 label_dropdown = gr.Dropdown(
-                    label="Select Dataset",
+                    label="Preview Data in Memory",
                     choices=[],
                     interactive=True,
                 )
@@ -269,6 +457,24 @@ def create_app() -> gr.Blocks:
             fn=_preview_data,
             inputs=[label_dropdown],
             outputs=[data_preview],
+        )
+
+        # Browse & Plot cascade
+        mission_dropdown.change(
+            fn=_on_mission_change,
+            inputs=[mission_dropdown],
+            outputs=[dataset_dropdown, param_dropdown, browse_info],
+        )
+        dataset_dropdown.change(
+            fn=_on_dataset_change,
+            inputs=[dataset_dropdown],
+            outputs=[param_dropdown, browse_info, start_dt_picker, end_dt_picker],
+        )
+        fetch_btn.click(
+            fn=_on_fetch_click,
+            inputs=[mission_dropdown, dataset_dropdown, param_dropdown,
+                    start_dt_picker, end_dt_picker, chatbot],
+            outputs=all_outputs,
         )
 
     return app
