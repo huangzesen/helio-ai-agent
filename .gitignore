@@ -36,6 +36,12 @@ test_output/
 tests/plots/
 test.png
 test_commands.py
+tests/**/*_results*.json
+tests/issue-log-*/
+
+# Generated files
+*.vap
+*.pdf
 
 # Claude Code (user-specific)
 .claude/
