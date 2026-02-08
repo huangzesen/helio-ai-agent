@@ -202,14 +202,6 @@ class PlotlyRenderer:
 
         return result
 
-    def plot_cdaweb(self, **kwargs) -> dict:
-        """Not supported — use fetch_data + plot_stored_data instead."""
-        return {
-            "status": "error",
-            "message": "plot_cdaweb is not supported by the Plotly renderer. "
-                       "Use fetch_data to load data into memory first, then plot_stored_data.",
-        }
-
     # ------------------------------------------------------------------
     # Axis / layout methods
     # ------------------------------------------------------------------

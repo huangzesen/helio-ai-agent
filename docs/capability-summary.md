@@ -25,7 +25,7 @@ agent/core.py  OrchestratorAgent  (LLM-driven orchestrator)
   |
   +---> agent/visualization_agent.py  Visualization sub-agent (visualization-only tools)
   |       VisualizationAgent         Focused Gemini session for all visualization
-  |       execute_visualization()    Registry method dispatch (16 methods)
+  |       execute_visualization()    Registry method dispatch (15 methods)
   |       process_request()          Full conversational mode (max 10 iter)
   |       execute_task()             Forced function calling for plan tasks (max 3 iter)
   |                                  System prompt includes method catalog
@@ -72,9 +72,9 @@ agent/core.py  OrchestratorAgent  (LLM-driven orchestrator)
   |
   +---> autoplot_bridge/          Java visualization via JPype
   |       connection.py             JVM startup, ScriptContext singleton, conditional headless flag
-  |       registry.py               Method registry (16 methods) — single source of truth for capabilities
+  |       registry.py               Method registry (15 methods) — single source of truth for capabilities
   |       script_runner.py          AST-validated sandbox for direct ScriptContext/DOM code
-  |       commands.py               plot_cdaweb, set_time_range, export_png/pdf, plot_dataset
+  |       commands.py               set_time_range, export_png/pdf, plot_dataset
   |                                 set_render_type, set_color_table, set_canvas_size
   |                                 execute_script (delegates to script_runner)
   |                                 numpy->QDataSet conversion, overplot with color management
@@ -89,7 +89,7 @@ agent/core.py  OrchestratorAgent  (LLM-driven orchestrator)
           stress_test.py            Stress testing
 ```
 
-## Tools (14 tool schemas)
+## Tools (15 tool schemas)
 
 ### Dataset Discovery
 | Tool | Purpose |
@@ -98,13 +98,14 @@ agent/core.py  OrchestratorAgent  (LLM-driven orchestrator)
 | `browse_datasets` | Browse all science datasets for a mission (filtered by calibration exclusion lists) |
 | `list_parameters` | List plottable parameters for a dataset (HAPI /info) |
 | `get_data_availability` | Check available time range for a dataset (HAPI /info) |
+| `get_dataset_docs` | Fetch CDAWeb documentation for a dataset (instrument info, coordinates, PI contact) |
 
 ### Visualization
 | Tool | Purpose |
 |------|---------|
-| `execute_visualization` | Execute any of 16 visualization methods via the method registry |
+| `execute_visualization` | Execute any of 15 visualization methods via the method registry |
 
-The `execute_visualization` tool dispatches to the method registry (`rendering/registry.py`), which describes 16 operations: `plot_cdaweb`, `plot_stored_data`, `set_time_range`, `export_png`, `export_pdf`, `get_plot_state`, `reset`, `set_title`, `set_axis_label`, `toggle_log_scale`, `set_axis_range`, `save_session`, `load_session`, `set_render_type`, `set_color_table`, `set_canvas_size`.
+The `execute_visualization` tool dispatches to the method registry (`rendering/registry.py`), which describes 15 operations: `plot_stored_data`, `set_time_range`, `export_png`, `export_pdf`, `get_plot_state`, `reset`, `set_title`, `set_axis_label`, `toggle_log_scale`, `set_axis_range`, `save_session`, `load_session`, `set_render_type`, `set_color_table`, `set_canvas_size`.
 
 ### Data Operations (fetch -> custom_operation -> plot)
 | Tool | Purpose |
@@ -149,7 +150,7 @@ The `execute_visualization` tool dispatches to the method registry (`rendering/r
 ### VisualizationAgent (agent/visualization_agent.py)
 - Sees tools: `execute_visualization` + `list_fetched_data` (2 tools total)
 - System prompt includes the method catalog and render type guidance
-- `execute_visualization`: Registry-driven dispatch for all operations (16 methods)
+- `execute_visualization`: Registry-driven dispatch for all operations (15 methods)
 - Handles all visualization: plotting, customization, export, render type changes
 
 ## Supported Spacecraft
@@ -181,7 +182,7 @@ All times are UTC. Outputs `TimeRange` objects with `start`/`end` datetimes. Con
 ## Key Implementation Details
 
 ### Method Registry (`rendering/registry.py`)
-- Single source of truth for all visualization capabilities (16 methods)
+- Single source of truth for all visualization capabilities (15 methods)
 - Each method has: name, description, typed parameters (with enums for constrained values)
 - `render_method_catalog()` renders the registry into markdown for the LLM prompt
 - `get_method(name)` and `validate_args(name, args)` for dispatch and validation

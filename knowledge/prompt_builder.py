@@ -432,7 +432,7 @@ def build_visualization_prompt(gui_mode: bool = False) -> str:
         "",
         "## Notes",
         "",
-        "- plot_cdaweb is not supported -- always use fetch_data first, then plot_stored_data",
+        "- Always use fetch_data first to load data into memory, then plot_stored_data to visualize it",
         "- Session save/load (.vap files) is not available",
         "- Vector data (e.g., magnetic field Bx/By/Bz) is automatically decomposed into x/y/z components",
         "",

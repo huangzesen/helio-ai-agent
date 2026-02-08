@@ -17,7 +17,7 @@ The system has four layers:
    - `mission_agent.py` **MissionAgent** — per-spacecraft data specialists (discovery + data_ops tools only).
    - `visualization_agent.py` **VisualizationAgent** — visualization specialist using registry-driven dispatch via a single `execute_visualization` tool + method catalog in prompt.
 
-2. **Rendering** (`rendering/`) — Pure-Python Plotly renderer (`plotly_renderer.py`) and method registry (`registry.py`). The `PlotlyRenderer` class provides interactive Plotly figures with vector decomposition, multi-panel subplots, WebGL for large datasets, and PNG/PDF export via kaleido. The `registry.py` describes 16 visualization methods as structured data — the single source of truth for visualization capabilities.
+2. **Rendering** (`rendering/`) — Pure-Python Plotly renderer (`plotly_renderer.py`) and method registry (`registry.py`). The `PlotlyRenderer` class provides interactive Plotly figures with vector decomposition, multi-panel subplots, WebGL for large datasets, and PNG/PDF export via kaleido. The `registry.py` describes 15 visualization methods as structured data — the single source of truth for visualization capabilities.
 
 3. **Knowledge base** (`knowledge/`) — Static dataset catalog (`catalog.py`) with mission profiles for keyword-based spacecraft/instrument search. Prompt builder (`prompt_builder.py`) generates system and planner prompts dynamically from the catalog — single source of truth. HAPI client (`hapi_client.py`) for fetching parameter metadata from CDAWeb.
 

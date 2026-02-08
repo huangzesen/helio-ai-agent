@@ -290,7 +290,7 @@ If no filename is given, one is auto-generated from the label.""",
             "properties": {
                 "method": {
                     "type": "string",
-                    "description": "Method name from the catalog (e.g., 'plot_cdaweb', 'set_render_type', 'export_png')"
+                    "description": "Method name from the catalog (e.g., 'plot_stored_data', 'set_render_type', 'export_png')"
                 },
                 "args": {
                     "type": "object",

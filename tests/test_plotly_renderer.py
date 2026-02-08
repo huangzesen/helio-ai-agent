@@ -235,10 +235,6 @@ class TestState:
 # ---------------------------------------------------------------------------
 
 class TestNotSupported:
-    def test_plot_cdaweb(self, renderer):
-        result = renderer.plot_cdaweb()
-        assert result["status"] == "error"
-
     def test_save_session(self, renderer):
         result = renderer.save_session("test.vap")
         assert result["status"] == "error"

@@ -220,7 +220,7 @@ class OrchestratorAgent:
         """Dispatch an execute_visualization call to the appropriate renderer method.
 
         Consolidates all Autoplot command handling in one place. Simple methods
-        are passthroughs; complex ones (plot_cdaweb, export_png, etc.) have
+        are passthroughs; complex ones (export_png, etc.) have
         pre/post-processing logic.
 
         Args:
@@ -274,27 +274,6 @@ class OrchestratorAgent:
             return self._renderer.set_canvas_size(args["width"], args["height"])
 
         # --- Methods with pre/post-processing ---
-        elif method == "plot_cdaweb":
-            # Internally fetch via HAPI, then plot from DataStore
-            # (Plotly renderer doesn't support direct CDAWeb URIs)
-            try:
-                time_range = parse_time_range(args["time_range"])
-            except TimeRangeError as e:
-                return {"status": "error", "message": str(e)}
-            fetch_result = self._execute_tool("fetch_data", {
-                "dataset_id": args["dataset_id"],
-                "parameter_id": args["parameter_id"],
-                "time_range": f"{time_range.start.strftime('%Y-%m-%dT%H:%M:%SZ')} to "
-                              f"{time_range.end.strftime('%Y-%m-%dT%H:%M:%SZ')}",
-            })
-            if fetch_result.get("status") == "error":
-                return fetch_result
-            label = fetch_result["label"]
-            return self._dispatch_viz_method("plot_stored_data", {
-                "labels": label,
-                "title": args.get("title", ""),
-            })
-
         elif method == "plot_stored_data":
             store = get_store()
             labels = [l.strip() for l in args["labels"].split(",")]

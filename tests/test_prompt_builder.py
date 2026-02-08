@@ -359,7 +359,7 @@ class TestBuildVisualizationPrompt:
     def test_contains_method_catalog(self):
         prompt = build_visualization_prompt()
         assert "## Available Methods" in prompt
-        assert "plot_cdaweb" in prompt
+        assert "plot_stored_data" in prompt
         assert "set_render_type" in prompt
         assert "export_png" in prompt
 
@@ -399,5 +399,5 @@ class TestBuildVisualizationPrompt:
 
     def test_has_not_supported_notes(self):
         prompt = build_visualization_prompt()
-        assert "plot_cdaweb is not supported" in prompt
+        assert "fetch_data first" in prompt
         assert "Session save/load" in prompt

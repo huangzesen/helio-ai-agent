@@ -30,8 +30,8 @@ class TestRegistryStructure:
         names = [m["name"] for m in METHODS]
         assert len(names) == len(set(names)), f"Duplicate method names: {[n for n in names if names.count(n) > 1]}"
 
-    def test_method_count_is_16(self):
-        assert len(METHODS) == 16
+    def test_method_count_is_15(self):
+        assert len(METHODS) == 15
 
     def test_parameters_have_required_fields(self):
         for m in METHODS:
@@ -55,9 +55,9 @@ class TestRegistryStructure:
 
 class TestGetMethod:
     def test_known_method(self):
-        m = get_method("plot_cdaweb")
+        m = get_method("plot_stored_data")
         assert m is not None
-        assert m["name"] == "plot_cdaweb"
+        assert m["name"] == "plot_stored_data"
 
     def test_unknown_method(self):
         assert get_method("nonexistent") is None
@@ -69,15 +69,12 @@ class TestGetMethod:
 
 class TestValidateArgs:
     def test_missing_required_param(self):
-        errors = validate_args("plot_cdaweb", {"dataset_id": "X"})
-        assert any("parameter_id" in e for e in errors)
-        assert any("time_range" in e for e in errors)
+        errors = validate_args("plot_stored_data", {})
+        assert any("labels" in e for e in errors)
 
     def test_valid_args(self):
-        errors = validate_args("plot_cdaweb", {
-            "dataset_id": "AC_H2_MFI",
-            "parameter_id": "Magnitude",
-            "time_range": "last week",
+        errors = validate_args("plot_stored_data", {
+            "labels": "ACE_Bmag",
         })
         assert errors == []
 
@@ -142,5 +139,5 @@ class TestRenderMethodCatalog:
 
     def test_descriptions_included(self):
         result = render_method_catalog()
-        assert "Plot CDAWeb data" in result
+        assert "Plot one or more in-memory" in result
         assert "Reset the Autoplot canvas" in result
