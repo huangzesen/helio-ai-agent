@@ -11,7 +11,7 @@ import pytest
 from knowledge.catalog import SPACECRAFT
 from knowledge.prompt_builder import build_mission_prompt
 from agent.tools import get_tool_schemas
-from agent.mission_agent import MISSION_TOOL_CATEGORIES
+from agent.mission_agent import MISSION_TOOL_CATEGORIES, MISSION_EXTRA_TOOLS
 
 
 class TestBuildMissionPromptForAgent:
@@ -56,30 +56,35 @@ class TestMissionAgentToolFiltering:
     PLOTTING_TOOLS = {"plot_data", "change_time_range", "export_plot", "get_plot_info", "plot_computed_data"}
 
     def test_mission_tools_exclude_plotting(self):
-        mission_tools = get_tool_schemas(categories=MISSION_TOOL_CATEGORIES)
+        mission_tools = get_tool_schemas(categories=MISSION_TOOL_CATEGORIES, extra_names=MISSION_EXTRA_TOOLS)
         names = {t["name"] for t in mission_tools}
         assert names.isdisjoint(self.PLOTTING_TOOLS), (
             f"Mission sub-agents should not have plotting tools, found: {names & self.PLOTTING_TOOLS}"
         )
 
-    def test_mission_tools_include_data_ops(self):
-        mission_tools = get_tool_schemas(categories=MISSION_TOOL_CATEGORIES)
+    def test_mission_tools_include_fetch(self):
+        mission_tools = get_tool_schemas(categories=MISSION_TOOL_CATEGORIES, extra_names=MISSION_EXTRA_TOOLS)
         names = {t["name"] for t in mission_tools}
         assert "fetch_data" in names
-        assert "custom_operation" in names
-        assert "describe_data" in names
-        assert "save_data" in names
         assert "list_fetched_data" in names
 
+    def test_mission_tools_exclude_compute(self):
+        """MissionAgent no longer has compute tools — those moved to DataOpsAgent."""
+        mission_tools = get_tool_schemas(categories=MISSION_TOOL_CATEGORIES, extra_names=MISSION_EXTRA_TOOLS)
+        names = {t["name"] for t in mission_tools}
+        assert "custom_operation" not in names
+        assert "describe_data" not in names
+        assert "save_data" not in names
+
     def test_mission_tools_include_discovery(self):
-        mission_tools = get_tool_schemas(categories=MISSION_TOOL_CATEGORIES)
+        mission_tools = get_tool_schemas(categories=MISSION_TOOL_CATEGORIES, extra_names=MISSION_EXTRA_TOOLS)
         names = {t["name"] for t in mission_tools}
         assert "search_datasets" in names
         assert "list_parameters" in names
         assert "get_data_availability" in names
 
     def test_mission_tools_include_conversation(self):
-        mission_tools = get_tool_schemas(categories=MISSION_TOOL_CATEGORIES)
+        mission_tools = get_tool_schemas(categories=MISSION_TOOL_CATEGORIES, extra_names=MISSION_EXTRA_TOOLS)
         names = {t["name"] for t in mission_tools}
         assert "ask_clarification" in names
 

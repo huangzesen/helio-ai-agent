@@ -6,10 +6,12 @@ Tools are executed by the agent core based on LLM decisions.
 
 Categories:
 - "discovery": dataset search and parameter listing
-- "data_ops": data fetching, computation, statistics, export
+- "data_ops": shared data tools (list_fetched_data)
+- "data_ops_fetch": mission-specific data fetching (fetch_data)
+- "data_ops_compute": data transformation, statistics, export (custom_operation, describe_data, save_data)
 - "visualization": execute_visualization (registry-driven visualization operations)
 - "conversation": ask_clarification
-- "routing": delegate_to_mission, delegate_to_visualization
+- "routing": delegate_to_mission, delegate_to_visualization, delegate_to_data_ops
 """
 
 TOOLS = [
@@ -124,7 +126,7 @@ Do NOT guess - ask instead.""",
 
     # --- Data Operations Tools ---
     {
-        "category": "data_ops",
+        "category": "data_ops_fetch",
         "name": "fetch_data",
         "description": """Fetch timeseries data from CDAWeb HAPI into memory for Python-side operations.
 Use this instead of plot_data when the user wants to compute on data (magnitude, averages, differences, etc.).
@@ -160,7 +162,7 @@ The data is stored in memory with a label like 'AC_H2_MFI.BGSEc' for later refer
         }
     },
     {
-        "category": "data_ops",
+        "category": "data_ops_compute",
         "name": "custom_operation",
         "description": """Apply a pandas/numpy operation to an in-memory timeseries. This is the universal compute tool — use it for ALL data transformations after fetching data with fetch_data.
 
@@ -213,7 +215,7 @@ Do NOT call this tool when the request cannot be expressed as a pandas/numpy ope
 
     # --- Describe & Export Tools ---
     {
-        "category": "data_ops",
+        "category": "data_ops_compute",
         "name": "describe_data",
         "description": """Get statistical summary of an in-memory timeseries. Use this when:
 - User asks "what does the data look like?" or "summarize the data"
@@ -233,7 +235,7 @@ Returns statistics (min, max, mean, std, percentiles, NaN count) and the LLM can
         }
     },
     {
-        "category": "data_ops",
+        "category": "data_ops_compute",
         "name": "save_data",
         "description": """Export an in-memory timeseries to a CSV file. Use this when:
 - User asks to save, export, or download data
@@ -338,6 +340,35 @@ The specialist has access to all visualization methods and can see what data is 
             "required": ["request"]
         }
     },
+    {
+        "category": "routing",
+        "name": "delegate_to_data_ops",
+        "description": """Delegate data transformation, analysis, or export to the DataOps specialist agent. Use this when:
+- The user wants to compute derived quantities (magnitude, smoothing, resampling, derivatives, etc.)
+- The user wants statistical summaries (describe data)
+- The user wants to export data to CSV
+
+Do NOT delegate:
+- Data fetching (use delegate_to_mission — fetching requires mission-specific knowledge)
+- Visualization requests (use delegate_to_visualization)
+- Dataset search or parameter listing (handle directly or use delegate_to_mission)
+
+The DataOps agent can see all data currently in memory via list_fetched_data.""",
+        "parameters": {
+            "type": "object",
+            "properties": {
+                "request": {
+                    "type": "string",
+                    "description": "What to compute/analyze/export (e.g., 'compute magnitude of AC_H2_MFI.BGSEc', 'describe ACE_Bmag', 'save ACE_Bmag to CSV')"
+                },
+                "context": {
+                    "type": "string",
+                    "description": "Optional: available labels, prior results, or other context"
+                }
+            },
+            "required": ["request"]
+        }
+    },
 ]
 
 
@@ -350,7 +381,8 @@ def get_tool_schemas(
     Args:
         categories: Optional list of categories to filter by.
             If None, returns all tools. Valid categories:
-            "discovery", "visualization", "data_ops", "conversation", "routing".
+            "discovery", "visualization", "data_ops", "data_ops_fetch",
+            "data_ops_compute", "conversation", "routing".
         extra_names: Optional list of tool names to include regardless of category.
             Useful for giving a sub-agent access to specific tools outside its categories.
 

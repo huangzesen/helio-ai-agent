@@ -9,7 +9,8 @@ Run with: python -m pytest tests/test_routing.py -v
 
 import pytest
 from agent.tools import get_tool_schemas
-from agent.mission_agent import MISSION_TOOL_CATEGORIES
+from agent.mission_agent import MISSION_TOOL_CATEGORIES, MISSION_EXTRA_TOOLS
+from agent.data_ops_agent import DATAOPS_TOOL_CATEGORIES, DATAOPS_EXTRA_TOOLS
 from agent.visualization_agent import VIZ_TOOL_CATEGORIES, VIZ_EXTRA_TOOLS
 from agent.core import ORCHESTRATOR_CATEGORIES, ORCHESTRATOR_EXTRA_TOOLS
 
@@ -19,26 +20,32 @@ class TestToolCategoryFiltering:
 
     def test_no_filter_returns_all_tools(self):
         all_tools = get_tool_schemas()
-        assert len(all_tools) == 13
+        assert len(all_tools) == 14  # 13 + delegate_to_data_ops
         names = {t["name"] for t in all_tools}
         assert "execute_visualization" in names
         assert "fetch_data" in names
         assert "delegate_to_mission" in names
         assert "delegate_to_visualization" in names
+        assert "delegate_to_data_ops" in names
 
     def test_mission_categories_exclude_visualization_and_routing(self):
-        mission_tools = get_tool_schemas(categories=MISSION_TOOL_CATEGORIES)
+        mission_tools = get_tool_schemas(categories=MISSION_TOOL_CATEGORIES, extra_names=MISSION_EXTRA_TOOLS)
         names = {t["name"] for t in mission_tools}
         # Should not include visualization tools
         assert "execute_visualization" not in names
         # Should not include routing tools (no recursive delegation)
         assert "delegate_to_mission" not in names
         assert "delegate_to_visualization" not in names
-        # Should include data tools
+        assert "delegate_to_data_ops" not in names
+        # Should include fetch + discovery tools
         assert "fetch_data" in names
         assert "search_datasets" in names
-        assert "custom_operation" in names
+        assert "list_fetched_data" in names
         assert "ask_clarification" in names
+        # Should NOT include compute tools (moved to DataOpsAgent)
+        assert "custom_operation" not in names
+        assert "describe_data" not in names
+        assert "save_data" not in names
 
     def test_visualization_category_only(self):
         viz_tools = get_tool_schemas(categories=VIZ_TOOL_CATEGORIES)
@@ -59,14 +66,35 @@ class TestToolCategoryFiltering:
         # Should include routing
         assert "delegate_to_mission" in names
         assert "delegate_to_visualization" in names
+        assert "delegate_to_data_ops" in names
         # Should include discovery
         assert "search_datasets" in names
         # Should include list_fetched_data (extra tool)
         assert "list_fetched_data" in names
-        # Should NOT include data_ops (delegated to mission agents)
+        # Should NOT include data_ops (delegated to sub-agents)
         assert "fetch_data" not in names
         assert "custom_operation" not in names
         # Should NOT include visualization
+        assert "execute_visualization" not in names
+
+    def test_dataops_categories(self):
+        dataops_tools = get_tool_schemas(
+            categories=DATAOPS_TOOL_CATEGORIES,
+            extra_names=DATAOPS_EXTRA_TOOLS,
+        )
+        names = {t["name"] for t in dataops_tools}
+        # Should include compute tools
+        assert "custom_operation" in names
+        assert "describe_data" in names
+        assert "save_data" in names
+        # Should include list_fetched_data (extra)
+        assert "list_fetched_data" in names
+        # Should include conversation
+        assert "ask_clarification" in names
+        # Should NOT include fetch (mission-specific)
+        assert "fetch_data" not in names
+        # Should NOT include routing or visualization
+        assert "delegate_to_mission" not in names
         assert "execute_visualization" not in names
 
     def test_every_tool_has_category(self):
@@ -130,6 +158,36 @@ class TestDelegateToVisualizationTool:
         assert "delegate_to_visualization" not in names
 
 
+class TestDelegateToDataOpsTool:
+    """Test that the delegate_to_data_ops tool is properly configured."""
+
+    def test_tool_exists(self):
+        names = {t["name"] for t in get_tool_schemas()}
+        assert "delegate_to_data_ops" in names
+
+    def test_tool_has_routing_category(self):
+        tool = next(t for t in get_tool_schemas() if t["name"] == "delegate_to_data_ops")
+        assert tool["category"] == "routing"
+
+    def test_tool_requires_request(self):
+        tool = next(t for t in get_tool_schemas() if t["name"] == "delegate_to_data_ops")
+        assert "request" in tool["parameters"]["properties"]
+        assert tool["parameters"]["required"] == ["request"]
+
+    def test_tool_not_in_mission_agent_tools(self):
+        mission_tools = get_tool_schemas(categories=MISSION_TOOL_CATEGORIES, extra_names=MISSION_EXTRA_TOOLS)
+        names = {t["name"] for t in mission_tools}
+        assert "delegate_to_data_ops" not in names
+
+    def test_tool_not_in_dataops_agent_tools(self):
+        dataops_tools = get_tool_schemas(
+            categories=DATAOPS_TOOL_CATEGORIES,
+            extra_names=DATAOPS_EXTRA_TOOLS,
+        )
+        names = {t["name"] for t in dataops_tools}
+        assert "delegate_to_data_ops" not in names
+
+
 class TestMissionAgentImportAndInterface:
     """Verify MissionAgent interface."""
 
@@ -141,3 +199,26 @@ class TestMissionAgentImportAndInterface:
     def test_execute_task_still_exists(self):
         from agent.mission_agent import MissionAgent
         assert hasattr(MissionAgent, "execute_task")
+
+
+class TestDataOpsAgentImportAndInterface:
+    """Verify DataOpsAgent interface."""
+
+    def test_import(self):
+        from agent.data_ops_agent import DataOpsAgent
+        assert DataOpsAgent is not None
+
+    def test_process_request_method_exists(self):
+        from agent.data_ops_agent import DataOpsAgent
+        assert hasattr(DataOpsAgent, "process_request")
+        assert callable(getattr(DataOpsAgent, "process_request"))
+
+    def test_execute_task_method_exists(self):
+        from agent.data_ops_agent import DataOpsAgent
+        assert hasattr(DataOpsAgent, "execute_task")
+        assert callable(getattr(DataOpsAgent, "execute_task"))
+
+    def test_get_token_usage_method_exists(self):
+        from agent.data_ops_agent import DataOpsAgent
+        assert hasattr(DataOpsAgent, "get_token_usage")
+        assert callable(getattr(DataOpsAgent, "get_token_usage"))

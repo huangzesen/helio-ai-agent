@@ -15,6 +15,7 @@ from knowledge.prompt_builder import (
     generate_planner_dataset_reference,
     generate_mission_profiles,
     build_mission_prompt,
+    build_data_ops_prompt,
     build_system_prompt,
     build_planning_prompt,
     build_visualization_prompt,
@@ -113,8 +114,9 @@ class TestBuildMissionPrompt:
     def test_mission_prompt_has_data_ops_docs(self):
         prompt = build_mission_prompt("PSP")
         assert "## Data Operations Workflow" in prompt
-        assert "custom_operation" in prompt
-        assert "Magnitude" in prompt
+        assert "fetch_data" in prompt
+        # Computation patterns moved to DataOps agent
+        assert "custom_operation" not in prompt
 
     def test_mission_prompt_has_recommended_datasets(self):
         prompt = build_mission_prompt("PSP")
@@ -137,6 +139,10 @@ class TestBuildMissionPrompt:
         prompt = build_mission_prompt("PSP")
         assert "Do NOT attempt to plot" in prompt
 
+    def test_mission_prompt_forbids_transformations(self):
+        prompt = build_mission_prompt("PSP")
+        assert "Do NOT attempt data transformations" in prompt
+
     def test_mission_prompt_workflow_excludes_plot_computed_data(self):
         prompt = build_mission_prompt("PSP")
         # plot_computed_data should not appear in the workflow steps
@@ -154,7 +160,7 @@ class TestBuildMissionPrompt:
         assert "data specialist agent" in prompt.lower()
 
     def test_mission_prompt_has_explore_before_fetch_workflow(self):
-        """Workflow now guides: identify dataset → verify → fetch."""
+        """Workflow now guides: identify dataset → verify → fetch (no compute)."""
         prompt = build_mission_prompt("PSP")
         workflow_start = prompt.index("## Data Operations Workflow")
         workflow_end = prompt.index("## Reporting Results")
@@ -162,6 +168,10 @@ class TestBuildMissionPrompt:
         assert "Identify the dataset" in workflow_section
         assert "Verify if unsure" in workflow_section
         assert "fetch_data" in workflow_section
+        # Compute tools no longer in mission workflow
+        assert "custom_operation" not in workflow_section
+        assert "describe_data" not in workflow_section
+        assert "save_data" not in workflow_section
 
     def test_mission_prompt_has_parameter_summaries_with_cache(self, tmp_path):
         """When local HAPI cache exists, primary datasets show parameter names."""
@@ -230,6 +240,10 @@ class TestBuildSystemPrompt:
         prompt = build_system_prompt()
         assert "delegate_to_mission" in prompt
 
+    def test_contains_delegate_to_data_ops_instructions(self):
+        prompt = build_system_prompt()
+        assert "delegate_to_data_ops" in prompt
+
     def test_contains_routing_table(self):
         prompt = build_system_prompt()
         assert "## Supported Missions" in prompt
@@ -286,6 +300,52 @@ class TestBuildPlanningPrompt:
         prompt = build_planning_prompt()
         assert "__visualization__" in prompt
         assert 'mission="__visualization__"' in prompt
+
+    def test_compute_tasks_use_data_ops_mission(self):
+        prompt = build_planning_prompt()
+        assert "__data_ops__" in prompt
+        assert 'mission="__data_ops__"' in prompt
+
+
+class TestBuildDataOpsPrompt:
+    """Test the DataOps agent's system prompt builder."""
+
+    def test_contains_specialist_identity(self):
+        prompt = build_data_ops_prompt()
+        assert "data transformation" in prompt.lower()
+
+    def test_contains_computation_patterns(self):
+        prompt = build_data_ops_prompt()
+        assert "Magnitude" in prompt
+        assert "Smoothing" in prompt
+        assert "Resample" in prompt
+        assert "Normalize" in prompt
+
+    def test_contains_code_guidelines(self):
+        prompt = build_data_ops_prompt()
+        assert "## Code Guidelines" in prompt
+        assert "result" in prompt
+        assert "DatetimeIndex" in prompt
+
+    def test_contains_workflow(self):
+        prompt = build_data_ops_prompt()
+        assert "## Workflow" in prompt
+        assert "list_fetched_data" in prompt
+        assert "custom_operation" in prompt
+        assert "describe_data" in prompt
+        assert "save_data" in prompt
+
+    def test_forbids_fetching(self):
+        prompt = build_data_ops_prompt()
+        assert "Do NOT attempt to fetch" in prompt
+
+    def test_forbids_plotting(self):
+        prompt = build_data_ops_prompt()
+        assert "Do NOT attempt to plot" in prompt
+
+    def test_has_reporting_section(self):
+        prompt = build_data_ops_prompt()
+        assert "## Reporting Results" in prompt
 
 
 class TestBuildVisualizationPrompt:

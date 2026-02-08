@@ -266,36 +266,89 @@ def build_mission_prompt(mission_id: str) -> str:
     lines.append("3. **`fetch_data`** — Pull data into memory. Label: `DATASET.PARAM`.")
     lines.append("   Time range: '2024-01-15 to 2024-01-20' (use ' to ' separator, NOT '/').")
     lines.append("   Also accepts 'last week', 'January 2024', etc.")
-    lines.append("4. **`custom_operation`** — Transform data using pandas/numpy code on `df`, assign to `result`")
-    lines.append("5. **`describe_data`** — Get statistics (min, max, mean, std, percentiles, NaN count)")
-    lines.append("6. **`save_data`** — Export to CSV with ISO 8601 timestamps")
     lines.append("")
     lines.append("## Reporting Results")
     lines.append("")
     lines.append("After completing data operations, report back with:")
     lines.append("- The **exact stored label(s)** for fetched data, e.g., 'Stored labels: DATASET.Param1, DATASET.Param2'")
     lines.append("- What time range was fetched and how many data points")
-    lines.append("- What computations were performed (output labels)")
-    lines.append("- A suggestion of what to plot (e.g., \"The data is ready to plot: labels 'ACE_Bmag' and 'ACE_smooth'\")")
+    lines.append("- A suggestion of what to do next (e.g., \"The data is ready to plot or compute on\")")
     lines.append("")
     lines.append("IMPORTANT: Always state the exact stored label(s) so downstream agents can reference them correctly.")
     lines.append("")
+    lines.append("Do NOT attempt data transformations (magnitude, smoothing, etc.) — those are handled by the DataOps agent.")
     lines.append("Do NOT attempt to plot data — plotting is handled by the orchestrator.")
     lines.append("")
-    lines.append("### Common Computation Patterns")
-    lines.append("")
-    lines.append("- **Magnitude**: `result = df.pow(2).sum(axis=1, skipna=False).pow(0.5).to_frame('magnitude')`")
-    lines.append("- **Smoothing**: `result = df.rolling(60, center=True, min_periods=1).mean()`")
-    lines.append("- **Resample**: `result = df.resample('60s').mean().dropna(how='all')`")
-    lines.append("- **Rate of change**: `dv = df.diff().iloc[1:]; dt_s = df.index.to_series().diff().dt.total_seconds().iloc[1:]; result = dv.div(dt_s, axis=0)`")
-    lines.append("- **Normalize**: `result = (df - df.mean()) / df.std()`")
-    lines.append("")
-    lines.append("### Code Guidelines")
-    lines.append("")
-    lines.append("- Always assign to `result` — must be DataFrame/Series with DatetimeIndex")
-    lines.append("- Use `df`, `pd`, `np` only — no imports, no file I/O")
-    lines.append("- Handle NaN with `skipna=True`, `.dropna()`, or `.fillna()`")
-    lines.append("")
+
+    return "\n".join(lines)
+
+
+# ---------------------------------------------------------------------------
+# DataOps sub-agent prompt builder
+# ---------------------------------------------------------------------------
+
+def build_data_ops_prompt() -> str:
+    """Generate the system prompt for the DataOps sub-agent.
+
+    Includes computation patterns, code guidelines, and workflow instructions
+    for data transformation, analysis, and export.
+
+    Returns:
+        System prompt string for the DataOpsAgent.
+    """
+    lines = [
+        "You are a data transformation and analysis specialist for scientific spacecraft data.",
+        "",
+        "Your job is to transform, analyze, describe, and export in-memory timeseries data.",
+        "You have access to `list_fetched_data`, `custom_operation`, `describe_data`, and `save_data` tools.",
+        "",
+        "## Workflow",
+        "",
+        "1. **Discover data**: Call `list_fetched_data` to see what timeseries are in memory",
+        "2. **Transform**: Use `custom_operation` to compute derived quantities",
+        "3. **Analyze**: Use `describe_data` to get statistical summaries",
+        "4. **Export**: Use `save_data` to write data to CSV files",
+        "",
+        "## Common Computation Patterns",
+        "",
+        "Use `custom_operation` with pandas/numpy code. The code operates on `df` (a DataFrame",
+        "with DatetimeIndex) and must assign the result to `result`.",
+        "",
+        "- **Magnitude**: `result = df.pow(2).sum(axis=1, skipna=False).pow(0.5).to_frame('magnitude')`",
+        "- **Smoothing**: `result = df.rolling(60, center=True, min_periods=1).mean()`",
+        "- **Resample**: `result = df.resample('60s').mean().dropna(how='all')`",
+        "- **Rate of change**: `dv = df.diff().iloc[1:]; dt_s = df.index.to_series().diff().dt.total_seconds().iloc[1:]; result = dv.div(dt_s, axis=0)`",
+        "- **Normalize**: `result = (df - df.mean()) / df.std()`",
+        "- **Clip values**: `result = df.clip(lower=-50, upper=50)`",
+        "- **Log transform**: `result = np.log10(df.abs().replace(0, np.nan))`",
+        "- **Interpolate gaps**: `result = df.interpolate(method='linear')`",
+        "- **Select columns**: `result = df[['x', 'z']]`",
+        "- **Detrend**: `result = df - df.rolling(100, center=True, min_periods=1).mean()`",
+        "- **Absolute value**: `result = df.abs()`",
+        "- **Cumulative sum**: `result = df.cumsum()`",
+        "- **Z-score filter**: `z = (df - df.mean()) / df.std(); result = df[z.abs() < 3].reindex(df.index)`",
+        "",
+        "## Code Guidelines",
+        "",
+        "- Always assign to `result` — must be DataFrame/Series with DatetimeIndex",
+        "- Use `df`, `pd` (pandas), `np` (numpy) only — no imports, no file I/O",
+        "- Handle NaN with `skipna=True`, `.dropna()`, or `.fillna()`",
+        "- Use descriptive output_label names (e.g., 'ACE_Bmag', 'velocity_smooth')",
+        "",
+        "## Reporting Results",
+        "",
+        "After completing operations, report back with:",
+        "- The **exact output label(s)** for computed data",
+        "- How many data points in the result",
+        "- A brief description of what was computed",
+        "- A suggestion of what to do next (e.g., \"Ready to plot: label 'ACE_Bmag'\")",
+        "",
+        "IMPORTANT: Always state the exact label(s) so downstream agents can reference them.",
+        "",
+        "Do NOT attempt to fetch new data — fetching is handled by mission agents.",
+        "Do NOT attempt to plot data — plotting is handled by the visualization agent.",
+        "",
+    ]
 
     return "\n".join(lines)
 
@@ -402,7 +455,8 @@ def build_system_prompt() -> str:
 
 ## Your Role
 Help users visualize spacecraft data by translating natural language requests into Autoplot operations. You orchestrate work by delegating to specialist sub-agents:
-- **Mission agents** handle data requests (fetching, computing, describing data)
+- **Mission agents** handle data fetching (mission-specific knowledge of datasets and parameters)
+- **DataOps agent** handles data transformations, analysis, and export (compute, describe, save)
 - **Visualization agent** handles all visualization (plotting, customizing, exporting)
 
 ## Supported Missions
@@ -412,17 +466,22 @@ Help users visualize spacecraft data by translating natural language requests in
 ## Workflow
 
 1. **Identify the mission**: Match the user's request to a spacecraft from the table above
-2. **Delegate data requests**: ALWAYS use `delegate_to_mission` for ALL data operations (fetch, compute, describe, save). You do NOT have direct data tools — mission specialists handle all data work.
-3. **Delegate visualization**: Use `delegate_to_visualization` for plotting, customizing, exporting, or any visual operation
-4. **Multi-mission**: Call `delegate_to_mission` for each mission, then `delegate_to_visualization` to plot results together
-5. **Memory check**: Use `list_fetched_data` to see what data is currently in memory before delegating to autoplot
+2. **Delegate data fetching**: Use `delegate_to_mission` for fetching data (requires mission-specific knowledge of datasets and parameters)
+3. **Delegate data operations**: Use `delegate_to_data_ops` for computations (magnitude, smoothing, etc.), statistical summaries, and data export
+4. **Delegate visualization**: Use `delegate_to_visualization` for plotting, customizing, exporting, or any visual operation
+5. **Multi-mission**: Call `delegate_to_mission` for each mission, then `delegate_to_data_ops` if needed, then `delegate_to_visualization` to plot results
+6. **Memory check**: Use `list_fetched_data` to see what data is currently in memory
 
 ## After Data Delegation
 
 When `delegate_to_mission` returns:
 - If the user asked to "show", "plot", or "display" data, use `delegate_to_visualization` with the labels the specialist reported
-- If the specialist only described or saved data, summarize the results without plotting
+- If the user asked to compute something (magnitude, smoothing, etc.), use `delegate_to_data_ops`
 - Always relay the specialist's findings to the user in your response
+
+When `delegate_to_data_ops` returns:
+- If the user asked to plot the result, use `delegate_to_visualization` with the output labels
+- If the specialist only described or saved data, summarize the results without plotting
 
 ## Time Range Handling
 
@@ -494,6 +553,12 @@ For complex requests (like "compare PSP and ACE magnetic fields"), chain multipl
 2. delegate_to_mission("ACE", "fetch magnetic field data for last week")
 3. delegate_to_visualization("plot PSP and ACE magnetic field data together", context="Labels: PSP_label, ACE_label")
 4. Summarize the comparison
+
+For "fetch ACE mag, compute magnitude, and plot":
+
+1. delegate_to_mission("ACE", "fetch magnetic field vector data for last week")
+2. delegate_to_data_ops("compute magnitude of AC_H2_MFI.BGSEc", context="Labels: AC_H2_MFI.BGSEc")
+3. delegate_to_visualization("plot the magnitude", context="Labels: ACE_Bmag")
 """
 
 
@@ -546,9 +611,11 @@ to discover exact parameter names before fetching. Do NOT guess parameter names.
 Tag each task with the spacecraft mission it belongs to using the "mission" field:
 - Use spacecraft IDs: PSP, SolO, ACE, OMNI, WIND, DSCOVR, MMS, STEREO_A
 - Set mission="__visualization__" for visualization tasks (plotting, exporting, render changes)
-- Set mission=null for cross-mission data tasks (combined analyses that don't involve visualization)
+- Set mission="__data_ops__" for data transformation/analysis/export tasks (custom_operation, describe_data, save_data)
+- Set mission=null for cross-mission data tasks (combined analyses that don't involve visualization or computation)
 - Tasks that list_parameters or fetch_data for a specific spacecraft should be tagged with that mission
 - Plotting tasks (plot_data, plot_computed_data, export_plot) should use mission="__visualization__"
+- Compute tasks (magnitude, smoothing, resampling, describe, save to CSV) should use mission="__data_ops__"
 
 ## Task Dependencies
 Use "depends_on" to declare which tasks must complete before another can start:
@@ -565,8 +632,9 @@ Every custom_operation instruction MUST include the exact source_label (e.g., "D
 Example instructions:
 - "List parameters for dataset AC_H2_MFI" (mission: "ACE")
 - "Fetch data from dataset AC_H2_MFI, parameter BGSEc, for last week" (mission: "ACE")
-- "Compute the magnitude of AC_H2_MFI.BGSEc, save as ACE_Bmag" (mission: "ACE")
-- "Describe the data labeled ACE_Bmag" (mission: "ACE")
+- "Compute the magnitude of AC_H2_MFI.BGSEc, save as ACE_Bmag" (mission: "__data_ops__", depends_on: [index of fetch task])
+- "Describe the data labeled ACE_Bmag" (mission: "__data_ops__")
+- "Save ACE_Bmag to CSV" (mission: "__data_ops__")
 - "Plot ACE_Bmag and Wind_Bmag together" (mission: "__visualization__", depends_on: [indices of ACE and Wind tasks])
 - "Export the plot to output.png" (mission: "__visualization__")
 

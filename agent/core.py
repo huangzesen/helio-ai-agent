@@ -22,6 +22,7 @@ from .tasks import (
 from .planner import create_plan_from_request, format_plan_for_display
 from .mission_agent import MissionAgent
 from .visualization_agent import VisualizationAgent
+from .data_ops_agent import DataOpsAgent
 from .logging import (
     setup_logging, get_logger, log_error, log_tool_call,
     log_tool_result, log_plan_event, log_session_end,
@@ -39,7 +40,7 @@ from data_ops.custom_ops import run_custom_operation
 ORCHESTRATOR_CATEGORIES = ["discovery", "conversation", "routing"]
 ORCHESTRATOR_EXTRA_TOOLS = ["list_fetched_data"]
 
-DEFAULT_MODEL = "gemini-2.5-flash"
+DEFAULT_MODEL = "gemini-3-flash-preview"
 
 
 class OrchestratorAgent:
@@ -107,6 +108,9 @@ class OrchestratorAgent:
         # Cached visualization sub-agent
         self._viz_agent: Optional[VisualizationAgent] = None
 
+        # Cached data ops sub-agent
+        self._dataops_agent: Optional[DataOpsAgent] = None
+
     def get_plotly_figure(self):
         """Return the current Plotly figure (or None)."""
         return self._renderer.get_figure()
@@ -135,6 +139,13 @@ class OrchestratorAgent:
         # Include usage from visualization agent
         if self._viz_agent:
             usage = self._viz_agent.get_token_usage()
+            input_tokens += usage["input_tokens"]
+            output_tokens += usage["output_tokens"]
+            api_calls += usage["api_calls"]
+
+        # Include usage from data ops agent
+        if self._dataops_agent:
+            usage = self._dataops_agent.get_token_usage()
             input_tokens += usage["input_tokens"]
             output_tokens += usage["output_tokens"]
             api_calls += usage["api_calls"]
@@ -613,6 +624,19 @@ class OrchestratorAgent:
                 "result": sub_result,
             }
 
+        elif tool_name == "delegate_to_data_ops":
+            request = tool_args["request"]
+            context = tool_args.get("context", "")
+            if self.verbose:
+                print(f"  [Router] Delegating to DataOps specialist")
+            agent = self._get_or_create_dataops_agent()
+            full_request = f"{request}\n\nContext: {context}" if context else request
+            sub_result = agent.process_request(full_request)
+            return {
+                "status": "success",
+                "result": sub_result,
+            }
+
         else:
             result = {"status": "error", "message": f"Unknown tool: {tool_name}"}
             log_error(
@@ -878,9 +902,10 @@ class OrchestratorAgent:
             print(format_plan_for_display(plan))
 
         # Get or create agents for each unique mission in the plan
+        special_missions = {"__visualization__", "__data_ops__"}
         mission_agents = {}
         for task in plan.tasks:
-            if task.mission and task.mission != "__visualization__" and task.mission not in mission_agents:
+            if task.mission and task.mission not in special_missions and task.mission not in mission_agents:
                 try:
                     mission_agents[task.mission] = self._get_or_create_mission_agent(task.mission)
                 except (KeyError, FileNotFoundError):
@@ -913,6 +938,8 @@ class OrchestratorAgent:
             # Route to appropriate agent
             if task.mission == "__visualization__":
                 self._get_or_create_viz_agent().execute_task(task)
+            elif task.mission == "__data_ops__":
+                self._get_or_create_dataops_agent().execute_task(task)
             elif task.mission and task.mission in mission_agents:
                 mission_agents[task.mission].execute_task(task)
             else:
@@ -1040,6 +1067,19 @@ class OrchestratorAgent:
                 print(f"  [Router] Created Visualization agent")
         return self._viz_agent
 
+    def _get_or_create_dataops_agent(self) -> DataOpsAgent:
+        """Get the cached data ops agent or create a new one."""
+        if self._dataops_agent is None:
+            self._dataops_agent = DataOpsAgent(
+                client=self.client,
+                model_name=self.model_name,
+                tool_executor=self._execute_tool_safe,
+                verbose=self.verbose,
+            )
+            if self.verbose:
+                print(f"  [Router] Created DataOps agent")
+        return self._dataops_agent
+
     def process_message(self, user_message: str) -> str:
         """Process a user message and return the agent's response.
 
@@ -1052,7 +1092,7 @@ class OrchestratorAgent:
         return self._process_single_message(user_message)
 
     def reset(self):
-        """Reset conversation history, mission agent cache, and visualization agent."""
+        """Reset conversation history, mission agent cache, and sub-agents."""
         self.chat = self.client.chats.create(
             model=self.model_name,
             config=self.config
@@ -1060,6 +1100,7 @@ class OrchestratorAgent:
         self._current_plan = None
         self._mission_agents.clear()
         self._viz_agent = None
+        self._dataops_agent = None
         self._renderer.reset()
 
     def get_current_plan(self) -> Optional[TaskPlan]:
