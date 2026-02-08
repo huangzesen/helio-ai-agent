@@ -26,11 +26,10 @@ from .logging import (
     setup_logging, get_logger, log_error, log_tool_call,
     log_tool_result, log_plan_event, log_session_end,
 )
-from autoplot_bridge.registry import get_method, validate_args
+from rendering.registry import get_method, validate_args
 from rendering.plotly_renderer import PlotlyRenderer
 from knowledge.catalog import search_by_keywords
 from knowledge.hapi_client import list_parameters as hapi_list_parameters, get_dataset_time_range
-from autoplot_bridge.commands import get_commands
 from data_ops.store import get_store, DataEntry
 from data_ops.fetch import fetch_hapi_data
 from data_ops.custom_ops import run_custom_operation
@@ -91,10 +90,7 @@ class OrchestratorAgent:
             config=self.config
         )
 
-        # Autoplot commands (lazy-initialized on first plot — kept for future use)
-        self._autoplot = None
-
-        # Plotly renderer (replaces Autoplot canvas for visualization)
+        # Plotly renderer for visualization
         self._renderer = PlotlyRenderer(verbose=self.verbose, gui_mode=self.gui_mode)
 
         # Token usage tracking
@@ -110,13 +106,6 @@ class OrchestratorAgent:
 
         # Cached autoplot sub-agent
         self._autoplot_agent: Optional[AutoplotAgent] = None
-
-    @property
-    def autoplot(self):
-        """Lazy initialization of Autoplot commands."""
-        if self._autoplot is None:
-            self._autoplot = get_commands(verbose=self.verbose, gui_mode=self.gui_mode)
-        return self._autoplot
 
     def get_plotly_figure(self):
         """Return the current Plotly figure (or None)."""
@@ -428,9 +417,6 @@ class OrchestratorAgent:
             method = tool_args["method"]
             args = tool_args.get("args", {})
             return self._dispatch_autoplot_method(method, args)
-
-        elif tool_name == "autoplot_script":
-            return self._renderer.execute_script(tool_args["code"])
 
         # --- Data Operations Tools ---
 

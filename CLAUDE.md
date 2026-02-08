@@ -13,17 +13,15 @@ helio-ai-agent is an AI-powered natural language interface for [Autoplot](https:
 The system has four layers:
 
 1. **Agent layer** (`agent/`) — Gemini 2.5-Flash with function calling. Three agent types:
-   - `core.py` **OrchestratorAgent** — routes to sub-agents, handles data ops directly. Tools defined in `tools.py` (14 tool schemas).
+   - `core.py` **OrchestratorAgent** — routes to sub-agents, handles data ops directly. Tools defined in `tools.py` (13 tool schemas).
    - `mission_agent.py` **MissionAgent** — per-spacecraft data specialists (discovery + data_ops tools only).
    - `autoplot_agent.py` **AutoplotAgent** — visualization specialist using registry-driven dispatch via a single `execute_autoplot` tool + method catalog in prompt.
 
-2. **Rendering** (`rendering/`) — Pure-Python Plotly renderer (`plotly_renderer.py`). Stateful `PlotlyRenderer` class that mirrors the AutoplotCommands interface — the agent calls the same methods (`plot_dataset`, `set_time_range`, `export_png`, etc.) but output goes to an interactive Plotly figure instead of a Java canvas. Supports vector decomposition, multi-panel subplots, WebGL for large datasets, and PNG/PDF export via kaleido.
+2. **Rendering** (`rendering/`) — Pure-Python Plotly renderer (`plotly_renderer.py`) and method registry (`registry.py`). The `PlotlyRenderer` class provides interactive Plotly figures with vector decomposition, multi-panel subplots, WebGL for large datasets, and PNG/PDF export via kaleido. The `registry.py` describes 16 visualization methods as structured data — the single source of truth for visualization capabilities.
 
-3. **Autoplot bridge** (`autoplot_bridge/`) — Python-to-Java bridge via JPype (kept intact for future extension, not used in default flow). `registry.py` describes 16 Autoplot methods as structured data — the single source of truth for visualization capabilities.
+3. **Knowledge base** (`knowledge/`) — Static dataset catalog (`catalog.py`) with mission profiles for keyword-based spacecraft/instrument search. Prompt builder (`prompt_builder.py`) generates system and planner prompts dynamically from the catalog — single source of truth. HAPI client (`hapi_client.py`) for fetching parameter metadata from CDAWeb.
 
-4. **Knowledge base** (`knowledge/`) — Static dataset catalog (`catalog.py`) with mission profiles for keyword-based spacecraft/instrument search. Prompt builder (`prompt_builder.py`) generates system and planner prompts dynamically from the catalog — single source of truth. HAPI client (`hapi_client.py`) for fetching parameter metadata from CDAWeb.
-
-5. **Data operations** (`data_ops/`) — Python-side data pipeline. Fetches HAPI data into pandas DataFrames (`fetch.py`), stores them in an in-memory singleton (`store.py`), and provides an AST-validated sandbox (`custom_ops.py`) for LLM-generated pandas/numpy code — handles magnitude, arithmetic, smoothing, resampling, derivatives, and any other transformation.
+4. **Data operations** (`data_ops/`) — Python-side data pipeline. Fetches HAPI data into pandas DataFrames (`fetch.py`), stores them in an in-memory singleton (`store.py`), and provides an AST-validated sandbox (`custom_ops.py`) for LLM-generated pandas/numpy code — handles magnitude, arithmetic, smoothing, resampling, derivatives, and any other transformation.
 
 Data flows: User input → Gemini function calling → tool execution → result fed back to Gemini → natural language response. For computed data: fetch → compute → plot through Plotly renderer.
 
@@ -53,10 +51,7 @@ pip install -r requirements.txt
 python main.py                 # Normal mode
 python main.py --verbose       # Show tool calls, timing, errors
 
-# Test Autoplot connection
-python -m autoplot_bridge.connection
-
-# Unit tests (fast, no API key or JVM needed)
+# Unit tests (fast, no API key needed)
 python -m pytest tests/test_store.py tests/test_custom_ops.py  # Data ops tests
 python -m pytest tests/                                         # All tests
 ```
@@ -73,14 +68,14 @@ python gradio_app.py --verbose      # Show tool call details
 python gradio_app.py --model gemini-2.5-pro  # Override model
 ```
 
-The app displays interactive Plotly figures in the sidebar via `gr.Plot`. The agent's `web_mode` flag suppresses auto-opening exported files in the OS viewer. No JVM or Autoplot installation is needed for the web UI.
+The app displays interactive Plotly figures in the sidebar via `gr.Plot`. The agent's `web_mode` flag suppresses auto-opening exported files in the OS viewer.
 
 ## Interactive Agent Testing
 
 Use `scripts/agent_server.py` to drive multi-turn conversations with the agent programmatically. It keeps an `OrchestratorAgent` alive in a background process and accepts commands over a TCP socket — this is the primary way to test interactive agent behavior without a human at the terminal.
 
 ```bash
-# Start the server (initializes JVM + agent, listens on localhost)
+# Start the server (initializes agent, listens on localhost)
 python scripts/agent_server.py serve           # headless mode
 python scripts/agent_server.py serve --verbose  # with tool call logging
 
@@ -102,7 +97,6 @@ The server uses `agent.core.create_agent()` directly (same `OrchestratorAgent` a
 
 Requires a `.env` file at project root with:
 - `GOOGLE_API_KEY` — Gemini API key
-- `AUTOPLOT_JAR` — path to the Autoplot single-JAR (download from https://autoplot.org/latest/)
 
 ## Supported Spacecraft
 
@@ -119,7 +113,7 @@ Time ranges use `YYYY-MM-DD to YYYY-MM-DD` format. The agent accepts flexible in
 - Read `docs/capability-summary.md` first to understand what has been implemented.
 - Read `docs/roadmap.md` for planned future development.
 - Read `tests/issue-log-20260207/ISSUE_SUMMARY.md` for known bugs from the latest test session (15 issues, 2 critical JVM crashes). Priority fixes: relative path resolution, rolling window DatetimeIndex, CDAWeb parameter validation, 4-panel plot guard.
-- When adding new Autoplot capabilities: add entry to `autoplot_bridge/registry.py`, implement bridge method in `commands.py`, add handler in `core.py:_dispatch_autoplot_method()`. No tool schema changes needed. For non-Autoplot tools: add schema in `tools.py`, handler in `core.py:_execute_tool()`. Update `docs/capability-summary.md` either way.
+- When adding new visualization capabilities: add entry to `rendering/registry.py`, implement method in `rendering/plotly_renderer.py`, add handler in `agent/core.py:_dispatch_autoplot_method()`. No tool schema changes needed. For non-visualization tools: add schema in `agent/tools.py`, handler in `agent/core.py:_execute_tool()`. Update `docs/capability-summary.md` either way.
 - When adding new spacecraft: create a JSON file in `knowledge/missions/` (copy an existing one as template). Include `id`, `name`, `keywords`, `profile`, and `instruments` with `datasets` dict. Then run `python scripts/generate_mission_data.py --mission <id>` to populate HAPI metadata. The catalog, prompts, and routing table are all auto-generated from the JSON files.
 - Data operations (`data_ops/custom_ops.py`) use an AST-validated sandbox for LLM-generated pandas/numpy code — easy to test.
 - Plotting always goes through the Plotly renderer (`rendering/plotly_renderer.py`), not matplotlib or Autoplot.

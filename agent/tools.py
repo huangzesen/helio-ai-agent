@@ -279,50 +279,6 @@ If no filename is given, one is auto-generated from the label.""",
         }
     },
 
-    {
-        "category": "_legacy",  # hidden from active tool sets
-        "name": "autoplot_script",
-        "description": """Execute custom ScriptContext/DOM code for advanced Autoplot visualization.
-
-Use this for operations NOT covered by execute_autoplot's method catalog:
-- Multi-panel layouts: sc.plot(0, uri1); sc.plot(1, uri2)
-- Per-panel customization: dom.getPlots(i).setTitle(...)
-- Line styling: dom.getPlotElements(i).getStyle().setColor(Color.RED)
-- Annotations, axis range with units, state inspection, etc.
-
-Available objects in the script namespace:
-- sc: ScriptContext — sc.plot(idx, uri), sc.waitUntilIdle(), sc.writeToPng(path), sc.reset()
-- dom: Application (DOM model) — dom.getPlots(i), dom.getPlotElements(i), dom.setTimeRange(tr)
-- Color: java.awt.Color — Color.RED, Color(r,g,b), Color.getHSBColor(h,s,b)
-- RenderType: org.autoplot.RenderType — RenderType.series, RenderType.scatter
-- DatumRangeUtil: org.das2.datum — DatumRangeUtil.parseTimeRange("2024-01-01 to 2024-01-07")
-- DatumRange: org.das2.datum — DatumRange(min, max, units)
-- Units: org.das2.datum — Units.dimensionless, Units.t2000, Units.lookupUnits("nT")
-- DDataSet, QDataSet: org.das2.qds — Dataset creation and property constants
-- store: DataStore — store.get("label") returns DataEntry with .time, .values, .data
-- to_qdataset: function — to_qdataset('label') -> QDataSet for sc.plot(); to_qdataset('label', component=0) for vectors
-
-Rules:
-- No imports, no exec/eval, no file I/O, no JClass/jpype (only pre-imported classes above)
-- No dunder access (__class__, __dict__, etc.)
-- Assigning to `result` is optional — if set, its string value is returned
-- print() output is captured and returned""",
-        "parameters": {
-            "type": "object",
-            "properties": {
-                "code": {
-                    "type": "string",
-                    "description": "Python code using sc, dom, Color, RenderType, DatumRangeUtil, DatumRange, Units, DDataSet, QDataSet, store"
-                },
-                "description": {
-                    "type": "string",
-                    "description": "Brief description of what the script does"
-                }
-            },
-            "required": ["code", "description"]
-        }
-    },
-
     # --- Routing ---
     {
         "category": "routing",

@@ -19,7 +19,7 @@ class TestToolCategoryFiltering:
 
     def test_no_filter_returns_all_tools(self):
         all_tools = get_tool_schemas()
-        assert len(all_tools) == 14
+        assert len(all_tools) == 13
         names = {t["name"] for t in all_tools}
         assert "execute_autoplot" in names
         assert "fetch_data" in names
@@ -43,7 +43,7 @@ class TestToolCategoryFiltering:
     def test_autoplot_category_only(self):
         autoplot_tools = get_tool_schemas(categories=AUTOPLOT_TOOL_CATEGORIES)
         names = {t["name"] for t in autoplot_tools}
-        assert names == {"execute_autoplot"}  # autoplot_script moved to _legacy
+        assert names == {"execute_autoplot"}
 
     def test_autoplot_with_extras(self):
         tools = get_tool_schemas(
@@ -51,7 +51,7 @@ class TestToolCategoryFiltering:
             extra_names=AUTOPLOT_EXTRA_TOOLS,
         )
         names = {t["name"] for t in tools}
-        assert names == {"execute_autoplot", "list_fetched_data"}  # autoplot_script is _legacy
+        assert names == {"execute_autoplot", "list_fetched_data"}
 
     def test_orchestrator_categories(self):
         orch_tools = get_tool_schemas(categories=ORCHESTRATOR_CATEGORIES, extra_names=ORCHESTRATOR_EXTRA_TOOLS)

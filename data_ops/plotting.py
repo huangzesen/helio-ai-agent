@@ -1,8 +1,8 @@
 """
 Matplotlib-based timeseries plotting (DEPRECATED).
 
-Plotting is now routed through Autoplot via autoplot_bridge.commands.plot_dataset().
-This module is kept as a fallback for testing without a JVM / Autoplot JAR.
+Plotting is now routed through rendering/plotly_renderer.py.
+This module is kept as a legacy fallback.
 """
 
 import os

@@ -1,12 +1,11 @@
 """
-Plotly-based renderer — drop-in replacement for AutoplotCommands.
+Plotly-based renderer for visualization.
 
-Mirrors every method in autoplot_bridge.commands.AutoplotCommands so that
-agent/core.py can swap `self.autoplot.X()` → `self._renderer.X()` with
-zero changes to tool schemas or LLM prompts.
+Provides all visualization methods dispatched by agent/core.py via the
+method registry in rendering/registry.py.
 
 State is kept in a mutable go.Figure that accumulates traces / layout
-changes across calls, just like the Autoplot canvas.
+changes across calls.
 """
 
 from __future__ import annotations

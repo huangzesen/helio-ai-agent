@@ -5,7 +5,7 @@ Run with: python -m pytest tests/test_registry.py -v
 """
 
 import pytest
-from autoplot_bridge.registry import (
+from rendering.registry import (
     METHODS, get_method, validate_args, render_method_catalog,
 )
 
