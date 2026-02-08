@@ -72,6 +72,34 @@ def _format_tokens() -> str:
     )
 
 
+def _get_label_choices() -> list[str]:
+    """Return list of labels currently in the DataStore."""
+    from data_ops.store import get_store
+    return [e["label"] for e in get_store().list_entries()]
+
+
+def _preview_data(label: str) -> list[list] | None:
+    """Return head+tail preview rows for a DataStore label."""
+    if not label:
+        return None
+    from data_ops.store import get_store
+    entry = get_store().get(label)
+    if entry is None:
+        return None
+    df = entry.data.copy()
+    df.insert(0, "timestamp", df.index.strftime("%Y-%m-%d %H:%M:%S"))
+    df = df.reset_index(drop=True)
+    num_cols = df.select_dtypes(include="number").columns
+    df[num_cols] = df[num_cols].round(4)
+    n = len(df)
+    if n <= 20:
+        return df.values.tolist()
+    head = df.head(10)
+    tail = df.tail(10)
+    sep = [["..."] * len(df.columns)]
+    return head.values.tolist() + sep + tail.values.tolist()
+
+
 # ---------------------------------------------------------------------------
 # Core response function
 # ---------------------------------------------------------------------------
@@ -84,10 +112,11 @@ def respond(message: str, history: list[dict]) -> tuple:
         history: Chat history in messages format [{role, content}, ...].
 
     Returns:
-        Tuple of (history, plotly_figure, data_table, token_text, textbox_value).
+        Tuple of (history, plotly_figure, data_table, token_text, textbox_value,
+                  label_dropdown_update, preview_data).
     """
     if not message.strip():
-        return history, gr.skip(), gr.skip(), gr.skip(), ""
+        return history, gr.skip(), gr.skip(), gr.skip(), "", gr.skip(), gr.skip()
 
     # Append user message
     history = history + [{"role": "user", "content": message}]
@@ -108,7 +137,16 @@ def respond(message: str, history: list[dict]) -> tuple:
     data_rows = _build_data_table()
     token_text = _format_tokens()
 
-    return history, fig, data_rows, token_text, ""
+    # Update data preview dropdown
+    label_choices = _get_label_choices()
+    selected = label_choices[-1] if label_choices else None
+    preview = _preview_data(selected) if selected else None
+
+    return (
+        history, fig, data_rows, token_text, "",
+        gr.update(choices=label_choices, value=selected),
+        preview,
+    )
 
 
 def reset_session() -> tuple:
@@ -119,7 +157,7 @@ def reset_session() -> tuple:
     from data_ops.store import get_store
     get_store().clear()
 
-    return [], None, [], "*Session reset*", ""
+    return [], None, [], "*Session reset*", "", gr.update(choices=[], value=None), None
 
 
 # ---------------------------------------------------------------------------
@@ -192,6 +230,17 @@ def create_app() -> gr.Blocks:
                     wrap=True,
                     row_count=(0, "dynamic"),
                 )
+                label_dropdown = gr.Dropdown(
+                    label="Select Dataset",
+                    choices=[],
+                    interactive=True,
+                )
+                data_preview = gr.Dataframe(
+                    label="Data Preview",
+                    interactive=False,
+                    wrap=True,
+                    row_count=(0, "dynamic"),
+                )
                 token_display = gr.Markdown(
                     value="*No API calls yet*",
                     label="Token Usage",
@@ -199,10 +248,13 @@ def create_app() -> gr.Blocks:
                 reset_btn = gr.Button("Reset Session", variant="secondary")
 
         # ---- Event wiring ----
+        all_outputs = [chatbot, plotly_plot, data_table, token_display,
+                       msg_input, label_dropdown, data_preview]
+
         send_event_args = dict(
             fn=respond,
             inputs=[msg_input, chatbot],
-            outputs=[chatbot, plotly_plot, data_table, token_display, msg_input],
+            outputs=all_outputs,
         )
         send_btn.click(**send_event_args)
         msg_input.submit(**send_event_args)
@@ -210,7 +262,13 @@ def create_app() -> gr.Blocks:
         reset_btn.click(
             fn=reset_session,
             inputs=[],
-            outputs=[chatbot, plotly_plot, data_table, token_display, msg_input],
+            outputs=all_outputs,
+        )
+
+        label_dropdown.change(
+            fn=_preview_data,
+            inputs=[label_dropdown],
+            outputs=[data_preview],
         )
 
     return app

@@ -275,37 +275,25 @@ class OrchestratorAgent:
 
         # --- Methods with pre/post-processing ---
         elif method == "plot_cdaweb":
+            # Internally fetch via HAPI, then plot from DataStore
+            # (Plotly renderer doesn't support direct CDAWeb URIs)
             try:
                 time_range = parse_time_range(args["time_range"])
             except TimeRangeError as e:
                 return {"status": "error", "message": str(e)}
-            # Validate parameter exists via HAPI before calling Autoplot
-            # (invalid parameters cause JVM crashes — ISSUE-02)
-            try:
-                params = hapi_list_parameters(args["dataset_id"])
-                param_names = [p["name"] for p in params]
-                if args["parameter_id"] not in param_names:
-                    suggestions = ", ".join(param_names[:10])
-                    if len(param_names) > 10:
-                        suggestions += f" ({len(param_names)} total)"
-                    return {"status": "error",
-                            "message": f"Parameter '{args['parameter_id']}' not found in dataset '{args['dataset_id']}'. "
-                                       f"Available: {suggestions}"}
-            except Exception:
-                pass  # fail-open if HAPI unavailable
-            validation = self._validate_time_range(
-                args["dataset_id"], time_range.start, time_range.end
-            )
-            if validation and validation.startswith("No data available"):
-                return {"status": "error", "message": validation}
-            result = self._renderer.plot_cdaweb(
-                dataset_id=args["dataset_id"],
-                parameter_id=args["parameter_id"],
-                time_range=time_range,
-            )
-            if validation:
-                result["warning"] = validation
-            return result
+            fetch_result = self._execute_tool("fetch_data", {
+                "dataset_id": args["dataset_id"],
+                "parameter_id": args["parameter_id"],
+                "time_range": f"{time_range.start.strftime('%Y-%m-%dT%H:%M:%SZ')} to "
+                              f"{time_range.end.strftime('%Y-%m-%dT%H:%M:%SZ')}",
+            })
+            if fetch_result.get("status") == "error":
+                return fetch_result
+            label = fetch_result["label"]
+            return self._dispatch_autoplot_method("plot_stored_data", {
+                "labels": label,
+                "title": args.get("title", ""),
+            })
 
         elif method == "plot_stored_data":
             store = get_store()
