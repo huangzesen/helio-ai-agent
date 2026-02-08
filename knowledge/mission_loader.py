@@ -50,10 +50,16 @@ def load_mission(mission_id: str) -> dict:
 def load_all_missions() -> dict[str, dict]:
     """Load all mission JSON files, keyed by canonical mission ID.
 
+    On first run (no JSON files exist), triggers auto-download from CDAWeb.
+
     Returns:
         Dict mapping mission ID (from JSON "id" field) to mission data.
         Example: {"PSP": {...}, "ACE": {...}, ...}
     """
+    if not any(_MISSIONS_DIR.glob("*.json")):
+        from .bootstrap import ensure_missions_populated
+        ensure_missions_populated()
+
     result = {}
     for filepath in sorted(_MISSIONS_DIR.glob("*.json")):
         cache_key = filepath.stem  # e.g., "psp", "ace"
