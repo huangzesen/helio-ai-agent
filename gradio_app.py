@@ -509,13 +509,13 @@ def _on_delete_sessions(session_ids: list[str]):
             need_reset = True
         sm.delete_session(sid)
 
-    choices = _get_session_choices()
-
     if need_reset and _agent is not None:
-        # Active session was deleted — reset everything
+        # Active session was deleted — reset creates a fresh session
         _agent.reset()
         from data_ops.store import get_store
         get_store().clear()
+        # Fetch choices AFTER reset so the new session appears in the list
+        choices = _get_session_choices()
         return (
             gr.update(visible=True),    # normal_mode_group
             gr.update(visible=False),   # manage_mode_group
@@ -532,6 +532,7 @@ def _on_delete_sessions(session_ids: list[str]):
         )
 
     # Active session not deleted — just refresh sidebar and exit manage mode
+    choices = _get_session_choices()
     return (
         gr.update(visible=True),    # normal_mode_group
         gr.update(visible=False),   # manage_mode_group
@@ -1119,7 +1120,17 @@ footer { display: none !important; }
     color: var(--body-text-color) !important;
 }
 
-/* ---- Right data sidebar ---- */
+/* ---- Right data sidebar (user-resizable) ---- */
+.data-sidebar {
+    min-width: 280px !important;
+    max-width: 80vw !important;
+    resize: horizontal !important;
+    overflow: auto !important;
+    direction: rtl !important; /* puts the resize handle on the left edge */
+}
+.data-sidebar > * {
+    direction: ltr !important; /* restore normal text direction for content */
+}
 .data-sidebar .gr-accordion {
     border-color: var(--border-color-primary) !important;
     border-radius: 10px !important;
@@ -1129,8 +1140,11 @@ footer { display: none !important; }
 /* ---- Data tables ---- */
 .data-table {
     border-radius: 8px !important;
-    overflow: hidden !important;
+    overflow-x: auto !important;
     border: 1px solid var(--border-color-primary) !important;
+}
+.data-table table {
+    font-size: 0.8rem !important;
 }
 .data-table table th {
     background: var(--background-fill-secondary) !important;
@@ -1249,7 +1263,7 @@ def create_app() -> gr.Blocks:
             )
 
         # ---- Right Sidebar: Data Tools ----
-        with gr.Sidebar(position="right", width=340, open=True,
+        with gr.Sidebar(position="right", width=420, open=True,
                          elem_classes="data-sidebar"):
             with gr.Accordion("Browse & Fetch", open=False):
                 mission_dropdown = gr.Dropdown(
