@@ -591,6 +591,327 @@ EXAMPLES = [
 
 
 # ---------------------------------------------------------------------------
+# Theme, CSS, and JS for light/dark mode support
+# ---------------------------------------------------------------------------
+
+def _build_theme():
+    """Build Gradio theme with distinct light and dark mode palettes."""
+    return gr.themes.Base(
+        primary_hue=gr.themes.Color(
+            c50="#e0f7ff", c100="#b3ecff", c200="#80dfff",
+            c300="#4dd2ff", c400="#1ac5ff", c500="#00d9ff",
+            c600="#00b8d9", c700="#0097b2", c800="#00768c",
+            c900="#005566", c950="#003d4d",
+        ),
+        secondary_hue=gr.themes.Color(
+            c50="#fff8e1", c100="#ffecb3", c200="#ffe082",
+            c300="#ffd54f", c400="#ffca28", c500="#ffa500",
+            c600="#fb8c00", c700="#f57c00", c800="#ef6c00",
+            c900="#e65100", c950="#bf360c",
+        ),
+        neutral_hue=gr.themes.Color(
+            c50="#f8fafc", c100="#f1f5f9", c200="#e2e8f0",
+            c300="#cbd5e1", c400="#94a3b8", c500="#64748b",
+            c600="#475569", c700="#334155", c800="#1e293b",
+            c900="#0f172a", c950="#020617",
+        ),
+        font=[gr.themes.GoogleFont("Inter"), "system-ui", "sans-serif"],
+        font_mono=[gr.themes.GoogleFont("JetBrains Mono"), "monospace"],
+    ).set(
+        # --- Light mode ---
+        body_background_fill="#f8fafc",
+        background_fill_primary="#ffffff",
+        background_fill_secondary="#f1f5f9",
+        border_color_primary="#e2e8f0",
+        border_color_accent="#00b8d9",
+        body_text_color="#0f172a",
+        body_text_color_subdued="#64748b",
+        button_primary_background_fill="#00b8d9",
+        button_primary_text_color="#ffffff",
+        button_primary_background_fill_hover="#0097b2",
+        button_secondary_background_fill="#f1f5f9",
+        button_secondary_text_color="#0f172a",
+        button_secondary_border_color="#e2e8f0",
+        input_background_fill="#ffffff",
+        input_border_color="#e2e8f0",
+        input_placeholder_color="#94a3b8",
+        panel_background_fill="#ffffff",
+        panel_border_color="#e2e8f0",
+        table_even_background_fill="#ffffff",
+        table_odd_background_fill="#f8fafc",
+        table_border_color="#e2e8f0",
+        shadow_drop="0 1px 3px rgba(0, 0, 0, 0.08)",
+        shadow_drop_lg="0 4px 12px rgba(0, 0, 0, 0.1)",
+        block_label_text_color="#64748b",
+        block_title_text_color="#0f172a",
+        checkbox_label_text_color="#0f172a",
+        # --- Dark mode ---
+        body_background_fill_dark="#0a0e1a",
+        background_fill_primary_dark="#141824",
+        background_fill_secondary_dark="#1a1f2e",
+        border_color_primary_dark="#2e3a5a",
+        border_color_accent_dark="#00d9ff",
+        body_text_color_dark="#e8eaf0",
+        body_text_color_subdued_dark="#a2a9bc",
+        button_primary_background_fill_dark="#00d9ff",
+        button_primary_text_color_dark="#0a0e1a",
+        button_primary_background_fill_hover_dark="#1ac5ff",
+        button_secondary_background_fill_dark="#1a1f2e",
+        button_secondary_text_color_dark="#e8eaf0",
+        button_secondary_border_color_dark="#2e3a5a",
+        input_background_fill_dark="#141824",
+        input_border_color_dark="#2e3a5a",
+        input_placeholder_color_dark="#5c6888",
+        panel_background_fill_dark="#141824",
+        panel_border_color_dark="#2e3a5a",
+        table_even_background_fill_dark="#141824",
+        table_odd_background_fill_dark="#1a1f2e",
+        table_border_color_dark="#2e3a5a",
+        block_label_text_color_dark="#a2a9bc",
+        block_title_text_color_dark="#e8eaf0",
+        checkbox_label_text_color_dark="#e8eaf0",
+    )
+
+
+CUSTOM_CSS = """
+/* ---- Hide footer ---- */
+footer { display: none !important; }
+
+/* ---- Header ---- */
+.app-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 1.2rem 1.5rem 1rem;
+    background: linear-gradient(135deg, #f8fafc, #f1f5f9, #e2e8f0);
+    border-bottom: 2px solid var(--border-color-primary);
+    border-radius: 12px;
+    margin-bottom: 0.8rem;
+    position: relative;
+    overflow: hidden;
+}
+.dark .app-header {
+    background: linear-gradient(135deg, #0a0e1a 0%, #141824 50%, #1a1f2e 100%);
+}
+.app-header::before {
+    content: '';
+    position: absolute;
+    top: 0; left: 0; right: 0;
+    height: 3px;
+    background: linear-gradient(90deg, #00b8d9, #ffa500, #00b8d9);
+    background-size: 200% 100%;
+    animation: shimmer 3s ease-in-out infinite;
+}
+@keyframes shimmer {
+    0%, 100% { background-position: 0% 50%; }
+    50% { background-position: 100% 50%; }
+}
+.header-title {
+    font-size: 1.8rem;
+    font-weight: 700;
+    color: #0097b2;
+    margin: 0;
+}
+.dark .header-title {
+    color: #00d9ff;
+    text-shadow: 0 0 20px rgba(0, 217, 255, 0.3);
+}
+.header-subtitle {
+    color: var(--body-text-color-subdued);
+    font-size: 0.9rem;
+    margin: 0.2rem 0 0 0;
+}
+.header-controls {
+    display: flex;
+    align-items: center;
+    gap: 0.6rem;
+}
+.header-badge {
+    background: var(--background-fill-secondary);
+    color: #f57c00;
+    font-size: 0.75rem;
+    font-weight: 600;
+    padding: 0.35rem 0.8rem;
+    border-radius: 20px;
+    border: 1px solid #ffa500;
+    white-space: nowrap;
+}
+.theme-toggle {
+    background: var(--background-fill-secondary) !important;
+    border: 1px solid var(--border-color-primary) !important;
+    border-radius: 50% !important;
+    width: 36px !important;
+    height: 36px !important;
+    min-width: 36px !important;
+    cursor: pointer !important;
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    font-size: 1.1rem !important;
+    transition: all 0.2s ease !important;
+    padding: 0 !important;
+    color: var(--body-text-color) !important;
+    line-height: 1 !important;
+}
+.theme-toggle:hover {
+    border-color: var(--border-color-accent) !important;
+    transform: scale(1.1) !important;
+}
+/* Light mode: show moon (click to go dark) */
+.theme-toggle .icon-sun { display: none; }
+.theme-toggle .icon-moon { display: inline; }
+/* Dark mode: show sun (click to go light) */
+.dark .theme-toggle .icon-sun { display: inline; }
+.dark .theme-toggle .icon-moon { display: none; }
+
+/* ---- Plot container ---- */
+.plot-container {
+    border: 1px solid var(--border-color-primary) !important;
+    border-radius: 12px !important;
+    background: var(--background-fill-primary) !important;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06) !important;
+    padding: 0.5rem !important;
+    margin-bottom: 0.5rem !important;
+}
+.dark .plot-container {
+    box-shadow: 0 4px 20px rgba(0, 217, 255, 0.05) !important;
+}
+
+/* ---- Chatbot ---- */
+.chat-window .message-row .message {
+    border-radius: 10px !important;
+}
+.chat-window .message-row.user-row .message {
+    background: var(--background-fill-secondary) !important;
+    border-left: 3px solid #00b8d9 !important;
+}
+.dark .chat-window .message-row.user-row .message {
+    border-left-color: #00d9ff !important;
+}
+.chat-window .message-row.bot-row .message {
+    background: var(--background-fill-primary) !important;
+    border-left: 3px solid #ffa500 !important;
+}
+.chat-window {
+    border: 1px solid var(--border-color-primary) !important;
+    border-radius: 12px !important;
+}
+
+/* ---- Input textbox ---- */
+.chat-input textarea {
+    border-radius: 10px !important;
+}
+.chat-input textarea:focus {
+    border-color: #00b8d9 !important;
+    box-shadow: 0 0 0 2px rgba(0, 184, 217, 0.15) !important;
+}
+.dark .chat-input textarea:focus {
+    border-color: #00d9ff !important;
+    box-shadow: 0 0 0 2px rgba(0, 217, 255, 0.2) !important;
+}
+
+/* ---- Examples as compact pills ---- */
+#example-pills .gr-samples-table {
+    gap: 0.4rem !important;
+}
+#example-pills button.gr-sample-btn,
+#example-pills .gr-sample {
+    background: var(--background-fill-secondary) !important;
+    border: 1px solid var(--border-color-primary) !important;
+    border-radius: 20px !important;
+    color: var(--body-text-color-subdued) !important;
+    font-size: 0.8rem !important;
+    padding: 0.3rem 0.8rem !important;
+    transition: all 0.2s ease !important;
+}
+#example-pills button.gr-sample-btn:hover,
+#example-pills .gr-sample:hover {
+    border-color: #00b8d9 !important;
+    color: #00b8d9 !important;
+}
+.dark #example-pills button.gr-sample-btn:hover,
+.dark #example-pills .gr-sample:hover {
+    border-color: #00d9ff !important;
+    color: #00d9ff !important;
+}
+
+/* ---- Sidebar ---- */
+.sidebar .gr-accordion {
+    border-color: var(--border-color-primary) !important;
+}
+.sidebar {
+    border-left: 1px solid var(--border-color-primary);
+    padding-left: 0.5rem;
+}
+
+/* ---- Data tables ---- */
+.data-table table th {
+    background: var(--background-fill-secondary) !important;
+    color: #00b8d9 !important;
+    font-weight: 600 !important;
+    border-color: var(--border-color-primary) !important;
+}
+.dark .data-table table th {
+    color: #00d9ff !important;
+}
+.data-table table td {
+    border-color: var(--border-color-primary) !important;
+}
+
+/* ---- Token display ---- */
+.token-display {
+    background: var(--background-fill-primary) !important;
+    border: 1px solid var(--border-color-primary) !important;
+    border-radius: 8px !important;
+    padding: 0.6rem 0.8rem !important;
+}
+
+/* ---- Buttons ---- */
+button.primary {
+    transition: all 0.2s ease !important;
+}
+button.primary:hover {
+    transform: translateY(-1px) !important;
+    box-shadow: 0 4px 12px rgba(0, 184, 217, 0.2) !important;
+}
+.dark button.primary:hover {
+    box-shadow: 0 4px 12px rgba(0, 217, 255, 0.3) !important;
+}
+
+/* ---- Dark mode scrollbars ---- */
+.dark ::-webkit-scrollbar { width: 8px; height: 8px; }
+.dark ::-webkit-scrollbar-track { background: #0a0e1a; }
+.dark ::-webkit-scrollbar-thumb { background: #2e3a5a; border-radius: 4px; }
+.dark ::-webkit-scrollbar-thumb:hover { background: #3a486e; }
+
+/* ---- Accordion headers ---- */
+.dark .gr-accordion .label-wrap {
+    color: #e8eaf0 !important;
+}
+
+/* ---- Dropdown styling ---- */
+.gr-dropdown {
+    border-color: var(--border-color-primary) !important;
+}
+"""
+
+TOGGLE_JS = """
+() => {
+    const saved = localStorage.getItem('helio-theme');
+    if (saved === 'light') {
+        document.body.classList.remove('dark');
+    } else if (saved === 'dark') {
+        document.body.classList.add('dark');
+    }
+    window.toggleTheme = function() {
+        const isDark = document.body.classList.toggle('dark');
+        localStorage.setItem('helio-theme', isDark ? 'dark' : 'light');
+    };
+}
+"""
+
+
+# ---------------------------------------------------------------------------
 # Build the Gradio app
 # ---------------------------------------------------------------------------
 
@@ -608,7 +929,13 @@ def create_app() -> gr.Blocks:
                         Talk to NASA's spacecraft data &mdash; 52 missions, 3,000+ datasets
                     </p>
                 </div>
-                <div class="header-badge">Powered by Gemini</div>
+                <div class="header-controls">
+                    <div class="header-badge">Powered by Gemini</div>
+                    <button class="theme-toggle" onclick="toggleTheme()" title="Toggle light/dark mode">
+                        <span class="icon-sun">&#9788;</span>
+                        <span class="icon-moon">&#9789;</span>
+                    </button>
+                </div>
             </div>
             """
         )
@@ -694,7 +1021,7 @@ def create_app() -> gr.Blocks:
                     label="Data in Memory",
                     interactive=False,
                     wrap=True,
-                    row_count=(0, "dynamic"),
+                    row_count=0,
                     elem_classes="data-table",
                 )
                 label_dropdown = gr.Dropdown(
@@ -706,7 +1033,7 @@ def create_app() -> gr.Blocks:
                     label="Data Preview",
                     interactive=False,
                     wrap=True,
-                    row_count=(0, "dynamic"),
+                    row_count=0,
                     elem_classes="data-table",
                 )
                 token_display = gr.Markdown(
@@ -837,261 +1164,13 @@ def main():
     # Build and launch the app
     app = create_app()
 
-    space_theme = gr.themes.Base(
-        primary_hue=gr.themes.Color(
-            c50="#e0f7ff", c100="#b3ecff", c200="#80dfff",
-            c300="#4dd2ff", c400="#1ac5ff", c500="#00d9ff",
-            c600="#00b8d9", c700="#0097b2", c800="#00768c",
-            c900="#005566", c950="#003d4d",
-        ),
-        secondary_hue=gr.themes.Color(
-            c50="#fff8e1", c100="#ffecb3", c200="#ffe082",
-            c300="#ffd54f", c400="#ffca28", c500="#ffa500",
-            c600="#fb8c00", c700="#f57c00", c800="#ef6c00",
-            c900="#e65100", c950="#bf360c",
-        ),
-        neutral_hue=gr.themes.Color(
-            c50="#e8eaf0", c100="#c5cad6", c200="#a2a9bc",
-            c300="#7f89a2", c400="#5c6888", c500="#3a486e",
-            c600="#2e3a5a", c700="#222c46", c800="#1a1f2e",
-            c900="#141824", c950="#0a0e1a",
-        ),
-        font=[gr.themes.GoogleFont("Inter"), "system-ui", "sans-serif"],
-        font_mono=[gr.themes.GoogleFont("JetBrains Mono"), "monospace"],
-    ).set(
-        body_background_fill="#0a0e1a",
-        body_background_fill_dark="#0a0e1a",
-        background_fill_primary="#141824",
-        background_fill_primary_dark="#141824",
-        background_fill_secondary="#1a1f2e",
-        background_fill_secondary_dark="#1a1f2e",
-        border_color_primary="#2e3a5a",
-        border_color_primary_dark="#2e3a5a",
-        border_color_accent="#00d9ff",
-        border_color_accent_dark="#00d9ff",
-        body_text_color="#e8eaf0",
-        body_text_color_dark="#e8eaf0",
-        body_text_color_subdued="#a2a9bc",
-        body_text_color_subdued_dark="#a2a9bc",
-        button_primary_background_fill="#00d9ff",
-        button_primary_background_fill_dark="#00d9ff",
-        button_primary_text_color="#0a0e1a",
-        button_primary_text_color_dark="#0a0e1a",
-        button_primary_background_fill_hover="#1ac5ff",
-        button_primary_background_fill_hover_dark="#1ac5ff",
-        button_secondary_background_fill="#1a1f2e",
-        button_secondary_background_fill_dark="#1a1f2e",
-        button_secondary_text_color="#e8eaf0",
-        button_secondary_text_color_dark="#e8eaf0",
-        button_secondary_border_color="#2e3a5a",
-        button_secondary_border_color_dark="#2e3a5a",
-        input_background_fill="#141824",
-        input_background_fill_dark="#141824",
-        input_border_color="#2e3a5a",
-        input_border_color_dark="#2e3a5a",
-        input_placeholder_color="#5c6888",
-        input_placeholder_color_dark="#5c6888",
-        panel_background_fill="#141824",
-        panel_background_fill_dark="#141824",
-        panel_border_color="#2e3a5a",
-        panel_border_color_dark="#2e3a5a",
-        table_even_background_fill="#141824",
-        table_even_background_fill_dark="#141824",
-        table_odd_background_fill="#1a1f2e",
-        table_odd_background_fill_dark="#1a1f2e",
-        table_border_color="#2e3a5a",
-        table_border_color_dark="#2e3a5a",
-        shadow_drop="0 2px 8px rgba(0, 0, 0, 0.4)",
-        shadow_drop_lg="0 4px 16px rgba(0, 0, 0, 0.5)",
-        block_label_text_color="#a2a9bc",
-        block_label_text_color_dark="#a2a9bc",
-        block_title_text_color="#e8eaf0",
-        block_title_text_color_dark="#e8eaf0",
-        checkbox_label_text_color="#e8eaf0",
-        checkbox_label_text_color_dark="#e8eaf0",
-    )
-
     app.launch(
         server_port=args.port,
         share=args.share,
         show_error=True,
-        theme=space_theme,
-        css="""
-        /* ---- Hide footer ---- */
-        footer { display: none !important; }
-
-        /* ---- Header ---- */
-        .app-header {
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-            padding: 1.2rem 1.5rem 1rem;
-            background: linear-gradient(135deg, #0a0e1a 0%, #141824 50%, #1a1f2e 100%);
-            border-bottom: 2px solid #2e3a5a;
-            border-radius: 12px;
-            margin-bottom: 0.8rem;
-            position: relative;
-            overflow: hidden;
-        }
-        .app-header::before {
-            content: '';
-            position: absolute;
-            top: 0; left: 0; right: 0;
-            height: 3px;
-            background: linear-gradient(90deg, #00d9ff, #ffa500, #00d9ff);
-            background-size: 200% 100%;
-            animation: shimmer 3s ease-in-out infinite;
-        }
-        @keyframes shimmer {
-            0%, 100% { background-position: 0% 50%; }
-            50% { background-position: 100% 50%; }
-        }
-        .header-title {
-            font-size: 1.8rem;
-            font-weight: 700;
-            color: #00d9ff;
-            text-shadow: 0 0 20px rgba(0, 217, 255, 0.3);
-            margin: 0;
-        }
-        .header-subtitle {
-            color: #a2a9bc;
-            font-size: 0.9rem;
-            margin: 0.2rem 0 0 0;
-        }
-        .header-badge {
-            background: linear-gradient(135deg, #1a1f2e, #222c46);
-            color: #ffa500;
-            font-size: 0.75rem;
-            font-weight: 600;
-            padding: 0.35rem 0.8rem;
-            border-radius: 20px;
-            border: 1px solid #ffa500;
-            white-space: nowrap;
-        }
-
-        /* ---- Plot container ---- */
-        .plot-container {
-            border: 1px solid #2e3a5a !important;
-            border-radius: 12px !important;
-            background: #141824 !important;
-            box-shadow: 0 4px 20px rgba(0, 217, 255, 0.05) !important;
-            padding: 0.5rem !important;
-            margin-bottom: 0.5rem !important;
-        }
-
-        /* ---- Chatbot ---- */
-        .chat-window .message-row .message {
-            border-radius: 10px !important;
-        }
-        .chat-window .message-row.user-row .message {
-            background: #1a1f2e !important;
-            border-left: 3px solid #00d9ff !important;
-        }
-        .chat-window .message-row.bot-row .message {
-            background: #141824 !important;
-            border-left: 3px solid #ffa500 !important;
-        }
-        .chat-window {
-            border: 1px solid #2e3a5a !important;
-            border-radius: 12px !important;
-        }
-
-        /* ---- Input textbox ---- */
-        .chat-input textarea {
-            background: #141824 !important;
-            border-color: #2e3a5a !important;
-            color: #e8eaf0 !important;
-            border-radius: 10px !important;
-        }
-        .chat-input textarea:focus {
-            border-color: #00d9ff !important;
-            box-shadow: 0 0 0 2px rgba(0, 217, 255, 0.2) !important;
-        }
-
-        /* ---- Examples as compact pills ---- */
-        #example-pills .gr-samples-table {
-            gap: 0.4rem !important;
-        }
-        #example-pills button.gr-sample-btn,
-        #example-pills .gr-sample {
-            background: #1a1f2e !important;
-            border: 1px solid #2e3a5a !important;
-            border-radius: 20px !important;
-            color: #a2a9bc !important;
-            font-size: 0.8rem !important;
-            padding: 0.3rem 0.8rem !important;
-            transition: all 0.2s ease !important;
-        }
-        #example-pills button.gr-sample-btn:hover,
-        #example-pills .gr-sample:hover {
-            border-color: #00d9ff !important;
-            color: #00d9ff !important;
-            background: #141824 !important;
-        }
-
-        /* ---- Sidebar ---- */
-        .sidebar .gr-accordion {
-            border-color: #2e3a5a !important;
-        }
-        .sidebar {
-            border-left: 1px solid #2e3a5a;
-            padding-left: 0.5rem;
-        }
-
-        /* ---- Data tables ---- */
-        .data-table table th {
-            background: #1a1f2e !important;
-            color: #00d9ff !important;
-            font-weight: 600 !important;
-            border-color: #2e3a5a !important;
-        }
-        .data-table table td {
-            border-color: #2e3a5a !important;
-        }
-
-        /* ---- Token display ---- */
-        .token-display {
-            background: #141824 !important;
-            border: 1px solid #2e3a5a !important;
-            border-radius: 8px !important;
-            padding: 0.6rem 0.8rem !important;
-        }
-
-        /* ---- Buttons ---- */
-        button.primary {
-            transition: all 0.2s ease !important;
-        }
-        button.primary:hover {
-            transform: translateY(-1px) !important;
-            box-shadow: 0 4px 12px rgba(0, 217, 255, 0.3) !important;
-        }
-
-        /* ---- Scrollbars ---- */
-        ::-webkit-scrollbar {
-            width: 8px;
-            height: 8px;
-        }
-        ::-webkit-scrollbar-track {
-            background: #0a0e1a;
-        }
-        ::-webkit-scrollbar-thumb {
-            background: #2e3a5a;
-            border-radius: 4px;
-        }
-        ::-webkit-scrollbar-thumb:hover {
-            background: #3a486e;
-        }
-
-        /* ---- Accordion headers ---- */
-        .gr-accordion .label-wrap {
-            color: #e8eaf0 !important;
-        }
-
-        /* ---- Dropdown styling ---- */
-        .gr-dropdown {
-            border-color: #2e3a5a !important;
-        }
-        """,
+        theme=_build_theme(),
+        css=CUSTOM_CSS,
+        js=TOGGLE_JS,
     )
 
 
