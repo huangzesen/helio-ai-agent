@@ -83,8 +83,13 @@ agent/core.py  OrchestratorAgent  (LLM-driven orchestrator)
   |                                Auto-save every turn, --continue/--session CLI flags
   |
   +---> agent/memory.py            Long-term memory (cross-session)
-  |       MemoryStore              Persist preferences + summaries to ~/.helio-agent/memory.json
+  |       MemoryStore              Persist preferences + summaries + pitfalls to ~/.helio-agent/memory.json
   |                                Inject into prompts, extract at session boundaries
+  |
+  +---> agent/memory_agent.py     Passive MemoryAgent (self-evolving session analysis)
+  |       MemoryAgent              Monitors log growth + conversation turns, auto-triggers analysis
+  |                                Extracts pitfalls (operational knowledge) + error patterns
+  |                                Saves reports to ~/.helio-agent/reports/
   |
   +---> agent/tasks.py            Task management
   |       Task, TaskPlan          Data structures (mission, depends_on fields)
@@ -297,16 +302,29 @@ All times are UTC. Outputs `TimeRange` objects with `start`/`end` datetimes.
 - **Loader**: `knowledge/mission_loader.py` provides lazy-loading cache, routing table, and dataset access. Routing table derives capabilities from instrument keywords (magnetic field, plasma, energetic particles, electric field, radio/plasma waves, geomagnetic indices, ephemeris, composition, coronagraph, imaging).
 
 ### Long-term Memory (`agent/memory.py`)
-- Cross-session memory that persists user preferences and session summaries
+- Cross-session memory that persists user preferences, session summaries, and operational pitfalls
 - Storage: `~/.helio-agent/memory.json` — global, not per-session
-- Two memory types: `"preference"` (plot styles, spacecraft of interest, workflow habits) and `"summary"` (what was analyzed in each session)
+- Three memory types: `"preference"` (plot styles, spacecraft of interest, workflow habits), `"summary"` (what was analyzed in each session), and `"pitfall"` (operational lessons learned)
 - Automatic extraction at session boundaries via lightweight Gemini Flash call (no tools, no thinking)
 - Injection: prepends memory context to user messages in `process_message()` (avoids chat recreation)
+- Pitfalls injected as "Operational Knowledge" section — framed as system knowledge, not user preferences
 - Deduplication: skips new memories that are substrings of existing ones
-- Capped at 15 preferences + 15 summaries per injection to keep prompt size reasonable
+- Capped at 15 preferences + 15 summaries + 20 pitfalls per injection to keep prompt size reasonable
 - Global enable/disable toggle + per-memory enable/disable
 - Gradio UI: "Long-term Memory" accordion in right sidebar with toggle, delete, and clear controls
 - CLI: memories extracted automatically on session exit (`main.py`)
+
+### Passive MemoryAgent (`agent/memory_agent.py`)
+- Monitors log growth, error count, and conversation turns — triggers analysis automatically
+- Triggered at end of every `process_message()` via lightweight file-stat check (no LLM call until threshold met)
+- Thresholds: +10KB log growth, 5+ ERROR/WARNING lines, or 10+ user turns since last analysis
+- Single-shot Gemini Flash call analyzes conversation + log content to extract:
+  - Preferences and session summaries (stored in MemoryStore)
+  - Pitfalls — generalizable operational lessons (stored in MemoryStore, injected into future prompts)
+  - Error patterns — structured bug reports (saved as markdown to `~/.helio-agent/reports/`)
+- State tracked in `~/.helio-agent/memory_agent_state.json` (last log offset, turn count, timestamp)
+- Handles log rotation (new day), caps log content at 50KB, reads with `errors='replace'`
+- All exceptions caught — never breaks the main agent flow
 
 
 - `SessionManager` saves and restores chat history + DataStore across process restarts
@@ -420,7 +438,7 @@ Features:
 ```bash
 python -m pytest tests/test_store.py tests/test_custom_ops.py   # Data ops tests
 python -m pytest tests/test_session.py                           # Session persistence tests
-python -m pytest tests/test_memory.py                            # Long-term memory tests
+python -m pytest tests/test_memory.py tests/test_memory_agent.py # Memory + MemoryAgent tests
 python -m pytest tests/                                          # All tests
 ```
 

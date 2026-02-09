@@ -187,7 +187,7 @@ def _on_dataset_change(dataset_id: str):
 def _on_fetch_click(mission, dataset, param, start_time, end_time, history):
     """Directly fetch HAPI data into the store, then notify the agent."""
     if not dataset or not param:
-        return history, gr.skip(), gr.skip(), gr.skip(), gr.skip(), gr.skip(), gr.skip(), gr.skip(), gr.skip()
+        return history, gr.skip(), gr.skip(), gr.skip(), gr.skip(), gr.skip(), gr.skip(), gr.skip(), gr.skip(), gr.update(visible=False, choices=[], value=None)
 
     from data_ops.fetch import fetch_hapi_data
     from data_ops.store import get_store, DataEntry
@@ -209,7 +209,7 @@ def _on_fetch_click(mission, dataset, param, start_time, end_time, history):
         history = history + [
             {"role": "assistant", "content": error_msg},
         ]
-        return history, gr.skip(), gr.skip(), gr.skip(), gr.skip(), gr.skip(), gr.skip(), gr.skip(), gr.skip()
+        return history, gr.skip(), gr.skip(), gr.skip(), gr.skip(), gr.skip(), gr.skip(), gr.skip(), gr.skip(), gr.update(visible=False, choices=[], value=None)
 
     label = f"{dataset}.{param}"
     entry = DataEntry(
@@ -257,6 +257,7 @@ def _on_fetch_click(mission, dataset, param, start_time, end_time, history):
         gr.update(choices=label_choices, value=selected),
         preview, "",
         gr.skip(),  # session_radio — no change
+        gr.update(visible=False, choices=[], value=None),  # followup_radio — hide
     )
 
 
@@ -315,6 +316,33 @@ def _get_session_choices() -> list[tuple[str, str]]:
     return choices
 
 
+def _strip_memory_context(text: str) -> str:
+    """Strip or collapse the long-term memory context block from a user message.
+
+    The agent prepends [CONTEXT FROM LONG-TERM MEMORY]...[END MEMORY CONTEXT]
+    to user messages.  For display, collapse this into a hidden <details> block
+    so it doesn't dominate the chat bubble.
+    """
+    marker_start = "[CONTEXT FROM LONG-TERM MEMORY]"
+    marker_end = "[END MEMORY CONTEXT]"
+    idx_start = text.find(marker_start)
+    idx_end = text.find(marker_end)
+    if idx_start == -1 or idx_end == -1:
+        return text
+
+    memory_block = text[idx_start + len(marker_start):idx_end].strip()
+    after = text[idx_end + len(marker_end):].strip()
+
+    if not memory_block:
+        return after
+
+    collapsed = (
+        f"<details><summary>Memory context</summary>\n\n"
+        f"{memory_block}\n\n</details>\n\n"
+    )
+    return collapsed + after
+
+
 def _extract_display_history(contents: list[dict]) -> list[dict]:
     """Convert Gemini Content dicts into Gradio chatbot messages.
 
@@ -341,7 +369,12 @@ def _extract_display_history(contents: list[dict]) -> list[dict]:
         if not text_parts:
             continue
 
-        messages.append({"role": gradio_role, "content": "\n".join(text_parts)})
+        display_text = "\n".join(text_parts)
+        # Collapse memory context in user messages so it doesn't dominate the bubble
+        if gradio_role == "user":
+            display_text = _strip_memory_context(display_text)
+
+        messages.append({"role": gradio_role, "content": display_text})
     return messages
 
 
@@ -349,14 +382,14 @@ def _on_session_radio_change(session_id: str | None):
     """Load a saved session when clicked in the Radio list.
 
     Takes a single session_id string (Radio value).
-    Returns the full 9-element all_outputs tuple.
+    Returns the full 10-element all_outputs tuple.
     """
     if not session_id or _agent is None:
-        return (gr.skip(),) * 9
+        return (gr.skip(),) * 10
 
     # Guard: don't reload the already-active session
     if session_id == _get_active_session_id():
-        return (gr.skip(),) * 9
+        return (gr.skip(),) * 10
 
     # Save current session and extract memories before switching
     try:
@@ -381,6 +414,7 @@ def _on_session_radio_change(session_id: str | None):
             gr.update(choices=[], value=None),
             None, "",
             gr.update(choices=_get_session_choices(), value=_get_active_session_id()),
+            gr.update(visible=False, choices=[], value=None),  # followup_radio
         )
 
     display = _extract_display_history(history_dicts)
@@ -410,6 +444,7 @@ def _on_session_radio_change(session_id: str | None):
         gr.update(choices=label_choices, value=selected),
         preview, "",
         gr.update(choices=_get_session_choices(), value=_get_active_session_id()),
+        gr.update(visible=False, choices=[], value=None),  # followup_radio
     )
 
 
@@ -435,7 +470,7 @@ def _on_new_session():
     """Start a fresh session (reset + create new).
 
     Saves the current session first, then resets everything.
-    Returns the full 9-element all_outputs tuple.
+    Returns the full 10-element all_outputs tuple.
     """
     if _agent is not None:
         # Save current session and extract memories before starting a new one
@@ -462,6 +497,7 @@ def _on_new_session():
         None,  # data_preview
         "",  # verbose_output
         gr.update(choices=_get_session_choices(), value=_get_active_session_id()),
+        gr.update(visible=False, choices=[], value=None),  # followup_radio
     )
 
 
@@ -479,10 +515,10 @@ def _on_select_all(current_selection: list[str]):
 def _on_delete_sessions(session_ids: list[str]):
     """Delete selected sessions and exit manage mode.
 
-    Returns 12 elements:
+    Returns 13 elements:
       normal_mode_group, manage_mode_group, session_checklist, session_radio,
       chatbot, plotly_plot, data_table, token_display,
-      msg_input, label_dropdown, data_preview, verbose_output
+      msg_input, label_dropdown, data_preview, verbose_output, followup_radio
     """
     if not session_ids:
         # Nothing selected — just exit manage mode
@@ -492,7 +528,7 @@ def _on_delete_sessions(session_ids: list[str]):
             gr.update(visible=False),   # manage_mode_group
             gr.update(value=[]),        # session_checklist
             gr.update(choices=choices, value=_get_active_session_id()),  # session_radio
-            *(gr.skip(),) * 8,          # chatbot..verbose_output unchanged
+            *(gr.skip(),) * 9,          # chatbot..followup_radio unchanged
         )
 
     from agent.session import SessionManager
@@ -526,6 +562,7 @@ def _on_delete_sessions(session_ids: list[str]):
             gr.update(choices=[], value=None),  # label_dropdown
             None,                        # data_preview
             "",                          # verbose_output
+            gr.update(visible=False, choices=[], value=None),  # followup_radio
         )
 
     # Active session not deleted — just refresh sidebar and exit manage mode
@@ -535,7 +572,7 @@ def _on_delete_sessions(session_ids: list[str]):
         gr.update(visible=False),   # manage_mode_group
         gr.update(value=[]),        # session_checklist
         gr.update(choices=choices, value=_get_active_session_id()),  # session_radio
-        *(gr.skip(),) * 8,          # chatbot..verbose_output unchanged
+        *(gr.skip(),) * 9,          # chatbot..followup_radio unchanged
     )
 
 
@@ -594,6 +631,39 @@ def _on_memory_refresh():
 
 
 # ---------------------------------------------------------------------------
+# Autocomplete helpers
+# ---------------------------------------------------------------------------
+
+def _get_autocomplete_candidates() -> list[str]:
+    """Collect user messages from recent sessions for Tab autocomplete."""
+    from agent.session import SessionManager
+    sm = SessionManager()
+    sessions = sm.list_sessions()[:10]
+    seen = set()
+    candidates = []
+    for s in sessions:
+        try:
+            history_dicts, _, _, _ = sm.load_session(s["id"])
+        except Exception:
+            continue
+        for content in history_dicts:
+            if content.get("role") != "user":
+                continue
+            for p in content.get("parts", []):
+                text = (p.get("text", "") if isinstance(p, dict) else "").strip()
+                if not text or text.startswith("["):
+                    continue
+                # Strip memory-context prefix if present
+                if text.startswith("Memory context:"):
+                    parts = text.split("\n\n", 1)
+                    text = parts[1].strip() if len(parts) > 1 else ""
+                if text and text not in seen:
+                    seen.add(text)
+                    candidates.append(text)
+    return candidates
+
+
+# ---------------------------------------------------------------------------
 # Core response function
 # ---------------------------------------------------------------------------
 
@@ -641,7 +711,7 @@ def respond(message, history: list[dict]):
 
     agent_message = "\n".join(parts)
     if not agent_message:
-        yield history, gr.skip(), gr.skip(), gr.skip(), None, gr.skip(), gr.skip(), gr.skip(), gr.skip()
+        yield history, gr.skip(), gr.skip(), gr.skip(), None, gr.skip(), gr.skip(), gr.skip(), gr.skip(), gr.skip()
         return
 
     # Display user message with file indicators
@@ -673,6 +743,7 @@ def respond(message, history: list[dict]):
         label_choices = _get_label_choices()
         selected = label_choices[-1] if label_choices else None
         preview = _preview_data(selected) if selected else None
+        # First yield: show response, hide old pills
         yield (
             history,
             gr.update(visible=fig is not None, value=fig),
@@ -680,7 +751,19 @@ def respond(message, history: list[dict]):
             gr.update(choices=label_choices, value=selected),
             preview, "",
             gr.update(choices=_get_session_choices(), value=_get_active_session_id()),
+            gr.update(visible=False, choices=[], value=None),
         )
+        # Second yield: generate and show follow-up suggestions
+        try:
+            suggestions = _agent.generate_follow_ups()
+        except Exception:
+            suggestions = []
+        if suggestions:
+            yield (
+                gr.skip(), gr.skip(), gr.skip(), gr.skip(), gr.skip(),
+                gr.skip(), gr.skip(), gr.skip(), gr.skip(),
+                gr.update(choices=suggestions, value=None, visible=True),
+            )
         return
 
     # --- Verbose streaming mode ---
@@ -713,6 +796,7 @@ def respond(message, history: list[dict]):
         gr.skip(), gr.skip(), gr.skip(), None,
         gr.skip(), gr.skip(), "",
         gr.skip(),
+        gr.update(visible=False, choices=[], value=None),
     )
 
     # Stream live progress while the agent works
@@ -732,6 +816,7 @@ def respond(message, history: list[dict]):
                 history + [{"role": "assistant", "content": thinking}],
                 gr.skip(), gr.skip(), gr.skip(), None,
                 gr.skip(), gr.skip(), "",
+                gr.skip(),
                 gr.skip(),
             )
 
@@ -762,6 +847,7 @@ def respond(message, history: list[dict]):
     selected = label_choices[-1] if label_choices else None
     preview = _preview_data(selected) if selected else None
 
+    # First yield: show response, hide old pills
     yield (
         history,
         gr.update(visible=fig is not None, value=fig),
@@ -769,7 +855,19 @@ def respond(message, history: list[dict]):
         gr.update(choices=label_choices, value=selected),
         preview, "",
         gr.update(choices=_get_session_choices(), value=_get_active_session_id()),
+        gr.update(visible=False, choices=[], value=None),
     )
+    # Second yield: generate and show follow-up suggestions
+    try:
+        suggestions = _agent.generate_follow_ups()
+    except Exception:
+        suggestions = []
+    if suggestions:
+        yield (
+            gr.skip(), gr.skip(), gr.skip(), gr.skip(), gr.skip(),
+            gr.skip(), gr.skip(), gr.skip(), gr.skip(),
+            gr.update(choices=suggestions, value=None, visible=True),
+        )
 
 
 # ---------------------------------------------------------------------------
@@ -1191,6 +1289,54 @@ footer { display: none !important; }
 .gr-dropdown {
     border-color: var(--border-color-primary) !important;
 }
+
+/* ---- Follow-up suggestion pills ---- */
+#followup-pills {
+    border: none !important;
+    padding: 0 !important;
+    margin-top: 0.4rem !important;
+    background: transparent !important;
+}
+#followup-pills > div {
+    border: none !important;
+    box-shadow: none !important;
+    background: transparent !important;
+    display: flex !important;
+    flex-direction: row !important;
+    flex-wrap: wrap !important;
+    gap: 0.5rem !important;
+}
+#followup-pills input[type="radio"] {
+    display: none !important;
+}
+#followup-pills label {
+    display: inline-flex !important;
+    align-items: center !important;
+    background: var(--background-fill-secondary) !important;
+    border: 1px solid var(--border-color-primary) !important;
+    border-radius: 20px !important;
+    padding: 0.45rem 1rem !important;
+    font-size: 0.88rem !important;
+    cursor: pointer !important;
+    white-space: nowrap !important;
+    color: var(--body-text-color) !important;
+}
+#followup-pills label:hover {
+    border-color: #00b8d9 !important;
+    background: rgba(0,184,217,0.06) !important;
+}
+.dark #followup-pills label:hover {
+    border-color: #00d9ff !important;
+    background: rgba(0,217,255,0.06) !important;
+}
+#followup-pills label:has(input:checked) {
+    border-color: #00b8d9 !important;
+    background: rgba(0,184,217,0.1) !important;
+}
+.dark #followup-pills label:has(input:checked) {
+    border-color: #00d9ff !important;
+    background: rgba(0,217,255,0.1) !important;
+}
 """
 
 TOGGLE_JS = """
@@ -1213,6 +1359,70 @@ TOGGLE_JS = """
         }
     }
     attachToggle();
+
+    /* ---- Tab autocomplete ---- */
+    function initTabComplete() {
+        const inputEl = document.querySelector('.chat-input textarea');
+        if (!inputEl) { setTimeout(initTabComplete, 500); return; }
+
+        let matches = [];
+        let matchIdx = -1;
+
+        function getCandidates() {
+            let candidates = [];
+            const jsonEl = document.querySelector('#autocomplete-data');
+            if (jsonEl) {
+                try {
+                    const raw = jsonEl.querySelector('textarea, pre');
+                    if (raw) candidates = JSON.parse(raw.textContent || raw.value || '[]');
+                } catch(e) {}
+            }
+            document.querySelectorAll('.chat-window .message-row.user-row .message').forEach(el => {
+                const t = (el.textContent || '').trim();
+                if (t && !candidates.includes(t)) candidates.push(t);
+            });
+            return candidates;
+        }
+
+        function setInputValue(val) {
+            const nativeSetter = Object.getOwnPropertyDescriptor(
+                window.HTMLTextAreaElement.prototype, 'value'
+            ).set;
+            nativeSetter.call(inputEl, val);
+            inputEl.dispatchEvent(new Event('input', { bubbles: true }));
+        }
+
+        inputEl.addEventListener('keydown', (e) => {
+            if (e.key === 'Escape' && matches.length > 0) {
+                matches = []; matchIdx = -1; return;
+            }
+            if (e.key !== 'Tab') {
+                if (matches.length > 0) { matches = []; matchIdx = -1; }
+                return;
+            }
+            const val = inputEl.value || '';
+            if (!val.trim()) return;
+
+            if (matches.length > 0 && val === matches[matchIdx]) {
+                e.preventDefault(); e.stopPropagation();
+                matchIdx = (matchIdx + 1) % matches.length;
+                setInputValue(matches[matchIdx]);
+                return;
+            }
+
+            const prefix = val.toLowerCase();
+            const candidates = getCandidates();
+            matches = candidates.filter(c =>
+                c.toLowerCase().startsWith(prefix) && c.toLowerCase() !== prefix
+            );
+            if (matches.length === 0) return;
+
+            e.preventDefault(); e.stopPropagation();
+            matchIdx = 0;
+            setInputValue(matches[0]);
+        });
+    }
+    initTabComplete();
 }
 """
 
@@ -1395,6 +1605,11 @@ def create_app() -> gr.Blocks:
             elem_classes="chat-input",
         )
 
+        followup_radio = gr.Radio(
+            choices=[], show_label=False, visible=False,
+            elem_id="followup-pills", elem_classes="followup-pills",
+        )
+
         gr.Examples(
             examples=EXAMPLES,
             inputs=msg_input,
@@ -1403,12 +1618,14 @@ def create_app() -> gr.Blocks:
             elem_id="example-pills",
         )
 
+        autocomplete_data = gr.JSON(value=[], visible=False, elem_id="autocomplete-data")
+
         verbose_output = gr.State("")  # captured text, embedded in chat
 
         # ---- Event wiring ----
         all_outputs = [chatbot, plotly_plot, data_table, token_display,
                        msg_input, label_dropdown, data_preview, verbose_output,
-                       session_radio]
+                       session_radio, followup_radio]
 
         send_event_args = dict(
             fn=respond,
@@ -1416,6 +1633,22 @@ def create_app() -> gr.Blocks:
             outputs=all_outputs,
         )
         msg_input.submit(**send_event_args)
+
+        # Follow-up pill click → fill input and auto-submit
+        def _on_followup_click(suggestion):
+            if not suggestion:
+                return gr.skip()
+            return {"text": suggestion, "files": []}
+
+        followup_radio.change(
+            fn=_on_followup_click,
+            inputs=[followup_radio],
+            outputs=[msg_input],
+        ).then(
+            fn=respond,
+            inputs=[msg_input, chatbot],
+            outputs=all_outputs,
+        )
 
         label_dropdown.change(
             fn=_preview_data,
@@ -1474,12 +1707,19 @@ def create_app() -> gr.Blocks:
         delete_outputs = [
             normal_mode_group, manage_mode_group, session_checklist, session_radio,
             chatbot, plotly_plot, data_table, token_display,
-            msg_input, label_dropdown, data_preview, verbose_output,
+            msg_input, label_dropdown, data_preview, verbose_output, followup_radio,
         ]
         delete_btn.click(
             fn=_on_delete_sessions,
             inputs=[session_checklist],
             outputs=delete_outputs,
+        )
+
+        # Autocomplete: populate candidates on load and after each response
+        app.load(fn=_get_autocomplete_candidates, outputs=[autocomplete_data])
+        msg_input.submit(
+            fn=_get_autocomplete_candidates, outputs=[autocomplete_data],
+            trigger_mode="always_last",
         )
 
         # Memory UI — self-contained, no effect on all_outputs

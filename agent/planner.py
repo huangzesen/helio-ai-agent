@@ -15,6 +15,7 @@ from google import genai
 from google.genai import types
 
 from .logging import get_logger
+from .model_fallback import get_active_model
 from .tasks import Task, TaskPlan, create_task, create_plan
 from knowledge.prompt_builder import build_planner_agent_prompt
 
@@ -181,7 +182,7 @@ class PlannerAgent:
             )
 
             self._chat = self.client.chats.create(
-                model=self.model_name,
+                model=get_active_model(self.model_name),
                 config=config,
             )
 

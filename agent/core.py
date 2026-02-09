@@ -124,9 +124,9 @@ class OrchestratorAgent:
             ),
         )
 
-        # Create chat session
+        # Create chat session (use get_active_model in case fallback was already activated)
         self.chat = self.client.chats.create(
-            model=self.model_name,
+            model=get_active_model(self.model_name),
             config=self.config
         )
 
@@ -165,6 +165,9 @@ class OrchestratorAgent:
         # Long-term memory
         self._memory_store = MemoryStore()
 
+        # Passive memory agent (lazy-initialized)
+        self._memory_agent: Optional[MemoryAgent] = None
+
     @property
     def memory_store(self) -> MemoryStore:
         """Return the long-term memory store (for Gradio UI access)."""
@@ -187,6 +190,20 @@ class OrchestratorAgent:
             for thought in extract_thoughts(response):
                 preview = thought[:200] + "..." if len(thought) > 200 else thought
                 self.logger.debug(f"[Thinking] {preview}")
+
+    def _send_message(self, message):
+        """Send a message on self.chat with automatic model fallback on 429."""
+        try:
+            return self.chat.send_message(message)
+        except Exception as exc:
+            if is_quota_error(exc) and GEMINI_FALLBACK_MODEL:
+                activate_fallback(GEMINI_FALLBACK_MODEL)
+                self.chat = self.client.chats.create(
+                    model=GEMINI_FALLBACK_MODEL, config=self.config,
+                )
+                self.model_name = GEMINI_FALLBACK_MODEL
+                return self.chat.send_message(message)
+            raise
 
     def _extract_grounding_sources(self, response) -> str:
         """Extract source citations from Google Search grounding metadata."""
@@ -230,7 +247,7 @@ class OrchestratorAgent:
                 tools=[types.Tool(google_search=types.GoogleSearch())],
             )
             response = self.client.models.generate_content(
-                model=self.model_name,
+                model=get_active_model(self.model_name),
                 contents=query,
                 config=search_config,
             )
@@ -960,7 +977,7 @@ class OrchestratorAgent:
                 # Send to Gemini as multimodal content
                 doc_part = types.Part.from_bytes(data=file_bytes, mime_type=mime_type)
                 response = self.client.models.generate_content(
-                    model=self.model_name,
+                    model=get_active_model(self.model_name),
                     contents=[doc_part, extraction_prompt],
                 )
                 self._track_usage(response)
@@ -1178,7 +1195,7 @@ class OrchestratorAgent:
                 ),
             )
             task_chat = self.client.chats.create(
-                model=self.model_name,
+                model=get_active_model(self.model_name),
                 config=task_config,
             )
             task_prompt = (
@@ -1314,7 +1331,7 @@ class OrchestratorAgent:
         self.logger.debug("[Gemini] Generating execution summary...")
 
         try:
-            response = self.chat.send_message(message=prompt)
+            response = self._send_message(prompt)
             self._track_usage(response)
 
             text_parts = []
@@ -1555,7 +1572,7 @@ class OrchestratorAgent:
     def _process_single_message(self, user_message: str) -> str:
         """Process a single (non-complex) user message."""
         self.logger.debug("[Gemini] Sending message to model...")
-        response = self.chat.send_message(message=user_message)
+        response = self._send_message(user_message)
         self._track_usage(response)
         self.logger.debug("[Gemini] Response received.")
         if response.candidates:
@@ -1629,12 +1646,12 @@ class OrchestratorAgent:
             if consecutive_delegation_errors >= 2:
                 self.logger.debug(f"[Orchestrator] {consecutive_delegation_errors} consecutive delegation failures, stopping retries")
                 # Send results back one more time so Gemini can produce a final text answer
-                response = self.chat.send_message(message=function_responses)
+                response = self._send_message(function_responses)
                 self._track_usage(response)
                 break
 
             self.logger.debug(f"[Gemini] Sending {len(function_responses)} tool result(s) back to model...")
-            response = self.chat.send_message(message=function_responses)
+            response = self._send_message(function_responses)
             self._track_usage(response)
             self.logger.debug("[Gemini] Response received.")
             if response.candidates:
@@ -1710,6 +1727,74 @@ class OrchestratorAgent:
 
     # ---- Long-term memory extraction ----
 
+    def _get_memory_agent(self) -> MemoryAgent:
+        """Lazy-initialize the passive memory agent."""
+        if self._memory_agent is None:
+            self._memory_agent = MemoryAgent(
+                client=self.client,
+                model_name=SUB_AGENT_MODEL,
+                memory_store=self._memory_store,
+                verbose=self.verbose,
+            )
+        return self._memory_agent
+
+    def _get_turn_count(self) -> int:
+        """Count user messages in chat history."""
+        try:
+            history = self.chat.get_history()
+        except Exception:
+            return 0
+        return sum(
+            1 for content in history
+            if getattr(content, "role", "") == "user"
+        )
+
+    def _get_conversation_text(self) -> str:
+        """Build conversation text from chat history for analysis."""
+        try:
+            history = self.chat.get_history()
+        except Exception:
+            return ""
+        turns = []
+        for content in history:
+            role = getattr(content, "role", "")
+            if role not in ("user", "model"):
+                continue
+            for part in (content.parts or []):
+                text = getattr(part, "text", None)
+                if text:
+                    prefix = "User" if role == "user" else "Agent"
+                    turns.append(f"{prefix}: {text[:500]}")
+                    break
+        return "\n".join(turns[-40:])
+
+    def _maybe_run_memory_analysis(self) -> None:
+        """Check if memory analysis should run, and run it if so.
+
+        Called at the end of process_message(). All exceptions are caught
+        so this never breaks the main flow.
+        """
+        try:
+            agent = self._get_memory_agent()
+            turn_count = self._get_turn_count()
+            if not agent.should_analyze(turn_count):
+                return
+            conversation_text = self._get_conversation_text()
+            if not conversation_text:
+                return
+            result = agent.analyze(
+                conversation_text=conversation_text,
+                turn_count=turn_count,
+                session_id=self._session_id or "",
+            )
+            total = len(result.preferences) + (1 if result.summary else 0) + len(result.pitfalls)
+            if total > 0:
+                self.logger.info(f"[MemoryAgent] Extracted {total} memories, {len(result.error_patterns)} error patterns")
+            if result.report_path:
+                self.logger.info(f"[MemoryAgent] Report: {result.report_path}")
+        except Exception as e:
+            self.logger.debug(f"[MemoryAgent] Analysis failed: {e}")
+
     def extract_and_save_memories(self) -> int:
         """Extract memories from the current conversation and save them.
 
@@ -1777,7 +1862,7 @@ Rules:
 
         try:
             response = self.client.models.generate_content(
-                model=SUB_AGENT_MODEL,
+                model=get_active_model(SUB_AGENT_MODEL),
                 contents=prompt,
                 config=types.GenerateContentConfig(
                     temperature=0.2,
@@ -1835,6 +1920,86 @@ Rules:
             self.logger.info(f"[Memory] Extracted {count} new memories")
 
         return count
+
+    def generate_follow_ups(self, max_suggestions: int = 3) -> list[str]:
+        """Generate contextual follow-up suggestions based on the conversation.
+
+        Uses a lightweight single-shot Gemini call (Flash model) to produce
+        2-3 short, actionable follow-up questions the user might ask next.
+
+        Returns:
+            List of suggestion strings, or [] on any failure.
+        """
+        try:
+            history = self.chat.get_history()
+        except Exception:
+            return []
+
+        # Build context from last 6 turns
+        turns = []
+        for content in history[-6:]:
+            role = getattr(content, "role", "")
+            if role not in ("user", "model"):
+                continue
+            for part in (content.parts or []):
+                text = getattr(part, "text", None)
+                if text:
+                    prefix = "User" if role == "user" else "Agent"
+                    turns.append(f"{prefix}: {text[:300]}")
+                    break
+
+        if not turns:
+            return []
+
+        conversation_text = "\n".join(turns)
+
+        # DataStore context
+        store = get_store()
+        labels = [e["label"] for e in store.list_entries()]
+        data_context = f"Data in memory: {', '.join(labels)}" if labels else "No data in memory yet."
+
+        has_plot = self._renderer.get_figure() is not None
+        plot_context = "A plot is currently displayed." if has_plot else "No plot is displayed."
+
+        prompt = f"""Based on this conversation, suggest {max_suggestions} short follow-up questions the user might ask next.
+
+{conversation_text}
+
+{data_context}
+{plot_context}
+
+Respond with a JSON array of strings only (no markdown fencing). Each suggestion should be:
+- A natural, conversational question (max 12 words)
+- Actionable — something the agent can actually do
+- Different from what was already asked
+- Related to the current context (data, plots, spacecraft)
+
+Example: ["Compare this with solar wind speed", "Zoom in to January 10-15", "Export the plot as PDF"]"""
+
+        try:
+            response = self.client.models.generate_content(
+                model=get_active_model(SUB_AGENT_MODEL),
+                contents=prompt,
+                config=types.GenerateContentConfig(
+                    temperature=0.7,
+                ),
+            )
+            self._track_usage(response)
+
+            text = (response.text or "").strip()
+            if text.startswith("```"):
+                text = text.split("\n", 1)[-1]
+                if text.endswith("```"):
+                    text = text[:-3].strip()
+
+            import json
+            suggestions = json.loads(text)
+            if isinstance(suggestions, list):
+                return [s for s in suggestions if isinstance(s, str)][:max_suggestions]
+        except Exception as e:
+            self.logger.debug(f"[FollowUp] Generation failed: {e}")
+
+        return []
 
     # ---- Session persistence ----
 
@@ -1993,12 +2158,15 @@ Rules:
             except Exception as e:
                 self.logger.warning(f"Auto-save failed: {e}")
 
+        # Passive memory analysis (check thresholds, run if triggered)
+        self._maybe_run_memory_analysis()
+
         return result
 
     def reset(self):
         """Reset conversation history, mission agent cache, and sub-agents."""
         self.chat = self.client.chats.create(
-            model=self.model_name,
+            model=get_active_model(self.model_name),
             config=self.config
         )
         self._current_plan = None

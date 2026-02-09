@@ -10,7 +10,7 @@ from pathlib import Path
 
 import pytest
 
-from agent.memory import Memory, MemoryStore, MAX_PREFERENCES, MAX_SUMMARIES
+from agent.memory import Memory, MemoryStore, MAX_PREFERENCES, MAX_SUMMARIES, MAX_PITFALLS
 
 
 @pytest.fixture
@@ -207,6 +207,56 @@ class TestBuildPromptSection:
         store.add(Memory(type="preference", content="Test"))
         section = store.build_prompt_section()
         assert section.startswith("## Your Memory of This User")
+
+
+# ---- Pitfall prompt rendering ----
+
+class TestPitfallPrompt:
+    def test_pitfalls_only(self, store):
+        store.add(Memory(type="pitfall", content="OMNI data may have empty CSV strings"))
+        section = store.build_prompt_section()
+        assert "## Operational Knowledge" in section
+        assert "Follow these lessons learned" in section
+        assert "- OMNI data may have empty CSV strings" in section
+        assert "### Preferences" not in section
+
+    def test_pitfalls_with_preferences(self, store):
+        store.add(Memory(type="preference", content="Prefers dark theme"))
+        store.add(Memory(type="pitfall", content="MMS dataset IDs require @0 suffix"))
+        section = store.build_prompt_section()
+        assert "### Preferences" in section
+        assert "## Operational Knowledge" in section
+        assert "- MMS dataset IDs require @0 suffix" in section
+
+    def test_cap_pitfalls(self, store):
+        for i in range(MAX_PITFALLS + 5):
+            store.add(Memory(type="pitfall", content=f"Pitfall {i}"))
+        section = store.build_prompt_section()
+        pitfall_lines = [l for l in section.split("\n") if l.startswith("- Pitfall ")]
+        assert len(pitfall_lines) == MAX_PITFALLS
+
+    def test_disabled_pitfalls_excluded(self, store):
+        store.add(Memory(
+            id="p1", type="pitfall", content="Visible pitfall", enabled=True,
+        ))
+        store.add(Memory(
+            id="p2", type="pitfall", content="Hidden pitfall", enabled=False,
+        ))
+        section = store.build_prompt_section()
+        assert "Visible pitfall" in section
+        assert "Hidden pitfall" not in section
+
+    def test_all_three_types(self, store):
+        store.add(Memory(type="preference", content="Prefers log scale"))
+        store.add(Memory(
+            type="summary", content="Analyzed ACE data",
+            created_at="2026-02-09T10:00:00",
+        ))
+        store.add(Memory(type="pitfall", content="Rolling windows need DatetimeIndex"))
+        section = store.build_prompt_section()
+        assert "### Preferences" in section
+        assert "### Past Sessions" in section
+        assert "## Operational Knowledge" in section
 
 
 # ---- Memory dataclass defaults ----

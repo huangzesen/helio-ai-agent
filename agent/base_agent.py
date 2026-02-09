@@ -18,6 +18,7 @@ from .tools import get_tool_schemas
 from .tasks import Task, TaskStatus
 from .logging import get_logger, log_error
 from .loop_guard import LoopGuard, make_call_key
+from .model_fallback import get_active_model
 
 
 class BaseSubAgent:
@@ -155,7 +156,7 @@ class BaseSubAgent:
                 ),
             )
             chat = self.client.chats.create(
-                model=self.model_name,
+                model=get_active_model(self.model_name),
                 config=conv_config,
             )
             response = chat.send_message(user_message)
@@ -276,7 +277,7 @@ class BaseSubAgent:
 
         try:
             chat = self.client.chats.create(
-                model=self.model_name,
+                model=get_active_model(self.model_name),
                 config=self.config,
             )
             task_prompt = self._get_task_prompt(task)

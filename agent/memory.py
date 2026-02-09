@@ -23,6 +23,7 @@ logger = get_logger()
 # Maximum memories injected per type to keep prompt size reasonable
 MAX_PREFERENCES = 15
 MAX_SUMMARIES = 15
+MAX_PITFALLS = 20
 
 
 @dataclass
@@ -147,8 +148,9 @@ class MemoryStore:
 
         preferences = [m for m in enabled if m.type == "preference"][:MAX_PREFERENCES]
         summaries = [m for m in enabled if m.type == "summary"][:MAX_SUMMARIES]
+        pitfalls = [m for m in enabled if m.type == "pitfall"][:MAX_PITFALLS]
 
-        if not preferences and not summaries:
+        if not preferences and not summaries and not pitfalls:
             return ""
 
         parts = ["## Your Memory of This User"]
@@ -168,5 +170,12 @@ class MemoryStore:
                     parts.append(f"- ({date_str}) {m.content}")
                 else:
                     parts.append(f"- {m.content}")
+
+        if pitfalls:
+            parts.append("")
+            parts.append("## Operational Knowledge")
+            parts.append("Follow these lessons learned from past sessions:")
+            for m in pitfalls:
+                parts.append(f"- {m.content}")
 
         return "\n".join(parts)

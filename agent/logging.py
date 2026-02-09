@@ -185,6 +185,19 @@ def log_session_end(token_usage: dict) -> None:
     logger.info("=" * 60)
 
 
+def get_current_log_path() -> Path:
+    """Return the path to today's log file."""
+    return LOG_DIR / f"agent_{datetime.now().strftime('%Y%m%d')}.log"
+
+
+def get_log_size(path: Path) -> int:
+    """Return the size of a log file in bytes, or 0 if it doesn't exist."""
+    try:
+        return path.stat().st_size
+    except (OSError, ValueError):
+        return 0
+
+
 def get_recent_errors(days: int = 7, limit: int = 50) -> list[dict]:
     """Retrieve recent errors from log files.
 
