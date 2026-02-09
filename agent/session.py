@@ -13,6 +13,7 @@ Storage layout:
             _index.json   — label -> {filename, units, description, source}
 """
 
+import base64
 import json
 import re
 import shutil
@@ -29,6 +30,53 @@ _UNSAFE_CHARS = re.compile(r'[/\\:*?"<>|]')
 def _safe_filename(label: str) -> str:
     """Convert a DataStore label to a safe filename (without extension)."""
     return _UNSAFE_CHARS.sub("_", label)
+
+
+_B64_PREFIX = "b64:"
+
+
+def _encode_bytes_fields(history: list[dict]) -> list[dict]:
+    """Encode bytes fields (e.g. thought_signature) as base64 for JSON safety.
+
+    The Gemini SDK's Content.model_dump() produces raw bytes for
+    thought_signature fields.  json.dump(default=str) would mangle these
+    into Python repr strings like "b'\\x12\\x9c...'" which can't be
+    deserialized back to bytes.  We base64-encode them instead.
+    """
+    for entry in history:
+        for part in entry.get("parts", []):
+            if isinstance(part, dict) and "thought_signature" in part:
+                val = part["thought_signature"]
+                if isinstance(val, bytes):
+                    part["thought_signature"] = _B64_PREFIX + base64.b64encode(val).decode("ascii")
+    return history
+
+
+def _decode_bytes_fields(history: list[dict]) -> list[dict]:
+    """Decode base64-encoded bytes fields back to raw bytes for the SDK.
+
+    Also handles legacy sessions where bytes were mangled by ``default=str``
+    into Python repr strings like ``"b'\\x12\\x9c...'"`` — these are
+    re-parsed via ``ast.literal_eval``.
+    """
+    import ast
+
+    for entry in history:
+        for part in entry.get("parts", []):
+            if isinstance(part, dict) and "thought_signature" in part:
+                val = part["thought_signature"]
+                if isinstance(val, (bytes, bytearray)):
+                    continue  # already bytes
+                if isinstance(val, str):
+                    if val.startswith(_B64_PREFIX):
+                        part["thought_signature"] = base64.b64decode(val[len(_B64_PREFIX):])
+                    elif val.startswith("b'") or val.startswith('b"'):
+                        # Legacy format from default=str mangling
+                        try:
+                            part["thought_signature"] = ast.literal_eval(val)
+                        except (ValueError, SyntaxError):
+                            pass
+    return history
 
 
 class SessionManager:
@@ -88,8 +136,8 @@ class SessionManager:
         if not session_dir.exists():
             raise FileNotFoundError(f"Session directory not found: {session_id}")
 
-        # Save history
-        self._write_json(session_dir / "history.json", chat_history)
+        # Save history (encode bytes fields so JSON round-trips cleanly)
+        self._write_json(session_dir / "history.json", _encode_bytes_fields(chat_history))
 
         # Save DataStore
         data_dir = session_dir / "data"
@@ -129,6 +177,7 @@ class SessionManager:
             raise FileNotFoundError(f"Session not found: {session_id}")
 
         history = self._read_json(session_dir / "history.json") or []
+        history = _decode_bytes_fields(history)
         metadata = self._read_json(session_dir / "metadata.json") or {}
         data_dir = session_dir / "data"
         figure_state = self._read_json(session_dir / "figure.json")
