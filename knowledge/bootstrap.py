@@ -22,6 +22,7 @@ except ImportError:
 from .mission_prefixes import (
     match_dataset_to_mission,
     create_mission_skeleton,
+    get_all_mission_stems,
     get_mission_name,
 )
 
@@ -32,41 +33,66 @@ MISSIONS_DIR = Path(__file__).parent / "missions"
 DEFAULT_WORKERS = 10
 MAX_RETRIES = 3
 
+# Module-level flag: only check once per process
+_bootstrap_checked = False
+
 
 def ensure_missions_populated():
-    """Check if mission data exists; if not, download it.
+    """Check if mission data is complete; download missing missions if needed.
 
-    Fast-path: if any *.json exists in missions/, returns immediately.
-    Otherwise calls populate_missions() with full error handling.
+    Compares JSON files on disk against the expected set from
+    mission_prefixes.get_all_mission_stems(). If any are missing,
+    downloads only the missing ones. Only runs once per process.
     """
-    if any(MISSIONS_DIR.glob("*.json")):
+    global _bootstrap_checked
+    if _bootstrap_checked:
         return
+    _bootstrap_checked = True
+
+    expected_stems = set(get_all_mission_stems())
+    existing_stems = {f.stem for f in MISSIONS_DIR.glob("*.json")}
+    missing = expected_stems - existing_stems
+
+    if not missing:
+        return  # All missions present
+
+    is_fresh = len(existing_stems) == 0
 
     print("\n" + "=" * 60)
-    print("  First run detected — no mission data found.")
-    print("  Downloading CDAWeb HAPI metadata...")
-    print("  (This is a one-time setup, typically 5-10 minutes)")
+    if is_fresh:
+        print("  First run detected — no mission data found.")
+        print("  Downloading CDAWeb HAPI metadata...")
+        print("  (This is a one-time setup, typically 5-10 minutes)")
+    else:
+        print(f"  {len(missing)} of {len(expected_stems)} missions missing.")
+        print(f"  Downloading: {', '.join(sorted(missing)[:10])}"
+              + (f" ... and {len(missing)-10} more" if len(missing) > 10 else ""))
     print("=" * 60 + "\n")
 
     try:
-        populate_missions()
+        populate_missions(only_stems=missing)
     except Exception as e:
         print(f"\nWarning: Auto-download failed: {e}")
-        print("The agent will start with an empty catalog.")
-        print("You can retry by deleting knowledge/missions/*.json and restarting,")
-        print("or run manually: python scripts/generate_mission_data.py --create-new\n")
+        print("The agent will start with a partial catalog.")
+        print("You can retry by restarting, or run manually:")
+        print("  python scripts/generate_mission_data.py --create-new\n")
 
 
-def populate_missions():
-    """Download and populate all mission data from CDAWeb HAPI.
+def populate_missions(only_stems: set[str] | None = None):
+    """Download and populate mission data from CDAWeb HAPI.
+
+    Args:
+        only_stems: If provided, only download these mission stems.
+                    If None, download all missions found in the HAPI catalog.
 
     Steps:
       1. Fetch HAPI /catalog (all dataset IDs)
       2. Group datasets by mission via prefix matching
-      3. Create skeleton mission JSONs
-      4. Parallel-fetch HAPI /info for all datasets (with retries)
-      5. Merge /info into mission JSONs
-      6. Generate _index.json and _calibration_exclude.json per mission
+      3. Filter to only_stems if specified
+      4. Create skeleton mission JSONs for missing ones
+      5. Parallel-fetch HAPI /info for all datasets (with retries)
+      6. Merge /info into mission JSONs
+      7. Generate _index.json and _calibration_exclude.json per mission
     """
     if requests is None:
         raise RuntimeError(
@@ -79,20 +105,41 @@ def populate_missions():
     # Step 1: Fetch HAPI catalog
     catalog = _fetch_catalog()
 
+    # Step 1b: Fetch CDAWeb REST API metadata (InstrumentType per dataset)
+    from .cdaweb_metadata import fetch_dataset_metadata
+    print("Fetching CDAWeb dataset metadata (instrument types)...")
+    cdaweb_meta = fetch_dataset_metadata()
+    if cdaweb_meta:
+        print(f"  Got metadata for {len(cdaweb_meta)} datasets")
+    else:
+        print("  Warning: CDAWeb metadata unavailable, falling back to prefix hints")
+
     # Step 2: Group datasets by mission
     mission_datasets = _group_by_mission(catalog)
+
+    # Step 3: Filter to requested stems
+    if only_stems:
+        mission_datasets = {
+            stem: ds for stem, ds in mission_datasets.items()
+            if stem in only_stems
+        }
+
     total_datasets = sum(len(ds) for ds in mission_datasets.values())
     print(f"Grouped {total_datasets} datasets into {len(mission_datasets)} missions\n")
 
-    # Step 3: Create skeleton JSONs for all missions
+    # Step 4: Create skeleton JSONs for missions that don't exist yet
+    # Include all requested stems, even those with no HAPI datasets
     MISSIONS_DIR.mkdir(parents=True, exist_ok=True)
-    for stem in sorted(mission_datasets.keys()):
+    stems_to_skeleton = set(mission_datasets.keys())
+    if only_stems:
+        stems_to_skeleton |= only_stems
+    for stem in sorted(stems_to_skeleton):
         filepath = MISSIONS_DIR / f"{stem}.json"
         if not filepath.exists():
             skeleton = create_mission_skeleton(stem)
             _save_json(filepath, skeleton)
 
-    # Step 4: Parallel-fetch HAPI /info for all datasets
+    # Step 5: Parallel-fetch HAPI /info for all datasets
     all_fetch_items = []
     for stem, datasets in mission_datasets.items():
         cache_dir = MISSIONS_DIR / stem / "hapi"
@@ -103,10 +150,10 @@ def populate_missions():
     print(f"Fetching HAPI /info for {len(all_fetch_items)} datasets...")
     results = _fetch_all_info(all_fetch_items)
 
-    # Step 5: Merge results into mission JSONs
-    _merge_into_missions(mission_datasets, results)
+    # Step 6: Merge results into mission JSONs
+    _merge_into_missions(mission_datasets, results, cdaweb_meta)
 
-    # Step 6: Generate per-mission index and calibration exclude files
+    # Step 7: Generate per-mission index and calibration exclude files
     for stem in mission_datasets:
         _generate_index(stem)
         _ensure_calibration_exclude(stem)
@@ -285,8 +332,26 @@ def _merge_dataset_info(hapi_info: dict) -> dict:
 def _merge_into_missions(
     mission_datasets: dict[str, list[tuple[str, str | None]]],
     results: dict[str, dict | None],
+    cdaweb_meta: dict[str, dict] | None = None,
 ):
-    """Merge fetched HAPI /info results into mission JSON files."""
+    """Merge fetched HAPI /info results into mission JSON files.
+
+    Uses CDAWeb InstrumentType metadata (when available) to group datasets
+    into meaningful instrument categories instead of dumping into "General".
+
+    Priority for instrument assignment:
+      1. Dataset already exists in a named instrument → keep it
+      2. Prefix hint from mission_prefixes → use it (preserves curated structure)
+      3. CDAWeb InstrumentType → group by primary type
+      4. Fallback → "General"
+
+    After merging, backfills keywords for instruments that have keywords=[].
+    """
+    if cdaweb_meta is None:
+        cdaweb_meta = {}
+
+    from .cdaweb_metadata import pick_primary_type, get_type_info
+
     for stem, datasets in mission_datasets.items():
         filepath = MISSIONS_DIR / f"{stem}.json"
         if not filepath.exists():
@@ -301,17 +366,40 @@ def _merge_into_missions(
             if info is None:
                 continue
 
-            # Find target instrument
+            # Priority 1: dataset already exists in a named instrument
             target_instrument = None
             for inst_id, inst in mission_data.get("instruments", {}).items():
                 if ds_id in inst.get("datasets", {}):
                     target_instrument = inst_id
                     break
 
+            # Priority 2: prefix hint from mission_prefixes
             if target_instrument is None and instrument_hint:
-                if instrument_hint in mission_data.get("instruments", {}):
-                    target_instrument = instrument_hint
+                if instrument_hint not in mission_data.get("instruments", {}):
+                    mission_data.setdefault("instruments", {})[instrument_hint] = {
+                        "name": instrument_hint,
+                        "keywords": [],
+                        "datasets": {},
+                    }
+                target_instrument = instrument_hint
 
+            # Priority 3: CDAWeb InstrumentType grouping
+            if target_instrument is None:
+                meta = cdaweb_meta.get(ds_id)
+                if meta and meta.get("instrument_types"):
+                    primary_type = pick_primary_type(meta["instrument_types"])
+                    if primary_type:
+                        type_info = get_type_info(primary_type)
+                        inst_key = type_info["id"]
+                        if inst_key not in mission_data.get("instruments", {}):
+                            mission_data.setdefault("instruments", {})[inst_key] = {
+                                "name": type_info["name"],
+                                "keywords": list(type_info["keywords"]),
+                                "datasets": {},
+                            }
+                        target_instrument = inst_key
+
+            # Priority 4: fallback to "General"
             if target_instrument is None:
                 if "General" not in mission_data.get("instruments", {}):
                     mission_data.setdefault("instruments", {})["General"] = {
@@ -325,6 +413,16 @@ def _merge_into_missions(
             inst.setdefault("datasets", {})[ds_id] = _merge_dataset_info(info)
             updated += 1
 
+        # Backfill keywords for instruments that have keywords=[]
+        _backfill_instrument_keywords(mission_data, cdaweb_meta)
+
+        # Remove empty "General" if other instruments exist
+        instruments = mission_data.get("instruments", {})
+        if ("General" in instruments
+                and not instruments["General"].get("datasets")
+                and len(instruments) > 1):
+            del instruments["General"]
+
         # Update _meta
         mission_data["_meta"] = {
             "generated_at": datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ"),
@@ -334,6 +432,40 @@ def _merge_into_missions(
         _save_json(filepath, mission_data)
 
     print(f"Merged data into {len(mission_datasets)} mission JSON files")
+
+
+def _backfill_instrument_keywords(
+    mission_data: dict,
+    cdaweb_meta: dict[str, dict],
+):
+    """Backfill keywords for instruments that have keywords=[].
+
+    Looks up the InstrumentType of their datasets via CDAWeb metadata
+    and sets keywords from the type info.
+    """
+    from .cdaweb_metadata import pick_primary_type, get_type_info
+
+    for inst_id, inst in mission_data.get("instruments", {}).items():
+        if inst.get("keywords"):
+            continue  # Already has keywords
+
+        # Collect InstrumentTypes from all datasets in this instrument
+        all_types = set()
+        for ds_id in inst.get("datasets", {}):
+            meta = cdaweb_meta.get(ds_id)
+            if meta and meta.get("instrument_types"):
+                for t in meta["instrument_types"]:
+                    all_types.add(t)
+
+        if not all_types:
+            continue
+
+        # Pick primary type and use its keywords
+        primary = pick_primary_type(list(all_types))
+        if primary:
+            type_info = get_type_info(primary)
+            if type_info.get("keywords"):
+                inst["keywords"] = list(type_info["keywords"])
 
 
 def _generate_index(mission_stem: str):

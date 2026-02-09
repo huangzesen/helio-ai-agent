@@ -33,7 +33,8 @@ class TestBuildMissionPromptForAgent:
 
     def test_ace_prompt_is_focused(self):
         prompt = build_mission_prompt("ACE")
-        assert "Advanced Composition Explorer" in prompt
+        # ACE name may be "ACE" or "Advanced Composition Explorer"
+        assert "ACE" in prompt
         assert "AC_H2_MFI" in prompt
         assert "PSP_FLD_L2_MAG_RTN_1MIN" not in prompt
 

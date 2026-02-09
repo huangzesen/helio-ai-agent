@@ -56,9 +56,8 @@ def load_all_missions() -> dict[str, dict]:
         Dict mapping mission ID (from JSON "id" field) to mission data.
         Example: {"PSP": {...}, "ACE": {...}, ...}
     """
-    if not any(_MISSIONS_DIR.glob("*.json")):
-        from .bootstrap import ensure_missions_populated
-        ensure_missions_populated()
+    from .bootstrap import ensure_missions_populated
+    ensure_missions_populated()
 
     result = {}
     for filepath in sorted(_MISSIONS_DIR.glob("*.json")):
@@ -100,14 +99,29 @@ def get_routing_table() -> list[dict]:
         for inst in mission.get("instruments", {}).values():
             for kw in inst.get("keywords", []):
                 # Group related keywords into higher-level capabilities
-                if kw in ("magnetic", "field", "mag", "b-field", "bfield", "imf", "mfi", "fgm", "impact"):
+                if kw in ("magnetic", "field", "mag", "b-field", "bfield", "imf",
+                           "mfi", "fgm", "impact", "magnetometer"):
                     capabilities.add("magnetic field")
                 elif kw in ("plasma", "solar wind", "proton", "density", "velocity",
                             "temperature", "ion", "electron", "sweap", "swa",
                             "swe", "faraday", "plastic", "fpi"):
                     capabilities.add("plasma")
-                elif kw in ("sym-h", "geomagnetic"):
+                elif kw in ("particle", "energetic", "cosmic ray"):
+                    capabilities.add("energetic particles")
+                elif kw in ("electric", "e-field"):
+                    capabilities.add("electric field")
+                elif kw in ("radio", "wave", "plasma wave"):
+                    capabilities.add("radio/plasma waves")
+                elif kw in ("index", "indices", "sym-h", "geomagnetic", "dst", "kp", "ae"):
                     capabilities.add("geomagnetic indices")
+                elif kw in ("ephemeris", "orbit", "attitude", "position"):
+                    capabilities.add("ephemeris")
+                elif kw in ("composition", "charge state"):
+                    capabilities.add("composition")
+                elif kw in ("coronagraph", "heliograph"):
+                    capabilities.add("coronagraph")
+                elif kw in ("imaging", "remote sensing"):
+                    capabilities.add("imaging")
         table.append({
             "id": mission_id,
             "name": mission["name"],
