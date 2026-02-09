@@ -9,7 +9,7 @@ Usage:
     python gradio_app.py                # Launch on localhost:7860
     python gradio_app.py --share        # Generate public URL
     python gradio_app.py --port 8080    # Custom port
-    python gradio_app.py --verbose      # Show tool call details
+    python gradio_app.py --quiet        # Hide live progress log
 """
 
 import argparse
@@ -29,7 +29,7 @@ import pandas as pd
 # Globals (initialized in main())
 # ---------------------------------------------------------------------------
 _agent = None
-_verbose = False
+_verbose = True
 
 
 # ---------------------------------------------------------------------------
@@ -1162,7 +1162,7 @@ def main():
     parser = argparse.ArgumentParser(description="Helio AI Agent — Gradio Web UI")
     parser.add_argument("--port", type=int, default=7860, help="Port to listen on")
     parser.add_argument("--share", action="store_true", help="Generate a public Gradio URL")
-    parser.add_argument("--verbose", "-v", action="store_true", help="Show tool call details in browser UI")
+    parser.add_argument("--quiet", "-q", action="store_true", help="Hide live progress log in browser UI (verbose is on by default)")
     parser.add_argument("--model", "-m", default=None, help="Gemini model name")
     parser.add_argument("--refresh", action="store_true", help="Refresh dataset time ranges (fast — updates start/stop dates only)")
     parser.add_argument("--refresh-full", action="store_true", help="Full rebuild of primary mission data (re-download everything)")
@@ -1170,7 +1170,7 @@ def main():
     parser.add_argument("--download-hapi-cache", action="store_true", help="Pre-download detailed HAPI parameter cache for all missions")
     args = parser.parse_args()
 
-    _verbose = args.verbose
+    _verbose = not args.quiet
 
     # Mission data menu (runs in terminal before Gradio launches)
     from knowledge.startup import resolve_refresh_flags
@@ -1185,7 +1185,7 @@ def main():
     print("Initializing agent...")
     try:
         from agent.core import create_agent
-        _agent = create_agent(verbose=args.verbose, model=args.model)
+        _agent = create_agent(verbose=_verbose, model=args.model)
         _agent.web_mode = True  # Suppress auto-open of exported files
     except Exception as e:
         print(f"Error initializing agent: {e}")

@@ -67,7 +67,7 @@ python -m pytest tests/                                         # All tests
 python gradio_app.py                # Launch on localhost:7860
 python gradio_app.py --share        # Generate a public Gradio URL
 python gradio_app.py --port 8080    # Custom port
-python gradio_app.py --verbose      # Show tool call details
+python gradio_app.py --quiet        # Hide live progress log
 python gradio_app.py --model gemini-2.5-pro  # Override model
 ```
 
