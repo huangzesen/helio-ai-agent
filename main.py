@@ -25,6 +25,7 @@ Commands:
 import sys
 import argparse
 from pathlib import Path
+from knowledge.startup import resolve_refresh_flags
 
 # readline is optional (not available on Windows without pyreadline3)
 try:
@@ -54,8 +55,7 @@ def print_welcome():
     print("=" * 60)
     print()
     print("I can help you explore and visualize spacecraft data")
-    print("from 8 missions: PSP, Solar Orbiter, ACE, OMNI, Wind,")
-    print("DSCOVR, MMS, and STEREO-A.")
+    print("from heliophysics missions via CDAWeb.")
     print()
     print("What I can do:")
     print("  Search & plot    - Find datasets and plot them instantly")
@@ -161,6 +161,16 @@ def main():
         help="Resume a specific session by ID",
     )
     parser.add_argument(
+        "--refresh",
+        action="store_true",
+        help="Refresh primary mission data before starting",
+    )
+    parser.add_argument(
+        "--refresh-all",
+        action="store_true",
+        help="Download ALL missions from CDAWeb before starting",
+    )
+    parser.add_argument(
         "command",
         nargs="?",
         default=None,
@@ -172,6 +182,9 @@ def main():
     if not args.command:
         setup_readline()
         print_welcome()
+
+        # Mission data menu (skip in single-command mode)
+        resolve_refresh_flags(refresh=args.refresh, refresh_all=args.refresh_all)
 
     # Import here to delay JVM startup until user is ready
     try:

@@ -331,14 +331,32 @@ def _on_load_session(session_id: str):
     if not session_id or _agent is None:
         return gr.skip(), gr.skip(), gr.skip(), gr.skip(), gr.skip(), gr.skip(), gr.skip()
 
+    # First, read the saved history for display (before _agent.load_session
+    # which may fail on Gemini chat recreation but should still restore data)
+    try:
+        history_dicts, _, _ = _agent._session_manager.load_session(session_id)
+    except Exception as e:
+        # Session files are missing/corrupt — show error in chat
+        return (
+            [{"role": "assistant", "content": f"Failed to read session: {e}"}],
+            None, [], _format_tokens(),
+            gr.update(choices=[], value=None),
+            None,
+            gr.update(choices=_get_session_choices(), value=None),
+        )
+
+    display = _extract_display_history(history_dicts)
+
+    # Now restore the agent state (chat + DataStore)
     try:
         meta = _agent.load_session(session_id)
     except Exception as e:
-        return gr.skip(), gr.skip(), gr.skip(), gr.skip(), gr.skip(), gr.skip(), gr.skip()
-
-    # Reconstruct display history from saved Content dicts
-    history_dicts, _, _ = _agent._session_manager.load_session(session_id)
-    display = _extract_display_history(history_dicts)
+        # Agent restore failed — still show the saved history as read-only
+        display.append({
+            "role": "assistant",
+            "content": f"*Session history loaded but agent state could not be fully restored: {e}. "
+            f"Data and chat context may be missing — try re-fetching data.*",
+        })
 
     fig = _get_current_figure()
     data_rows = _build_data_table()
@@ -772,9 +790,15 @@ def main():
     parser.add_argument("--share", action="store_true", help="Generate a public Gradio URL")
     parser.add_argument("--verbose", "-v", action="store_true", help="Show tool call details in browser UI")
     parser.add_argument("--model", "-m", default=None, help="Gemini model name")
+    parser.add_argument("--refresh", action="store_true", help="Refresh primary mission data before starting")
+    parser.add_argument("--refresh-all", action="store_true", help="Download ALL missions from CDAWeb before starting")
     args = parser.parse_args()
 
     _verbose = args.verbose
+
+    # Mission data menu (runs in terminal before Gradio launches)
+    from knowledge.startup import resolve_refresh_flags
+    resolve_refresh_flags(refresh=args.refresh, refresh_all=args.refresh_all)
 
     # Initialize agent
     print("Initializing agent...")

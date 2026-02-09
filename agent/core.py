@@ -1456,13 +1456,24 @@ class OrchestratorAgent:
         """
         history_dicts, data_dir, metadata = self._session_manager.load_session(session_id)
 
-        # Restore chat with saved history
+        # Restore chat with saved history — fall back to fresh chat if
+        # the Gemini SDK can't reconstruct function_call/function_response parts
         if history_dicts:
-            self.chat = self.client.chats.create(
-                model=self.model_name,
-                config=self.config,
-                history=history_dicts,
-            )
+            try:
+                self.chat = self.client.chats.create(
+                    model=self.model_name,
+                    config=self.config,
+                    history=history_dicts,
+                )
+            except Exception as e:
+                self.logger.warning(
+                    f"[Session] Could not restore chat history: {e}. "
+                    "Starting fresh chat (data still restored)."
+                )
+                self.chat = self.client.chats.create(
+                    model=self.model_name,
+                    config=self.config,
+                )
         else:
             self.chat = self.client.chats.create(
                 model=self.model_name,

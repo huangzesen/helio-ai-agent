@@ -149,10 +149,16 @@ class PlotlyRenderer:
         # Decompose vectors into scalar components.
         # Convert numpy arrays to Python lists to avoid Plotly 6.x binary
         # serialization (bdata), which can crash Gradio's Plotly.js frontend.
+        # Time values are converted to ISO strings to guarantee Plotly uses
+        # a date axis — passing raw datetime objects can produce Unix
+        # timestamps on the x-axis in some rendering environments.
         series: list[tuple[str, list, list]] = []  # (label, time_list, values_list)
         for entry in entries:
             display_name = entry.description or entry.label
-            time_list = entry.time.tolist()
+            time_list = [
+                t.isoformat() if hasattr(t, "isoformat") else str(t)
+                for t in entry.time.tolist()
+            ]
             if entry.values.ndim == 2 and entry.values.shape[1] > 1:
                 comp_names = ["x", "y", "z"]
                 for col in range(entry.values.shape[1]):
@@ -193,6 +199,9 @@ class PlotlyRenderer:
                     ),
                     row=1, col=1,
                 )
+
+        # Ensure the x-axis is rendered as formatted dates, not raw numbers.
+        fig.update_xaxes(type="date")
 
         # Title
         if title:
