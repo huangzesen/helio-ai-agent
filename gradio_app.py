@@ -353,7 +353,7 @@ def _on_load_session(session_ids: list[str]):
     # First, read the saved history for display (before _agent.load_session
     # which may fail on Gemini chat recreation but should still restore data)
     try:
-        history_dicts, _, _ = _agent._session_manager.load_session(session_id)
+        history_dicts, _, _, _ = _agent._session_manager.load_session(session_id)
     except Exception as e:
         # Session files are missing/corrupt — show error in chat
         return (
@@ -378,12 +378,7 @@ def _on_load_session(session_ids: list[str]):
             f"Data and chat context may be missing — try re-fetching data.*",
         })
 
-    # Re-plot restored data — load_session resets the renderer so the
-    # figure is lost.  Re-create it from whatever is in the DataStore.
     fig = _get_current_figure()
-    if fig is None:
-        fig = _replot_store_data()
-
     data_rows = _build_data_table()
     token_text = _format_tokens()
     label_choices = _get_label_choices()
@@ -398,26 +393,6 @@ def _on_load_session(session_ids: list[str]):
         preview, "",
         gr.update(choices=_get_session_choices(), value=[]),
     )
-
-
-def _replot_store_data():
-    """Re-plot all DataStore entries through the renderer. Returns the figure or None."""
-    if _agent is None:
-        return None
-    from data_ops.store import get_store
-    store = get_store()
-    labels = [e["label"] for e in store.list_entries()]
-    if not labels:
-        return None
-    entries = [store.get(lbl) for lbl in labels]
-    entries = [e for e in entries if e is not None]
-    if not entries:
-        return None
-    try:
-        _agent._renderer.plot_data(entries)
-    except Exception:
-        return None
-    return _agent._renderer.get_figure()
 
 
 def _on_new_session():
@@ -829,14 +804,9 @@ footer { display: none !important; }
     align-items: center !important;
     justify-content: center !important;
     font-size: 1rem !important;
-    transition: all 0.2s ease !important;
     padding: 0 !important;
     color: var(--body-text-color) !important;
     line-height: 1 !important;
-}
-.theme-toggle:hover {
-    border-color: var(--border-color-accent) !important;
-    transform: scale(1.1) !important;
 }
 /* Light mode: show moon (click to go dark) */
 .theme-toggle .icon-sun { display: none; }
@@ -898,17 +868,6 @@ footer { display: none !important; }
     color: var(--body-text-color-subdued) !important;
     font-size: 0.8rem !important;
     padding: 0.3rem 0.8rem !important;
-    transition: all 0.2s ease !important;
-}
-#example-pills button.gr-sample-btn:hover,
-#example-pills .gr-sample:hover {
-    border-color: #00b8d9 !important;
-    color: #00b8d9 !important;
-}
-.dark #example-pills button.gr-sample-btn:hover,
-.dark #example-pills .gr-sample:hover {
-    border-color: #00d9ff !important;
-    color: #00d9ff !important;
 }
 
 /* ---- Left session sidebar ---- */
@@ -921,14 +880,10 @@ footer { display: none !important; }
     padding: 0.5rem 0.7rem !important;
     margin-bottom: 2px !important;
     cursor: pointer !important;
-    transition: background 0.15s ease !important;
     font-size: 0.82rem !important;
     line-height: 1.35 !important;
     white-space: pre-line !important;
     border: none !important;
-}
-.session-sidebar .session-list label:hover {
-    background: var(--background-fill-secondary) !important;
 }
 .session-sidebar .session-list input:checked + span,
 .session-sidebar .session-list label:has(input:checked) {
@@ -972,22 +927,12 @@ footer { display: none !important; }
 }
 
 /* ---- Buttons ---- */
-button.primary {
-    transition: all 0.2s ease !important;
-}
-button.primary:hover {
-    transform: translateY(-1px) !important;
-    box-shadow: 0 4px 12px rgba(0, 184, 217, 0.2) !important;
-}
-.dark button.primary:hover {
-    box-shadow: 0 4px 12px rgba(0, 217, 255, 0.3) !important;
-}
 
 /* ---- Dark mode scrollbars ---- */
 .dark ::-webkit-scrollbar { width: 8px; height: 8px; }
 .dark ::-webkit-scrollbar-track { background: #0a0e1a; }
 .dark ::-webkit-scrollbar-thumb { background: #2e3a5a; border-radius: 4px; }
-.dark ::-webkit-scrollbar-thumb:hover { background: #3a486e; }
+.dark ::-webkit-scrollbar-thumb:hover { background: #2e3a5a; }
 
 /* ---- Accordion headers ---- */
 .dark .gr-accordion .label-wrap {
