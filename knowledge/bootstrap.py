@@ -402,12 +402,22 @@ def _fetch_all_info(
     Returns:
         Dict mapping dataset_id -> info dict (or None if all retries failed).
     """
-    # Try tqdm for progress bar, fall back to simple counter
+    # Try tqdm for interactive terminal progress, fall back to logger.
+    # The logger-based path also ensures Gradio's live log can display
+    # progress (tqdm writes to stderr which bypasses the logging system).
     try:
         from tqdm import tqdm
         has_tqdm = True
     except ImportError:
         has_tqdm = False
+
+    # Detect if a Gradio _ListHandler is attached (i.e. we're inside the
+    # web UI background thread).  In that case prefer logger-based progress
+    # so the lines appear in the live log panel.
+    _use_tqdm = has_tqdm and not any(
+        type(h).__name__ == "_ListHandler"
+        for h in logging.getLogger("helio-agent").handlers
+    )
 
     results: dict[str, dict | None] = {}
     pending = [(ds_id, cache_dir) for ds_id, _, _, cache_dir in items]
@@ -422,7 +432,7 @@ def _fetch_all_info(
 
         failed = []
 
-        if has_tqdm:
+        if _use_tqdm:
             pbar = tqdm(
                 total=len(pending),
                 desc=f"Downloading (attempt {attempt}/{MAX_RETRIES})"
@@ -432,6 +442,8 @@ def _fetch_all_info(
             )
         else:
             counter = {"done": 0, "total": len(pending)}
+            # Log every N items (more frequent for smaller batches)
+            _log_every = max(1, len(pending) // 10)
 
         with ThreadPoolExecutor(max_workers=DEFAULT_WORKERS) as pool:
             futures = {
@@ -447,15 +459,16 @@ def _fetch_all_info(
                 if info is None:
                     failed.append((ds_id, cache_dir))
 
-                if has_tqdm:
+                if _use_tqdm:
                     pbar.update(1)
                 else:
                     counter["done"] += 1
-                    if counter["done"] % 100 == 0 or counter["done"] == counter["total"]:
-                        logger.info("%d/%d datasets processed",
-                                    counter["done"], counter["total"])
+                    if counter["done"] % _log_every == 0 or counter["done"] == counter["total"]:
+                        pct = counter["done"] * 100 // counter["total"]
+                        logger.info("Downloading: %d/%d datasets (%d%%)",
+                                    counter["done"], counter["total"], pct)
 
-        if has_tqdm:
+        if _use_tqdm:
             pbar.close()
 
         pending = failed
