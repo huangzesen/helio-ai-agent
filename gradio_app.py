@@ -378,7 +378,12 @@ def _on_load_session(session_ids: list[str]):
             f"Data and chat context may be missing — try re-fetching data.*",
         })
 
+    # Re-plot restored data — load_session resets the renderer so the
+    # figure is lost.  Re-create it from whatever is in the DataStore.
     fig = _get_current_figure()
+    if fig is None:
+        fig = _replot_store_data()
+
     data_rows = _build_data_table()
     token_text = _format_tokens()
     label_choices = _get_label_choices()
@@ -393,6 +398,26 @@ def _on_load_session(session_ids: list[str]):
         preview, "",
         gr.update(choices=_get_session_choices(), value=[]),
     )
+
+
+def _replot_store_data():
+    """Re-plot all DataStore entries through the renderer. Returns the figure or None."""
+    if _agent is None:
+        return None
+    from data_ops.store import get_store
+    store = get_store()
+    labels = [e["label"] for e in store.list_entries()]
+    if not labels:
+        return None
+    entries = [store.get(lbl) for lbl in labels]
+    entries = [e for e in entries if e is not None]
+    if not entries:
+        return None
+    try:
+        _agent._renderer.plot_data(entries)
+    except Exception:
+        return None
+    return _agent._renderer.get_figure()
 
 
 def _on_new_session():
@@ -839,14 +864,9 @@ footer { display: none !important; }
 }
 .chat-window .message-row.user-row .message {
     background: var(--background-fill-secondary) !important;
-    border-left: 3px solid #00b8d9 !important;
-}
-.dark .chat-window .message-row.user-row .message {
-    border-left-color: #00d9ff !important;
 }
 .chat-window .message-row.bot-row .message {
     background: var(--background-fill-primary) !important;
-    border-left: 3px solid #ffa500 !important;
 }
 .chat-window {
     border: 1px solid var(--border-color-primary) !important;
