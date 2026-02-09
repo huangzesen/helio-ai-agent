@@ -186,7 +186,7 @@ Future development plan for the helio-ai-agent project.
 ## User Experience
 
 ### Interfaces
-- [x] Web UI (Gradio) — `gradio_app.py` with inline Plotly plots, real-time streaming of verbose output
+- [x] Web UI (Gradio) — `gradio_app.py` with inline Plotly plots, live progress streaming on by default
 - [ ] Jupyter notebook integration
 - [ ] VS Code extension
 - [ ] REST API for programmatic access

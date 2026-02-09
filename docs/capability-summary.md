@@ -24,7 +24,7 @@ main.py  (readline CLI, --verbose/--model flags, token usage on exit)
   v
 gradio_app.py  (browser-based chat UI, inline Plotly plots, data table sidebar)
   |  - Wraps same OrchestratorAgent as main.py
-  |  - Flags: --share, --port, --verbose, --model
+  |  - Flags: --share, --port, --quiet, --model
   |  - Flags: --refresh, --refresh-full, --refresh-all (same as main.py)
   |  - Multimodal file upload (PDF, images)
   |  - Browse & Fetch sidebar (mission → dataset → parameter dropdowns, direct HAPI fetch)
@@ -314,7 +314,7 @@ All times are UTC. Outputs `TimeRange` objects with `start`/`end` datetimes.
 - Applied in `_ensure_figure()` and `_grow_panels()`
 
 ### Gradio Streaming
-- `gradio_app.py` supports real-time streaming of agent verbose output
+- `gradio_app.py` streams live progress (tool calls, downloads, thinking) by default; use `--quiet` to disable
 - Agent output unified through Python logging (commit 413eada)
 
 ### Mission Data Startup (`knowledge/startup.py`)
@@ -358,10 +358,10 @@ python main.py --refresh-all   # Download ALL missions from CDAWeb (full rebuild
 ### Gradio Web UI
 
 ```bash
-python gradio_app.py                # Launch on localhost:7860
+python gradio_app.py                # Launch on localhost:7860 (live progress on by default)
 python gradio_app.py --share        # Generate a public Gradio URL
 python gradio_app.py --port 8080    # Custom port
-python gradio_app.py --verbose      # Show tool call details (live streaming in browser)
+python gradio_app.py --quiet        # Hide live progress log
 python gradio_app.py --model MODEL  # Override model
 python gradio_app.py --refresh      # Refresh dataset time ranges before launch
 ```
