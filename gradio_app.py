@@ -296,16 +296,22 @@ def _preview_data(label: str) -> list[list] | None:
 # ---------------------------------------------------------------------------
 
 def _get_session_choices() -> list[tuple[str, str]]:
-    """Return choices for the session list: (display_label, session_id)."""
+    """Return choices for the session list: (display_label, session_id).
+
+    The currently active session gets a visible marker so the user can
+    identify it at a glance.
+    """
     from agent.session import SessionManager
     sm = SessionManager()
     sessions = sm.list_sessions()[:20]
+    active_id = _agent.get_session_id() if _agent else None
     choices = []
     for s in sessions:
         preview = s.get("last_message_preview", "").strip()[:40] or "New chat"
         date_str = s.get("updated_at", "")[:10]  # YYYY-MM-DD
         turns = s.get("turn_count", 0)
-        label = f"{preview}\n{date_str} · {turns} turns"
+        marker = "▶ " if s["id"] == active_id else ""
+        label = f"{marker}{preview}\n{date_str} · {turns} turns"
         choices.append((label, s["id"]))
     return choices
 
@@ -349,6 +355,12 @@ def _on_load_session(session_ids: list[str]):
     session_id = session_ids[0] if session_ids else None
     if not session_id or _agent is None:
         return (gr.skip(),) * 9
+
+    # Save current session before switching
+    try:
+        _agent.save_session()
+    except Exception:
+        pass
 
     # First, read the saved history for display (before _agent.load_session
     # which may fail on Gemini chat recreation but should still restore data)
@@ -398,9 +410,15 @@ def _on_load_session(session_ids: list[str]):
 def _on_new_session():
     """Start a fresh session (reset + create new).
 
+    Saves the current session first, then resets everything.
     Returns the full 9-element all_outputs tuple.
     """
     if _agent is not None:
+        # Save current session before starting a new one
+        try:
+            _agent.save_session()
+        except Exception:
+            pass
         _agent.reset()
 
     from data_ops.store import get_store
@@ -417,6 +435,17 @@ def _on_new_session():
         "",  # verbose_output
         gr.update(choices=_get_session_choices(), value=[]),  # session_list
     )
+
+
+def _on_select_all(current_selection: list[str]):
+    """Toggle select all / deselect all sessions."""
+    choices = _get_session_choices()
+    all_ids = [sid for _, sid in choices]
+    if set(current_selection) == set(all_ids) and all_ids:
+        # Already all selected — deselect all
+        return gr.update(value=[])
+    # Select all
+    return gr.update(value=all_ids)
 
 
 def _on_delete_session(session_ids: list[str]):
@@ -967,8 +996,10 @@ def create_app() -> gr.Blocks:
             )
             with gr.Row():
                 load_session_btn = gr.Button("Load", size="sm")
+                select_all_btn = gr.Button("Select All", size="sm")
+            with gr.Row():
                 delete_session_btn = gr.Button(
-                    "Delete", variant="stop", size="sm",
+                    "Delete Selected", variant="stop", size="sm",
                 )
 
         # ---- Right Sidebar: Data Tools ----
@@ -1142,6 +1173,11 @@ def create_app() -> gr.Blocks:
             fn=_on_new_session,
             inputs=[],
             outputs=all_outputs,
+        )
+        select_all_btn.click(
+            fn=_on_select_all,
+            inputs=[session_list],
+            outputs=[session_list],
         )
         delete_session_btn.click(
             fn=_on_delete_session,
