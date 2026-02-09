@@ -76,5 +76,6 @@ knowledge/missions/*/hapi/
 # Autoplot downloaded JAR (user-specific path)
 autoplot.jar
 ~/autoplot.jar
-# Agent-exported figures (PNG at project root)
+# Agent-exported files (figures, data exports at project root)
 *.png
+*.csv

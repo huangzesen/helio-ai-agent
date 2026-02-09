@@ -9,6 +9,7 @@ restricted namespace with only df, pd, and np available.
 
 import ast
 import builtins
+import gc
 
 import numpy as np
 import pandas as pd
@@ -89,6 +90,71 @@ def validate_pandas_code(code: str, require_result: bool = True) -> list[str]:
     return violations
 
 
+def _execute_in_sandbox(code: str, namespace: dict) -> object:
+    """Execute code in a sandboxed namespace and return the 'result' value.
+
+    Builds safe builtins, runs exec(), extracts result, then cleans up.
+
+    Args:
+        code: Python code to execute.
+        namespace: Dict with variables available to the code (must include 'result': None).
+
+    Returns:
+        The value of 'result' after execution.
+
+    Raises:
+        RuntimeError: If code execution fails.
+    """
+    safe_builtins = {name: getattr(builtins, name) for name in _SAFE_BUILTINS if hasattr(builtins, name)}
+
+    try:
+        exec(code, {"__builtins__": safe_builtins}, namespace)
+    except Exception as e:
+        raise RuntimeError(f"Execution error: {type(e).__name__}: {e}") from e
+
+    result = namespace.get("result")
+
+    del namespace
+    gc.collect()
+
+    return result
+
+
+def _validate_dataframe_result(result: object, datetime_index_hint: str = "") -> pd.DataFrame:
+    """Validate that the sandbox result is a DataFrame with DatetimeIndex.
+
+    Args:
+        result: The value produced by sandbox execution.
+        datetime_index_hint: Extra guidance appended to the DatetimeIndex error message.
+
+    Returns:
+        Validated DataFrame.
+
+    Raises:
+        ValueError: If result is None, wrong type, or missing DatetimeIndex.
+    """
+    if result is None:
+        raise ValueError("Code did not assign a value to 'result'")
+
+    if isinstance(result, pd.Series):
+        result = result.to_frame(name="value")
+
+    if not isinstance(result, pd.DataFrame):
+        raise ValueError(
+            f"Result must be a DataFrame or Series, got {type(result).__name__}"
+        )
+
+    if not isinstance(result.index, pd.DatetimeIndex):
+        msg = "Result must have a DatetimeIndex (time axis). "
+        if datetime_index_hint:
+            msg += datetime_index_hint
+        else:
+            msg += "Make sure your operation preserves the DataFrame index."
+        raise ValueError(msg)
+
+    return result
+
+
 def execute_custom_operation(df: pd.DataFrame, code: str) -> pd.DataFrame:
     """Execute validated pandas code in a restricted namespace.
 
@@ -103,52 +169,12 @@ def execute_custom_operation(df: pd.DataFrame, code: str) -> pd.DataFrame:
         RuntimeError: If code execution fails.
         ValueError: If result is not a DataFrame/Series or loses DatetimeIndex.
     """
-    import gc
-
     df = df.copy()
-    # Ensure DatetimeIndex so time-based rolling windows (e.g., '2H') work
     if not isinstance(df.index, pd.DatetimeIndex):
         df.index = pd.to_datetime(df.index)
 
-    namespace = {
-        "df": df,
-        "pd": pd,
-        "np": np,
-        "result": None,
-    }
-
-    safe_builtins = {name: getattr(builtins, name) for name in _SAFE_BUILTINS if hasattr(builtins, name)}
-
-    try:
-        exec(code, {"__builtins__": safe_builtins}, namespace)
-    except Exception as e:
-        raise RuntimeError(f"Execution error: {type(e).__name__}: {e}") from e
-
-    result = namespace.get("result")
-
-    # Free the working copy and namespace intermediates
-    del df, namespace
-    gc.collect()
-
-    if result is None:
-        raise ValueError("Code did not assign a value to 'result'")
-
-    # Convert Series to DataFrame
-    if isinstance(result, pd.Series):
-        result = result.to_frame(name="value")
-
-    if not isinstance(result, pd.DataFrame):
-        raise ValueError(
-            f"Result must be a DataFrame or Series, got {type(result).__name__}"
-        )
-
-    if not isinstance(result.index, pd.DatetimeIndex):
-        raise ValueError(
-            "Result must have a DatetimeIndex (time axis). "
-            "Make sure your operation preserves the DataFrame index."
-        )
-
-    return result
+    result = _execute_in_sandbox(code, {"df": df, "pd": pd, "np": np, "result": None})
+    return _validate_dataframe_result(result)
 
 
 def run_custom_operation(df: pd.DataFrame, code: str) -> pd.DataFrame:
@@ -192,46 +218,14 @@ def execute_dataframe_creation(code: str) -> pd.DataFrame:
         RuntimeError: If code execution fails.
         ValueError: If result is not a DataFrame/Series or lacks DatetimeIndex.
     """
-    import gc
-
-    namespace = {
-        "pd": pd,
-        "np": np,
-        "result": None,
-    }
-
-    safe_builtins = {name: getattr(builtins, name) for name in _SAFE_BUILTINS if hasattr(builtins, name)}
-
-    try:
-        exec(code, {"__builtins__": safe_builtins}, namespace)
-    except Exception as e:
-        raise RuntimeError(f"Execution error: {type(e).__name__}: {e}") from e
-
-    result = namespace.get("result")
-
-    del namespace
-    gc.collect()
-
-    if result is None:
-        raise ValueError("Code did not assign a value to 'result'")
-
-    # Convert Series to DataFrame
-    if isinstance(result, pd.Series):
-        result = result.to_frame(name="value")
-
-    if not isinstance(result, pd.DataFrame):
-        raise ValueError(
-            f"Result must be a DataFrame or Series, got {type(result).__name__}"
-        )
-
-    if not isinstance(result.index, pd.DatetimeIndex):
-        raise ValueError(
-            "Result must have a DatetimeIndex (time axis). "
+    result = _execute_in_sandbox(code, {"pd": pd, "np": np, "result": None})
+    return _validate_dataframe_result(
+        result,
+        datetime_index_hint=(
             "Use pd.to_datetime() on your date column and .set_index() to create one. "
             "Example: df = df.set_index(pd.to_datetime(df['date']))"
-        )
-
-    return result
+        ),
+    )
 
 
 def execute_spectrogram_computation(df: pd.DataFrame, code: str) -> pd.DataFrame:
@@ -254,51 +248,19 @@ def execute_spectrogram_computation(df: pd.DataFrame, code: str) -> pd.DataFrame
         RuntimeError: If code execution fails.
         ValueError: If result is not a DataFrame or loses DatetimeIndex.
     """
-    import gc
     from scipy import signal
 
     df = df.copy()
     if not isinstance(df.index, pd.DatetimeIndex):
         df.index = pd.to_datetime(df.index)
 
-    namespace = {
-        "df": df,
-        "pd": pd,
-        "np": np,
-        "signal": signal,
-        "result": None,
-    }
-
-    safe_builtins = {name: getattr(builtins, name) for name in _SAFE_BUILTINS if hasattr(builtins, name)}
-
-    try:
-        exec(code, {"__builtins__": safe_builtins}, namespace)
-    except Exception as e:
-        raise RuntimeError(f"Execution error: {type(e).__name__}: {e}") from e
-
-    result = namespace.get("result")
-
-    del df, namespace
-    gc.collect()
-
-    if result is None:
-        raise ValueError("Code did not assign a value to 'result'")
-
-    if isinstance(result, pd.Series):
-        result = result.to_frame(name="value")
-
-    if not isinstance(result, pd.DataFrame):
-        raise ValueError(
-            f"Result must be a DataFrame or Series, got {type(result).__name__}"
-        )
-
-    if not isinstance(result.index, pd.DatetimeIndex):
-        raise ValueError(
-            "Result must have a DatetimeIndex (time axis). "
-            "Make sure your spectrogram output preserves datetime timestamps."
-        )
-
-    return result
+    result = _execute_in_sandbox(
+        code, {"df": df, "pd": pd, "np": np, "signal": signal, "result": None}
+    )
+    return _validate_dataframe_result(
+        result,
+        datetime_index_hint="Make sure your spectrogram output preserves datetime timestamps.",
+    )
 
 
 def run_spectrogram_computation(df: pd.DataFrame, code: str) -> pd.DataFrame:

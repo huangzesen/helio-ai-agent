@@ -67,6 +67,14 @@ The task instruction includes the expected labels (e.g., "compute running averag
 
 ## Resolved Issues
 
+### Fixed in 2026-02-09 LoopGuard batch
+
+| Issue | Description | Fix |
+|-------|-------------|-----|
+| VisualizationAgent infinite loop | Export task called `reset()` and `get_plot_state()` hundreds of times in alternation, never exporting | Created shared `LoopGuard` class (`agent/loop_guard.py`) with 3-layer protection: hard total-call limit, subset-based duplicate detection, cycle detection. Applied to all 5 agents (10 loops). |
+| Inconsistent call fingerprinting | Old `str(sorted(dict(fc.args).items()))` produced non-deterministic keys from Protobuf Struct objects | `make_call_key()` uses `json.dumps(sort_keys=True)` for deterministic serialization |
+| Viz tasks call wrong tools | Planner generated vague instructions like "Plot X together", VisualizationAgent called reset/get_plot_state instead of plot_stored_data | (1) Explicit tool-call guidance in `execute_task` prompt, (2) planner examples now start with tool name ("Use plot_stored_data to..."), (3) viz prompt differentiates conversational vs task-execution workflow |
+
 ### Fixed in 2026-02-08 stability batch
 
 | Issue | Description | Fix |

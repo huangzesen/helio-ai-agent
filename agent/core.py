@@ -30,6 +30,7 @@ from .logging import (
     setup_logging, get_logger, log_error, log_tool_call,
     log_tool_result, log_plan_event, log_session_end,
 )
+from .loop_guard import LoopGuard, make_call_key
 from rendering.registry import get_method, validate_args
 from rendering.plotly_renderer import PlotlyRenderer
 from knowledge.catalog import search_by_keywords
@@ -1119,13 +1120,14 @@ class OrchestratorAgent:
             response = task_chat.send_message(f"Execute this task: {task.instruction}")
             self._track_usage(response)
 
-            # Process tool calls (limit to 3 iterations for task execution)
-            max_iterations = 3
-            iteration = 0
-            previous_calls = set()  # Track (tool_name, args_key) to detect duplicates
+            # Process tool calls with loop guard
+            guard = LoopGuard(max_total_calls=10, max_iterations=5)
 
-            while iteration < max_iterations:
-                iteration += 1
+            while True:
+                stop_reason = guard.check_iteration()
+                if stop_reason:
+                    self.logger.debug(f"[Task] Stopping: {stop_reason}")
+                    break
 
                 if not response.candidates or not response.candidates[0].content.parts:
                     break
@@ -1143,13 +1145,13 @@ class OrchestratorAgent:
                     self.logger.debug("[Task] Skipping clarification request")
                     break
 
-                # Detect duplicate tool calls (mode="ANY" forces repeated calls)
+                # Check for loops/duplicates/cycling
                 call_keys = set()
                 for fc in function_calls:
-                    args_str = str(sorted(dict(fc.args).items())) if fc.args else ""
-                    call_keys.add((fc.name, args_str))
-                if call_keys and call_keys.issubset(previous_calls):
-                    self.logger.debug("[Task] Duplicate tool call detected, stopping")
+                    call_keys.add(make_call_key(fc.name, dict(fc.args) if fc.args else {}))
+                stop_reason = guard.check_calls(call_keys)
+                if stop_reason:
+                    self.logger.debug(f"[Task] Stopping: {stop_reason}")
                     break
 
                 function_responses = []
@@ -1170,9 +1172,7 @@ class OrchestratorAgent:
                         )
                     )
 
-                    # Track this call
-                    args_str = str(sorted(tool_args.items()))
-                    previous_calls.add((tool_name, args_str))
+                guard.record_calls(call_keys)
 
                 self.logger.debug(f"[Gemini] Sending {len(function_responses)} tool result(s) back...")
                 response = task_chat.send_message(message=function_responses)

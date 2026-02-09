@@ -596,10 +596,17 @@ def build_visualization_prompt(gui_mode: bool = False) -> str:
         "",
         "## Workflow",
         "",
-        "1. Always call `list_fetched_data` first to see what data is in memory",
+        "For conversational requests:",
+        "1. Call `list_fetched_data` first to see what data is in memory",
         "2. Use **plot_stored_data** to plot data (labels from list_fetched_data)",
         "3. Use **custom_visualization** for customization (title, labels, log scale, colors, render type, annotations, etc.)",
         "4. Use **export** when the user wants to save the plot to a file",
+        "",
+        "For task execution (when instruction starts with 'Execute this task'):",
+        "- Go straight to the required tool call — do NOT call list_fetched_data or reset first",
+        "- 'Use plot_stored_data ...' -> call execute_visualization with method='plot_stored_data'",
+        "- 'Use export ...' -> call execute_visualization with method='export'",
+        "- Data labels are provided in the instruction — use them directly",
         "",
         "## Notes",
         "",
@@ -896,11 +903,13 @@ Tag each task with the "mission" field:
 
 Every fetch_data instruction MUST include the exact dataset_id and parameter name.
 Every custom_operation instruction MUST include the exact source_label.
+Every visualization instruction MUST start with the tool name (plot_stored_data or export).
 
 Example instructions:
 - "Fetch data from dataset AC_H2_MFI, parameter BGSEc, for last week" (mission: "ACE")
 - "Compute the magnitude of AC_H2_MFI.BGSEc, save as ACE_Bmag" (mission: "__data_ops__")
-- "Plot ACE_Bmag and Wind_Bmag together" (mission: "__visualization__")
+- "Use plot_stored_data to plot ACE_Bmag and Wind_Bmag together with title 'ACE vs Wind B-field'" (mission: "__visualization__")
+- "Use export to save the current plot as comparison.png" (mission: "__visualization__")
 
 ## Multi-Round Example
 
@@ -924,5 +933,5 @@ After receiving results showing both computes succeeded:
 
 Round 3 response:
 {{"status": "done", "reasoning": "All data ready, plotting comparison", "tasks": [
-  {{"description": "Plot comparison", "instruction": "Plot ACE_Bmag and Wind_Bmag together with title 'ACE vs Wind Magnetic Field Magnitude'", "mission": "__visualization__"}}
+  {{"description": "Plot comparison", "instruction": "Use plot_stored_data to plot ACE_Bmag and Wind_Bmag together with title 'ACE vs Wind Magnetic Field Magnitude'", "mission": "__visualization__"}}
 ], "summary": "Fetched ACE and Wind magnetic field data, computed magnitudes, and plotted them together."}}"""
