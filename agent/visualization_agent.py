@@ -1,9 +1,13 @@
 """
 Visualization sub-agent.
 
-Owns all visualization operations via a single `execute_visualization`
-tool backed by the method registry. The orchestrator delegates visualization
-requests here, keeping data operations in mission agents.
+Owns all visualization operations via three declarative tools:
+- plot_data — create plots from in-memory data
+- style_plot — apply aesthetics via key-value params
+- manage_plot — structural ops (export, reset, zoom, add/remove traces)
+
+The orchestrator delegates visualization requests here, keeping data
+operations in mission agents.
 """
 
 import re
@@ -34,8 +38,8 @@ def _extract_labels_from_instruction(instruction: str) -> list[str]:
 class VisualizationAgent(BaseSubAgent):
     """A Gemini session specialized for visualization.
 
-    Uses a single `execute_visualization` tool with a method catalog in the
-    system prompt, plus `list_fetched_data` to discover available data.
+    Uses three declarative tools (plot_data, style_plot, manage_plot)
+    plus list_fetched_data to discover available data.
     """
 
     def __init__(
@@ -62,7 +66,7 @@ class VisualizationAgent(BaseSubAgent):
         """Build an explicit task prompt with concrete label values.
 
         Extracts actual data labels from the instruction (injected by
-        _execute_plan_task) and constructs the exact plot_stored_data call
+        _execute_plan_task) and constructs the exact plot_data call
         so Gemini Flash sees the precise command to execute.
 
         Note: Export tasks are handled directly by the orchestrator and
@@ -74,10 +78,9 @@ class VisualizationAgent(BaseSubAgent):
         return (
             f"Execute this task: {task.instruction}\n\n"
             f"Your FIRST call must be: "
-            f"execute_visualization(method=\"plot_stored_data\", "
-            f"args={{\"labels\": \"{labels_str}\"}})\n\n"
+            f"plot_data(labels=\"{labels_str}\")\n\n"
             "RULES:\n"
-            "- Do NOT call reset, get_plot_state, or list_fetched_data.\n"
-            "- Call execute_visualization with method='plot_stored_data' and the labels shown above.\n"
-            "- After plotting, you may call custom_visualization to adjust titles/labels/axes."
+            "- Do NOT call manage_plot(action='reset'), manage_plot(action='get_state'), or list_fetched_data.\n"
+            "- Call plot_data with the labels shown above.\n"
+            "- After plotting, you may call style_plot to adjust titles/labels/axes."
         )

@@ -31,7 +31,7 @@ from .logging import (
     log_tool_result, log_plan_event, log_session_end,
 )
 from .loop_guard import LoopGuard, make_call_key
-from rendering.registry import get_method, validate_args
+from rendering.registry import get_method
 from rendering.plotly_renderer import PlotlyRenderer
 from knowledge.catalog import search_by_keywords
 from knowledge.cdaweb_catalog import search_catalog as search_full_cdaweb_catalog
@@ -39,7 +39,6 @@ from knowledge.hapi_client import list_parameters as hapi_list_parameters, get_d
 from data_ops.store import get_store, DataEntry
 from data_ops.fetch import fetch_hapi_data
 from data_ops.custom_ops import run_custom_operation, run_dataframe_creation, run_spectrogram_computation
-from rendering.custom_viz_ops import run_custom_visualization
 
 # Orchestrator sees discovery, conversation, and routing tools
 # (NOT data fetching or data_ops — handled by sub-agents)
@@ -403,93 +402,66 @@ class OrchestratorAgent:
 
         return None  # fully valid
 
-    def _dispatch_viz_method(self, method: str, args: dict) -> dict:
-        """Dispatch an execute_visualization call to the appropriate renderer method.
+    def _handle_plot_data(self, tool_args: dict) -> dict:
+        """Handle the plot_data tool call."""
+        store = get_store()
+        labels = [l.strip() for l in tool_args["labels"].split(",")]
+        entries = []
+        for label in labels:
+            entry = store.get(label)
+            if entry is None:
+                return {"status": "error", "message": f"Label '{label}' not found in memory"}
+            entries.append(entry)
 
-        Core methods (plot_stored_data, set_time_range, export, reset,
-        get_plot_state) are dispatched here.  Thin wrappers (title, axis
-        labels, log scale, canvas size, render type, etc.) have been
-        replaced by the ``custom_visualization`` tool.
+        try:
+            result = self._renderer.plot_data(
+                entries=entries,
+                panels=tool_args.get("panels"),
+                title=tool_args.get("title", ""),
+                plot_type=tool_args.get("plot_type", "line"),
+                colorscale=tool_args.get("colorscale", "Viridis"),
+                log_y=tool_args.get("log_y", False),
+                log_z=tool_args.get("log_z", False),
+                z_min=tool_args.get("z_min"),
+                z_max=tool_args.get("z_max"),
+            )
+        except Exception as e:
+            return {"status": "error", "message": str(e)}
+        return result
 
-        Args:
-            method: Method name from the registry
-            args: Arguments dict
+    def _handle_style_plot(self, tool_args: dict) -> dict:
+        """Handle the style_plot tool call."""
+        try:
+            result = self._renderer.style(**tool_args)
+        except Exception as e:
+            return {"status": "error", "message": str(e)}
+        return result
 
-        Returns:
-            Result dict from the bridge method
-        """
-        # Check if the LLM confused a tool name with a viz method name
-        known_tools = {
-            "list_fetched_data", "custom_visualization",
-            "custom_operation", "describe_data", "save_data",
-        }
-        if method in known_tools:
-            return {
-                "status": "error",
-                "message": (
-                    f"'{method}' is a tool, not a visualization method. "
-                    f"Use the '{method}' tool directly instead of "
-                    f"execute_visualization."
-                ),
-            }
+    def _handle_manage_plot(self, tool_args: dict) -> dict:
+        """Handle the manage_plot tool call."""
+        action = tool_args.get("action")
+        if not action:
+            return {"status": "error", "message": "action is required"}
 
-        # Validate against registry
-        errors = validate_args(method, args)
-        if errors:
-            return {"status": "error", "message": "; ".join(errors)}
-
-        if method == "reset":
+        if action == "reset":
             return self._renderer.reset()
 
-        elif method == "get_plot_state":
+        elif action == "get_state":
             return self._renderer.get_current_state()
 
-        elif method == "plot_stored_data":
-            store = get_store()
-            labels = [l.strip() for l in args["labels"].split(",")]
-            entries = []
-            for label in labels:
-                entry = store.get(label)
-                if entry is None:
-                    return {"status": "error", "message": f"Label '{label}' not found in memory"}
-                entries.append(entry)
+        elif action == "set_time_range":
+            tr_str = tool_args.get("time_range")
+            if not tr_str:
+                return {"status": "error", "message": "time_range is required for set_time_range"}
             try:
-                result = self._renderer.plot_dataset(
-                    entries=entries,
-                    title=args.get("title", ""),
-                    filename=args.get("filename", ""),
-                    index=int(args.get("index", -1)),
-                )
-            except Exception as e:
-                return {"status": "error", "message": str(e)}
-            return result
-
-        elif method == "set_time_range":
-            try:
-                time_range = parse_time_range(args["time_range"])
+                time_range = parse_time_range(tr_str)
             except TimeRangeError as e:
                 return {"status": "error", "message": str(e)}
             return self._renderer.set_time_range(time_range)
 
-        elif method == "plot_spectrogram":
-            store = get_store()
-            entry = store.get(args["label"])
-            if entry is None:
-                return {"status": "error", "message": f"Label '{args['label']}' not found"}
-            return self._renderer.plot_spectrogram(
-                entry=entry,
-                title=args.get("title", ""),
-                colorscale=args.get("colorscale", "Viridis"),
-                log_y=args.get("log_y", False),
-                log_z=args.get("log_z", False),
-                z_min=args.get("z_min"),
-                z_max=args.get("z_max"),
-                index=int(args.get("index", -1)),
-            )
-
-        elif method == "export":
-            fmt = args.get("format", "png")
-            filename = args["filename"]
+        elif action == "export":
+            filename = tool_args.get("filename", "output.png")
+            fmt = tool_args.get("format", "png")
             result = self._renderer.export(filename, format=fmt)
 
             # Auto-open the exported file in default viewer (skip in GUI mode)
@@ -513,8 +485,25 @@ class OrchestratorAgent:
 
             return result
 
+        elif action == "remove_trace":
+            label = tool_args.get("label")
+            if not label:
+                return {"status": "error", "message": "label is required for remove_trace"}
+            return self._renderer.manage("remove_trace", label=label)
+
+        elif action == "add_trace":
+            label = tool_args.get("label")
+            if not label:
+                return {"status": "error", "message": "label is required for add_trace"}
+            store = get_store()
+            entry = store.get(label)
+            if entry is None:
+                return {"status": "error", "message": f"Label '{label}' not found in memory"}
+            panel = int(tool_args.get("panel", 1))
+            return self._renderer.manage("add_trace", entry=entry, panel=panel)
+
         else:
-            return {"status": "error", "message": f"Unknown visualization method: {method}"}
+            return {"status": "error", "message": f"Unknown action: {action}"}
 
     def _execute_tool(self, tool_name: str, tool_args: dict) -> dict:
         """Execute a tool and return the result.
@@ -628,29 +617,16 @@ class OrchestratorAgent:
                 "context": tool_args.get("context", ""),
             }
 
-        # --- Visualization (registry-driven dispatch) ---
+        # --- Visualization (declarative tools) ---
 
-        elif tool_name == "execute_visualization":
-            method = tool_args["method"]
-            args = tool_args.get("args", {})
-            return self._dispatch_viz_method(method, args)
+        elif tool_name == "plot_data":
+            return self._handle_plot_data(tool_args)
 
-        elif tool_name == "custom_visualization":
-            fig = self._renderer.get_figure()
-            if fig is None:
-                self._renderer._ensure_figure()
-                fig = self._renderer.get_figure()
-            try:
-                run_custom_visualization(fig, tool_args["plotly_code"])
-            except ValueError as e:
-                return {"status": "error", "message": f"Validation error: {e}"}
-            except RuntimeError as e:
-                # Truncate massive Plotly error messages (property lists can be 1000+ lines)
-                err_msg = str(e)
-                if len(err_msg) > 500:
-                    err_msg = err_msg[:500] + "... (truncated)"
-                return {"status": "error", "message": f"Execution error: {err_msg}"}
-            return {"status": "success", "message": "Figure updated.", "display": "plotly"}
+        elif tool_name == "style_plot":
+            return self._handle_style_plot(tool_args)
+
+        elif tool_name == "manage_plot":
+            return self._handle_manage_plot(tool_args)
 
         # --- Data Operations Tools ---
 
@@ -1337,11 +1313,11 @@ class OrchestratorAgent:
                 self._handle_export_task(task)
             else:
                 # Plot tasks: ensure instruction includes actual labels
-                has_tool_ref = "plot_stored_data" in instr_lower
+                has_tool_ref = "plot_data" in instr_lower
                 if not has_tool_ref and entries:
                     all_labels = ",".join(e["label"] for e in entries)
                     task.instruction = (
-                        f"Use plot_stored_data to plot {all_labels}. "
+                        f"Use plot_data to plot {all_labels}. "
                         f"Original request: {task.instruction}"
                     )
                 self._get_or_create_viz_agent().execute_task(task)
@@ -1381,7 +1357,25 @@ class OrchestratorAgent:
         self.logger.debug(f"[Plan] Direct export: {filename}")
         task.tool_calls.append("export")
 
-        result = self._dispatch_viz_method("export", {"filename": filename})
+        result = self._renderer.export(filename)
+        # Auto-open in non-GUI/non-web mode
+        if result.get("status") == "success" and not self.gui_mode and not self.web_mode:
+            try:
+                import os
+                import platform
+                filepath = result["filepath"]
+                if platform.system() == "Windows":
+                    os.startfile(filepath)
+                elif platform.system() == "Darwin":
+                    import subprocess
+                    subprocess.Popen(["open", filepath])
+                else:
+                    import subprocess
+                    subprocess.Popen(["xdg-open", filepath])
+                result["auto_opened"] = True
+            except Exception as e:
+                self.logger.debug(f"[Export] Could not auto-open: {e}")
+                result["auto_opened"] = False
         if result.get("status") == "success":
             task.status = TaskStatus.COMPLETED
             task.result = f"Exported plot to {result.get('filepath', filename)}"

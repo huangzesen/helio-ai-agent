@@ -10,7 +10,7 @@ Categories:
 - "data_ops_fetch": mission-specific data fetching (fetch_data)
 - "data_ops_compute": data transformation, statistics, export (custom_operation, describe_data, save_data)
 - "data_extraction": unstructured-to-structured data conversion (store_dataframe)
-- "visualization": execute_visualization (registry-driven visualization operations)
+- "visualization": plot_data, style_plot, manage_plot (declarative visualization tools)
 - "conversation": ask_clarification
 - "routing": delegate_to_mission, delegate_to_visualization, delegate_to_data_ops, delegate_to_data_extraction
 """
@@ -399,59 +399,163 @@ If no filename is given, one is auto-generated from the label.""",
     # --- Visualization ---
     {
         "category": "visualization",
-        "name": "execute_visualization",
-        "description": "Execute a visualization method. See the method catalog in the system prompt for available methods and their parameters.",
+        "name": "plot_data",
+        "description": """Create a fresh plot from in-memory timeseries data. Use labels from list_fetched_data.
+Supports single-panel overlay (default) or multi-panel layout via the panels parameter.
+For spectrograms, set plot_type="spectrogram".""",
         "parameters": {
             "type": "object",
             "properties": {
-                "method": {
+                "labels": {
                     "type": "string",
-                    "description": "Method name from the catalog (e.g., 'plot_stored_data', 'set_time_range', 'export')"
+                    "description": "Comma-separated labels of data to plot (e.g., 'Bmag' or 'ACE_Bmag,PSP_Bmag')"
                 },
-                "args": {
-                    "type": "object",
-                    "description": "Arguments as described in the method catalog"
+                "panels": {
+                    "type": "array",
+                    "items": {"type": "array", "items": {"type": "string"}},
+                    "description": "Panel layout as list of label lists, e.g. [['A','B'], ['C']] for 2 panels. Omit for single-panel overlay."
+                },
+                "title": {
+                    "type": "string",
+                    "description": "Optional plot title"
+                },
+                "plot_type": {
+                    "type": "string",
+                    "enum": ["line", "spectrogram"],
+                    "description": "Plot type: 'line' (default) or 'spectrogram'"
+                },
+                "colorscale": {
+                    "type": "string",
+                    "description": "Plotly colorscale for spectrograms (e.g., Viridis, Jet, Plasma)"
+                },
+                "log_y": {
+                    "type": "boolean",
+                    "description": "Log scale on y-axis (spectrogram)"
+                },
+                "log_z": {
+                    "type": "boolean",
+                    "description": "Log scale on color axis (spectrogram intensity)"
+                },
+                "z_min": {
+                    "type": "number",
+                    "description": "Min value for spectrogram color scale"
+                },
+                "z_max": {
+                    "type": "number",
+                    "description": "Max value for spectrogram color scale"
                 }
             },
-            "required": ["method"]
+            "required": ["labels"]
         }
     },
     {
         "category": "visualization",
-        "name": "custom_visualization",
-        "description": """Execute free-form Plotly code to customize the current plot. Use this for ANY plot customization not covered by the core methods (plot_stored_data, set_time_range, export, reset, get_plot_state).
-
-The code runs with these variables available:
-- `fig` — the current Plotly Figure (mutate in place)
-- `go` — plotly.graph_objects
-- `np` — numpy
-
-Common patterns:
-- Title: `fig.update_layout(title_text="Solar Wind Speed")`
-- Y-axis label: `fig.update_yaxes(title_text="B (nT)", row=1, col=1)`
-- Log scale: `fig.update_yaxes(type="log", row=1, col=1)`
-- Axis range: `fig.update_yaxes(range=[-10, 10], row=1, col=1)`
-- Canvas size: `fig.update_layout(width=1920, height=1080)`
-- Scatter mode: `fig.data[0].mode = "markers"`
-- Fill to zero: `fig.data[0].fill = "tozeroy"`
-- Staircase: `fig.data[0].line = dict(shape="hv", color=fig.data[0].line.color)`
-- Horizontal line: `fig.add_hline(y=0, line_dash="dash", line_color="gray")`
-- Annotation: `fig.add_annotation(x="2024-01-15", y=5, text="Event")`
-- Trace color: `fig.data[0].line.color = "red"`
-- Legend off: `fig.update_layout(showlegend=False)`
-- Font size: `fig.update_layout(font=dict(size=14))`
-- Theme: `fig.update_layout(template="plotly_dark")`
-
-Do NOT use imports — only fig, go, and np are available.""",
+        "name": "style_plot",
+        "description": """Apply aesthetic changes to the current plot. All parameters are optional — pass only what you want to change.
+Use this for titles, axis labels, log scale, colors, line styles, canvas size, annotations, themes, and legend visibility.""",
         "parameters": {
             "type": "object",
             "properties": {
-                "plotly_code": {
+                "title": {
                     "type": "string",
-                    "description": "Python code that modifies fig in place. Access: fig, go, np."
+                    "description": "Plot title"
+                },
+                "x_label": {
+                    "type": "string",
+                    "description": "X-axis label"
+                },
+                "y_label": {
+                    "type": "string",
+                    "description": "Y-axis label (applies to all panels)"
+                },
+                "trace_colors": {
+                    "type": "object",
+                    "description": "Map trace label -> color, e.g. {'ACE Bmag': 'red'}"
+                },
+                "line_styles": {
+                    "type": "object",
+                    "description": "Map trace label -> {width, dash, mode}"
+                },
+                "log_scale": {
+                    "type": "string",
+                    "enum": ["x", "y", "both", "linear"],
+                    "description": "Set log scale: 'x', 'y', 'both', or 'linear' to reset"
+                },
+                "x_range": {
+                    "type": "array",
+                    "items": {"type": "string"},
+                    "description": "X-axis range [min, max]"
+                },
+                "y_range": {
+                    "type": "array",
+                    "items": {"type": "number"},
+                    "description": "Y-axis range [min, max]"
+                },
+                "legend": {
+                    "type": "boolean",
+                    "description": "Show (true) or hide (false) legend"
+                },
+                "font_size": {
+                    "type": "integer",
+                    "description": "Global font size in points"
+                },
+                "canvas_size": {
+                    "type": "object",
+                    "description": "Canvas dimensions: {width: int, height: int}"
+                },
+                "annotations": {
+                    "type": "array",
+                    "items": {"type": "object"},
+                    "description": "List of annotations: [{text, x, y}, ...]"
+                },
+                "colorscale": {
+                    "type": "string",
+                    "description": "Plotly colorscale for heatmap traces"
+                },
+                "theme": {
+                    "type": "string",
+                    "description": "Plotly template name (e.g., 'plotly_dark', 'plotly_white')"
                 }
             },
-            "required": ["plotly_code"]
+            "required": []
+        }
+    },
+    {
+        "category": "visualization",
+        "name": "manage_plot",
+        "description": """Structural operations on the plot: export, reset, zoom, get state, add/remove traces.
+Use action parameter to select the operation.""",
+        "parameters": {
+            "type": "object",
+            "properties": {
+                "action": {
+                    "type": "string",
+                    "enum": ["reset", "get_state", "set_time_range", "export", "remove_trace", "add_trace"],
+                    "description": "Action to perform"
+                },
+                "filename": {
+                    "type": "string",
+                    "description": "Output filename for export action"
+                },
+                "format": {
+                    "type": "string",
+                    "enum": ["png", "pdf"],
+                    "description": "Export format: 'png' (default) or 'pdf'"
+                },
+                "time_range": {
+                    "type": "string",
+                    "description": "Time range for set_time_range action (e.g., '2024-01-15 to 2024-01-20')"
+                },
+                "label": {
+                    "type": "string",
+                    "description": "Trace label for remove_trace or add_trace actions"
+                },
+                "panel": {
+                    "type": "integer",
+                    "description": "Target panel (1-based) for add_trace action"
+                }
+            },
+            "required": ["action"]
         }
     },
 

@@ -512,8 +512,8 @@ def build_data_extraction_prompt() -> str:
 def build_visualization_prompt(gui_mode: bool = False) -> str:
     """Generate the system prompt for the visualization sub-agent.
 
-    Includes the method catalog from the registry, custom_visualization
-    cookbook, and workflow instructions.
+    Includes the tool catalog from the registry and workflow instructions
+    for the three declarative visualization tools.
 
     Args:
         gui_mode: If True, append GUI-mode specific instructions.
@@ -526,67 +526,50 @@ def build_visualization_prompt(gui_mode: bool = False) -> str:
     lines = [
         "You are a visualization specialist for a scientific data visualization tool.",
         "",
-        "You have three tools:",
-        "- `execute_visualization` — core plotting operations (5 methods, see catalog below)",
-        "- `custom_visualization` — free-form Plotly code for any customization",
+        "You have four tools:",
+        "- `plot_data` — create plots from in-memory data (line or spectrogram)",
+        "- `style_plot` — apply aesthetics (title, labels, colors, log scale, etc.)",
+        "- `manage_plot` — structural ops (export, reset, zoom, add/remove traces)",
         "- `list_fetched_data` — see what data is available in memory",
         "",
         catalog,
-        "## Using execute_visualization",
+        "## Using plot_data",
         "",
-        "Call `execute_visualization(method=\"method_name\", args={...})` with the method name and arguments from the catalog above.",
+        "Call `plot_data(labels=\"...\")` with comma-separated labels from list_fetched_data.",
         "",
         "Examples:",
-        "- Plot stored data: `execute_visualization(method=\"plot_stored_data\", args={\"labels\": \"ACE_Bmag,PSP_Bmag\", \"title\": \"Comparison\"})`",
-        "- Plot in specific panel: `execute_visualization(method=\"plot_stored_data\", args={\"labels\": \"Bmag\", \"index\": 1})`",
-        "- Export PNG: `execute_visualization(method=\"export\", args={\"filename\": \"output.png\"})`",
-        "- Export PDF: `execute_visualization(method=\"export\", args={\"filename\": \"output.pdf\", \"format\": \"pdf\"})`",
+        "- Overlay: `plot_data(labels=\"ACE_Bmag,PSP_Bmag\", title=\"Comparison\")`",
+        "- Multi-panel: `plot_data(labels=\"Bmag,Density\", panels=[[\"Bmag\"], [\"Density\"]])`",
+        "- Spectrogram: `plot_data(labels=\"ACE_Bmag_spectrogram\", plot_type=\"spectrogram\")`",
         "",
-        "## Using custom_visualization",
+        "## Using style_plot",
         "",
-        "For ANY customization not covered by the 5 core methods, use `custom_visualization(plotly_code=\"...\")` to write Plotly code that modifies `fig` in place.",
+        "Pass only the parameters you want to change. All are optional.",
         "",
-        "Available variables: `fig` (Plotly Figure), `go` (plotly.graph_objects), `np` (numpy).",
-        "No imports allowed — only fig, go, and np.",
+        "Examples:",
+        "- Title: `style_plot(title=\"Solar Wind Speed\")`",
+        "- Y-axis label: `style_plot(y_label=\"B (nT)\")`",
+        "- Log scale: `style_plot(log_scale=\"y\")`",
+        "- Trace color: `style_plot(trace_colors={\"ACE Bmag\": \"red\"})`",
+        "- Canvas size: `style_plot(canvas_size={\"width\": 1920, \"height\": 1080})`",
+        "- Font size: `style_plot(font_size=14)`",
+        "- Legend off: `style_plot(legend=false)`",
+        "- Theme: `style_plot(theme=\"plotly_dark\")`",
+        "- Annotations: `style_plot(annotations=[{\"text\": \"Event\", \"x\": \"2024-01-15\", \"y\": 5}])`",
+        "- Line style: `style_plot(line_styles={\"ACE Bmag\": {\"mode\": \"markers\"}})`",
         "",
-        "### Plotly Cookbook",
+        "## Using manage_plot",
         "",
-        "**Layout:**",
-        "- Title: `fig.update_layout(title_text=\"Solar Wind Speed\")`",
-        "- Y-axis label: `fig.update_yaxes(title_text=\"B (nT)\", row=1, col=1)`",
-        "- Log scale: `fig.update_yaxes(type=\"log\", row=1, col=1)`",
-        "- Linear scale: `fig.update_yaxes(type=\"linear\", row=1, col=1)`",
-        "- Axis range: `fig.update_yaxes(range=[-10, 10], row=1, col=1)`",
-        "- Canvas size: `fig.update_layout(width=1920, height=1080)`",
+        "Use the action parameter to select the operation.",
         "",
-        "**Trace styling:**",
-        "- Scatter mode: `fig.data[0].mode = \"markers\"`",
-        "- Fill to zero: `fig.data[0].fill = \"tozeroy\"`",
-        "- Staircase: `fig.data[0].line = dict(shape=\"hv\", color=fig.data[0].line.color)`",
-        "- Trace color: `fig.data[0].line.color = \"red\"`",
-        "",
-        "**Annotations & lines:**",
-        "- Horizontal line: `fig.add_hline(y=0, line_dash=\"dash\", line_color=\"gray\")`",
-        "- Vertical line: `fig.add_vline(x=\"2024-01-15\", line_dash=\"dot\", line_color=\"red\")`",
-        "- Annotation: `fig.add_annotation(x=\"2024-01-15\", y=5, text=\"Event\")`",
-        "",
-        "**Legend & fonts:**",
-        "- Legend off: `fig.update_layout(showlegend=False)`",
-        "- Font size: `fig.update_layout(font=dict(size=14))`",
-        "- Theme: `fig.update_layout(template=\"plotly_dark\")`",
-        "",
-        "## Spectrogram Plotting",
-        "",
-        "Use `execute_visualization(method=\"plot_spectrogram\", args={...})` to render spectrogram data as a 2D heatmap.",
-        "",
-        "Parameters: label (required), title, colorscale (default: Viridis), log_y, log_z, z_min, z_max, index.",
-        "",
-        "### Spectrogram Cookbook (custom_visualization)",
-        "",
-        "- Change colorscale: `fig.data[-1].colorscale = 'Jet'`",
-        "- Adjust color range: `fig.data[-1].zmin = 1e-6; fig.data[-1].zmax = 1e2`",
-        "- Colorbar title: `fig.data[-1].colorbar.title.text = 'PSD (nT²/Hz)'`",
-        "- Y-axis label: `fig.update_yaxes(title_text='Frequency (Hz)', row=1, col=1)`",
+        "Examples:",
+        "- Export PNG: `manage_plot(action=\"export\", filename=\"output.png\")`",
+        "- Export PDF: `manage_plot(action=\"export\", filename=\"output.pdf\", format=\"pdf\")`",
+        "- Zoom: `manage_plot(action=\"set_time_range\", time_range=\"2024-01-15 to 2024-01-20\")`",
+        "- Reset: `manage_plot(action=\"reset\")`",
+        "- Get state: `manage_plot(action=\"get_state\")`",
+        "- Remove trace: `manage_plot(action=\"remove_trace\", label=\"ACE Bmag\")`",
+        "- Add trace: `manage_plot(action=\"add_trace\", label=\"Wind_Bmag\", panel=2)`",
         "",
         "## Time Range Format",
         "",
@@ -598,25 +581,25 @@ def build_visualization_prompt(gui_mode: bool = False) -> str:
         "",
         "For conversational requests:",
         "1. Call `list_fetched_data` first to see what data is in memory",
-        "2. Use **plot_stored_data** to plot data (labels from list_fetched_data)",
-        "3. Use **custom_visualization** for customization (title, labels, log scale, colors, render type, annotations, etc.)",
-        "4. Use **export** when the user wants to save the plot to a file",
+        "2. Use `plot_data` to plot data (labels from list_fetched_data)",
+        "3. Use `style_plot` for any customization (title, labels, log scale, colors, etc.)",
+        "4. Use `manage_plot` with action=\"export\" when the user wants to save the plot",
         "",
         "For task execution (when instruction starts with 'Execute this task'):",
         "- Go straight to the required tool call — do NOT call list_fetched_data or reset first",
-        "- 'Use plot_stored_data ...' -> call execute_visualization with method='plot_stored_data'",
-        "- 'Use export ...' -> call execute_visualization with method='export'",
+        "- 'Use plot_data ...' -> call plot_data with the labels",
+        "- 'Use export ...' -> call manage_plot with action='export'",
         "- Data labels are provided in the instruction — use them directly",
         "",
         "## Notes",
         "",
-        "- Always use fetch_data first to load data into memory, then plot_stored_data to visualize it",
+        "- Always use fetch_data first to load data into memory, then plot_data to visualize it",
         "- Vector data (e.g., magnetic field Bx/By/Bz) is automatically decomposed into x/y/z components",
         "",
         "## Response Style",
         "",
         "- Confirm what was done after each operation",
-        "- If a method fails, explain the error and suggest alternatives",
+        "- If a tool call fails, explain the error and suggest alternatives",
         "- When plotting, mention the labels and time range shown",
         "",
     ]
@@ -628,7 +611,7 @@ def build_visualization_prompt(gui_mode: bool = False) -> str:
             "Plots are rendered as interactive Plotly figures visible in the UI.",
             "- The user can already see the plot -- do NOT suggest exporting to PNG for viewing",
             "- Changes like zoom, axis labels, log scale, and title are reflected instantly",
-            "- Use reset to clear the canvas when starting a new analysis",
+            "- Use manage_plot(action=\"reset\") to clear the canvas when starting a new analysis",
             "",
         ])
 
@@ -858,7 +841,7 @@ Each task has:
 - custom_operation(source_label, pandas_code, output_label, description): pandas/numpy transformation
 - store_dataframe(pandas_code, output_label, description): Create DataFrame from scratch
 - describe_data(label): Statistical summary of in-memory data
-- plot_stored_data(labels): Plot data from memory (comma-separated labels)
+- plot_data(labels): Plot data from memory (comma-separated labels)
 - export(filename): Save current plot to file
 - save_data(label, filename): Export timeseries to CSV
 - google_search(query): Search the web for context
@@ -906,13 +889,13 @@ Tag each task with the "mission" field:
 
 Every fetch_data instruction MUST include the exact dataset_id and parameter name.
 Every custom_operation instruction MUST include the exact source_label.
-Every visualization instruction MUST start with "Use plot_stored_data to plot ...".
+Every visualization instruction MUST start with "Use plot_data to plot ...".
 Export tasks MUST use "Export the current plot as FILENAME" — they are handled directly, not by the visualization agent.
 
 Example instructions:
 - "Fetch data from dataset AC_H2_MFI, parameter BGSEc, for last week" (mission: "ACE")
 - "Compute the magnitude of AC_H2_MFI.BGSEc, save as ACE_Bmag" (mission: "__data_ops__")
-- "Use plot_stored_data to plot ACE_Bmag and Wind_Bmag together with title 'ACE vs Wind B-field'" (mission: "__visualization__")
+- "Use plot_data to plot ACE_Bmag and Wind_Bmag together with title 'ACE vs Wind B-field'" (mission: "__visualization__")
 - "Export the current plot as comparison.png" (mission: "__visualization__")
 
 ## Multi-Round Example
@@ -937,5 +920,5 @@ After receiving results showing both computes succeeded:
 
 Round 3 response:
 {{"status": "done", "reasoning": "All data ready, plotting comparison", "tasks": [
-  {{"description": "Plot comparison", "instruction": "Use plot_stored_data to plot ACE_Bmag and Wind_Bmag together with title 'ACE vs Wind Magnetic Field Magnitude'", "mission": "__visualization__"}}
+  {{"description": "Plot comparison", "instruction": "Use plot_data to plot ACE_Bmag and Wind_Bmag together with title 'ACE vs Wind Magnetic Field Magnitude'", "mission": "__visualization__"}}
 ], "summary": "Fetched ACE and Wind magnetic field data, computed magnitudes, and plotted them together."}}"""

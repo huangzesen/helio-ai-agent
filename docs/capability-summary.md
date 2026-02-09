@@ -40,11 +40,12 @@ agent/core.py  OrchestratorAgent  (LLM-driven orchestrator)
   |
   +---> agent/visualization_agent.py  Visualization sub-agent (visualization-only tools)
   |       VisualizationAgent         Focused Gemini session for all visualization
-  |       execute_visualization()    Registry method dispatch (5 core methods)
-  |       custom_visualization()     Free-form Plotly code sandbox
+  |       plot_data()                Create plots from in-memory data (overlay or multi-panel)
+  |       style_plot()               Apply aesthetics via key-value params (no code gen)
+  |       manage_plot()              Structural ops: export, reset, zoom, add/remove traces
   |       process_request()          Full conversational mode (max 5 iter, duplicate detection)
   |       execute_task()             Forced function calling for plan tasks (max 3 iter)
-  |                                  System prompt includes method catalog + Plotly cookbook
+  |                                  System prompt includes tool catalog (declarative, no code gen)
   |
   +---> agent/data_ops_agent.py   DataOps sub-agent (compute/describe/export tools)
   |       DataOpsAgent            Focused Gemini session for data transformations
@@ -104,8 +105,7 @@ agent/core.py  OrchestratorAgent  (LLM-driven orchestrator)
   |
   +---> rendering/                Plotly-based visualization engine
   |       plotly_renderer.py        Interactive Plotly figures, multi-panel, WebGL, PNG/PDF export via kaleido
-  |       registry.py               Method registry (5 core methods) — single source of truth for viz capabilities
-  |       custom_viz_ops.py         AST-validated sandbox for LLM-generated Plotly code (titles, labels, etc.)
+  |       registry.py               Tool registry (3 declarative tools) — single source of truth for viz capabilities
   |
   +---> scripts/                  Tooling
           generate_mission_data.py  Auto-populate JSON from CDAWeb HAPI catalog
@@ -117,7 +117,7 @@ agent/core.py  OrchestratorAgent  (LLM-driven orchestrator)
           stress_test.py            Stress testing
 ```
 
-## Tools (23 tool schemas)
+## Tools (24 tool schemas)
 
 ### Dataset Discovery
 | Tool | Purpose |
@@ -133,10 +133,11 @@ agent/core.py  OrchestratorAgent  (LLM-driven orchestrator)
 ### Visualization
 | Tool | Purpose |
 |------|---------|
-| `execute_visualization` | Execute core visualization methods via the method registry (5 methods) |
-| `custom_visualization` | Execute free-form Plotly code to customize the current plot |
+| `plot_data` | Create plots from in-memory data (single panel overlay or multi-panel layout) |
+| `style_plot` | Apply aesthetics via key-value params: titles, labels, colors, scales, fonts, annotations |
+| `manage_plot` | Structural operations: export (PNG/PDF), reset, zoom/time range, add/remove traces |
 
-The `execute_visualization` tool dispatches to the method registry (`rendering/registry.py`), which describes 6 core operations: `plot_stored_data`, `plot_spectrogram`, `set_time_range`, `export`, `get_plot_state`, `reset`. The `custom_visualization` tool handles all other customization (titles, axis labels, log scale, canvas size, render type, annotations, trace styling, etc.) via LLM-generated Plotly code in an AST-validated sandbox (`rendering/custom_viz_ops.py`).
+Three declarative tools replace the old `execute_visualization` + `custom_visualization` approach. All customization is done via bounded parameter sets — no free-form code generation. The tool registry (`rendering/registry.py`) describes all 3 tools with their parameters and examples.
 
 ### Data Operations (fetch -> custom_operation -> plot)
 | Tool | Purpose |
@@ -199,10 +200,11 @@ The `execute_visualization` tool dispatches to the method registry (`rendering/r
 - No fetch, compute, or plot tools — creates data from text only
 
 ### VisualizationAgent (agent/visualization_agent.py)
-- Sees tools: `execute_visualization` + `custom_visualization` + `list_fetched_data` (3 tools total)
-- System prompt includes the method catalog and Plotly cookbook
-- `execute_visualization`: Registry-driven dispatch for core operations (5 methods)
-- `custom_visualization`: Free-form Plotly code for any customization (titles, labels, scales, render types, annotations, etc.)
+- Sees tools: `plot_data` + `style_plot` + `manage_plot` + `list_fetched_data` (4 tools total)
+- System prompt includes the tool catalog with parameter descriptions and examples
+- `plot_data`: Create plots from in-memory data (overlay or multi-panel)
+- `style_plot`: Declarative aesthetics via key-value params (no code generation)
+- `manage_plot`: Structural ops (export, reset, zoom, add/remove traces)
 - Handles all visualization: plotting, customization, export
 
 ## Supported Spacecraft
@@ -230,19 +232,12 @@ All times are UTC. Outputs `TimeRange` objects with `start`/`end` datetimes.
 
 ## Key Implementation Details
 
-### Method Registry (`rendering/registry.py`)
-- Describes 5 core visualization methods: `plot_stored_data`, `set_time_range`, `export`, `get_plot_state`, `reset`
-- Each method has: name, description, typed parameters (with enums for constrained values)
+### Tool Registry (`rendering/registry.py`)
+- Describes 3 declarative visualization tools: `plot_data`, `style_plot`, `manage_plot`
+- Each tool has: name, description, typed parameters (with enums for constrained values)
 - `render_method_catalog()` renders the registry into markdown for the LLM prompt
 - `get_method(name)` and `validate_args(name, args)` for dispatch and validation
-- Thin wrappers (titles, labels, scales, render types) replaced by `custom_visualization` tool
-- Adding a new Plotly customization = LLM already knows it (no code changes needed)
-
-### Custom Visualization Sandbox (`rendering/custom_viz_ops.py`)
-- AST-validated sandbox for LLM-generated Plotly code
-- Operates on the current `plotly.graph_objects.Figure` object
-- Handles titles, axis labels, log scale, axis ranges, canvas sizing, render types, annotations, trace styling, and any other Plotly customization
-- Same security model as `data_ops/custom_ops.py` — blocks imports, exec/eval, os/sys access, dunder access
+- All customization (titles, labels, scales, colors, fonts, annotations) handled via `style_plot` key-value params — no free-form code generation
 
 ### Data Pipeline (`data_ops/`)
 - `DataEntry` wraps a `pd.DataFrame` (DatetimeIndex + float64 columns).
@@ -262,8 +257,8 @@ All times are UTC. Outputs `TimeRange` objects with `start`/`end` datetimes.
 - **Mission sub-agents**: Each spacecraft has a data fetching specialist with rich system prompt (recommended datasets, analysis patterns). Agents are cached per session. Sub-agents have **fetch-only tools** (discovery, data_ops_fetch, conversation) — no compute, plot, or routing tools.
 - **DataOps sub-agent**: Data transformation specialist with `custom_operation`, `describe_data`, `save_data` + `list_fetched_data`. System prompt includes computation patterns and code guidelines. Singleton, cached per session.
 - **DataExtraction sub-agent**: Text-to-DataFrame specialist with `store_dataframe`, `read_document`, `ask_clarification` + `list_fetched_data`. System prompt includes extraction patterns and DataFrame creation guidelines. Singleton, cached per session.
-- **Visualization sub-agent**: Visualization specialist with `execute_visualization` + `custom_visualization` + `list_fetched_data` tools. System prompt includes the method catalog and Plotly cookbook. Handles all plotting, customization, and export.
-- **Tool separation**: Tools have a `category` field (`discovery`, `visualization`, `data_ops`, `data_ops_fetch`, `data_ops_compute`, `data_extraction`, `conversation`, `routing`, `document`). `get_tool_schemas(categories=..., extra_names=...)` filters tools by category. Orchestrator sees `["discovery", "conversation", "routing", "document"]` + `list_fetched_data` extra. MissionAgent sees `["discovery", "data_ops_fetch", "conversation"]` + `list_fetched_data` extra. DataOpsAgent sees `["data_ops_compute", "conversation"]` + `list_fetched_data` extra. DataExtractionAgent sees `["data_extraction", "document", "conversation"]` + `list_fetched_data` extra. VisualizationAgent sees `["visualization"]` (`execute_visualization` + `custom_visualization`) + `list_fetched_data` extra.
+- **Visualization sub-agent**: Visualization specialist with `plot_data` + `style_plot` + `manage_plot` + `list_fetched_data` tools. System prompt includes the tool catalog with parameter descriptions and examples. Handles all plotting, customization, and export via declarative tools (no code generation).
+- **Tool separation**: Tools have a `category` field (`discovery`, `visualization`, `data_ops`, `data_ops_fetch`, `data_ops_compute`, `data_extraction`, `conversation`, `routing`, `document`). `get_tool_schemas(categories=..., extra_names=...)` filters tools by category. Orchestrator sees `["discovery", "conversation", "routing", "document"]` + `list_fetched_data` extra. MissionAgent sees `["discovery", "data_ops_fetch", "conversation"]` + `list_fetched_data` extra. DataOpsAgent sees `["data_ops_compute", "conversation"]` + `list_fetched_data` extra. DataExtractionAgent sees `["data_extraction", "document", "conversation"]` + `list_fetched_data` extra. VisualizationAgent sees `["visualization"]` (`plot_data` + `style_plot` + `manage_plot`) + `list_fetched_data` extra.
 - **Post-delegation flow**: After `delegate_to_mission` returns data labels, the orchestrator uses `delegate_to_data_ops` for computation, `delegate_to_data_extraction` for text-to-DataFrame conversion, and then `delegate_to_visualization` to visualize results.
 - **Slim orchestrator**: System prompt contains a routing table (mission names + capabilities) plus delegation instructions. No dataset IDs or analysis tips — those live in mission sub-agents.
 

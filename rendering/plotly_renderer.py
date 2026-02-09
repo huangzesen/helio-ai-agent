@@ -1,11 +1,10 @@
 """
 Plotly-based renderer for visualization.
 
-Provides core visualization methods dispatched by agent/core.py via the
-method registry in rendering/registry.py. Thin wrappers (title, axis
-labels, log scale, canvas size, render type, etc.) have been removed —
-those are now handled by the ``custom_visualization`` tool, which lets
-the LLM write free-form Plotly code against the figure.
+Provides three public methods dispatched by agent/core.py:
+- plot_data() — create plots (single panel overlay or multi-panel)
+- style() — apply aesthetics via key-value params (no code gen)
+- manage() — structural ops: export, reset, zoom, add/remove traces
 
 State is kept in a mutable go.Figure that accumulates traces / layout
 changes across calls.
@@ -59,6 +58,9 @@ class PlotlyRenderer:
         self._current_time_range: Optional[TimeRange] = None
         self._label_colors: dict[str, str] = {}
         self._color_index: int = 0
+        # Trace tracking: parallel to fig.data
+        self._trace_labels: list[str] = []
+        self._trace_panels: list[int] = []  # 1-based row per trace
 
     # ------------------------------------------------------------------
     # Helpers
@@ -106,9 +108,9 @@ class PlotlyRenderer:
 
         # Copy traces from old figure, preserving row assignment
         if old_fig is not None:
-            for trace in old_fig.data:
-                # Plotly stores subplot info in xaxis/yaxis attributes
-                new_fig.add_trace(trace, row=_row_of_trace(trace), col=1)
+            for i, trace in enumerate(old_fig.data):
+                row = self._trace_panels[i] if i < len(self._trace_panels) else _row_of_trace(trace)
+                new_fig.add_trace(trace, row=row, col=1)
             # Copy layout properties we care about (title, axis labels)
             if old_fig.layout.title and old_fig.layout.title.text:
                 new_fig.update_layout(title_text=old_fig.layout.title.text)
@@ -122,150 +124,85 @@ class PlotlyRenderer:
         return go.Scattergl if n_points > _GL_THRESHOLD else go.Scatter
 
     # ------------------------------------------------------------------
-    # Core plot methods
+    # Internal helpers (used by plot_data)
     # ------------------------------------------------------------------
 
-    def plot_dataset(
+    def _add_line_traces(
         self,
         entries: list[DataEntry],
-        title: str = "",
-        filename: str = "",
-        index: int = -1,
-    ) -> dict:
-        """Plot one or more DataEntry timeseries.
+        row: int,
+        fig: go.Figure,
+    ) -> list[str]:
+        """Add line traces for entries to a specific panel row.
 
-        Vector entries (n, 3) are decomposed into scalar x/y/z components.
-        Multiple series are overlaid by default. ``index >= 0`` targets a
-        specific panel row.
+        Returns the list of trace labels added.
         """
-        if not entries:
-            return {"status": "error", "message": "No entries to plot"}
+        added_labels: list[str] = []
 
-        for entry in entries:
-            if len(entry.time) == 0:
-                return {"status": "error",
-                        "message": f"Entry '{entry.label}' has no data points"}
-
-        # Decompose vectors into scalar components.
-        # Convert numpy arrays to Python lists to avoid Plotly 6.x binary
-        # serialization (bdata), which can crash Gradio's Plotly.js frontend.
-        # Time values are converted to ISO strings to guarantee Plotly uses
-        # a date axis — passing raw datetime objects can produce Unix
-        # timestamps on the x-axis in some rendering environments.
-        series: list[tuple[str, list, list]] = []  # (label, time_list, values_list)
         for entry in entries:
             display_name = entry.description or entry.label
             time_list = [
                 t.isoformat() if hasattr(t, "isoformat") else str(t)
                 for t in entry.time.tolist()
             ]
+
+            # Decompose vectors into scalar components
             if entry.values.ndim == 2 and entry.values.shape[1] > 1:
                 comp_names = ["x", "y", "z"]
                 for col in range(entry.values.shape[1]):
                     comp = comp_names[col] if col < 3 else str(col)
-                    series.append((f"{display_name} ({comp})", time_list, entry.values[:, col].tolist()))
+                    label = f"{display_name} ({comp})"
+                    val_list = entry.values[:, col].tolist()
+                    Scatter = self._scatter_cls(len(val_list))
+                    fig.add_trace(
+                        Scatter(
+                            x=time_list, y=val_list,
+                            name=label, mode="lines",
+                            line=dict(color=self._next_color(label)),
+                        ),
+                        row=row, col=1,
+                    )
+                    self._trace_labels.append(label)
+                    self._trace_panels.append(row)
+                    added_labels.append(label)
             else:
                 vals = entry.values.ravel() if entry.values.ndim > 1 else entry.values
-                series.append((display_name, time_list, vals.tolist()))
-
-        n_series = len(series)
-
-        if index >= 0:
-            # Panel-targeted mode
-            needed = index + n_series
-            fig = self._grow_panels(needed)
-            for i, (label, time_list, val_list) in enumerate(series):
-                row = index + i + 1  # plotly rows are 1-based
+                val_list = vals.tolist()
                 Scatter = self._scatter_cls(len(val_list))
                 fig.add_trace(
                     Scatter(
                         x=time_list, y=val_list,
-                        name=label, mode="lines",
-                        line=dict(color=self._next_color(label)),
+                        name=display_name, mode="lines",
+                        line=dict(color=self._next_color(display_name)),
                     ),
                     row=row, col=1,
                 )
-                self._log(f"Panel {index + i}: '{label}'")
-        else:
-            # Overlay mode — all in row 1
-            fig = self._ensure_figure()
-            for label, time_list, val_list in series:
-                Scatter = self._scatter_cls(len(val_list))
-                fig.add_trace(
-                    Scatter(
-                        x=time_list, y=val_list,
-                        name=label, mode="lines",
-                        line=dict(color=self._next_color(label)),
-                    ),
-                    row=1, col=1,
-                )
+                self._trace_labels.append(display_name)
+                self._trace_panels.append(row)
+                added_labels.append(display_name)
 
-        # Ensure the x-axis is rendered as formatted dates, not raw numbers.
-        fig.update_xaxes(type="date")
+        return added_labels
 
-        # Title
-        if title:
-            fig.update_layout(title_text=title)
-
-        result: dict = {
-            "status": "success",
-            "labels": [s[0] for s in series],
-            "num_series": n_series,
-            "display": "plotly",
-        }
-
-        # Auto-export
-        if filename:
-            if not filename.endswith(".png"):
-                filename += ".png"
-            export_result = self.export(filename, format="png")
-            if export_result.get("status") == "success":
-                result["filepath"] = export_result["filepath"]
-            else:
-                result["export_warning"] = export_result.get("message", "Export failed")
-
-        return result
-
-    # ------------------------------------------------------------------
-    # Spectrogram
-    # ------------------------------------------------------------------
-
-    def plot_spectrogram(
+    def _add_spectrogram_trace(
         self,
         entry: DataEntry,
-        title: str = "",
+        row: int,
+        fig: go.Figure,
         colorscale: str = "Viridis",
         log_y: bool = False,
         log_z: bool = False,
         z_min: float | None = None,
         z_max: float | None = None,
-        index: int = -1,
-    ) -> dict:
-        """Plot a spectrogram (2D heatmap) from a computed spectrogram DataEntry.
+    ) -> str:
+        """Add a spectrogram heatmap trace to a specific panel row.
 
-        Args:
-            entry: DataEntry with 2D data (DatetimeIndex x frequency/energy bins).
-            title: Optional plot title.
-            colorscale: Plotly colorscale name.
-            log_y: If True, use log scale on y-axis.
-            log_z: If True, apply log10 to z-values.
-            z_min: Optional minimum for color scale.
-            z_max: Optional maximum for color scale.
-            index: Panel index (0-based). -1 for default.
-
-        Returns:
-            Result dict with status and display info.
+        Returns the trace label.
         """
-        if len(entry.data) == 0:
-            return {"status": "error", "message": f"Entry '{entry.label}' has no data points"}
-
-        # Extract times as ISO strings (same pattern as plot_dataset)
         times = [
             t.isoformat() if hasattr(t, "isoformat") else str(t)
             for t in entry.data.index.tolist()
         ]
 
-        # Extract bin values from metadata or column names
         meta = entry.metadata or {}
         bin_values = meta.get("bin_values")
         if bin_values is None:
@@ -274,29 +211,20 @@ class PlotlyRenderer:
             except (ValueError, TypeError):
                 bin_values = list(range(len(entry.data.columns)))
 
-        # Z-values: rows=time, cols=bins → transpose so Heatmap z[i] = row i = one frequency
         z_values = entry.data.values.astype(float)
         if log_z:
             z_values = np.where(z_values > 0, np.log10(z_values), np.nan)
 
-        # Heatmap expects z[i] = one row of the y-axis (one frequency bin)
-        # so z shape is (n_bins, n_times) — transpose
         z_data = z_values.T.tolist()
         bin_list = [float(b) for b in bin_values]
 
-        # Determine panel row
-        row = 1
-        if index >= 0:
-            fig = self._grow_panels(index + 1)
-            row = index + 1
-        else:
-            fig = self._ensure_figure()
-
         colorbar_title = meta.get("value_label", "")
         if log_z and colorbar_title:
-            colorbar_title = f"log₁₀({colorbar_title})"
+            colorbar_title = f"log\u2081\u2080({colorbar_title})"
         elif log_z:
-            colorbar_title = "log₁₀(intensity)"
+            colorbar_title = "log\u2081\u2080(intensity)"
+
+        label = entry.description or entry.label
 
         heatmap = go.Heatmap(
             x=times,
@@ -306,12 +234,13 @@ class PlotlyRenderer:
             colorbar=dict(title=dict(text=colorbar_title)) if colorbar_title else None,
             zmin=z_min,
             zmax=z_max,
-            name=entry.description or entry.label,
+            name=label,
         )
 
         fig.add_trace(heatmap, row=row, col=1)
+        self._trace_labels.append(label)
+        self._trace_panels.append(row)
 
-        # Configure axes
         fig.update_xaxes(type="date", row=row, col=1)
 
         y_axis_title = meta.get("bin_label", "")
@@ -321,17 +250,367 @@ class PlotlyRenderer:
         if log_y:
             fig.update_yaxes(type="log", row=row, col=1)
 
+        self._log(f"Spectrogram '{entry.label}': {len(times)} time steps x {len(bin_list)} bins")
+
+        return label
+
+    # ------------------------------------------------------------------
+    # Public API: plot_data
+    # ------------------------------------------------------------------
+
+    def plot_data(
+        self,
+        entries: list[DataEntry],
+        panels: list[list[str]] | None = None,
+        title: str = "",
+        plot_type: str = "line",
+        colorscale: str = "Viridis",
+        log_y: bool = False,
+        log_z: bool = False,
+        z_min: float | None = None,
+        z_max: float | None = None,
+    ) -> dict:
+        """Create a fresh plot from DataEntry objects.
+
+        Args:
+            entries: All data to plot.
+            panels: Panel layout, e.g. [["A","B"], ["C"]] for 2-panel.
+                    None = overlay all in one panel.
+            title: Plot title.
+            plot_type: "line" (default) or "spectrogram".
+            colorscale: Plotly colorscale for spectrogram.
+            log_y: Log scale on y-axis (spectrogram).
+            log_z: Log scale on z-axis (spectrogram).
+            z_min: Min value for spectrogram color scale.
+            z_max: Max value for spectrogram color scale.
+
+        Returns:
+            Result dict with status, panels, traces, display.
+        """
+        if not entries:
+            return {"status": "error", "message": "No entries to plot"}
+
+        for entry in entries:
+            if len(entry.time) == 0:
+                return {"status": "error",
+                        "message": f"Entry '{entry.label}' has no data points"}
+
+        # Build label -> entry lookup
+        entry_map: dict[str, DataEntry] = {}
+        for entry in entries:
+            entry_map[entry.label] = entry
+
+        # Reset figure for fresh plot
+        self._figure = None
+        self._panel_count = 0
+        self._trace_labels = []
+        self._trace_panels = []
+        # Keep label_colors for stable coloring across plot_data calls
+
+        all_trace_labels: list[str] = []
+
+        if panels is not None:
+            # Multi-panel mode
+            n_panels = len(panels)
+            fig = self._ensure_figure(rows=n_panels)
+
+            for panel_idx, panel_labels in enumerate(panels):
+                row = panel_idx + 1  # 1-based
+                panel_entries = []
+                for lbl in panel_labels:
+                    e = entry_map.get(lbl)
+                    if e is None:
+                        return {"status": "error",
+                                "message": f"Label '{lbl}' not found in provided entries"}
+                    panel_entries.append(e)
+
+                if plot_type == "spectrogram":
+                    for e in panel_entries:
+                        label = self._add_spectrogram_trace(
+                            e, row, fig,
+                            colorscale=colorscale, log_y=log_y, log_z=log_z,
+                            z_min=z_min, z_max=z_max,
+                        )
+                        all_trace_labels.append(label)
+                else:
+                    added = self._add_line_traces(panel_entries, row, fig)
+                    all_trace_labels.extend(added)
+        else:
+            # Overlay mode — all in row 1
+            fig = self._ensure_figure(rows=1)
+
+            if plot_type == "spectrogram":
+                for e in entries:
+                    label = self._add_spectrogram_trace(
+                        e, 1, fig,
+                        colorscale=colorscale, log_y=log_y, log_z=log_z,
+                        z_min=z_min, z_max=z_max,
+                    )
+                    all_trace_labels.append(label)
+            else:
+                added = self._add_line_traces(entries, 1, fig)
+                all_trace_labels.extend(added)
+
+        # Ensure the x-axis is rendered as formatted dates
+        fig.update_xaxes(type="date")
+
         if title:
             fig.update_layout(title_text=title)
 
-        self._log(f"Spectrogram '{entry.label}': {len(times)} time steps x {len(bin_list)} bins")
-
         return {
             "status": "success",
-            "label": entry.label,
-            "shape": f"{len(times)} x {len(bin_list)}",
+            "panels": self._panel_count,
+            "traces": all_trace_labels,
             "display": "plotly",
         }
+
+    # ------------------------------------------------------------------
+    # Public API: style
+    # ------------------------------------------------------------------
+
+    def style(
+        self,
+        title: str | None = None,
+        x_label: str | None = None,
+        y_label: str | dict | None = None,
+        trace_colors: dict | None = None,
+        line_styles: dict | None = None,
+        log_scale: str | None = None,
+        x_range: list | dict | None = None,
+        y_range: list | dict | None = None,
+        legend: bool | None = None,
+        font_size: int | None = None,
+        canvas_size: dict | None = None,
+        annotations: list | None = None,
+        colorscale: str | None = None,
+        theme: str | None = None,
+    ) -> dict:
+        """Apply aesthetic changes to the current figure.
+
+        All parameters are optional. Changes are applied in place.
+
+        Args:
+            title: Plot title.
+            x_label: X-axis label (applied to bottom axis).
+            y_label: Y-axis label. String (all panels) or dict {panel_num: label}.
+            trace_colors: Dict mapping trace label -> color string.
+            line_styles: Dict mapping trace label -> {width, dash, mode}.
+            log_scale: "x", "y", "both", or "linear".
+            x_range: [min, max] list, or dict {panel_num: [min, max]}.
+            y_range: [min, max] list, or dict {panel_num: [min, max]}.
+            legend: Show or hide legend.
+            font_size: Global font size.
+            canvas_size: {width: int, height: int}.
+            annotations: List of {text, x, y} dicts.
+            colorscale: Plotly colorscale name (for heatmap traces).
+            theme: Plotly template name (e.g. "plotly_dark").
+
+        Returns:
+            Result dict with status.
+        """
+        if self._figure is None or len(self._figure.data) == 0:
+            return {"status": "error",
+                    "message": "No plot to style. Use plot_data first."}
+
+        fig = self._figure
+
+        if title is not None:
+            fig.update_layout(title_text=title)
+
+        if x_label is not None:
+            # Apply to the bottom-most x-axis
+            fig.update_xaxes(title_text=x_label, row=self._panel_count, col=1)
+
+        if y_label is not None:
+            if isinstance(y_label, dict):
+                for panel_str, label_text in y_label.items():
+                    panel = int(panel_str)
+                    fig.update_yaxes(title_text=label_text, row=panel, col=1)
+            else:
+                # Apply to all panels
+                for row in range(1, self._panel_count + 1):
+                    fig.update_yaxes(title_text=y_label, row=row, col=1)
+
+        if trace_colors is not None:
+            for trace_label, color in trace_colors.items():
+                for i, tl in enumerate(self._trace_labels):
+                    if tl == trace_label and i < len(fig.data):
+                        trace = fig.data[i]
+                        if hasattr(trace, 'line'):
+                            trace.line.color = color
+                        elif hasattr(trace, 'marker'):
+                            trace.marker.color = color
+
+        if line_styles is not None:
+            for trace_label, style_dict in line_styles.items():
+                for i, tl in enumerate(self._trace_labels):
+                    if tl == trace_label and i < len(fig.data):
+                        trace = fig.data[i]
+                        if "width" in style_dict and hasattr(trace, 'line'):
+                            trace.line.width = style_dict["width"]
+                        if "dash" in style_dict and hasattr(trace, 'line'):
+                            trace.line.dash = style_dict["dash"]
+                        if "mode" in style_dict:
+                            trace.mode = style_dict["mode"]
+
+        if log_scale is not None:
+            if log_scale == "x":
+                fig.update_xaxes(type="log")
+            elif log_scale == "y":
+                for row in range(1, self._panel_count + 1):
+                    fig.update_yaxes(type="log", row=row, col=1)
+            elif log_scale == "both":
+                fig.update_xaxes(type="log")
+                for row in range(1, self._panel_count + 1):
+                    fig.update_yaxes(type="log", row=row, col=1)
+            elif log_scale == "linear":
+                fig.update_xaxes(type="linear")
+                for row in range(1, self._panel_count + 1):
+                    fig.update_yaxes(type="linear", row=row, col=1)
+
+        if x_range is not None:
+            if isinstance(x_range, dict):
+                for panel_str, rng in x_range.items():
+                    fig.update_xaxes(range=rng, row=int(panel_str), col=1)
+            else:
+                fig.update_xaxes(range=x_range)
+
+        if y_range is not None:
+            if isinstance(y_range, dict):
+                for panel_str, rng in y_range.items():
+                    fig.update_yaxes(range=rng, row=int(panel_str), col=1)
+            else:
+                for row in range(1, self._panel_count + 1):
+                    fig.update_yaxes(range=y_range, row=row, col=1)
+
+        if legend is not None:
+            fig.update_layout(showlegend=legend)
+
+        if font_size is not None:
+            fig.update_layout(font=dict(size=font_size))
+
+        if canvas_size is not None:
+            fig.update_layout(
+                width=canvas_size.get("width"),
+                height=canvas_size.get("height"),
+            )
+
+        if annotations is not None:
+            for ann in annotations:
+                fig.add_annotation(
+                    x=ann.get("x"),
+                    y=ann.get("y"),
+                    text=ann.get("text", ""),
+                    showarrow=ann.get("showarrow", True),
+                )
+
+        if colorscale is not None:
+            for trace in fig.data:
+                if isinstance(trace, go.Heatmap):
+                    trace.colorscale = colorscale
+
+        if theme is not None:
+            fig.update_layout(template=theme)
+
+        return {"status": "success", "message": "Style applied.", "display": "plotly"}
+
+    # ------------------------------------------------------------------
+    # Public API: manage
+    # ------------------------------------------------------------------
+
+    def manage(self, action: str, **kwargs) -> dict:
+        """Perform structural operations on the plot.
+
+        Args:
+            action: One of "reset", "get_state", "set_time_range",
+                    "export", "remove_trace", "add_trace".
+            **kwargs: Action-specific parameters.
+
+        Returns:
+            Result dict with status.
+        """
+        if action == "reset":
+            return self.reset()
+
+        elif action == "get_state":
+            return self.get_current_state()
+
+        elif action == "set_time_range":
+            time_range = kwargs.get("time_range")
+            if time_range is None:
+                return {"status": "error", "message": "time_range is required"}
+            return self.set_time_range(time_range)
+
+        elif action == "export":
+            filename = kwargs.get("filename", "output.png")
+            fmt = kwargs.get("format", "png")
+            return self.export(filename, format=fmt)
+
+        elif action == "remove_trace":
+            label = kwargs.get("label")
+            if label is None:
+                return {"status": "error", "message": "label is required"}
+            return self._remove_trace(label)
+
+        elif action == "add_trace":
+            entry = kwargs.get("entry")
+            panel = kwargs.get("panel", 1)
+            if entry is None:
+                return {"status": "error", "message": "entry is required"}
+            return self._add_trace_to_existing(entry, panel)
+
+        else:
+            return {"status": "error", "message": f"Unknown action: {action}"}
+
+    # ------------------------------------------------------------------
+    # Manage helpers
+    # ------------------------------------------------------------------
+
+    def _remove_trace(self, label: str) -> dict:
+        """Remove a trace by label from the current figure."""
+        if self._figure is None:
+            return {"status": "error", "message": "No figure to modify."}
+
+        # Find indices to remove
+        indices_to_remove = [
+            i for i, tl in enumerate(self._trace_labels) if tl == label
+        ]
+        if not indices_to_remove:
+            return {"status": "error",
+                    "message": f"Trace '{label}' not found. "
+                    f"Available: {', '.join(self._trace_labels)}"}
+
+        # Rebuild fig.data tuple without removed indices
+        keep = set(range(len(self._figure.data))) - set(indices_to_remove)
+        new_data = [self._figure.data[i] for i in sorted(keep)]
+        new_labels = [self._trace_labels[i] for i in sorted(keep)]
+        new_panels = [self._trace_panels[i] for i in sorted(keep)]
+
+        self._figure.data = tuple(new_data)
+        self._trace_labels = new_labels
+        self._trace_panels = new_panels
+
+        return {"status": "success",
+                "message": f"Removed trace '{label}'.",
+                "remaining_traces": self._trace_labels,
+                "display": "plotly"}
+
+    def _add_trace_to_existing(self, entry: DataEntry, panel: int) -> dict:
+        """Add a DataEntry to the existing figure at the specified panel."""
+        if self._figure is None:
+            return {"status": "error", "message": "No figure. Use plot_data first."}
+
+        if len(entry.time) == 0:
+            return {"status": "error",
+                    "message": f"Entry '{entry.label}' has no data points"}
+
+        fig = self._grow_panels(panel)
+        added = self._add_line_traces([entry], panel, fig)
+        fig.update_xaxes(type="date")
+
+        return {"status": "success",
+                "added_traces": added,
+                "display": "plotly"}
 
     # ------------------------------------------------------------------
     # Time range
@@ -400,6 +679,8 @@ class PlotlyRenderer:
         self._current_time_range = None
         self._label_colors.clear()
         self._color_index = 0
+        self._trace_labels.clear()
+        self._trace_panels.clear()
         return {"status": "success", "message": "Canvas reset."}
 
     def get_current_state(self) -> dict:
@@ -409,6 +690,7 @@ class PlotlyRenderer:
             "time_range": tr_str,
             "panel_count": self._panel_count,
             "has_plot": self._figure is not None and len(self._figure.data) > 0,
+            "traces": list(self._trace_labels),
         }
 
     # ------------------------------------------------------------------
