@@ -589,6 +589,20 @@ def build_visualization_prompt(gui_mode: bool = False) -> str:
         "- Export requests should never reach you — the orchestrator handles them directly",
         "- Data labels are provided in the instruction — use them directly",
         "",
+        "## Plot Self-Review",
+        "",
+        "After plot_data succeeds, ALWAYS inspect the `review` field in the result:",
+        "- `review.trace_summary`: each trace's name, panel, point count, y-range, gap status",
+        "- `review.warnings`: potential issues detected (cluttered panels, resolution mismatches, suspicious values)",
+        "- `review.hint`: overall plot structure summary",
+        "",
+        "If warnings indicate problems:",
+        "- Cluttered panel (>6 traces): split into more panels via manage_plot(action=\"reset\") then re-plot",
+        "- Resolution mismatch: suggest resampling via delegate_to_data_ops before re-plotting",
+        "- Suspicious y-range: check for fill values that need filtering",
+        "",
+        "If no warnings, respond normally describing what was plotted.",
+        "",
         "## Notes",
         "",
         "- Always use fetch_data first to load data into memory, then plot_data to visualize it",
@@ -668,6 +682,11 @@ When `delegate_to_mission` returns:
 - If the user asked to "show", "plot", or "display" data, use `delegate_to_visualization` with the labels the specialist reported
 - If the user asked to compute something (magnitude, smoothing, etc.), use `delegate_to_data_ops`
 - Always relay the specialist's findings to the user in your response
+
+When `delegate_to_visualization` returns and a plot was created:
+- The plot result includes a `review` field with trace details and warnings
+- If `review.warnings` is non-empty, consider addressing the issues before responding
+- Common fixes: resample high-resolution data, split cluttered panels, filter fill values
 
 When `delegate_to_data_ops` returns:
 - If the user asked to plot the result, use `delegate_to_visualization` with the output labels

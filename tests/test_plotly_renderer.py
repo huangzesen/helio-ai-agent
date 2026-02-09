@@ -351,3 +351,84 @@ class TestState:
         state = renderer.get_current_state()
         assert state["has_plot"] is True
         assert state["traces"] == ["Alpha"]
+
+
+# ---------------------------------------------------------------------------
+# Review metadata
+# ---------------------------------------------------------------------------
+
+class TestReviewMetadata:
+    def test_review_in_plot_result(self, renderer):
+        """plot_data result contains review with required keys."""
+        entry = _make_entry("mag", n=50)
+        result = renderer.plot_data([entry])
+        assert result["status"] == "success"
+        assert "review" in result
+        review = result["review"]
+        assert "trace_summary" in review
+        assert "warnings" in review
+        assert "hint" in review
+
+    def test_review_trace_details(self, renderer):
+        """Vector entry produces 3 trace_summary entries with correct names and panel."""
+        entry = _make_entry("Bvec", n=30, ncols=3)
+        result = renderer.plot_data([entry])
+        review = result["review"]
+        assert len(review["trace_summary"]) == 3
+        names = [t["name"] for t in review["trace_summary"]]
+        assert names == ["test data (x)", "test data (y)", "test data (z)"]
+        for t in review["trace_summary"]:
+            assert t["panel"] == 1
+            assert t["points"] == 30
+            assert t["y_range"] is not None
+            assert len(t["y_range"]) == 2
+
+    def test_review_warns_cluttered_panel(self, renderer):
+        """Overlaying 7+ entries in one panel triggers a cluttered warning."""
+        entries = [_make_entry(f"e{i}", n=10, desc=f"Entry{i}") for i in range(8)]
+        result = renderer.plot_data(entries)
+        review = result["review"]
+        cluttered = [w for w in review["warnings"] if "hard to read" in w]
+        assert len(cluttered) == 1
+        assert "8 traces" in cluttered[0]
+
+    def test_review_warns_resolution_mismatch(self, renderer):
+        """Traces with >10x point count difference trigger a resolution warning."""
+        e_lo = _make_entry("lo", n=10, desc="LowRes")
+        e_hi = _make_entry("hi", n=500, desc="HighRes")
+        result = renderer.plot_data([e_lo, e_hi])
+        review = result["review"]
+        mismatch = [w for w in review["warnings"] if "Resolution mismatch" in w]
+        assert len(mismatch) == 1
+        assert "LowRes" in mismatch[0]
+        assert "HighRes" in mismatch[0]
+
+    def test_review_multi_panel(self, renderer):
+        """Multi-panel plot hint mentions correct panel count."""
+        e1 = _make_entry("A", n=10, desc="Alpha")
+        e2 = _make_entry("B", n=10, desc="Beta")
+        result = renderer.plot_data([e1, e2], panels=[["A"], ["B"]])
+        review = result["review"]
+        assert "2 panel(s)" in review["hint"]
+        assert "Panel 1: Alpha" in review["hint"]
+        assert "Panel 2: Beta" in review["hint"]
+
+    def test_review_no_warnings_normal(self, renderer):
+        """Two similar scalar entries produce no warnings."""
+        e1 = _make_entry("A", n=100, desc="Alpha")
+        e2 = _make_entry("B", n=100, desc="Beta")
+        result = renderer.plot_data([e1, e2])
+        review = result["review"]
+        assert review["warnings"] == []
+
+    def test_review_gaps_detected(self, renderer):
+        """Entry with NaN values has has_gaps=True."""
+        rng = pd.date_range("2024-01-01", periods=50, freq="min")
+        vals = np.random.randn(50)
+        vals[10:15] = np.nan
+        df = pd.DataFrame({"value": vals}, index=rng)
+        entry = DataEntry(label="gappy", data=df, units="nT", description="Gappy data")
+        result = renderer.plot_data([entry])
+        review = result["review"]
+        assert len(review["trace_summary"]) == 1
+        assert review["trace_summary"][0]["has_gaps"] is True

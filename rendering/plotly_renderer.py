@@ -407,12 +407,14 @@ class PlotlyRenderer:
         if title:
             fig.update_layout(title_text=title)
 
-        return {
+        result = {
             "status": "success",
             "panels": self._panel_count,
             "traces": all_trace_labels,
             "display": "plotly",
         }
+        result["review"] = self._build_review_metadata()
+        return result
 
     # ------------------------------------------------------------------
     # Public API: style
@@ -741,6 +743,130 @@ class PlotlyRenderer:
             "panel_count": self._panel_count,
             "has_plot": self._figure is not None and len(self._figure.data) > 0,
             "traces": list(self._trace_labels),
+        }
+
+    # ------------------------------------------------------------------
+    # Review metadata (for LLM self-assessment)
+    # ------------------------------------------------------------------
+
+    def _build_review_metadata(self) -> dict:
+        """Build structured review metadata from the current figure.
+
+        Returns a dict with trace_summary, warnings, and hint that the LLM
+        can inspect to self-assess plot quality and self-correct.
+        """
+        try:
+            return self._build_review_metadata_inner()
+        except Exception:
+            # Graceful degradation — plot still works without review
+            return {}
+
+    def _build_review_metadata_inner(self) -> dict:
+        fig = self._figure
+        if fig is None or len(fig.data) == 0:
+            return {}
+
+        trace_summary = []
+        # Group traces by panel for warning checks
+        panel_traces: dict[int, list[dict]] = {}
+
+        for i, trace in enumerate(fig.data):
+            name = self._trace_labels[i] if i < len(self._trace_labels) else (trace.name or f"trace_{i}")
+            panel = self._trace_panels[i] if i < len(self._trace_panels) else 1
+
+            is_heatmap = isinstance(trace, go.Heatmap)
+
+            if is_heatmap:
+                z = trace.z
+                if z is not None:
+                    z_arr = np.asarray(z)
+                    points_desc = f"{z_arr.shape[0]}x{z_arr.shape[1]}" if z_arr.ndim == 2 else str(len(z))
+                else:
+                    points_desc = "0"
+                info = {
+                    "name": name,
+                    "panel": panel,
+                    "points": points_desc,
+                    "y_range": None,
+                    "has_gaps": False,
+                }
+            else:
+                y = trace.y
+                if y is not None:
+                    y_arr = np.asarray(y, dtype=float)
+                    n_points = len(y_arr)
+                    finite = y_arr[np.isfinite(y_arr)]
+                    if len(finite) > 0:
+                        y_range = [round(float(finite.min()), 4), round(float(finite.max()), 4)]
+                    else:
+                        y_range = None
+                    has_gaps = bool(np.any(~np.isfinite(y_arr)))
+                else:
+                    n_points = 0
+                    y_range = None
+                    has_gaps = False
+                info = {
+                    "name": name,
+                    "panel": panel,
+                    "points": n_points,
+                    "y_range": y_range,
+                    "has_gaps": has_gaps,
+                }
+
+            trace_summary.append(info)
+            panel_traces.setdefault(panel, []).append(info)
+
+        # --- Warnings ---
+        warnings = []
+
+        for p, traces_in_panel in sorted(panel_traces.items()):
+            n = len(traces_in_panel)
+
+            # Cluttered panel
+            if n > 6:
+                warnings.append(
+                    f"Panel {p} has {n} traces — may be hard to read (consider splitting into separate panels)"
+                )
+
+            # Resolution mismatch (only for numeric point counts)
+            numeric_traces = [(t["name"], t["points"]) for t in traces_in_panel if isinstance(t["points"], int) and t["points"] > 0]
+            if len(numeric_traces) >= 2:
+                counts = [c for _, c in numeric_traces]
+                min_c, max_c = min(counts), max(counts)
+                if min_c > 0 and max_c / min_c > 10:
+                    lo_name = next(n for n, c in numeric_traces if c == min_c)
+                    hi_name = next(n for n, c in numeric_traces if c == max_c)
+                    warnings.append(
+                        f"Resolution mismatch in panel {p}: '{lo_name}' has {min_c} points vs "
+                        f"'{hi_name}' has {max_c} points — consider resampling"
+                    )
+
+            # Empty panel
+            if n == 0:
+                warnings.append(f"Panel {p} has no traces")
+
+        # Suspicious y-range (possible fill values)
+        for info in trace_summary:
+            yr = info["y_range"]
+            if yr is not None and (yr[1] - yr[0]) > 1e6:
+                warnings.append(
+                    f"Trace '{info['name']}' has suspicious y-range [{yr[0]}, {yr[1]}] — possible fill values"
+                )
+
+        # --- Hint ---
+        total_traces = len(trace_summary)
+        panel_descs = []
+        for p in sorted(panel_traces.keys()):
+            names = [t["name"] for t in panel_traces[p]]
+            panel_descs.append(f"Panel {p}: {', '.join(names)}")
+        hint = f"Plot has {self._panel_count} panel(s), {total_traces} trace(s). {'. '.join(panel_descs)}."
+        if warnings:
+            hint += " Potential issues found — consider addressing before responding to user."
+
+        return {
+            "trace_summary": trace_summary,
+            "warnings": warnings,
+            "hint": hint,
         }
 
     # ------------------------------------------------------------------

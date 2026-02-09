@@ -455,6 +455,11 @@ class OrchestratorAgent:
             )
         except Exception as e:
             return {"status": "error", "message": str(e)}
+
+        review = result.get("review", {})
+        for w in review.get("warnings", []):
+            self.logger.debug(f"[PlotReview] {w}")
+
         return result
 
     def _handle_style_plot(self, tool_args: dict) -> dict:

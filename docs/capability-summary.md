@@ -148,6 +148,14 @@ agent/core.py  OrchestratorAgent  (LLM-driven orchestrator)
 
 Three declarative tools replace the old `execute_visualization` + `custom_visualization` approach. All customization is done via bounded parameter sets — no free-form code generation. The tool registry (`rendering/registry.py`) describes all 3 tools with their parameters and examples.
 
+### Plot Self-Review
+Every `plot_data` call returns a `review` field with structured metadata for LLM self-assessment:
+- **`trace_summary`**: per-trace name, panel, point count, y-range, gap status
+- **`warnings`**: heuristic checks — cluttered panels (>6 traces), resolution mismatches (>10x point count difference), suspicious y-ranges (possible fill values)
+- **`hint`**: one-line summary of panel layout and trace assignments
+
+The LLM inspects this metadata within the existing tool loop and can self-correct (resample, split panels, filter fill values) before responding to the user — no extra LLM call or image export needed.
+
 ### Data Operations (fetch -> custom_operation -> plot)
 | Tool | Purpose |
 |------|---------|
