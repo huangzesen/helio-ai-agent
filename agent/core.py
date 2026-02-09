@@ -1318,7 +1318,22 @@ class OrchestratorAgent:
         special_missions = {"__visualization__", "__data_ops__", "__data_extraction__"}
 
         if task.mission == "__visualization__":
-            self._get_or_create_viz_agent().execute_task(task)
+            instr_lower = task.instruction.lower()
+            is_export = "export" in instr_lower or ".png" in instr_lower or ".pdf" in instr_lower
+
+            if is_export:
+                # Export is a simple dispatch — handle directly, no need for LLM
+                self._handle_export_task(task)
+            else:
+                # Plot tasks: ensure instruction includes actual labels
+                has_tool_ref = "plot_stored_data" in instr_lower
+                if not has_tool_ref and entries:
+                    all_labels = ",".join(e["label"] for e in entries)
+                    task.instruction = (
+                        f"Use plot_stored_data to plot {all_labels}. "
+                        f"Original request: {task.instruction}"
+                    )
+                self._get_or_create_viz_agent().execute_task(task)
         elif task.mission == "__data_ops__":
             self._get_or_create_dataops_agent().execute_task(task)
         elif task.mission == "__data_extraction__":
@@ -1332,6 +1347,37 @@ class OrchestratorAgent:
                 self._execute_task(task)
         else:
             self._execute_task(task)
+
+    def _handle_export_task(self, task: Task) -> None:
+        """Handle an export task directly without the VisualizationAgent.
+
+        Export is a simple dispatch call — no LLM reasoning needed.
+        Extracts the filename from the task instruction and calls the
+        renderer's export method directly.
+
+        Args:
+            task: The export task to execute
+        """
+        import re
+
+        task.status = TaskStatus.IN_PROGRESS
+        task.tool_calls = []
+
+        # Extract filename from instruction
+        fn_match = re.search(r'[\w.-]+\.(?:png|pdf|svg)', task.instruction, re.IGNORECASE)
+        filename = fn_match.group(0) if fn_match else "output.png"
+
+        self.logger.debug(f"[Plan] Direct export: {filename}")
+        task.tool_calls.append("export")
+
+        result = self._dispatch_viz_method("export", {"filename": filename})
+        if result.get("status") == "success":
+            task.status = TaskStatus.COMPLETED
+            task.result = f"Exported plot to {result.get('filepath', filename)}"
+        else:
+            task.status = TaskStatus.FAILED
+            task.error = result.get("message", "Export failed")
+            task.result = f"Export failed: {task.error}"
 
     def _handle_planning_request(self, user_message: str) -> str:
         """Process a complex multi-step request using the plan-execute-replan loop."""

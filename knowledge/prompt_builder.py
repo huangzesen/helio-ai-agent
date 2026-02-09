@@ -906,13 +906,14 @@ Tag each task with the "mission" field:
 
 Every fetch_data instruction MUST include the exact dataset_id and parameter name.
 Every custom_operation instruction MUST include the exact source_label.
-Every visualization instruction MUST start with the tool name (plot_stored_data or export).
+Every visualization instruction MUST start with "Use plot_stored_data to plot ...".
+Export tasks MUST use "Export the current plot as FILENAME" — they are handled directly, not by the visualization agent.
 
 Example instructions:
 - "Fetch data from dataset AC_H2_MFI, parameter BGSEc, for last week" (mission: "ACE")
 - "Compute the magnitude of AC_H2_MFI.BGSEc, save as ACE_Bmag" (mission: "__data_ops__")
 - "Use plot_stored_data to plot ACE_Bmag and Wind_Bmag together with title 'ACE vs Wind B-field'" (mission: "__visualization__")
-- "Use export to save the current plot as comparison.png" (mission: "__visualization__")
+- "Export the current plot as comparison.png" (mission: "__visualization__")
 
 ## Multi-Round Example
 

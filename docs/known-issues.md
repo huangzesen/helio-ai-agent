@@ -74,6 +74,8 @@ The task instruction includes the expected labels (e.g., "compute running averag
 | Massive Plotly error messages waste context | `custom_visualization` errors returned full Plotly property list (1000+ lines) | Truncate RuntimeError messages to 500 chars |
 | Planner generates duplicate tasks | Round 3 re-created tasks from Rounds 1-2 because result summaries said "Done." with no details | (1) Enriched result summaries to include tool calls list when text is empty, (2) added planner rules 8-10 prohibiting task repetition |
 | Tasks over-execute (do more than asked) | "Search for flares" task also created DataFrames and plotted bar charts, wasting 3-4 of 5 iterations | Added "CRITICAL: Do ONLY what the instruction says" constraint to all task execution prompts |
+| Viz agent calls reset/get_plot_state instead of plotting | VisualizationAgent ignored "Do NOT call reset" prompt; called plot_stored_data with empty labels | (1) `_get_task_prompt` now injects actual labels from data store, (2) `_execute_plan_task` prepends "Use plot_stored_data to plot LABEL1,LABEL2" when planner omits labels |
+| Export tasks waste viz agent iterations | Export routed to VisualizationAgent which called reset/get_plot_state instead of exporting | Export tasks now intercepted by orchestrator's `_handle_export_task()` — direct dispatch, no LLM needed |
 
 ### Fixed in 2026-02-08 stability batch
 

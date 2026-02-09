@@ -6,6 +6,8 @@ tool backed by the method registry. The orchestrator delegates visualization
 requests here, keeping data operations in mission agents.
 """
 
+import re
+
 from google import genai
 
 from .base_agent import BaseSubAgent
@@ -15,6 +17,18 @@ from knowledge.prompt_builder import build_visualization_prompt
 # Visualization agent gets its own tool category + list_fetched_data from data_ops
 VIZ_TOOL_CATEGORIES = ["visualization"]
 VIZ_EXTRA_TOOLS = ["list_fetched_data"]
+
+
+def _extract_labels_from_instruction(instruction: str) -> list[str]:
+    """Extract data labels from a task instruction that has store contents appended.
+
+    The orchestrator appends lines like "  - AC_H0_MFI.Magnitude (37800 pts)"
+    to the instruction. This extracts the label portion.
+    """
+    labels = []
+    for match in re.finditer(r"^\s+-\s+(\S+)\s+\(", instruction, re.MULTILINE):
+        labels.append(match.group(1))
+    return labels
 
 
 class VisualizationAgent(BaseSubAgent):
@@ -45,12 +59,25 @@ class VisualizationAgent(BaseSubAgent):
         )
 
     def _get_task_prompt(self, task: Task) -> str:
-        """Add explicit tool-call guidance for visualization tasks."""
+        """Build an explicit task prompt with concrete label values.
+
+        Extracts actual data labels from the instruction (injected by
+        _execute_plan_task) and constructs the exact plot_stored_data call
+        so Gemini Flash sees the precise command to execute.
+
+        Note: Export tasks are handled directly by the orchestrator and
+        never reach this method.
+        """
+        labels = _extract_labels_from_instruction(task.instruction)
+        labels_str = ",".join(labels) if labels else "LABEL1,LABEL2"
+
         return (
             f"Execute this task: {task.instruction}\n\n"
-            "IMPORTANT: Call execute_visualization directly with the appropriate method.\n"
-            "- To plot data: execute_visualization(method=\"plot_stored_data\", args={\"labels\": \"LABEL1,LABEL2\"})\n"
-            "- To export: execute_visualization(method=\"export\", args={\"filename\": \"output.png\"})\n"
-            "- Do NOT call reset or get_plot_state unless the task specifically asks for it.\n"
-            "- Do NOT call list_fetched_data — the available data is already listed above."
+            f"Your FIRST call must be: "
+            f"execute_visualization(method=\"plot_stored_data\", "
+            f"args={{\"labels\": \"{labels_str}\"}})\n\n"
+            "RULES:\n"
+            "- Do NOT call reset, get_plot_state, or list_fetched_data.\n"
+            "- Call execute_visualization with method='plot_stored_data' and the labels shown above.\n"
+            "- After plotting, you may call custom_visualization to adjust titles/labels/axes."
         )
