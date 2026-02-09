@@ -63,10 +63,20 @@ def generate_dataset_quick_reference() -> str:
         for inst_id, inst in sc["instruments"].items():
             # Determine type from instrument keywords
             kws = inst["keywords"]
-            if any(k in kws for k in ("magnetic", "mag", "b-field")):
+            if any(k in kws for k in ("magnetic", "mag", "b-field", "magnetometer")):
                 dtype = "Magnetic"
-            elif any(k in kws for k in ("plasma", "solar wind", "ion")):
+            elif any(k in kws for k in ("plasma", "solar wind", "ion", "electron")):
                 dtype = "Plasma"
+            elif any(k in kws for k in ("particle", "energetic", "cosmic ray")):
+                dtype = "Particles"
+            elif any(k in kws for k in ("electric", "e-field")):
+                dtype = "Electric"
+            elif any(k in kws for k in ("radio", "wave", "plasma wave")):
+                dtype = "Waves"
+            elif any(k in kws for k in ("index", "indices", "geomagnetic")):
+                dtype = "Indices"
+            elif any(k in kws for k in ("ephemeris", "orbit", "attitude", "position")):
+                dtype = "Ephemeris"
             else:
                 dtype = "Combined"
             for ds in inst["datasets"]:
@@ -85,10 +95,20 @@ def generate_planner_dataset_reference() -> str:
         parts = []
         for inst_id, inst in mission.get("instruments", {}).items():
             kws = inst.get("keywords", [])
-            if any(k in kws for k in ("magnetic", "mag")):
+            if any(k in kws for k in ("magnetic", "mag", "magnetometer")):
                 kind = "magnetic"
-            elif any(k in kws for k in ("plasma", "solar wind", "ion")):
+            elif any(k in kws for k in ("plasma", "solar wind", "ion", "electron")):
                 kind = "plasma"
+            elif any(k in kws for k in ("particle", "energetic", "cosmic ray")):
+                kind = "particles"
+            elif any(k in kws for k in ("electric", "e-field")):
+                kind = "electric"
+            elif any(k in kws for k in ("radio", "wave", "plasma wave")):
+                kind = "waves"
+            elif any(k in kws for k in ("index", "indices", "geomagnetic")):
+                kind = "indices"
+            elif any(k in kws for k in ("ephemeris", "orbit", "attitude", "position")):
+                kind = "ephemeris"
             else:
                 kind = "combined"
             for ds_id, ds_info in inst.get("datasets", {}).items():
@@ -736,85 +756,129 @@ For "fetch ACE mag, compute magnitude, and plot":
 """
 
 
-def build_planning_prompt() -> str:
-    """Assemble the planning prompt with dataset references from catalog.
+def build_planner_agent_prompt() -> str:
+    """Assemble the system prompt for the PlannerAgent (chat-based, multi-round).
 
-    Returns a template string with a {user_request} placeholder.
+    Unlike the old one-shot planning prompt, this is used as the system_instruction
+    for a stateful chat session. The user request arrives as a chat message, and
+    execution results are fed back for replanning.
+
+    Returns:
+        System prompt string (no placeholders — user request comes via chat).
     """
     dataset_ref = generate_planner_dataset_reference()
+    routing = get_routing_table()
+    routing_lines = []
+    for entry in routing:
+        caps = ", ".join(entry["capabilities"]) if entry["capabilities"] else "various"
+        routing_lines.append(f"- {entry['name']} ({entry['id']}): {caps}")
+    routing_text = "\n".join(routing_lines)
 
-    return f"""You are a planning assistant for a heliophysics data visualization tool.
-Your job is to decompose complex user requests into a sequence of discrete tasks.
+    return f"""You are a planning agent for a heliophysics data visualization tool.
+Your job is to decompose complex user requests into batches of tasks, observe the
+results of each batch, and adapt the plan until the request is fully satisfied.
 
-## Available Tools (with required parameters)
+## How It Works
+
+1. The user sends a request.
+2. You emit a batch of tasks for the current round (independent tasks go in the same batch).
+3. The system executes the batch and sends you the results.
+4. You decide: emit another batch ("continue") or declare the plan complete ("done").
+
+## Response Format
+
+You MUST respond with JSON containing:
+- "status": "continue" (more rounds needed) or "done" (plan complete)
+- "reasoning": brief explanation of your decision
+- "tasks": list of tasks for this round (empty list if status is "done" and no more tasks)
+- "summary": (only when status is "done") brief user-facing summary of what was accomplished
+
+Each task has:
+- "description": brief human-readable summary
+- "instruction": detailed instruction for executing the task
+- "mission": spacecraft ID or special tag (see Mission Tagging below)
+
+## Available Tools (that tasks can use)
 
 - search_datasets(query): Find spacecraft/instrument datasets by keyword
-- browse_datasets(mission_id): Browse all available science datasets for a mission (filtered, no calibration/housekeeping)
+- browse_datasets(mission_id): Browse all available science datasets for a mission
 - list_parameters(dataset_id): Get available parameters for a dataset
-- fetch_data(dataset_id, parameter_id, time_range): Pull data into memory. Result stored with label "DATASET.PARAM" format. Time range can be "last week", "last 3 days", or "2024-01-15 to 2024-01-20".
-- custom_operation(source_label, pandas_code, output_label, description): Apply any pandas/numpy operation. Code operates on `df` (DataFrame) and assigns to `result`. Examples: magnitude, smoothing, resampling, arithmetic, derivatives, normalization, clipping.
-- store_dataframe(pandas_code, output_label, description): Create a new DataFrame from scratch using pd/np code. Must assign to `result` with DatetimeIndex. Use for event lists, search results, and catalogs.
-- describe_data(label): Get statistical summary (min, max, mean, std, percentiles, NaN count, cadence) of an in-memory timeseries. Use when user says "describe", "summarize", or asks about data characteristics.
-- plot_data(dataset_id, parameter_id, time_range): Plot CDAWeb data directly
-- plot_computed_data(labels): Plot data from memory. Labels is comma-separated, e.g., "AC_H2_MFI.BGSEc,Bmag_smooth"
-- export_plot(filepath): Save current plot to PNG
-- save_data(label, filename): Export in-memory timeseries to CSV file. Use when user says "save to file" or "export data".
+- fetch_data(dataset_id, parameter_id, time_range): Pull data into memory (label: "DATASET.PARAM")
+- custom_operation(source_label, pandas_code, output_label, description): pandas/numpy transformation
+- store_dataframe(pandas_code, output_label, description): Create DataFrame from scratch
+- describe_data(label): Statistical summary of in-memory data
+- plot_stored_data(labels): Plot data from memory (comma-separated labels)
+- export(filename): Save current plot to file
+- save_data(label, filename): Export timeseries to CSV
+- google_search(query): Search the web for context
 
-## Known Dataset IDs (use these with fetch_data)
+## Known Missions
+
+{routing_text}
+
+## Known Dataset IDs
 {dataset_ref}
 
 IMPORTANT: Different spacecraft have DIFFERENT parameter names. Always use list_parameters
 to discover exact parameter names before fetching. Do NOT guess parameter names.
 
-## Important Notes
-- When user doesn't specify a time range, use "last week" as default
-- Always include a list_parameters step before fetch_data to get the correct parameter name
-- Labels for fetched data follow the pattern "DATASET.PARAM" (e.g., "AC_H2_MFI.BGSEc")
-- For compute operations, use descriptive output_label names (e.g., "Bmag", "velocity_smooth")
-- For running averages, a window_size of 60 points is a reasonable default
+## Mission Tagging
+
+Tag each task with the "mission" field:
+- Use spacecraft IDs: PSP, SolO, ACE, OMNI, WIND, DSCOVR, MMS, STEREO_A
+- mission="__visualization__" for visualization tasks (plotting, exporting, render changes)
+- mission="__data_ops__" for data transformation/analysis/export (custom_operation, describe_data, save_data)
+- mission="__data_extraction__" for creating DataFrames from text (store_dataframe, event catalogs)
+- mission=null for cross-mission tasks that don't fit the above categories
+
+## Batching Rules
+
+- **Independent tasks go in the same batch**: fetching PSP data and ACE data can run in the same round
+- **Dependent tasks wait**: if you need to compute magnitude AFTER fetching, put the compute in a later round
+- **Adapt to results**: if a fetch fails, you can try an alternative dataset in the next round
+- **If you already know all steps**: you can put them in the first batch with status="done" (single-round plan)
 
 ## Planning Guidelines
-1. Each task should be a single, atomic operation — do ONLY what the instruction says
-2. Tasks execute sequentially - later tasks can reference results from earlier tasks
-3. For comparisons: fetch both datasets -> optional computation -> plot together
+
+1. Each task should be a single, atomic operation
+2. When user doesn't specify a time range, use "last week" as default
+3. For comparisons: fetch both datasets (round 1) -> optional computation (round 2) -> plot together (round 3)
 4. For derived quantities: fetch raw data -> compute derived value -> plot
-5. Keep task count minimal - don't split unnecessarily
-6. Do NOT include plotting steps unless the user explicitly asked to plot
-7. A "fetch" task should ONLY fetch data, not also plot or describe it
-
-## Mission Tagging
-Tag each task with the spacecraft mission it belongs to using the "mission" field:
-- Use spacecraft IDs: PSP, SolO, ACE, OMNI, WIND, DSCOVR, MMS, STEREO_A
-- Set mission="__visualization__" for visualization tasks (plotting, exporting, render changes)
-- Set mission="__data_ops__" for data transformation/analysis/export tasks (custom_operation, describe_data, save_data)
-- Set mission="__data_extraction__" for creating DataFrames from text data (store_dataframe, event catalogs, search results)
-- Set mission=null for cross-mission data tasks (combined analyses that don't involve visualization or computation)
-- Tasks that list_parameters or fetch_data for a specific spacecraft should be tagged with that mission
-- Plotting tasks (plot_data, plot_computed_data, export_plot) should use mission="__visualization__"
-- Compute tasks (magnitude, smoothing, resampling, describe, save to CSV) should use mission="__data_ops__"
-
-## Task Dependencies
-Use "depends_on" to declare which tasks must complete before another can start:
-- Use 0-based task indices (e.g., depends_on=[0, 1] means this task needs tasks 0 and 1 done first)
-- Independent tasks (e.g., fetching data from PSP and ACE) should have NO dependencies between them
-- Cross-mission tasks (e.g., comparison plots) should depend on all the mission-specific tasks they need
+5. Keep task count minimal — don't split unnecessarily
+6. Do NOT include plotting steps unless the user explicitly asked to plot/show/display
+7. Labels for fetched data follow the pattern "DATASET.PARAM" (e.g., "AC_H2_MFI.BGSEc")
 
 ## Task Instruction Format
-CRITICAL: Every fetch_data instruction MUST include the exact dataset_id. Use list_parameters
-first to discover parameter names — never guess them.
 
-Every custom_operation instruction MUST include the exact source_label (e.g., "DATASET.PARAM").
+Every fetch_data instruction MUST include the exact dataset_id and parameter name.
+Every custom_operation instruction MUST include the exact source_label.
 
 Example instructions:
-- "List parameters for dataset AC_H2_MFI" (mission: "ACE")
 - "Fetch data from dataset AC_H2_MFI, parameter BGSEc, for last week" (mission: "ACE")
-- "Compute the magnitude of AC_H2_MFI.BGSEc, save as ACE_Bmag" (mission: "__data_ops__", depends_on: [index of fetch task])
-- "Describe the data labeled ACE_Bmag" (mission: "__data_ops__")
-- "Save ACE_Bmag to CSV" (mission: "__data_ops__")
-- "Create a DataFrame from these X-class flares: 2024-01-01 X1.5, 2024-02-15 X2.1. Label it xclass_flares" (mission: "__data_extraction__")
-- "Plot ACE_Bmag and Wind_Bmag together" (mission: "__visualization__", depends_on: [indices of ACE and Wind tasks])
-- "Export the plot to output.png" (mission: "__visualization__")
+- "Compute the magnitude of AC_H2_MFI.BGSEc, save as ACE_Bmag" (mission: "__data_ops__")
+- "Plot ACE_Bmag and Wind_Bmag together" (mission: "__visualization__")
 
-Analyze the request and return a JSON plan. If the request is actually simple (single step), set is_complex=false and provide a single task.
+## Multi-Round Example
 
-User request: {{user_request}}"""
+User: "Compare ACE and Wind magnetic field, compute magnitude of each, plot them"
+
+Round 1 response:
+{{"status": "continue", "reasoning": "Need to fetch data from both missions first", "tasks": [
+  {{"description": "Fetch ACE mag data", "instruction": "Fetch data from dataset AC_H2_MFI, parameter BGSEc, for last week", "mission": "ACE"}},
+  {{"description": "Fetch Wind mag data", "instruction": "Fetch data from dataset WI_H2_MFI, parameter BGSE, for last week", "mission": "WIND"}}
+]}}
+
+After receiving results showing both fetches succeeded:
+
+Round 2 response:
+{{"status": "continue", "reasoning": "Data fetched, now compute magnitudes", "tasks": [
+  {{"description": "Compute ACE Bmag", "instruction": "Compute magnitude of AC_H2_MFI.BGSEc, save as ACE_Bmag", "mission": "__data_ops__"}},
+  {{"description": "Compute Wind Bmag", "instruction": "Compute magnitude of WI_H2_MFI.BGSE, save as Wind_Bmag", "mission": "__data_ops__"}}
+]}}
+
+After receiving results showing both computes succeeded:
+
+Round 3 response:
+{{"status": "done", "reasoning": "All data ready, plotting comparison", "tasks": [
+  {{"description": "Plot comparison", "instruction": "Plot ACE_Bmag and Wind_Bmag together with title 'ACE vs Wind Magnetic Field Magnitude'", "mission": "__visualization__"}}
+], "summary": "Fetched ACE and Wind magnetic field data, computed magnitudes, and plotted them together."}}"""

@@ -1,12 +1,18 @@
 """
-Tests for agent.planner — complexity detection and plan formatting.
+Tests for agent.planner — complexity detection, PlannerAgent, and plan formatting.
 
 Run with: python -m pytest tests/test_planner.py
 """
 
 import pytest
 
-from agent.planner import is_complex_request, format_plan_for_display
+from agent.planner import (
+    is_complex_request,
+    format_plan_for_display,
+    PlannerAgent,
+    PLANNER_RESPONSE_SCHEMA,
+    MAX_ROUNDS,
+)
 from agent.tasks import Task, TaskPlan, TaskStatus, PlanStatus, create_task, create_plan
 from datetime import datetime
 
@@ -101,6 +107,145 @@ class TestIsComplexRequest:
     def test_help_questions(self):
         assert not is_complex_request("How do I plot data?")
         assert not is_complex_request("What spacecraft do you support?")
+
+
+class TestPlannerAgentInterface:
+    """Test PlannerAgent class structure and interface."""
+
+    def test_has_required_methods(self):
+        """PlannerAgent should have the expected public methods."""
+        assert hasattr(PlannerAgent, "start_planning")
+        assert hasattr(PlannerAgent, "continue_planning")
+        assert hasattr(PlannerAgent, "get_token_usage")
+        assert hasattr(PlannerAgent, "reset")
+
+    def test_init_no_chat(self):
+        """PlannerAgent starts with no active chat."""
+        # Use None client — we won't make API calls
+        agent = PlannerAgent(client=None, model_name="test-model")
+        assert agent._chat is None
+        assert agent.model_name == "test-model"
+        assert agent.verbose is False
+
+    def test_get_token_usage_initial(self):
+        """Token usage starts at zero."""
+        agent = PlannerAgent(client=None, model_name="test-model")
+        usage = agent.get_token_usage()
+        assert usage["input_tokens"] == 0
+        assert usage["output_tokens"] == 0
+
+    def test_reset_clears_chat(self):
+        """Reset should clear the chat session."""
+        agent = PlannerAgent(client=None, model_name="test-model")
+        agent._chat = "something"
+        agent.reset()
+        assert agent._chat is None
+
+    def test_continue_planning_without_chat_returns_none(self):
+        """continue_planning should return None if no chat session exists."""
+        agent = PlannerAgent(client=None, model_name="test-model")
+        result = agent.continue_planning([{"description": "test", "status": "completed"}])
+        assert result is None
+
+    def test_max_rounds_constant(self):
+        """MAX_ROUNDS should be 5."""
+        assert MAX_ROUNDS == 5
+
+
+class TestPlannerResponseSchema:
+    """Test the PLANNER_RESPONSE_SCHEMA structure."""
+
+    def test_schema_is_object(self):
+        assert PLANNER_RESPONSE_SCHEMA["type"] == "object"
+
+    def test_required_fields(self):
+        required = PLANNER_RESPONSE_SCHEMA["required"]
+        assert "status" in required
+        assert "reasoning" in required
+        assert "tasks" in required
+
+    def test_status_enum(self):
+        status_schema = PLANNER_RESPONSE_SCHEMA["properties"]["status"]
+        assert status_schema["type"] == "string"
+        assert set(status_schema["enum"]) == {"continue", "done"}
+
+    def test_tasks_is_array(self):
+        tasks_schema = PLANNER_RESPONSE_SCHEMA["properties"]["tasks"]
+        assert tasks_schema["type"] == "array"
+
+    def test_task_item_required_fields(self):
+        task_schema = PLANNER_RESPONSE_SCHEMA["properties"]["tasks"]["items"]
+        assert "description" in task_schema["required"]
+        assert "instruction" in task_schema["required"]
+
+    def test_task_item_has_mission(self):
+        task_schema = PLANNER_RESPONSE_SCHEMA["properties"]["tasks"]["items"]
+        assert "mission" in task_schema["properties"]
+
+    def test_summary_field_exists(self):
+        assert "summary" in PLANNER_RESPONSE_SCHEMA["properties"]
+        assert PLANNER_RESPONSE_SCHEMA["properties"]["summary"]["type"] == "string"
+
+
+class TestTaskRoundField:
+    """Test the round field on Task dataclass."""
+
+    def test_default_round_is_zero(self):
+        task = create_task("Test", "instruction")
+        assert task.round == 0
+
+    def test_round_in_to_dict(self):
+        task = create_task("Test", "instruction")
+        task.round = 2
+        d = task.to_dict()
+        assert d["round"] == 2
+
+    def test_round_from_dict(self):
+        d = {
+            "id": "test-id",
+            "description": "Test",
+            "instruction": "Do something",
+            "status": "pending",
+            "round": 3,
+        }
+        task = Task.from_dict(d)
+        assert task.round == 3
+
+    def test_round_from_dict_missing(self):
+        """Missing round field should default to 0."""
+        d = {
+            "id": "test-id",
+            "description": "Test",
+            "instruction": "Do something",
+            "status": "pending",
+        }
+        task = Task.from_dict(d)
+        assert task.round == 0
+
+
+class TestTaskPlanAddTasks:
+    """Test the add_tasks() method on TaskPlan."""
+
+    def test_add_tasks_appends(self):
+        plan = create_plan("Test", [])
+        assert len(plan.tasks) == 0
+
+        tasks = [create_task("A", "a"), create_task("B", "b")]
+        plan.add_tasks(tasks)
+        assert len(plan.tasks) == 2
+
+    def test_add_tasks_incremental(self):
+        t1 = create_task("A", "a")
+        plan = create_plan("Test", [t1])
+        assert len(plan.tasks) == 1
+
+        t2 = create_task("B", "b")
+        t3 = create_task("C", "c")
+        plan.add_tasks([t2, t3])
+        assert len(plan.tasks) == 3
+        assert plan.tasks[0].description == "A"
+        assert plan.tasks[1].description == "B"
+        assert plan.tasks[2].description == "C"
 
 
 class TestFormatPlanForDisplay:
@@ -221,3 +366,48 @@ class TestFormatPlanForDisplay:
         compare_line = [l for l in lines if "Compare" in l][0]
         assert "[PSP]" not in compare_line
         assert "[ACE]" not in compare_line
+
+    def test_format_with_rounds(self):
+        """Tasks with non-zero rounds should be grouped by round."""
+        tasks = [
+            Task(id="1", description="Fetch ACE", instruction="I1",
+                 mission="ACE", status=TaskStatus.COMPLETED, round=1),
+            Task(id="2", description="Fetch Wind", instruction="I2",
+                 mission="WIND", status=TaskStatus.COMPLETED, round=1),
+            Task(id="3", description="Compute magnitude", instruction="I3",
+                 mission="__data_ops__", status=TaskStatus.COMPLETED, round=2),
+            Task(id="4", description="Plot comparison", instruction="I4",
+                 mission="__visualization__", status=TaskStatus.PENDING, round=3),
+        ]
+        plan = TaskPlan(
+            id="plan",
+            user_request="Compare ACE and Wind mag",
+            tasks=tasks,
+            created_at=datetime.now(),
+        )
+
+        output = format_plan_for_display(plan)
+        assert "Round 1:" in output
+        assert "Round 2:" in output
+        assert "Round 3:" in output
+        assert "Plan: 4 steps" in output
+        assert "Fetch ACE" in output
+        assert "Plot comparison" in output
+
+    def test_format_without_rounds(self):
+        """Tasks with round=0 should display without round headers."""
+        tasks = [
+            Task(id="1", description="Step A", instruction="I1", status=TaskStatus.PENDING),
+            Task(id="2", description="Step B", instruction="I2", status=TaskStatus.PENDING),
+        ]
+        plan = TaskPlan(
+            id="plan",
+            user_request="Test",
+            tasks=tasks,
+            created_at=datetime.now(),
+        )
+
+        output = format_plan_for_display(plan)
+        assert "Round" not in output
+        assert "Step A" in output
+        assert "Step B" in output

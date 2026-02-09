@@ -3,12 +3,11 @@ Planning logic for multi-step task handling.
 
 This module provides:
 - is_complex_request(): Heuristics to detect when a request needs decomposition
-- create_plan(): Uses Gemini to decompose a complex request into tasks
-
-The planning prompt is dynamically generated from the spacecraft catalog
-via knowledge/prompt_builder.py — no hardcoded dataset references.
+- PlannerAgent: Chat-based planner with plan-execute-replan loop
+- format_plan_for_display(): Human-readable plan rendering
 """
 
+import json
 import re
 from typing import Optional
 
@@ -17,10 +16,11 @@ from google.genai import types
 
 from .logging import get_logger
 from .tasks import Task, TaskPlan, create_task, create_plan
-from knowledge.prompt_builder import build_planning_prompt
+from knowledge.prompt_builder import build_planner_agent_prompt
 
 logger = get_logger()
 
+MAX_ROUNDS = 5
 
 # Regex patterns that indicate a complex, multi-step request
 COMPLEXITY_INDICATORS = [
@@ -81,141 +81,183 @@ def is_complex_request(text: str) -> bool:
     return False
 
 
-# JSON schema for Gemini's planning output
-PLAN_SCHEMA = {
+# JSON schema for PlannerAgent's structured output
+PLANNER_RESPONSE_SCHEMA = {
     "type": "object",
     "properties": {
-        "is_complex": {
-            "type": "boolean",
-            "description": "Whether this request truly requires multiple steps"
+        "status": {
+            "type": "string",
+            "enum": ["continue", "done"],
+        },
+        "reasoning": {
+            "type": "string",
         },
         "tasks": {
             "type": "array",
             "items": {
                 "type": "object",
                 "properties": {
-                    "description": {
-                        "type": "string",
-                        "description": "Brief human-readable description of the task"
-                    },
-                    "instruction": {
-                        "type": "string",
-                        "description": "Detailed instruction for executing this task, including tool names and parameters"
-                    },
-                    "mission": {
-                        "type": "string",
-                        "description": "Spacecraft ID this task belongs to (e.g., 'PSP', 'ACE', 'OMNI'). Null for cross-mission tasks like comparison plots."
-                    },
-                    "depends_on": {
-                        "type": "array",
-                        "items": {"type": "integer"},
-                        "description": "Indices (0-based) of tasks that must complete before this one. Empty if no dependencies."
-                    }
+                    "description": {"type": "string"},
+                    "instruction": {"type": "string"},
+                    "mission": {"type": "string"},
                 },
-                "required": ["description", "instruction"]
+                "required": ["description", "instruction"],
             },
-            "description": "Ordered list of tasks to accomplish the user's request"
         },
-        "reasoning": {
+        "summary": {
             "type": "string",
-            "description": "Brief explanation of why these tasks were chosen"
-        }
+        },
     },
-    "required": ["is_complex", "tasks", "reasoning"]
+    "required": ["status", "reasoning", "tasks"],
 }
 
 
-# Generate the planning prompt template once at import time.
-# Contains a {user_request} placeholder filled in by create_plan_from_request().
-PLANNING_PROMPT = build_planning_prompt()
+class PlannerAgent:
+    """Chat-based planner that decomposes complex requests into task batches.
 
-
-def create_plan_from_request(
-    client: genai.Client,
-    model_name: str,
-    user_request: str,
-    verbose: bool = False,
-) -> Optional[TaskPlan]:
-    """Use Gemini to decompose a complex request into tasks.
-
-    Args:
-        client: Initialized Gemini client
-        model_name: Model to use (e.g., "gemini-2.5-flash")
-        user_request: The user's original request
-        verbose: If True, print debug information
-
-    Returns:
-        TaskPlan with decomposed tasks, or None if planning fails
+    Uses a stateful Gemini chat session with structured JSON output.
+    The planner emits task batches, observes execution results, and adapts.
     """
-    prompt = PLANNING_PROMPT.replace("{user_request}", user_request)
 
-    try:
-        response = client.models.generate_content(
-            model=model_name,
-            contents=prompt,
-            config=types.GenerateContentConfig(
+    def __init__(self, client: genai.Client, model_name: str, verbose: bool = False):
+        self.client = client
+        self.model_name = model_name
+        self.verbose = verbose
+        self._chat = None
+        self._token_usage = {"input_tokens": 0, "output_tokens": 0}
+
+    def _track_usage(self, response):
+        """Accumulate token usage from a Gemini response."""
+        meta = getattr(response, "usage_metadata", None)
+        if meta:
+            self._token_usage["input_tokens"] += getattr(meta, "prompt_token_count", 0) or 0
+            self._token_usage["output_tokens"] += getattr(meta, "candidates_token_count", 0) or 0
+
+    def _parse_response(self, response) -> Optional[dict]:
+        """Parse JSON response from Gemini, normalizing mission fields."""
+        try:
+            text = response.text
+            if not text:
+                return None
+            data = json.loads(text)
+
+            # Normalize mission "null"/"none" strings to None
+            for task_data in data.get("tasks", []):
+                mission = task_data.get("mission")
+                if isinstance(mission, str) and mission.lower() in ("null", "none", ""):
+                    task_data["mission"] = None
+
+            return data
+        except (json.JSONDecodeError, AttributeError) as e:
+            logger.warning(f"[PlannerAgent] Failed to parse response: {e}")
+            return None
+
+    def start_planning(self, user_request: str) -> Optional[dict]:
+        """Begin planning by sending the user request to a fresh chat.
+
+        Args:
+            user_request: The user's original request.
+
+        Returns:
+            Dict with {status, reasoning, tasks, summary} or None on failure.
+        """
+        try:
+            system_prompt = build_planner_agent_prompt()
+
+            config = types.GenerateContentConfig(
+                system_instruction=system_prompt,
                 response_mime_type="application/json",
-                response_schema=PLAN_SCHEMA,
-            ),
-        )
-
-        # Parse the JSON response
-        import json
-        plan_data = json.loads(response.text)
-
-        if verbose:
-            logger.debug("[Planner] Gemini returned: is_complex=%s, %d tasks", plan_data['is_complex'], len(plan_data['tasks']))
-            logger.debug("[Planner] Reasoning: %s", plan_data['reasoning'])
-
-        # If Gemini says it's not actually complex, return None to fall back to direct execution
-        if not plan_data.get("is_complex", True):
-            if verbose:
-                logger.debug("[Planner] Request is simple, skipping task decomposition")
-            return None
-
-        # Build tasks from the plan
-        tasks = []
-        for i, task_data in enumerate(plan_data["tasks"]):
-            # Normalize mission: "null"/"none" strings → None
-            mission = task_data.get("mission")
-            if isinstance(mission, str) and mission.lower() in ("null", "none", ""):
-                mission = None
-            task = create_task(
-                description=task_data["description"],
-                instruction=task_data["instruction"],
-                mission=mission,
+                response_schema=PLANNER_RESPONSE_SCHEMA,
             )
-            tasks.append(task)
 
-        # Resolve depends_on indices to task IDs
-        for i, task_data in enumerate(plan_data["tasks"]):
-            dep_indices = task_data.get("depends_on", [])
-            for idx in dep_indices:
-                if isinstance(idx, int) and 0 <= idx < len(tasks):
-                    tasks[i].depends_on.append(tasks[idx].id)
+            self._chat = self.client.chats.create(
+                model=self.model_name,
+                config=config,
+            )
 
-        if not tasks:
-            if verbose:
-                logger.debug("[Planner] No tasks generated, falling back to direct execution")
+            if self.verbose:
+                logger.debug(f"[PlannerAgent] Starting planning for: {user_request[:80]}...")
+
+            response = self._chat.send_message(user_request)
+            self._track_usage(response)
+
+            result = self._parse_response(response)
+            if result and self.verbose:
+                logger.debug(
+                    f"[PlannerAgent] Round 1: status={result['status']}, "
+                    f"{len(result.get('tasks', []))} tasks"
+                )
+
+            return result
+
+        except Exception as e:
+            logger.warning(f"[PlannerAgent] Error in start_planning: {e}")
             return None
 
-        plan = create_plan(user_request, tasks)
+    def continue_planning(self, round_results: list[dict]) -> Optional[dict]:
+        """Send execution results back to the planner for the next round.
 
-        if verbose:
-            logger.debug("[Planner] Created plan with %d tasks:", len(tasks))
-            for i, t in enumerate(tasks):
-                logger.debug("  %d. %s", i + 1, t.description)
+        Args:
+            round_results: List of dicts with {description, status, result_summary, error}
 
-        return plan
+        Returns:
+            Dict with {status, reasoning, tasks, summary} or None on failure.
+        """
+        if self._chat is None:
+            logger.warning("[PlannerAgent] No active chat session for continue_planning")
+            return None
 
-    except Exception as e:
-        if verbose:
-            logger.warning("[Planner] Error creating plan: %s", e)
-        return None
+        try:
+            # Format results as structured text
+            lines = ["Execution results:"]
+            for r in round_results:
+                status = r.get("status", "unknown")
+                desc = r.get("description", "")
+                line = f"- Task: {desc} | Status: {status}"
+                if r.get("result_summary"):
+                    line += f" | Result: {r['result_summary']}"
+                if r.get("error"):
+                    line += f" | Error: {r['error']}"
+                lines.append(line)
+
+            message = "\n".join(lines)
+
+            if self.verbose:
+                logger.debug(f"[PlannerAgent] Sending results:\n{message}")
+
+            response = self._chat.send_message(message)
+            self._track_usage(response)
+
+            result = self._parse_response(response)
+            if result and self.verbose:
+                logger.debug(
+                    f"[PlannerAgent] Next round: status={result['status']}, "
+                    f"{len(result.get('tasks', []))} tasks"
+                )
+
+            return result
+
+        except Exception as e:
+            logger.warning(f"[PlannerAgent] Error in continue_planning: {e}")
+            return None
+
+    def get_token_usage(self) -> dict:
+        """Return accumulated token usage."""
+        return {
+            "input_tokens": self._token_usage["input_tokens"],
+            "output_tokens": self._token_usage["output_tokens"],
+            "api_calls": 0,  # Planner calls tracked separately from api_calls count
+        }
+
+    def reset(self):
+        """Reset the chat session."""
+        self._chat = None
 
 
 def format_plan_for_display(plan: TaskPlan) -> str:
     """Format a plan for display to the user.
+
+    Groups tasks by round when round > 0.
 
     Args:
         plan: The plan to format
@@ -226,21 +268,47 @@ def format_plan_for_display(plan: TaskPlan) -> str:
     lines = [f"Plan: {len(plan.tasks)} steps"]
     lines.append("-" * 40)
 
-    for i, task in enumerate(plan.tasks):
-        # Use ASCII characters for Windows compatibility
-        status_icon = {
-            "pending": "o",
-            "in_progress": "*",
-            "completed": "+",
-            "failed": "x",
-            "skipped": "-",
-        }.get(task.status.value, "?")
+    # Check if any task has a non-zero round
+    has_rounds = any(t.round > 0 for t in plan.tasks)
 
-        mission_tag = f" [{task.mission}]" if task.mission else ""
-        lines.append(f"  {i+1}. [{status_icon}]{mission_tag} {task.description}")
+    if has_rounds:
+        # Group by round
+        rounds: dict[int, list[tuple[int, Task]]] = {}
+        for i, task in enumerate(plan.tasks):
+            rounds.setdefault(task.round, []).append((i, task))
 
-        if task.status.value == "failed" and task.error:
-            lines.append(f"       Error: {task.error}")
+        for round_num in sorted(rounds.keys()):
+            if round_num > 0:
+                lines.append(f"  Round {round_num}:")
+            for i, task in rounds[round_num]:
+                status_icon = {
+                    "pending": "o",
+                    "in_progress": "*",
+                    "completed": "+",
+                    "failed": "x",
+                    "skipped": "-",
+                }.get(task.status.value, "?")
+
+                mission_tag = f" [{task.mission}]" if task.mission else ""
+                lines.append(f"  {i+1}. [{status_icon}]{mission_tag} {task.description}")
+
+                if task.status.value == "failed" and task.error:
+                    lines.append(f"       Error: {task.error}")
+    else:
+        for i, task in enumerate(plan.tasks):
+            status_icon = {
+                "pending": "o",
+                "in_progress": "*",
+                "completed": "+",
+                "failed": "x",
+                "skipped": "-",
+            }.get(task.status.value, "?")
+
+            mission_tag = f" [{task.mission}]" if task.mission else ""
+            lines.append(f"  {i+1}. [{status_icon}]{mission_tag} {task.description}")
+
+            if task.status.value == "failed" and task.error:
+                lines.append(f"       Error: {task.error}")
 
     lines.append("-" * 40)
     lines.append(f"Progress: {plan.progress_summary()}")

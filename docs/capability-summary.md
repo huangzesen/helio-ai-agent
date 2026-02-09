@@ -65,8 +65,10 @@ agent/core.py  OrchestratorAgent  (LLM-driven orchestrator)
   |
   +---> agent/planner.py          Task planning
   |       is_complex_request()    Regex heuristics for complexity detection
-  |       create_plan_from_request()  Gemini JSON output for task decomposition
-  |                                   Tags tasks with mission IDs, __visualization__, dependencies
+  |       PlannerAgent            Chat-based planner with plan-execute-replan loop
+  |                               Emits task batches, observes results, adapts plan
+  |                               Uses structured JSON output (no tool calling)
+  |                               Model: GEMINI_PLANNER_MODEL (defaults to GEMINI_MODEL)
   |
   +---> agent/session.py           Session persistence
   |       SessionManager          Save/load chat history + DataStore to ~/.helio-agent/sessions/
@@ -80,6 +82,7 @@ agent/core.py  OrchestratorAgent  (LLM-driven orchestrator)
   |       missions/*.json          Per-mission JSON files (8 curated + 44 auto-generated, 52 total)
   |       mission_loader.py        Lazy-loading cache, routing table, dataset access
   |       mission_prefixes.py      Shared CDAWeb dataset ID prefix map (40+ missions)
+  |       cdaweb_metadata.py       CDAWeb REST API client — InstrumentType-based grouping
   |       cdaweb_catalog.py        Full CDAWeb HAPI catalog fetch/cache/search (2000+ datasets)
   |       catalog.py               Thin routing layer (loads from JSON, backward-compat SPACECRAFT dict)
   |       prompt_builder.py        Slim system prompt (routing table + catalog search) + rich mission/visualization prompts
@@ -263,20 +266,26 @@ All times are UTC. Outputs `TimeRange` objects with `start`/`end` datetimes.
 - **Slim orchestrator**: System prompt contains a routing table (mission names + capabilities) plus delegation instructions. No dataset IDs or analysis tips — those live in mission sub-agents.
 
 ### Multi-Step Requests
-- The orchestrator naturally chains tool calls in its conversation loop (up to 10 iterations, with consecutive delegation error guard)
+- Simple requests are handled by the orchestrator's conversation loop (up to 10 iterations, with consecutive delegation error guard)
 - "Compare PSP and ACE" -> `delegate_to_mission("PSP", ...)` -> `delegate_to_mission("ACE", ...)` -> `delegate_to_visualization(plot both)` — all in one `process_message` call
-- "Fetch ACE mag, compute magnitude, plot" -> `delegate_to_mission("ACE", fetch)` -> `delegate_to_data_ops(compute magnitude)` -> `delegate_to_visualization(plot)`
-- Complex plans tag tasks with `mission="__visualization__"` for visualization dispatch, `mission="__data_ops__"` for compute dispatch, `mission="__data_extraction__"` for text-to-DataFrame dispatch
-- Planner infrastructure (`agent/planner.py`, `agent/tasks.py`) supports programmatic multi-step plans
+- Complex requests (detected by `is_complex_request()` regex heuristics) are routed to the **PlannerAgent** for plan-execute-replan:
+  1. PlannerAgent decomposes the request into task batches using structured JSON output
+  2. Each batch is executed by routing tasks to the appropriate sub-agent
+  3. Results are fed back to the PlannerAgent, which decides to continue or finish
+  4. Maximum 5 rounds of replanning (configurable via `MAX_ROUNDS`)
+  5. If the planner fails, falls back to direct orchestrator execution
+- Tasks are tagged with `mission="__visualization__"` for visualization dispatch, `mission="__data_ops__"` for compute dispatch, `mission="__data_extraction__"` for text-to-DataFrame dispatch
+- Task plans persist to `~/.helio-agent/tasks/` with round tracking for multi-round plans
 
 ### Per-Mission JSON Knowledge (`knowledge/missions/*.json`)
 - **8 curated JSON files** + 44 auto-generated skeletons (52 total). Curated missions have hand-written profiles (analysis patterns, coordinate systems, data caveats). Auto-generated missions have minimal profiles populated from HAPI metadata.
 - **Shared prefix map**: `knowledge/mission_prefixes.py` maps CDAWeb dataset ID prefixes to mission identifiers (40+ mission groups).
+- **CDAWeb InstrumentType grouping**: `knowledge/cdaweb_metadata.py` fetches the CDAWeb REST API to get authoritative InstrumentType per dataset (18+ categories like "Magnetic Fields (space)", "Plasma and Solar Wind"). Bootstrap uses this to group datasets into meaningful instrument categories with keywords, instead of dumping everything into "General".
 - **Full catalog search**: `knowledge/cdaweb_catalog.py` provides `search_full_catalog` tool — searches all 2000+ CDAWeb datasets by keyword, with 24-hour local cache.
 - **Recommended datasets**: All datasets in the instrument section are shown as recommended. Additional datasets are discoverable via `browse_datasets`.
 - **Calibration exclusion lists**: Per-mission `_calibration_exclude.json` files filter out calibration, housekeeping, and ephemeris datasets from browse results. Uses glob patterns and exact IDs.
 - **Auto-generation**: `scripts/generate_mission_data.py` queries CDAWeb HAPI to populate parameters, dates, descriptions. Use `--create-new` to create skeleton JSON files for new missions.
-- **Loader**: `knowledge/mission_loader.py` provides lazy-loading cache, routing table, and dataset access.
+- **Loader**: `knowledge/mission_loader.py` provides lazy-loading cache, routing table, and dataset access. Routing table derives capabilities from instrument keywords (magnetic field, plasma, energetic particles, electric field, radio/plasma waves, geomagnetic indices, ephemeris, composition, coronagraph, imaging).
 
 ### Session Persistence (`agent/session.py`)
 - `SessionManager` saves and restores chat history + DataStore across process restarts
@@ -316,6 +325,7 @@ All times are UTC. Outputs `TimeRange` objects with `start`/`end` datetimes.
 GOOGLE_API_KEY=<gemini-api-key>
 GEMINI_MODEL=<optional, default: gemini-3-pro-preview>
 GEMINI_SUB_AGENT_MODEL=<optional, default: gemini-3-flash-preview>
+GEMINI_PLANNER_MODEL=<optional, default: GEMINI_MODEL>
 ```
 
 ## Running

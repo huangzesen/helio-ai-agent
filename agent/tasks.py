@@ -50,6 +50,7 @@ class Task:
     result: Optional[str] = None
     error: Optional[str] = None
     tool_calls: list[str] = field(default_factory=list)
+    round: int = 0
 
     def to_dict(self) -> dict:
         """Convert to JSON-serializable dictionary."""
@@ -63,6 +64,7 @@ class Task:
             "result": self.result,
             "error": self.error,
             "tool_calls": self.tool_calls,
+            "round": self.round,
         }
 
     @classmethod
@@ -78,6 +80,7 @@ class Task:
             result=data.get("result"),
             error=data.get("error"),
             tool_calls=data.get("tool_calls", []),
+            round=data.get("round", 0),
         )
 
 
@@ -131,6 +134,10 @@ class TaskPlan:
             status=PlanStatus(data["status"]),
             current_task_index=data.get("current_task_index", 0),
         )
+
+    def add_tasks(self, new_tasks: list[Task]) -> None:
+        """Append new tasks to the plan (used by replan loop)."""
+        self.tasks.extend(new_tasks)
 
     def get_current_task(self) -> Optional[Task]:
         """Get the current task being executed."""

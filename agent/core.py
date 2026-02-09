@@ -11,7 +11,7 @@ from typing import Optional
 from google import genai
 from google.genai import types
 
-from config import GOOGLE_API_KEY, GEMINI_MODEL, GEMINI_SUB_AGENT_MODEL
+from config import GOOGLE_API_KEY, GEMINI_MODEL, GEMINI_SUB_AGENT_MODEL, GEMINI_PLANNER_MODEL
 from .tools import get_tool_schemas
 from .prompts import get_system_prompt, format_tool_result
 from .time_utils import parse_time_range, TimeRangeError
@@ -19,7 +19,7 @@ from .tasks import (
     Task, TaskPlan, TaskStatus, PlanStatus,
     get_task_store, create_task, create_plan,
 )
-from .planner import create_plan_from_request, format_plan_for_display
+from .planner import PlannerAgent, is_complex_request, format_plan_for_display, MAX_ROUNDS
 from .session import SessionManager
 from .mission_agent import MissionAgent
 from .visualization_agent import VisualizationAgent
@@ -124,6 +124,9 @@ class OrchestratorAgent:
 
         # Cached data extraction sub-agent
         self._data_extraction_agent: Optional[DataExtractionAgent] = None
+
+        # Cached planner agent
+        self._planner_agent: Optional[PlannerAgent] = None
 
         # Session persistence
         self._session_id: Optional[str] = None
@@ -244,6 +247,12 @@ class OrchestratorAgent:
             input_tokens += usage["input_tokens"]
             output_tokens += usage["output_tokens"]
             api_calls += usage["api_calls"]
+
+        # Include usage from planner agent
+        if self._planner_agent:
+            usage = self._planner_agent.get_token_usage()
+            input_tokens += usage["input_tokens"]
+            output_tokens += usage["output_tokens"]
 
         return {
             "input_tokens": input_tokens,
@@ -1091,79 +1100,124 @@ class OrchestratorAgent:
             self.logger.warning(f"[Summary] Error generating summary: {e}")
             return plan.progress_summary()
 
+    def _get_or_create_planner_agent(self) -> PlannerAgent:
+        """Get the cached planner agent or create a new one."""
+        if self._planner_agent is None:
+            self._planner_agent = PlannerAgent(
+                client=self.client,
+                model_name=GEMINI_PLANNER_MODEL,
+                verbose=self.verbose,
+            )
+            self.logger.debug(f"[Router] Created PlannerAgent ({GEMINI_PLANNER_MODEL})")
+        return self._planner_agent
+
+    def _execute_plan_task(self, task: Task, plan: TaskPlan) -> None:
+        """Execute a single plan task, routing to the appropriate agent.
+
+        Updates the task status in place.
+
+        Args:
+            task: The task to execute
+            plan: The parent plan (for logging context)
+        """
+        mission_tag = f" [{task.mission}]" if task.mission else ""
+        self.logger.debug(f"[Plan]{mission_tag}: {task.description}")
+
+        special_missions = {"__visualization__", "__data_ops__", "__data_extraction__"}
+
+        if task.mission == "__visualization__":
+            self._get_or_create_viz_agent().execute_task(task)
+        elif task.mission == "__data_ops__":
+            self._get_or_create_dataops_agent().execute_task(task)
+        elif task.mission == "__data_extraction__":
+            self._get_or_create_data_extraction_agent().execute_task(task)
+        elif task.mission and task.mission not in special_missions:
+            try:
+                agent = self._get_or_create_mission_agent(task.mission)
+                agent.execute_task(task)
+            except (KeyError, FileNotFoundError):
+                self.logger.debug(f"[Plan] Unknown mission '{task.mission}', using main agent")
+                self._execute_task(task)
+        else:
+            self._execute_task(task)
+
     def _process_complex_request(self, user_message: str) -> str:
-        """Process a complex multi-step request."""
-        self.logger.debug("[Planner] Detected complex request, creating plan...")
+        """Process a complex multi-step request using the plan-execute-replan loop."""
+        self.logger.debug("[PlannerAgent] Detected complex request, starting planner...")
 
-        plan = create_plan_from_request(
-            client=self.client,
-            model_name=self.model_name,
-            user_request=user_message,
-            verbose=self.verbose,
-        )
+        planner = self._get_or_create_planner_agent()
 
-        if plan is None:
-            self.logger.debug("[Planner] Falling back to direct execution")
+        # Round 1: initial planning
+        response = planner.start_planning(user_message)
+        if response is None:
+            self.logger.debug("[PlannerAgent] Planner failed, falling back to direct execution")
             return self._process_single_message(user_message)
 
+        plan = create_plan(user_message, [])
         self._current_plan = plan
         plan.status = PlanStatus.EXECUTING
         store = get_task_store()
         store.save(plan)
 
-        log_plan_event("created", plan.id, f"{len(plan.tasks)} tasks for: {user_message[:50]}...")
+        log_plan_event("created", plan.id, f"Dynamic plan for: {user_message[:50]}...")
 
-        self.logger.debug(format_plan_for_display(plan))
+        round_num = 0
+        while round_num < MAX_ROUNDS:
+            round_num += 1
+            tasks_data = response.get("tasks", [])
 
-        # Get or create agents for each unique mission in the plan
-        special_missions = {"__visualization__", "__data_ops__", "__data_extraction__"}
-        mission_agents = {}
-        for task in plan.tasks:
-            if task.mission and task.mission not in special_missions and task.mission not in mission_agents:
-                try:
-                    mission_agents[task.mission] = self._get_or_create_mission_agent(task.mission)
-                except (KeyError, FileNotFoundError):
-                    self.logger.debug(f"[Plan] Unknown mission '{task.mission}', will use main agent")
+            if not tasks_data and response.get("status") == "done":
+                break
 
-        completed_task_ids = set()
+            if not tasks_data:
+                # Empty tasks with "continue" — treat as done
+                break
 
-        for i, task in enumerate(plan.tasks):
-            plan.current_task_index = i
+            # Create Task objects for this batch
+            new_tasks = []
+            for td in tasks_data:
+                mission = td.get("mission")
+                if isinstance(mission, str) and mission.lower() in ("null", "none", ""):
+                    mission = None
+                task = create_task(
+                    description=td["description"],
+                    instruction=td["instruction"],
+                    mission=mission,
+                )
+                task.round = round_num
+                new_tasks.append(task)
+
+            plan.add_tasks(new_tasks)
             store.save(plan)
 
-            # Check dependencies
-            unmet_deps = [dep for dep in task.depends_on if dep not in completed_task_ids]
-            if unmet_deps:
-                dep_tasks = {t.id: t for t in plan.tasks}
-                failed_deps = [d for d in unmet_deps if dep_tasks.get(d) and dep_tasks[d].status == TaskStatus.FAILED]
-                if failed_deps:
-                    task.status = TaskStatus.SKIPPED
-                    task.error = "Skipped: dependency failed"
-                    self.logger.debug(f"[Plan] Step {i+1}/{len(plan.tasks)}: SKIPPED (dependency failed)")
-                    store.save(plan)
-                    continue
+            self.logger.debug(
+                f"[PlannerAgent] Round {round_num}: {len(new_tasks)} tasks "
+                f"(status={response['status']})"
+            )
+            self.logger.debug(format_plan_for_display(plan))
 
-            mission_tag = f" [{task.mission}]" if task.mission else ""
-            self.logger.debug(f"[Plan] Step {i+1}/{len(plan.tasks)}{mission_tag}: {task.description}")
+            # Execute batch
+            round_results = []
+            for task in new_tasks:
+                self._execute_plan_task(task, plan)
+                round_results.append({
+                    "description": task.description,
+                    "status": task.status.value,
+                    "result_summary": (task.result or "")[:200],
+                    "error": task.error,
+                })
+                store.save(plan)
 
-            # Route to appropriate agent
-            if task.mission == "__visualization__":
-                self._get_or_create_viz_agent().execute_task(task)
-            elif task.mission == "__data_ops__":
-                self._get_or_create_dataops_agent().execute_task(task)
-            elif task.mission == "__data_extraction__":
-                self._get_or_create_data_extraction_agent().execute_task(task)
-            elif task.mission and task.mission in mission_agents:
-                mission_agents[task.mission].execute_task(task)
-            else:
-                self._execute_task(task)
+            if response.get("status") == "done":
+                break
 
-            if task.status == TaskStatus.COMPLETED:
-                completed_task_ids.add(task.id)
+            # Replan: send results back to planner
+            response = planner.continue_planning(round_results)
+            if response is None:
+                self.logger.debug("[PlannerAgent] Planner error mid-plan, finalizing")
+                break
 
-            store.save(plan)
-
-        # Mark plan as complete
+        # Finalize
         if plan.get_failed_tasks():
             plan.status = PlanStatus.FAILED
             log_plan_event("failed", plan.id, plan.progress_summary())
@@ -1171,6 +1225,7 @@ class OrchestratorAgent:
             plan.status = PlanStatus.COMPLETED
             log_plan_event("completed", plan.id, plan.progress_summary())
         store.save(plan)
+        planner.reset()
 
         summary = self._summarize_plan_execution(plan)
         self._current_plan = None
@@ -1426,6 +1481,7 @@ class OrchestratorAgent:
         self._viz_agent = None
         self._dataops_agent = None
         self._data_extraction_agent = None
+        self._planner_agent = None
         self._renderer.reset()
 
         self._session_id = session_id
@@ -1438,16 +1494,87 @@ class OrchestratorAgent:
         """Return the current session ID, or None."""
         return self._session_id
 
+    def _pre_check_clarification(self, user_message: str) -> Optional[str]:
+        """Send a complex request to the orchestrator to check for clarification.
+
+        Before handing off to the PlannerAgent, this gives the orchestrator one
+        chance to ask the user for clarification. The message goes through the
+        orchestrator chat so the exchange is preserved in history for follow-up.
+
+        Returns:
+            - Clarification question if the orchestrator needs more info
+            - Text response if the orchestrator handled the request directly
+              (e.g., a false positive from the complexity regex)
+            - None if the request should proceed to the planner
+        """
+        self.logger.debug("[Orchestrator] Pre-checking complex request for clarification...")
+        response = self.chat.send_message(message=user_message)
+        self._track_usage(response)
+
+        if not response.candidates or not response.candidates[0].content.parts:
+            return None
+
+        # Separate function calls and text parts
+        function_calls = []
+        text_parts = []
+        for part in response.candidates[0].content.parts:
+            if hasattr(part, "function_call") and part.function_call and part.function_call.name:
+                function_calls.append(part.function_call)
+            elif hasattr(part, "text") and part.text:
+                text_parts.append(part.text)
+
+        # Case 1: Text-only response — orchestrator handled it directly
+        if not function_calls:
+            text = "\n".join(text_parts) if text_parts else "Done."
+            text += self._extract_grounding_sources(response)
+            return text
+
+        # Case 2: Clarification requested — return question immediately
+        # (don't send function response back, matching _process_single_message behavior)
+        for fc in function_calls:
+            if fc.name == "ask_clarification":
+                args = dict(fc.args) if fc.args else {}
+                question = args.get("question", "Could you provide more details?")
+                if args.get("context"):
+                    question = f"{args['context']}\n\n{question}"
+                if args.get("options"):
+                    question += "\n\nOptions:\n" + "\n".join(
+                        f"  {i+1}. {opt}" for i, opt in enumerate(args["options"])
+                    )
+                return question
+
+        # Case 3: Tool calls but no clarification — resolve pending calls
+        # so the orchestrator chat stays in a valid state, then proceed to planner
+        dummy_responses = [
+            types.Part.from_function_response(
+                name=fc.name,
+                response={"result": {
+                    "status": "redirected",
+                    "message": "This request is being handled by the planning system.",
+                }}
+            )
+            for fc in function_calls
+        ]
+        close_response = self.chat.send_message(message=dummy_responses)
+        self._track_usage(close_response)
+
+        return None  # proceed to planner
+
     def process_message(self, user_message: str) -> str:
         """Process a user message and return the agent's response.
 
-        Every message goes to the orchestrator, which decides what to do:
-        - delegate_to_mission for data requests
-        - delegate_to_visualization for visualization requests
-        - Direct tool calls for discovery, data ops
-        - Text response for greetings, questions, summaries
+        Complex multi-step requests get a clarification pre-check via the
+        orchestrator, then route through the PlannerAgent if no clarification
+        is needed. Simple requests go directly to the orchestrator chat loop.
         """
-        result = self._process_single_message(user_message)
+        if is_complex_request(user_message):
+            pre_result = self._pre_check_clarification(user_message)
+            if pre_result is not None:
+                result = pre_result
+            else:
+                result = self._process_complex_request(user_message)
+        else:
+            result = self._process_single_message(user_message)
 
         # Auto-save after each turn
         if self._auto_save and self._session_id:
@@ -1469,6 +1596,7 @@ class OrchestratorAgent:
         self._viz_agent = None
         self._dataops_agent = None
         self._data_extraction_agent = None
+        self._planner_agent = None
         self._renderer.reset()
 
         # Start a fresh session if auto-save was active
