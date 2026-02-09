@@ -701,6 +701,53 @@ class PlotlyRenderer:
         """Return the current Plotly figure (or None if nothing plotted)."""
         return self._figure
 
+    # ------------------------------------------------------------------
+    # Serialization for session persistence
+    # ------------------------------------------------------------------
+
+    def save_state(self) -> dict | None:
+        """Serialize the renderer state (figure + metadata) to a dict.
+
+        Returns None if there is no figure to save.
+        """
+        if self._figure is None:
+            return None
+        tr = self._current_time_range
+        return {
+            "figure_json": self._figure.to_json(),
+            "panel_count": self._panel_count,
+            "time_range": tr.to_time_range_string() if tr else None,
+            "label_colors": dict(self._label_colors),
+            "color_index": self._color_index,
+            "trace_labels": list(self._trace_labels),
+            "trace_panels": list(self._trace_panels),
+        }
+
+    def restore_state(self, state: dict) -> None:
+        """Restore renderer state from a dict produced by save_state()."""
+        import plotly.io as pio
+
+        fig_json = state.get("figure_json")
+        if not fig_json:
+            return
+
+        self._figure = pio.from_json(fig_json)
+        self._panel_count = state.get("panel_count", 0)
+        self._label_colors = state.get("label_colors", {})
+        self._color_index = state.get("color_index", 0)
+        self._trace_labels = state.get("trace_labels", [])
+        self._trace_panels = state.get("trace_panels", [])
+
+        tr_str = state.get("time_range")
+        if tr_str:
+            try:
+                from agent.time_utils import parse_time_range
+                self._current_time_range = parse_time_range(tr_str)
+            except Exception:
+                self._current_time_range = None
+        else:
+            self._current_time_range = None
+
 
 # ------------------------------------------------------------------
 # Helpers

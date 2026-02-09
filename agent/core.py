@@ -1697,6 +1697,7 @@ class OrchestratorAgent:
                 "token_usage": usage,
                 "model": self.model_name,
             },
+            figure_state=self._renderer.save_state(),
         )
         self.logger.debug(f"[Session] Saved ({turn_count} turns, {len(store)} data entries)")
 
@@ -1709,7 +1710,7 @@ class OrchestratorAgent:
         Returns:
             The session metadata dict.
         """
-        history_dicts, data_dir, metadata = self._session_manager.load_session(session_id)
+        history_dicts, data_dir, metadata, figure_state = self._session_manager.load_session(session_id)
 
         # Restore chat with saved history — fall back to fresh chat if
         # the Gemini SDK can't reconstruct function_call/function_response parts
@@ -1749,6 +1750,14 @@ class OrchestratorAgent:
         self._data_extraction_agent = None
         self._planner_agent = None
         self._renderer.reset()
+
+        # Restore the Plotly figure and renderer state
+        if figure_state:
+            try:
+                self._renderer.restore_state(figure_state)
+                self.logger.debug("[Session] Restored plot figure")
+            except Exception as e:
+                self.logger.warning(f"[Session] Could not restore figure: {e}")
 
         self._session_id = session_id
         self._auto_save = True

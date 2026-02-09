@@ -71,8 +71,9 @@ class SessionManager:
         chat_history: list[dict],
         data_store,
         metadata_updates: Optional[dict] = None,
+        figure_state: Optional[dict] = None,
     ) -> None:
-        """Save chat history and DataStore to disk.
+        """Save chat history, DataStore, and plot figure to disk.
 
         Args:
             session_id: The session to save.
@@ -80,6 +81,8 @@ class SessionManager:
             data_store: A DataStore instance to persist.
             metadata_updates: Optional dict to merge into metadata
                 (e.g. token_usage, turn_count).
+            figure_state: Optional renderer state dict from
+                ``PlotlyRenderer.save_state()``.
         """
         session_dir = self.base_dir / session_id
         if not session_dir.exists():
@@ -93,6 +96,13 @@ class SessionManager:
         data_dir.mkdir(exist_ok=True)
         data_store.save_to_directory(data_dir)
 
+        # Save figure state (or remove stale file if no figure)
+        figure_path = session_dir / "figure.json"
+        if figure_state:
+            self._write_json(figure_path, figure_state)
+        elif figure_path.exists():
+            figure_path.unlink()
+
         # Update metadata
         metadata = self._read_json(session_dir / "metadata.json") or {}
         metadata["updated_at"] = datetime.now().isoformat()
@@ -100,14 +110,16 @@ class SessionManager:
             metadata.update(metadata_updates)
         self._write_json(session_dir / "metadata.json", metadata)
 
-    def load_session(self, session_id: str) -> tuple[list[dict], Path, dict]:
+    def load_session(self, session_id: str) -> tuple[list[dict], Path, dict, Optional[dict]]:
         """Load a session from disk.
 
         Args:
             session_id: The session to load.
 
         Returns:
-            Tuple of (history_dicts, data_dir_path, metadata).
+            Tuple of (history_dicts, data_dir_path, metadata, figure_state).
+            ``figure_state`` is the dict saved by ``PlotlyRenderer.save_state()``,
+            or ``None`` if no figure was saved.
 
         Raises:
             FileNotFoundError: If the session does not exist.
@@ -119,8 +131,9 @@ class SessionManager:
         history = self._read_json(session_dir / "history.json") or []
         metadata = self._read_json(session_dir / "metadata.json") or {}
         data_dir = session_dir / "data"
+        figure_state = self._read_json(session_dir / "figure.json")
 
-        return history, data_dir, metadata
+        return history, data_dir, metadata, figure_state
 
     def list_sessions(self) -> list[dict]:
         """List all sessions, sorted by updated_at descending.
