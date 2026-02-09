@@ -227,6 +227,113 @@ class PlotlyRenderer:
         return result
 
     # ------------------------------------------------------------------
+    # Spectrogram
+    # ------------------------------------------------------------------
+
+    def plot_spectrogram(
+        self,
+        entry: DataEntry,
+        title: str = "",
+        colorscale: str = "Viridis",
+        log_y: bool = False,
+        log_z: bool = False,
+        z_min: float | None = None,
+        z_max: float | None = None,
+        index: int = -1,
+    ) -> dict:
+        """Plot a spectrogram (2D heatmap) from a computed spectrogram DataEntry.
+
+        Args:
+            entry: DataEntry with 2D data (DatetimeIndex x frequency/energy bins).
+            title: Optional plot title.
+            colorscale: Plotly colorscale name.
+            log_y: If True, use log scale on y-axis.
+            log_z: If True, apply log10 to z-values.
+            z_min: Optional minimum for color scale.
+            z_max: Optional maximum for color scale.
+            index: Panel index (0-based). -1 for default.
+
+        Returns:
+            Result dict with status and display info.
+        """
+        if len(entry.data) == 0:
+            return {"status": "error", "message": f"Entry '{entry.label}' has no data points"}
+
+        # Extract times as ISO strings (same pattern as plot_dataset)
+        times = [
+            t.isoformat() if hasattr(t, "isoformat") else str(t)
+            for t in entry.data.index.tolist()
+        ]
+
+        # Extract bin values from metadata or column names
+        meta = entry.metadata or {}
+        bin_values = meta.get("bin_values")
+        if bin_values is None:
+            try:
+                bin_values = [float(c) for c in entry.data.columns]
+            except (ValueError, TypeError):
+                bin_values = list(range(len(entry.data.columns)))
+
+        # Z-values: rows=time, cols=bins → transpose so Heatmap z[i] = row i = one frequency
+        z_values = entry.data.values.astype(float)
+        if log_z:
+            z_values = np.where(z_values > 0, np.log10(z_values), np.nan)
+
+        # Heatmap expects z[i] = one row of the y-axis (one frequency bin)
+        # so z shape is (n_bins, n_times) — transpose
+        z_data = z_values.T.tolist()
+        bin_list = [float(b) for b in bin_values]
+
+        # Determine panel row
+        row = 1
+        if index >= 0:
+            fig = self._grow_panels(index + 1)
+            row = index + 1
+        else:
+            fig = self._ensure_figure()
+
+        colorbar_title = meta.get("value_label", "")
+        if log_z and colorbar_title:
+            colorbar_title = f"log₁₀({colorbar_title})"
+        elif log_z:
+            colorbar_title = "log₁₀(intensity)"
+
+        heatmap = go.Heatmap(
+            x=times,
+            y=bin_list,
+            z=z_data,
+            colorscale=colorscale,
+            colorbar=dict(title=dict(text=colorbar_title)) if colorbar_title else None,
+            zmin=z_min,
+            zmax=z_max,
+            name=entry.description or entry.label,
+        )
+
+        fig.add_trace(heatmap, row=row, col=1)
+
+        # Configure axes
+        fig.update_xaxes(type="date", row=row, col=1)
+
+        y_axis_title = meta.get("bin_label", "")
+        if y_axis_title:
+            fig.update_yaxes(title_text=y_axis_title, row=row, col=1)
+
+        if log_y:
+            fig.update_yaxes(type="log", row=row, col=1)
+
+        if title:
+            fig.update_layout(title_text=title)
+
+        self._log(f"Spectrogram '{entry.label}': {len(times)} time steps x {len(bin_list)} bins")
+
+        return {
+            "status": "success",
+            "label": entry.label,
+            "shape": f"{len(times)} x {len(bin_list)}",
+            "display": "plotly",
+        }
+
+    # ------------------------------------------------------------------
     # Time range
     # ------------------------------------------------------------------
 

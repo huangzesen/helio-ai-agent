@@ -287,6 +287,68 @@ Examples:
         }
     },
 
+    {
+        "category": "data_ops_compute",
+        "name": "compute_spectrogram",
+        "description": """Compute a spectrogram (2D time-frequency or time-energy data) from an in-memory timeseries. Use this when the user wants a spectrogram, power spectral density over time, dynamic spectrum, or frequency-time plot.
+
+The python_code must:
+- Operate on `df` (a pandas DataFrame with DatetimeIndex)
+- Assign the result to `result` (a DataFrame with DatetimeIndex rows and frequency/energy bin columns)
+- Use `df`, `pd` (pandas), `np` (numpy), and `signal` (scipy.signal) — no imports, no file I/O
+- Column names MUST be string representations of bin center values (e.g., "0.001", "0.5", "10.0")
+
+Common patterns:
+- **Power spectrogram (scipy)**:
+  vals = df.iloc[:, 0].dropna().values
+  dt = df.index.to_series().diff().dt.total_seconds().median()
+  fs = 1.0 / dt
+  f, t_seg, Sxx = signal.spectrogram(vals, fs=fs, nperseg=256, noverlap=128)
+  times = pd.to_datetime(df.index[0]) + pd.to_timedelta(t_seg, unit='s')
+  result = pd.DataFrame(Sxx.T, index=times, columns=[str(freq) for freq in f])
+
+- **Welch PSD (single spectrum, not time-varying)**:
+  vals = df.iloc[:, 0].dropna().values
+  dt = df.index.to_series().diff().dt.total_seconds().median()
+  f, Pxx = signal.welch(vals, fs=1.0/dt, nperseg=256)
+  result = pd.DataFrame({'PSD': Pxx}, index=pd.to_datetime(df.index[0]) + pd.to_timedelta(f, unit='s'))
+
+Guidelines:
+- Choose nperseg based on data cadence and desired frequency resolution
+- Use noverlap=nperseg//2 as a reasonable default
+- For large datasets, consider downsampling first with df.resample()""",
+        "parameters": {
+            "type": "object",
+            "properties": {
+                "source_label": {
+                    "type": "string",
+                    "description": "Label of the source timeseries in memory"
+                },
+                "python_code": {
+                    "type": "string",
+                    "description": "Python code using df, pd, np, signal (scipy.signal). Must assign to 'result'."
+                },
+                "output_label": {
+                    "type": "string",
+                    "description": "Label for the output spectrogram (e.g., 'ACE_Bmag_spectrogram')"
+                },
+                "description": {
+                    "type": "string",
+                    "description": "Human-readable description of the spectrogram"
+                },
+                "bin_label": {
+                    "type": "string",
+                    "description": "Y-axis label for the bins (e.g., 'Frequency (Hz)', 'Energy (eV)')"
+                },
+                "value_label": {
+                    "type": "string",
+                    "description": "Colorbar label for the values (e.g., 'PSD (nT²/Hz)', 'Flux')"
+                }
+            },
+            "required": ["source_label", "python_code", "output_label", "description"]
+        }
+    },
+
     # --- Describe & Export Tools ---
     {
         "category": "data_ops_compute",
@@ -447,23 +509,28 @@ Returns grounded text with source URLs.""",
         }
     },
 
-    # --- Document Conversion ---
+    # --- Document Reading ---
     {
         "category": "document",
-        "name": "convert_to_markdown",
-        "description": """Convert a file to Markdown text. Supports PDF, Word (DOCX), PowerPoint (PPTX),
-Excel (XLSX), HTML, CSV, JSON, XML, images (with EXIF), and ZIP archives. Use this when:
-- User uploads or references a document file
-- User wants to read, summarize, or extract content from a file
+        "name": "read_document",
+        "description": """Read a PDF or image file and extract its text content using Gemini vision.
+Supported formats: PDF (.pdf), PNG (.png), JPEG (.jpg, .jpeg), GIF (.gif), WebP (.webp), BMP (.bmp), TIFF (.tiff).
+Use this when:
+- User uploads or references a PDF or image file
+- User wants to read, summarize, or extract content from a document
 - User asks questions about a document's contents
-The converted Markdown is saved to ~/.helio-agent/documents/ for persistence across sessions.
-Returns the Markdown content and the saved file path.""",
+The extracted text is saved to ~/.helio-agent/documents/ for persistence across sessions.
+Returns the extracted text content and the saved file path.""",
         "parameters": {
             "type": "object",
             "properties": {
                 "file_path": {
                     "type": "string",
-                    "description": "Absolute path to the file to convert"
+                    "description": "Absolute path to the file to read"
+                },
+                "prompt": {
+                    "type": "string",
+                    "description": "Optional prompt for targeted extraction (e.g., 'extract the data table', 'list all dates and values'). If not provided, a default extraction prompt is used."
                 }
             },
             "required": ["file_path"]
@@ -564,7 +631,7 @@ The DataOps agent can see all data currently in memory via list_fetched_data."""
         "name": "delegate_to_data_extraction",
         "description": """Delegate text-to-DataFrame conversion to the DataExtraction specialist agent. Use this when:
 - The user wants to turn unstructured text into a plottable dataset (event lists, search results, catalogs)
-- The user wants to extract data tables from a document (PDF, DOCX, etc.)
+- The user wants to extract data tables from a document (PDF or image)
 - You have Google Search results with dates and values that should become a DataFrame
 - The user says "create a dataset from..." or "make a timeline of..."
 
@@ -573,7 +640,7 @@ Do NOT delegate:
 - Data transformations on existing in-memory data (use delegate_to_data_ops)
 - Visualization requests (use delegate_to_visualization)
 
-The DataExtraction agent can read documents (convert_to_markdown), create DataFrames (store_dataframe), and see what data is in memory (list_fetched_data).""",
+The DataExtraction agent can read documents (read_document), create DataFrames (store_dataframe), and see what data is in memory (list_fetched_data).""",
         "parameters": {
             "type": "object",
             "properties": {

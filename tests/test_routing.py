@@ -21,7 +21,7 @@ class TestToolCategoryFiltering:
 
     def test_no_filter_returns_all_tools(self):
         all_tools = get_tool_schemas()
-        assert len(all_tools) == 21  # 18 + store_dataframe + convert_to_markdown + delegate_to_data_extraction
+        assert len(all_tools) == 22  # 21 + compute_spectrogram
         names = {t["name"] for t in all_tools}
         assert "execute_visualization" in names
         assert "custom_visualization" in names
@@ -31,7 +31,7 @@ class TestToolCategoryFiltering:
         assert "delegate_to_data_ops" in names
         assert "delegate_to_data_extraction" in names
         assert "get_dataset_docs" in names
-        assert "convert_to_markdown" in names
+        assert "read_document" in names
 
     def test_mission_categories_exclude_visualization_and_routing(self):
         mission_tools = get_tool_schemas(categories=MISSION_TOOL_CATEGORIES, extra_names=MISSION_EXTRA_TOOLS)
@@ -52,7 +52,7 @@ class TestToolCategoryFiltering:
         assert "describe_data" not in names
         assert "save_data" not in names
         # Should NOT include document tools
-        assert "convert_to_markdown" not in names
+        assert "read_document" not in names
 
     def test_visualization_category_only(self):
         viz_tools = get_tool_schemas(categories=VIZ_TOOL_CATEGORIES)
@@ -80,7 +80,7 @@ class TestToolCategoryFiltering:
         # Should include list_fetched_data (extra tool)
         assert "list_fetched_data" in names
         # Should include document tools
-        assert "convert_to_markdown" in names
+        assert "read_document" in names
         # Should NOT include data_ops (delegated to sub-agents)
         assert "fetch_data" not in names
         assert "custom_operation" not in names
@@ -211,13 +211,13 @@ class TestDataExtractionCategories:
         names = {t["name"] for t in tools}
         assert "store_dataframe" in names
 
-    def test_extraction_agent_gets_convert_to_markdown(self):
+    def test_extraction_agent_gets_read_document(self):
         tools = get_tool_schemas(
             categories=EXTRACTION_CATEGORIES,
             extra_names=EXTRACTION_EXTRA_TOOLS,
         )
         names = {t["name"] for t in tools}
-        assert "convert_to_markdown" in names
+        assert "read_document" in names
 
     def test_extraction_agent_gets_list_fetched_data(self):
         tools = get_tool_schemas(

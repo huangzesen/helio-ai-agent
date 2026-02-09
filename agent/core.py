@@ -36,7 +36,7 @@ from knowledge.cdaweb_catalog import search_catalog as search_full_cdaweb_catalo
 from knowledge.hapi_client import list_parameters as hapi_list_parameters, get_dataset_time_range
 from data_ops.store import get_store, DataEntry
 from data_ops.fetch import fetch_hapi_data
-from data_ops.custom_ops import run_custom_operation, run_dataframe_creation
+from data_ops.custom_ops import run_custom_operation, run_dataframe_creation, run_spectrogram_computation
 from rendering.custom_viz_ops import run_custom_visualization
 
 # Orchestrator sees discovery, conversation, and routing tools
@@ -416,6 +416,22 @@ class OrchestratorAgent:
                 return {"status": "error", "message": str(e)}
             return self._renderer.set_time_range(time_range)
 
+        elif method == "plot_spectrogram":
+            store = get_store()
+            entry = store.get(args["label"])
+            if entry is None:
+                return {"status": "error", "message": f"Label '{args['label']}' not found"}
+            return self._renderer.plot_spectrogram(
+                entry=entry,
+                title=args.get("title", ""),
+                colorscale=args.get("colorscale", "Viridis"),
+                log_y=args.get("log_y", False),
+                log_z=args.get("log_z", False),
+                z_min=args.get("z_min"),
+                z_max=args.get("z_max"),
+                index=int(args.get("index", -1)),
+            )
+
         elif method == "export":
             fmt = args.get("format", "png")
             filename = args["filename"]
@@ -663,6 +679,41 @@ class OrchestratorAgent:
             self.logger.debug(f"[DataOps] Created DataFrame -> '{tool_args['output_label']}' ({len(result_df)} points)")
             return {"status": "success", **entry.summary()}
 
+        elif tool_name == "compute_spectrogram":
+            store = get_store()
+            source = store.get(tool_args["source_label"])
+            if source is None:
+                return {"status": "error", "message": f"Label '{tool_args['source_label']}' not found"}
+            try:
+                result_df = run_spectrogram_computation(source.data, tool_args["python_code"])
+            except ValueError as e:
+                return {"status": "error", "message": f"Validation error: {e}"}
+            except RuntimeError as e:
+                return {"status": "error", "message": f"Execution error: {e}"}
+
+            metadata = {
+                "type": "spectrogram",
+                "bin_label": tool_args.get("bin_label", ""),
+                "value_label": tool_args.get("value_label", ""),
+            }
+            try:
+                bin_values = [float(c) for c in result_df.columns]
+                metadata["bin_values"] = bin_values
+            except (ValueError, TypeError):
+                metadata["bin_values"] = list(range(len(result_df.columns)))
+
+            entry = DataEntry(
+                label=tool_args["output_label"],
+                data=result_df,
+                units=source.units,
+                description=tool_args.get("description", "Spectrogram"),
+                source="computed",
+                metadata=metadata,
+            )
+            store.put(entry)
+            self.logger.debug(f"[DataOps] Spectrogram -> '{tool_args['output_label']}' ({result_df.shape})")
+            return {"status": "success", **entry.summary()}
+
         # --- Describe & Export Tools ---
 
         elif tool_name == "describe_data":
@@ -756,27 +807,74 @@ class OrchestratorAgent:
                 "file_size_bytes": file_size,
             }
 
-        # --- Document Conversion ---
+        # --- Document Reading (Gemini multimodal) ---
 
-        elif tool_name == "convert_to_markdown":
-            from markitdown import MarkItDown
+        elif tool_name == "read_document":
             from pathlib import Path
 
             file_path = tool_args["file_path"]
             if not Path(file_path).is_file():
                 return {"status": "error", "message": f"File not found: {file_path}"}
+
+            # MIME type map for supported formats
+            mime_map = {
+                ".pdf": "application/pdf",
+                ".png": "image/png",
+                ".jpg": "image/jpeg",
+                ".jpeg": "image/jpeg",
+                ".gif": "image/gif",
+                ".webp": "image/webp",
+                ".bmp": "image/bmp",
+                ".tiff": "image/tiff",
+            }
+            ext = Path(file_path).suffix.lower()
+            mime_type = mime_map.get(ext)
+            if not mime_type:
+                supported = ", ".join(sorted(mime_map.keys()))
+                return {
+                    "status": "error",
+                    "message": f"Unsupported file format '{ext}'. Supported: {supported}",
+                }
+
             try:
                 import shutil
 
-                md = MarkItDown(enable_plugins=False)
-                result = md.convert(file_path)
-                full_text = result.text_content
+                # Read file bytes
+                file_bytes = Path(file_path).read_bytes()
 
-                # Save original + markdown to ~/.helio-agent/documents/{stem}/
+                # Build extraction prompt
+                custom_prompt = tool_args.get("prompt", "")
+                if custom_prompt:
+                    extraction_prompt = custom_prompt
+                elif ext == ".pdf":
+                    extraction_prompt = (
+                        "Extract all text content from this document. "
+                        "Preserve the document structure (headings, paragraphs, lists). "
+                        "Render tables as markdown tables. "
+                        "Describe any figures or charts briefly."
+                    )
+                else:
+                    extraction_prompt = (
+                        "Extract all text and data from this image. "
+                        "If it contains a table or chart, transcribe the data. "
+                        "If it contains text, transcribe it faithfully. "
+                        "Describe any visual elements briefly."
+                    )
+
+                # Send to Gemini as multimodal content
+                doc_part = types.Part.from_bytes(data=file_bytes, mime_type=mime_type)
+                response = self.client.models.generate_content(
+                    model=self.model_name,
+                    contents=[doc_part, extraction_prompt],
+                )
+                self._track_usage(response)
+
+                full_text = response.text or ""
+
+                # Save original + extracted text to ~/.helio-agent/documents/{stem}/
                 docs_dir = Path.home() / ".helio-agent" / "documents"
                 src = Path(file_path)
                 stem = src.stem
-                suffix = src.suffix
 
                 # Find a unique subfolder name
                 folder = docs_dir / stem
@@ -790,7 +888,7 @@ class OrchestratorAgent:
                 original_copy = folder / src.name
                 shutil.copy2(str(src), str(original_copy))
 
-                # Save converted markdown
+                # Save extracted text
                 out_path = folder / f"{stem}.md"
                 out_path.write_text(full_text, encoding="utf-8")
                 self.logger.debug(f"[Document] Saved to {folder} ({len(full_text)} chars)")
@@ -806,13 +904,13 @@ class OrchestratorAgent:
                     "status": "success",
                     "file": Path(file_path).name,
                     "original_saved_to": str(original_copy),
-                    "markdown_saved_to": str(out_path),
+                    "text_saved_to": str(out_path),
                     "char_count": len(full_text),
                     "truncated": truncated,
-                    "markdown": text,
+                    "content": text,
                 }
             except Exception as e:
-                return {"status": "error", "message": f"Conversion failed: {e}"}
+                return {"status": "error", "message": f"Document reading failed: {e}"}
 
         # --- Routing ---
 

@@ -15,13 +15,19 @@ User input
 main.py  (readline CLI, --verbose/--model flags, token usage on exit)
   |  - Commands: quit, reset, status, retry, cancel, errors, sessions, capabilities, help
   |  - Flags: --continue/-c (resume latest), --session/-s ID (resume specific)
+  |  - Flags: --refresh (update time ranges), --refresh-full (rebuild primary),
+  |           --refresh-all (rebuild all missions from CDAWeb)
   |  - Single-command mode: python main.py "request"
   |  - Auto-saves session every turn; checks for incomplete plans on startup
+  |  - Mission data menu on startup (interactive refresh prompt)
   |
   v
 gradio_app.py  (browser-based chat UI, inline Plotly plots, data table sidebar)
   |  - Wraps same OrchestratorAgent as main.py
   |  - Flags: --share, --port, --verbose, --model
+  |  - Flags: --refresh, --refresh-full, --refresh-all (same as main.py)
+  |  - Multimodal file upload (PDF, images)
+  |  - Browse & Fetch sidebar (mission → dataset → parameter dropdowns, direct HAPI fetch)
   |
   v
 agent/core.py  OrchestratorAgent  (LLM-driven orchestrator)
@@ -50,7 +56,7 @@ agent/core.py  OrchestratorAgent  (LLM-driven orchestrator)
   |       DataExtractionAgent     Focused Gemini session for unstructured-to-structured conversion
   |       execute_task()          Forced function calling for plan tasks (max 3 iter)
   |       process_request()       Full conversational mode (max 5 iter, duplicate detection)
-  |                               Tools: store_dataframe, convert_to_markdown, ask_clarification
+  |                               Tools: store_dataframe, read_document, ask_clarification
   |                               Turns search results, documents, event lists into DataFrames
   |
   +---> agent/mission_agent.py    Mission sub-agents (fetch-only tools)
@@ -87,6 +93,8 @@ agent/core.py  OrchestratorAgent  (LLM-driven orchestrator)
   |       catalog.py               Thin routing layer (loads from JSON, backward-compat SPACECRAFT dict)
   |       prompt_builder.py        Slim system prompt (routing table + catalog search) + rich mission/visualization prompts
   |       hapi_client.py           CDAWeb HAPI /info endpoint (parameter metadata, cached, browse_datasets)
+  |       startup.py               Mission data startup: status check, interactive refresh menu, CLI flag resolution
+  |       bootstrap.py             Mission JSON auto-generation from CDAWeb HAPI catalog
   |
   +---> data_ops/                 Python-side data pipeline (pandas-backed)
   |       fetch.py                  HAPI /data endpoint -> pandas DataFrames (pd.read_csv)
@@ -103,10 +111,12 @@ agent/core.py  OrchestratorAgent  (LLM-driven orchestrator)
           fetch_hapi_cache.py       Download HAPI /info metadata to local cache
           agent_server.py           TCP socket server for multi-turn agent testing
           run_agent_tests.py        Integration test suite (6 scenarios)
+          test_dataset_loading.py   End-to-end dataset loading test across all HAPI datasets
+          regression_test_20260207.py  Regression tests from 2026-02-07 session
           stress_test.py            Stress testing
 ```
 
-## Tools (21 tool schemas)
+## Tools (22 tool schemas)
 
 ### Dataset Discovery
 | Tool | Purpose |
@@ -125,7 +135,7 @@ agent/core.py  OrchestratorAgent  (LLM-driven orchestrator)
 | `execute_visualization` | Execute core visualization methods via the method registry (5 methods) |
 | `custom_visualization` | Execute free-form Plotly code to customize the current plot |
 
-The `execute_visualization` tool dispatches to the method registry (`rendering/registry.py`), which describes 5 core operations: `plot_stored_data`, `set_time_range`, `export`, `get_plot_state`, `reset`. The `custom_visualization` tool handles all other customization (titles, axis labels, log scale, canvas size, render type, annotations, trace styling, etc.) via LLM-generated Plotly code in an AST-validated sandbox (`rendering/custom_viz_ops.py`).
+The `execute_visualization` tool dispatches to the method registry (`rendering/registry.py`), which describes 6 core operations: `plot_stored_data`, `plot_spectrogram`, `set_time_range`, `export`, `get_plot_state`, `reset`. The `custom_visualization` tool handles all other customization (titles, axis labels, log scale, canvas size, render type, annotations, trace styling, etc.) via LLM-generated Plotly code in an AST-validated sandbox (`rendering/custom_viz_ops.py`).
 
 ### Data Operations (fetch -> custom_operation -> plot)
 | Tool | Purpose |
@@ -133,6 +143,7 @@ The `execute_visualization` tool dispatches to the method registry (`rendering/r
 | `fetch_data` | Pull HAPI data into memory (label: `DATASET.PARAM`) |
 | `list_fetched_data` | Show all in-memory timeseries |
 | `custom_operation` | LLM-generated pandas/numpy code (AST-validated, sandboxed) — handles magnitude, arithmetic, smoothing, resampling, derivatives, and any other transformation |
+| `compute_spectrogram` | LLM-generated scipy.signal code to compute spectrograms from timeseries (AST-validated, sandboxed) |
 | `describe_data` | Statistical summary of in-memory data (min/max/mean/std/percentiles/NaN) |
 | `save_data` | Export in-memory timeseries to CSV file |
 
@@ -141,10 +152,10 @@ The `execute_visualization` tool dispatches to the method registry (`rendering/r
 |------|---------|
 | `store_dataframe` | Create a new DataFrame from scratch and store it in memory (event lists, catalogs, search results, manual data) |
 
-### Document Conversion
+### Document Reading
 | Tool | Purpose |
 |------|---------|
-| `convert_to_markdown` | Convert files (PDF, DOCX, PPTX, XLSX, HTML, images, etc.) to Markdown using markitdown |
+| `read_document` | Read PDF and image files using Gemini vision (extracts text, tables, charts) |
 
 ### Conversation
 | Tool | Purpose |
@@ -179,7 +190,7 @@ The `execute_visualization` tool dispatches to the method registry (`rendering/r
 - No fetch tools — operates on already-fetched data in memory
 
 ### DataExtractionAgent (agent/data_extraction_agent.py)
-- Sees tools: data_extraction (`store_dataframe`), document (`convert_to_markdown`), conversation (`ask_clarification`) + `list_fetched_data` extra
+- Sees tools: data_extraction (`store_dataframe`), document (`read_document`), conversation (`ask_clarification`) + `list_fetched_data` extra
 - Singleton, cached per session
 - System prompt with extraction patterns, DataFrame creation guidelines, and document reading workflow
 - Turns unstructured text (search results, document tables, event catalogs) into structured DataFrames
@@ -259,7 +270,7 @@ All times are UTC. Outputs `TimeRange` objects with `start`/`end` datetimes.
 - **Routing**: The OrchestratorAgent (LLM) decides whether to handle a request directly or delegate via `delegate_to_mission` (fetching), `delegate_to_data_ops` (computation), `delegate_to_data_extraction` (text-to-DataFrame), or `delegate_to_visualization` (visualization) tools. No regex-based routing — the LLM uses conversation context and the routing table to decide.
 - **Mission sub-agents**: Each spacecraft has a data fetching specialist with rich system prompt (recommended datasets, analysis patterns). Agents are cached per session. Sub-agents have **fetch-only tools** (discovery, data_ops_fetch, conversation) — no compute, plot, or routing tools.
 - **DataOps sub-agent**: Data transformation specialist with `custom_operation`, `describe_data`, `save_data` + `list_fetched_data`. System prompt includes computation patterns and code guidelines. Singleton, cached per session.
-- **DataExtraction sub-agent**: Text-to-DataFrame specialist with `store_dataframe`, `convert_to_markdown`, `ask_clarification` + `list_fetched_data`. System prompt includes extraction patterns and DataFrame creation guidelines. Singleton, cached per session.
+- **DataExtraction sub-agent**: Text-to-DataFrame specialist with `store_dataframe`, `read_document`, `ask_clarification` + `list_fetched_data`. System prompt includes extraction patterns and DataFrame creation guidelines. Singleton, cached per session.
 - **Visualization sub-agent**: Visualization specialist with `execute_visualization` + `custom_visualization` + `list_fetched_data` tools. System prompt includes the method catalog and Plotly cookbook. Handles all plotting, customization, and export.
 - **Tool separation**: Tools have a `category` field (`discovery`, `visualization`, `data_ops`, `data_ops_fetch`, `data_ops_compute`, `data_extraction`, `conversation`, `routing`, `document`). `get_tool_schemas(categories=..., extra_names=...)` filters tools by category. Orchestrator sees `["discovery", "conversation", "routing", "document"]` + `list_fetched_data` extra. MissionAgent sees `["discovery", "data_ops_fetch", "conversation"]` + `list_fetched_data` extra. DataOpsAgent sees `["data_ops_compute", "conversation"]` + `list_fetched_data` extra. DataExtractionAgent sees `["data_extraction", "document", "conversation"]` + `list_fetched_data` extra. VisualizationAgent sees `["visualization"]` (`execute_visualization` + `custom_visualization`) + `list_fetched_data` extra.
 - **Post-delegation flow**: After `delegate_to_mission` returns data labels, the orchestrator uses `delegate_to_data_ops` for computation, `delegate_to_data_extraction` for text-to-DataFrame conversion, and then `delegate_to_visualization` to visualize results.
@@ -312,6 +323,14 @@ All times are UTC. Outputs `TimeRange` objects with `start`/`end` datetimes.
 - `gradio_app.py` supports real-time streaming of agent verbose output
 - Agent output unified through Python logging (commit 413eada)
 
+### Mission Data Startup (`knowledge/startup.py`)
+- Shared startup logic used by both `main.py` and `gradio_app.py`
+- `get_mission_status()` scans mission JSONs and reports count, datasets, last refresh date
+- `show_mission_menu()` presents interactive refresh options on startup
+- `resolve_refresh_flags()` maps CLI flags (`--refresh`, `--refresh-full`, `--refresh-all`) to actions
+- `run_mission_refresh()` invokes bootstrap to refresh time ranges, rebuild primary missions, or rebuild all missions
+- After refresh, clears mission_loader and hapi_client caches
+
 ### Google Search Grounding
 - `google_search` tool provides web search via Google Search grounding API
 - Implemented as a custom function tool that makes an isolated Gemini API call with only GoogleSearch configured (Gemini API does not support google_search + function_declarations in the same call)
@@ -331,12 +350,15 @@ GEMINI_PLANNER_MODEL=<optional, default: GEMINI_MODEL>
 ## Running
 
 ```bash
-python main.py              # Normal mode (auto-saves session)
-python main.py --verbose    # Show tool calls, timing, errors
-python main.py --continue   # Resume most recent session
-python main.py --session ID # Resume specific session by ID
-python main.py -m MODEL     # Specify Gemini model (overrides .env)
-python main.py "request"    # Single-command mode (non-interactive, exits after response)
+python main.py               # Normal mode (auto-saves session)
+python main.py --verbose     # Show tool calls, timing, errors
+python main.py --continue    # Resume most recent session
+python main.py --session ID  # Resume specific session by ID
+python main.py -m MODEL      # Specify Gemini model (overrides .env)
+python main.py "request"     # Single-command mode (non-interactive, exits after response)
+python main.py --refresh     # Refresh dataset time ranges (fast — start/stop dates only)
+python main.py --refresh-full  # Full rebuild of primary mission data
+python main.py --refresh-all   # Download ALL missions from CDAWeb (full rebuild)
 ```
 
 ### Gradio Web UI
@@ -345,11 +367,21 @@ python main.py "request"    # Single-command mode (non-interactive, exits after 
 python gradio_app.py                # Launch on localhost:7860
 python gradio_app.py --share        # Generate a public Gradio URL
 python gradio_app.py --port 8080    # Custom port
-python gradio_app.py --verbose      # Show tool call details
+python gradio_app.py --verbose      # Show tool call details (live streaming in browser)
 python gradio_app.py --model MODEL  # Override model
+python gradio_app.py --refresh      # Refresh dataset time ranges before launch
 ```
 
-Displays interactive Plotly figures inline, data table sidebar, and token usage tracking.
+Features:
+- Interactive Plotly figures displayed above the chat
+- Multimodal file upload (PDF, images) via drag-and-drop
+- Browse & Fetch sidebar: mission → dataset → parameter cascade dropdowns with direct HAPI fetch
+- Data table sidebar showing all in-memory timeseries
+- Data preview with head/tail rows for any label
+- Token usage and memory tracking
+- Session management (load/new/delete) in sidebar accordion
+- Example prompts for quick start
+- Verbose mode streams live debug logs in collapsible `<details>` blocks
 
 ### CLI Commands
 
@@ -393,6 +425,6 @@ plotly>=5.18.0          # Interactive scientific data visualization
 kaleido>=0.2.1          # Static image export for Plotly (PNG, PDF)
 gradio>=4.44.0          # Browser-based chat UI
 matplotlib>=3.7.0       # Legacy plotting (unused in main pipeline)
-markitdown[all]>=0.1.0  # Document-to-Markdown conversion (PDF, DOCX, PPTX, etc.)
+tqdm>=4.60.0            # Progress bars for bootstrap/data downloads
 pytest>=7.0.0           # Test framework
 ```

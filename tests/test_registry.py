@@ -30,8 +30,8 @@ class TestRegistryStructure:
         names = [m["name"] for m in METHODS]
         assert len(names) == len(set(names)), f"Duplicate method names: {[n for n in names if names.count(n) > 1]}"
 
-    def test_method_count_is_5(self):
-        assert len(METHODS) == 5
+    def test_method_count_is_6(self):
+        assert len(METHODS) == 6
 
     def test_parameters_have_required_fields(self):
         for m in METHODS:

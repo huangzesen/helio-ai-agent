@@ -35,6 +35,7 @@ class DataEntry:
     units: str = ""
     description: str = ""
     source: str = "computed"
+    metadata: dict | None = None
 
     @property
     def time(self) -> np.ndarray:
@@ -53,8 +54,11 @@ class DataEntry:
         """Return a compact summary dict suitable for LLM responses."""
         n = len(self.data)
         ncols = len(self.data.columns)
-        shape_desc = "scalar" if ncols == 1 else f"vector[{ncols}]"
-        return {
+        if self.metadata and self.metadata.get("type") == "spectrogram":
+            shape_desc = f"spectrogram[{ncols} bins]"
+        else:
+            shape_desc = "scalar" if ncols == 1 else f"vector[{ncols}]"
+        result = {
             "label": self.label,
             "num_points": n,
             "shape": shape_desc,
@@ -64,6 +68,9 @@ class DataEntry:
             "description": self.description,
             "source": self.source,
         }
+        if self.metadata:
+            result["metadata"] = self.metadata
+        return result
 
 
 class DataStore:
@@ -120,12 +127,15 @@ class DataStore:
             safe = _UNSAFE_CHARS.sub("_", label)
             pkl_name = f"{safe}.pkl"
             entry.data.to_pickle(dir_path / pkl_name)
-            index[label] = {
+            entry_meta = {
                 "filename": pkl_name,
                 "units": entry.units,
                 "description": entry.description,
                 "source": entry.source,
             }
+            if entry.metadata is not None:
+                entry_meta["metadata"] = entry.metadata
+            index[label] = entry_meta
 
         with open(dir_path / "_index.json", "w", encoding="utf-8") as f:
             json.dump(index, f, indent=2)
@@ -156,6 +166,7 @@ class DataStore:
                 units=info.get("units", ""),
                 description=info.get("description", ""),
                 source=info.get("source", "computed"),
+                metadata=info.get("metadata"),
             )
             self.put(entry)
             count += 1
