@@ -1,13 +1,13 @@
 """
-Passive MemoryAgent — monitors log growth and conversation turns, then runs
-a thorough analysis to extract pitfalls, preferences, summaries, and error
-patterns.  Triggered automatically at the end of process_message() when
-enough new material has accumulated.
+Passive MemoryAgent — runs as a background daemon thread that periodically
+monitors log growth, then extracts pitfalls, preferences, summaries, and
+error patterns via a single-shot Gemini call.
 
-Not a BaseSubAgent — it doesn't use Gemini tools or participate in routing.
+Fully decoupled from the main agent loop — never blocks process_message().
 """
 
 import json
+import threading
 from dataclasses import dataclass, field
 from datetime import datetime
 from pathlib import Path
@@ -22,9 +22,11 @@ from .model_fallback import get_active_model
 logger = get_logger()
 
 # Thresholds for triggering analysis
-LOG_GROWTH_THRESHOLD = 10 * 1024  # 10 KB
+LOG_GROWTH_THRESHOLD = 10 * 1024  # 10 KB of new log content
 ERROR_COUNT_THRESHOLD = 5
-TURN_COUNT_THRESHOLD = 10
+
+# How often the background thread checks for new log content
+POLL_INTERVAL_SECONDS = 30
 
 # Cap on log content sent to Gemini
 MAX_LOG_BYTES = 50 * 1024  # 50 KB
@@ -46,7 +48,15 @@ class AnalysisResult:
 
 
 class MemoryAgent:
-    """Passive agent that monitors log growth and extracts operational knowledge."""
+    """Background daemon that monitors logs and extracts operational knowledge.
+
+    Usage::
+
+        agent = MemoryAgent(client, model_name, memory_store)
+        agent.start()          # spawns daemon thread
+        ...                    # main loop runs unblocked
+        agent.stop()           # signals thread to exit (blocks up to 5s)
+    """
 
     def __init__(
         self,
@@ -54,11 +64,61 @@ class MemoryAgent:
         model_name: str,
         memory_store: MemoryStore,
         verbose: bool = False,
+        session_id: str = "",
     ):
         self.client = client
         self.model_name = model_name
         self.memory_store = memory_store
         self.verbose = verbose
+        self.session_id = session_id
+
+        # Background thread control
+        self._stop_event = threading.Event()
+        self._thread: Optional[threading.Thread] = None
+        self._running = False
+
+    # ---- Lifecycle ----
+
+    def start(self) -> None:
+        """Start the background monitoring thread (daemon, so it dies with the process)."""
+        if self._running:
+            return
+        self._stop_event.clear()
+        self._thread = threading.Thread(
+            target=self._run_loop, name="MemoryAgent", daemon=True,
+        )
+        self._running = True
+        self._thread.start()
+        logger.debug("[MemoryAgent] Background thread started")
+
+    def stop(self, timeout: float = 5.0) -> None:
+        """Signal the background thread to stop and wait for it to finish."""
+        if not self._running:
+            return
+        self._stop_event.set()
+        if self._thread is not None:
+            self._thread.join(timeout=timeout)
+        self._running = False
+        logger.debug("[MemoryAgent] Background thread stopped")
+
+    @property
+    def is_running(self) -> bool:
+        return self._running and self._thread is not None and self._thread.is_alive()
+
+    # ---- Background loop ----
+
+    def _run_loop(self) -> None:
+        """Periodically check log growth and run analysis when thresholds are met."""
+        while not self._stop_event.is_set():
+            try:
+                if self._should_analyze():
+                    logger.debug("[MemoryAgent] Threshold met, running analysis")
+                    self._run_analysis()
+            except Exception as e:
+                logger.debug(f"[MemoryAgent] Loop iteration failed: {e}")
+
+            # Sleep in short intervals so stop() is responsive
+            self._stop_event.wait(timeout=POLL_INTERVAL_SECONDS)
 
     # ---- State persistence ----
 
@@ -82,14 +142,9 @@ class MemoryAgent:
 
     # ---- Trigger checks ----
 
-    def should_analyze(self, turn_count: int) -> bool:
+    def _should_analyze(self) -> bool:
         """Lightweight check — no LLM call.  Returns True when any threshold is met."""
         state = self._load_state()
-
-        # Check turn count
-        last_turn = state.get("last_turn_count", 0)
-        if turn_count - last_turn >= TURN_COUNT_THRESHOLD:
-            return True
 
         # Check log growth
         log_path = get_current_log_path()
@@ -155,18 +210,16 @@ class MemoryAgent:
 
     # ---- Analysis ----
 
-    def analyze(
-        self,
-        conversation_text: str,
-        turn_count: int,
-        session_id: str = "",
-    ) -> AnalysisResult:
-        """Run a single-shot Gemini call to analyze conversation + logs.
+    def _run_analysis(self) -> None:
+        """Run a single-shot Gemini call to analyze new log content.
 
-        Returns an AnalysisResult with extracted memories and report path.
+        Called from the background thread. All exceptions are caught
+        so the loop continues regardless.
         """
         state = self._load_state()
         log_content = self._read_new_log_content(state)
+        if not log_content:
+            return
 
         # Build existing memories for dedup
         existing = self.memory_store.get_all()
@@ -175,8 +228,7 @@ class MemoryAgent:
         existing_sums = [m.content for m in existing if m.type == "summary"]
 
         prompt = self._build_analysis_prompt(
-            conversation_text, log_content,
-            existing_prefs, existing_pitfalls, existing_sums,
+            log_content, existing_prefs, existing_pitfalls, existing_sums,
         )
 
         try:
@@ -187,12 +239,12 @@ class MemoryAgent:
             )
         except Exception as e:
             logger.debug(f"[MemoryAgent] Gemini call failed: {e}")
-            return AnalysisResult()
+            return
 
         text = (response.text or "").strip()
         data = self._parse_analysis_response(text)
         if data is None:
-            return AnalysisResult()
+            return
 
         result = AnalysisResult(
             preferences=data.get("preferences", []),
@@ -203,10 +255,10 @@ class MemoryAgent:
 
         # Save memories
         self._save_preferences_and_summary(
-            result.preferences, result.summary, session_id,
+            result.preferences, result.summary, self.session_id,
             existing_prefs, existing_sums,
         )
-        self._save_pitfalls(result.pitfalls, session_id, existing_pitfalls)
+        self._save_pitfalls(result.pitfalls, self.session_id, existing_pitfalls)
 
         # Save report
         if result.error_patterns or result.pitfalls:
@@ -215,8 +267,8 @@ class MemoryAgent:
             if log_path.name != state.get("last_log_file", ""):
                 last_offset = 0
             result.report_path = self._save_report(
-                result, session_id, log_path.name,
-                last_offset, get_log_size(log_path), turn_count,
+                result, self.session_id, log_path.name,
+                last_offset, get_log_size(log_path),
             )
 
         # Consolidate if memory count exceeds target
@@ -226,17 +278,34 @@ class MemoryAgent:
             if removed > 0:
                 logger.info(f"[MemoryAgent] Consolidated memories: removed {removed}, kept {enabled_count - removed}")
 
-        # Update state
+        # Update state so we don't re-analyze the same log content
         log_path = get_current_log_path()
         new_state = {
             "last_log_file": log_path.name,
             "last_log_byte_offset": get_log_size(log_path),
             "last_analysis_timestamp": datetime.now().isoformat(),
-            "last_turn_count": turn_count,
         }
         self._save_state(new_state)
 
-        return result
+        total = len(result.preferences) + (1 if result.summary else 0) + len(result.pitfalls)
+        if total > 0:
+            logger.info(f"[MemoryAgent] Extracted {total} memories, {len(result.error_patterns)} error patterns")
+        if result.report_path:
+            logger.info(f"[MemoryAgent] Report saved: {result.report_path}")
+
+    # ---- One-shot analysis (for shutdown / explicit calls) ----
+
+    def analyze_once(self) -> AnalysisResult:
+        """Run a single analysis pass immediately (blocking).
+
+        Useful for end-of-session extraction — called from the main thread
+        during shutdown.
+        """
+        try:
+            self._run_analysis()
+        except Exception as e:
+            logger.debug(f"[MemoryAgent] One-shot analysis failed: {e}")
+        return AnalysisResult()
 
     # ---- Consolidation ----
 
@@ -344,7 +413,6 @@ Current memories:
 
     def _build_analysis_prompt(
         self,
-        conversation_text: str,
         log_content: str,
         existing_prefs: list[str],
         existing_pitfalls: list[str],
@@ -361,16 +429,11 @@ Current memories:
             existing_section += "\nExisting summaries (do NOT duplicate):\n"
             existing_section += "\n".join(f"- {s}" for s in existing_sums)
 
-        log_section = ""
-        if log_content:
-            log_section = f"\n\nAgent log (recent entries):\n{log_content[:MAX_LOG_BYTES]}"
-
-        return f"""Analyze this conversation and agent log to extract useful information for future sessions.
+        return f"""Analyze this agent log to extract useful information for future sessions.
 {existing_section}
 
-Conversation:
-{conversation_text}
-{log_section}
+Agent log (recent entries):
+{log_content[:MAX_LOG_BYTES]}
 
 Respond with JSON only (no markdown fencing):
 {{
@@ -390,7 +453,7 @@ Respond with JSON only (no markdown fencing):
 Rules:
 - Preferences: plot style choices, spacecraft of interest, workflow habits, display preferences
 - Summary: what data was fetched, what analysis was done, key findings
-- Pitfalls: generalizable lessons from errors or unexpected behavior (NOT user preferences). Frame as actionable advice for the agent. Only include if there's real evidence in the log or conversation.
+- Pitfalls: generalizable lessons from errors or unexpected behavior (NOT user preferences). Frame as actionable advice for the agent. Only include if there's real evidence in the log.
 - Error patterns: recurring errors from the log with component, count, description, and fix suggestion. Only include if there are actual ERROR or WARNING entries.
 - Do NOT repeat existing memories listed above
 - Keep each entry concise (one sentence max)
@@ -476,7 +539,6 @@ Rules:
         log_file_name: str,
         start_offset: int,
         end_offset: int,
-        turn_count: int,
     ) -> str:
         """Write a markdown report to ~/.helio-agent/reports/. Returns the path."""
         REPORTS_DIR.mkdir(parents=True, exist_ok=True)
@@ -489,7 +551,6 @@ Rules:
             "## Session Context",
             f"- Session: {session_id or 'unknown'}",
             f"- Log analyzed: {log_file_name} (bytes {start_offset}–{end_offset})",
-            f"- Conversation turns: {turn_count}",
         ]
 
         if result.error_patterns:

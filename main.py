@@ -374,11 +374,10 @@ def main():
             print(f"\nError: {e}")
             print("You can continue the conversation or type 'reset' to start fresh.\n")
 
-    # Extract and save long-term memories from this session
+    # Final memory extraction and stop background memory agent
     try:
-        count = agent.extract_and_save_memories()
-        if count > 0:
-            print(f"  Saved {count} memories from this session.")
+        agent.extract_and_save_memories()
+        agent.stop_memory_agent()
     except Exception:
         pass
 
