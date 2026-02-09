@@ -163,12 +163,17 @@ def main():
     parser.add_argument(
         "--refresh",
         action="store_true",
-        help="Refresh primary mission data before starting",
+        help="Refresh dataset time ranges (fast — updates start/stop dates only)",
+    )
+    parser.add_argument(
+        "--refresh-full",
+        action="store_true",
+        help="Full rebuild of primary mission data (re-download everything)",
     )
     parser.add_argument(
         "--refresh-all",
         action="store_true",
-        help="Download ALL missions from CDAWeb before starting",
+        help="Download ALL missions from CDAWeb (full rebuild)",
     )
     parser.add_argument(
         "command",
@@ -184,7 +189,11 @@ def main():
         print_welcome()
 
         # Mission data menu (skip in single-command mode)
-        resolve_refresh_flags(refresh=args.refresh, refresh_all=args.refresh_all)
+        resolve_refresh_flags(
+            refresh=args.refresh,
+            refresh_full=args.refresh_full,
+            refresh_all=args.refresh_all,
+        )
 
     # Import here to delay JVM startup until user is ready
     try:

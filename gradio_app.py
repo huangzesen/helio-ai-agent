@@ -790,15 +790,20 @@ def main():
     parser.add_argument("--share", action="store_true", help="Generate a public Gradio URL")
     parser.add_argument("--verbose", "-v", action="store_true", help="Show tool call details in browser UI")
     parser.add_argument("--model", "-m", default=None, help="Gemini model name")
-    parser.add_argument("--refresh", action="store_true", help="Refresh primary mission data before starting")
-    parser.add_argument("--refresh-all", action="store_true", help="Download ALL missions from CDAWeb before starting")
+    parser.add_argument("--refresh", action="store_true", help="Refresh dataset time ranges (fast — updates start/stop dates only)")
+    parser.add_argument("--refresh-full", action="store_true", help="Full rebuild of primary mission data (re-download everything)")
+    parser.add_argument("--refresh-all", action="store_true", help="Download ALL missions from CDAWeb (full rebuild)")
     args = parser.parse_args()
 
     _verbose = args.verbose
 
     # Mission data menu (runs in terminal before Gradio launches)
     from knowledge.startup import resolve_refresh_flags
-    resolve_refresh_flags(refresh=args.refresh, refresh_all=args.refresh_all)
+    resolve_refresh_flags(
+        refresh=args.refresh,
+        refresh_full=args.refresh_full,
+        refresh_all=args.refresh_all,
+    )
 
     # Initialize agent
     print("Initializing agent...")

@@ -202,6 +202,14 @@ def _parse_xml_catalog(xml_content: bytes) -> dict[str, dict]:
             if el.text and el.text.strip()
         ]
 
+        # Time interval
+        ti = ds.find("cda:TimeInterval", _NS)
+        start_date = ""
+        stop_date = ""
+        if ti is not None:
+            start_date = _text(ti, "cda:Start")
+            stop_date = _text(ti, "cda:End")
+
         result[ds_id] = {
             "instrument": _text(ds, "cda:Instrument") or "",
             "instrument_types": instrument_types,
@@ -212,6 +220,8 @@ def _parse_xml_catalog(xml_content: bytes) -> dict[str, dict]:
             "pi_affiliation": _text(ds, "cda:PiAffiliation") or "",
             "doi": _text(ds, "cda:Doi") or "",
             "notes_url": _text(ds, "cda:Notes") or "",
+            "start_date": start_date,
+            "stop_date": stop_date,
         }
 
     return result

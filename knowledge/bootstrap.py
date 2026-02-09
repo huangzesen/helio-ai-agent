@@ -494,6 +494,29 @@ def _backfill_instrument_keywords(
                 inst["keywords"] = list(type_info["keywords"])
 
 
+def _patch_hapi_cache_dates(
+    cache_dir: Path, ds_id: str, start_date: str, stop_date: str,
+):
+    """Patch startDate/stopDate in an individual HAPI cache file."""
+    cache_file = cache_dir / f"{ds_id}.json"
+    if not cache_file.exists():
+        return
+    try:
+        with open(cache_file, "r", encoding="utf-8") as f:
+            info = json.load(f)
+        changed = False
+        if start_date and info.get("startDate") != start_date:
+            info["startDate"] = start_date
+            changed = True
+        if stop_date and info.get("stopDate") != stop_date:
+            info["stopDate"] = stop_date
+            changed = True
+        if changed:
+            _save_json(cache_file, info)
+    except (json.JSONDecodeError, OSError):
+        pass  # Non-fatal — mission JSON is the primary source of truth
+
+
 def _generate_index(mission_stem: str):
     """Generate _index.json summary for a mission's HAPI cache."""
     cache_dir = MISSIONS_DIR / mission_stem / "hapi"
@@ -563,6 +586,111 @@ def _ensure_calibration_exclude(mission_stem: str):
             "ids": [],
         }
         _save_json(exclude_file, exclude_data)
+
+
+def refresh_time_ranges(only_stems: set[str] | None = None) -> dict:
+    """Lightweight refresh: update only start_date/stop_date in mission JSONs.
+
+    Fetches the CDAWeb REST API catalog (single HTTP request, ~3s) to get
+    fresh TimeInterval dates for all ~3000 datasets, then patches the
+    existing mission JSONs.  No HAPI /info calls, no instrument regrouping.
+
+    Args:
+        only_stems: If provided, only refresh these mission stems.
+                    If None, refresh every *.json in MISSIONS_DIR.
+
+    Returns:
+        Dict with keys: missions_updated, datasets_updated,
+        datasets_failed, elapsed_seconds.
+    """
+    if requests is None:
+        raise RuntimeError(
+            "'requests' package is required for refresh. "
+            "Install with: pip install requests"
+        )
+
+    start_time = time.time()
+
+    # Step 1: Fetch all dataset dates from CDAWeb in one HTTP call
+    from .cdaweb_metadata import fetch_dataset_metadata
+    print("Fetching CDAWeb catalog for time ranges...")
+    cdaweb_meta = fetch_dataset_metadata()
+    if not cdaweb_meta:
+        print("  Error: CDAWeb catalog unavailable — cannot refresh.")
+        return {
+            "missions_updated": 0,
+            "datasets_updated": 0,
+            "datasets_failed": 0,
+            "elapsed_seconds": round(time.time() - start_time, 1),
+        }
+    print(f"  Got time ranges for {len(cdaweb_meta)} datasets")
+
+    # Step 2: Walk existing mission JSONs and patch dates
+    total_updated = 0
+    total_failed = 0
+    missions_updated = 0
+    total_datasets = 0
+
+    for filepath in sorted(MISSIONS_DIR.glob("*.json")):
+        stem = filepath.stem
+        if only_stems and stem not in only_stems:
+            continue
+
+        try:
+            with open(filepath, "r", encoding="utf-8") as f:
+                mission_data = json.load(f)
+        except (json.JSONDecodeError, OSError):
+            continue
+
+        cache_dir = MISSIONS_DIR / stem / "hapi"
+        stem_updated = 0
+        for inst in mission_data.get("instruments", {}).values():
+            for ds_id, ds_entry in inst.get("datasets", {}).items():
+                total_datasets += 1
+                meta = cdaweb_meta.get(ds_id)
+                if meta is None:
+                    total_failed += 1
+                    continue
+                new_start = meta.get("start_date", "")
+                new_stop = meta.get("stop_date", "")
+                if new_start:
+                    ds_entry["start_date"] = new_start
+                if new_stop:
+                    ds_entry["stop_date"] = new_stop
+                stem_updated += 1
+
+                # Also patch the individual HAPI cache file
+                _patch_hapi_cache_dates(cache_dir, ds_id, new_start, new_stop)
+
+        if stem_updated > 0:
+            mission_data.setdefault("_meta", {})
+            mission_data["_meta"]["generated_at"] = (
+                datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
+            )
+            _save_json(filepath, mission_data)
+            missions_updated += 1
+
+        total_updated += stem_updated
+
+        _generate_index(stem)
+
+    elapsed = time.time() - start_time
+
+    if total_failed:
+        print(f"  Warning: {total_failed}/{total_datasets} dataset(s) not found "
+              "in CDAWeb catalog (dates left unchanged)")
+
+    print(f"\nTime-range refresh complete in {elapsed:.1f}s: "
+          f"{missions_updated} missions, "
+          f"{total_updated} datasets updated"
+          + (f", {total_failed} failed" if total_failed else ""))
+
+    return {
+        "missions_updated": missions_updated,
+        "datasets_updated": total_updated,
+        "datasets_failed": total_failed,
+        "elapsed_seconds": round(elapsed, 1),
+    }
 
 
 def clean_all_missions(only_stems: set[str] | None = None):
