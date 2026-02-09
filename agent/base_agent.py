@@ -125,7 +125,11 @@ class BaseSubAgent:
         Override to add agent-specific instructions (e.g., VisualizationAgent
         adds explicit tool-call guidance).
         """
-        return f"Execute this task: {task.instruction}"
+        return (
+            f"Execute this task: {task.instruction}\n\n"
+            "CRITICAL: Do ONLY what the instruction says. Do NOT add extra steps.\n"
+            "Return results as concise text when done."
+        )
 
     def _get_error_context(self, **kwargs) -> dict:
         """Hook to add agent-specific context to error logs."""

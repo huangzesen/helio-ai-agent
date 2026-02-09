@@ -43,17 +43,25 @@ def _describe(entry):
     """Simulate the describe_data handler logic on a DataEntry."""
     df = entry.data
     stats = {}
-    desc = df.describe(percentiles=[0.25, 0.5, 0.75])
+    desc = df.describe(percentiles=[0.25, 0.5, 0.75], include="all")
     for col in df.columns:
-        col_stats = {
-            "min": float(desc.loc["min", col]),
-            "max": float(desc.loc["max", col]),
-            "mean": float(desc.loc["mean", col]),
-            "std": float(desc.loc["std", col]),
-            "25%": float(desc.loc["25%", col]),
-            "50%": float(desc.loc["50%", col]),
-            "75%": float(desc.loc["75%", col]),
-        }
+        if df[col].dtype.kind in ("f", "i", "u"):  # numeric
+            col_stats = {
+                "min": float(desc.loc["min", col]),
+                "max": float(desc.loc["max", col]),
+                "mean": float(desc.loc["mean", col]),
+                "std": float(desc.loc["std", col]),
+                "25%": float(desc.loc["25%", col]),
+                "50%": float(desc.loc["50%", col]),
+                "75%": float(desc.loc["75%", col]),
+            }
+        else:  # string/object/categorical columns
+            col_stats = {
+                "type": str(df[col].dtype),
+                "count": int(desc.loc["count", col]),
+                "unique": int(desc.loc["unique", col]) if "unique" in desc.index else None,
+                "top": str(desc.loc["top", col]) if "top" in desc.index else None,
+            }
         stats[col] = col_stats
 
     nan_count = int(df.isna().sum().sum())
@@ -126,6 +134,41 @@ class TestDescribeData:
         entry = DataEntry(label="span_test", data=data, units="nT")
         result = _describe(entry)
         assert "23:59:00" in result["time_span"]
+
+    def test_string_columns(self):
+        """describe_data should handle non-numeric columns without crashing."""
+        idx = pd.date_range("2024-01-01", periods=5, freq="1D")
+        data = pd.DataFrame({
+            "class": ["X9.0", "X8.7", "X7.1", "X6.3", "X5.8"],
+            "region": ["AR 3842", "AR 3664", "AR 3842", "AR 3590", "AR 3664"],
+        }, index=idx)
+        entry = DataEntry(label="flares", data=data, units="class")
+        result = _describe(entry)
+        assert result["status"] == "success"
+        assert result["num_columns"] == 2
+        # String columns should have type/count/unique/top instead of min/max/mean
+        for col in ["class", "region"]:
+            assert "type" in result["statistics"][col]
+            assert "count" in result["statistics"][col]
+            assert "unique" in result["statistics"][col]
+            assert "min" not in result["statistics"][col]
+
+    def test_mixed_columns(self):
+        """describe_data should handle mix of numeric and string columns."""
+        idx = pd.date_range("2024-01-01", periods=5, freq="1D")
+        data = pd.DataFrame({
+            "rank": [1, 2, 3, 4, 5],
+            "class": ["X9.0", "X8.7", "X7.1", "X6.3", "X5.8"],
+        }, index=idx)
+        entry = DataEntry(label="mixed", data=data, units="")
+        result = _describe(entry)
+        assert result["status"] == "success"
+        # rank is numeric
+        assert "min" in result["statistics"]["rank"]
+        assert result["statistics"]["rank"]["min"] == 1.0
+        # class is string
+        assert "type" in result["statistics"]["class"]
+        assert "min" not in result["statistics"]["class"]
 
     def test_missing_label(self):
         store = get_store()

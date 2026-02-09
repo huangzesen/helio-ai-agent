@@ -898,6 +898,9 @@ Tag each task with the "mission" field:
 5. Keep task count minimal — don't split unnecessarily
 6. Do NOT include plotting steps unless the user explicitly asked to plot/show/display
 7. Labels for fetched data follow the pattern "DATASET.PARAM" (e.g., "AC_H2_MFI.BGSEc")
+8. **NEVER repeat a task from a previous round** — if a task was completed, do NOT create it again
+9. Use the results from previous rounds to inform later tasks — do NOT re-search or re-fetch data that was already obtained
+10. If prior results say "Done." with no details, trust that the task completed and move on to the next dependent step
 
 ## Task Instruction Format
 

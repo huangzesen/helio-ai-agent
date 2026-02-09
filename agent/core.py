@@ -634,7 +634,11 @@ class OrchestratorAgent:
             except ValueError as e:
                 return {"status": "error", "message": f"Validation error: {e}"}
             except RuntimeError as e:
-                return {"status": "error", "message": f"Execution error: {e}"}
+                # Truncate massive Plotly error messages (property lists can be 1000+ lines)
+                err_msg = str(e)
+                if len(err_msg) > 500:
+                    err_msg = err_msg[:500] + "... (truncated)"
+                return {"status": "error", "message": f"Execution error: {err_msg}"}
             return {"status": "success", "message": "Figure updated.", "display": "plotly"}
 
         # --- Data Operations Tools ---
@@ -780,18 +784,26 @@ class OrchestratorAgent:
             df = entry.data
             stats = {}
 
-            # Per-column statistics
-            desc = df.describe(percentiles=[0.25, 0.5, 0.75])
+            # Per-column statistics (numeric columns get full stats, others get count/unique)
+            desc = df.describe(percentiles=[0.25, 0.5, 0.75], include="all")
             for col in df.columns:
-                col_stats = {
-                    "min": float(desc.loc["min", col]),
-                    "max": float(desc.loc["max", col]),
-                    "mean": float(desc.loc["mean", col]),
-                    "std": float(desc.loc["std", col]),
-                    "25%": float(desc.loc["25%", col]),
-                    "50%": float(desc.loc["50%", col]),
-                    "75%": float(desc.loc["75%", col]),
-                }
+                if df[col].dtype.kind in ("f", "i", "u"):  # numeric
+                    col_stats = {
+                        "min": float(desc.loc["min", col]),
+                        "max": float(desc.loc["max", col]),
+                        "mean": float(desc.loc["mean", col]),
+                        "std": float(desc.loc["std", col]),
+                        "25%": float(desc.loc["25%", col]),
+                        "50%": float(desc.loc["50%", col]),
+                        "75%": float(desc.loc["75%", col]),
+                    }
+                else:  # string/object/categorical columns
+                    col_stats = {
+                        "type": str(df[col].dtype),
+                        "count": int(desc.loc["count", col]),
+                        "unique": int(desc.loc["unique", col]) if "unique" in desc.index else None,
+                        "top": str(desc.loc["top", col]) if "top" in desc.index else None,
+                    }
                 stats[col] = col_stats
 
             # Global metadata
@@ -1117,7 +1129,16 @@ class OrchestratorAgent:
                 model=self.model_name,
                 config=task_config,
             )
-            response = task_chat.send_message(f"Execute this task: {task.instruction}")
+            task_prompt = (
+                f"Execute this task: {task.instruction}\n\n"
+                "CRITICAL: Do ONLY what the instruction says. Do NOT add extra steps.\n"
+                "- If the task says 'search', just search and report the results as text.\n"
+                "- If the task says 'fetch', just fetch the data.\n"
+                "- Do NOT create DataFrames, plots, or visualizations unless the instruction explicitly asks for it.\n"
+                "- Do NOT delegate to other agents unless the instruction explicitly asks for it.\n"
+                "- Return results as concise text, not as tool calls."
+            )
+            response = task_chat.send_message(task_prompt)
             self._track_usage(response)
 
             # Process tool calls with loop guard
@@ -1371,10 +1392,16 @@ class OrchestratorAgent:
             round_results = []
             for task in new_tasks:
                 self._execute_plan_task(task, plan)
+
+                # Build an informative result summary for the planner
+                result_text = (task.result or "")[:300]
+                if result_text in ("", "Done.") and task.tool_calls:
+                    result_text = f"Tools called: {', '.join(task.tool_calls)}"
+
                 round_results.append({
                     "description": task.description,
                     "status": task.status.value,
-                    "result_summary": (task.result or "")[:200],
+                    "result_summary": result_text,
                     "error": task.error,
                 })
                 store.save(plan)

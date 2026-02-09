@@ -29,21 +29,17 @@ The HAPI CSV response contains empty strings that can't be parsed as floats. "La
 
 ### 2. Gemini doesn't follow task instructions precisely
 
-**Status**: Open
+**Status**: Mitigated
 **Severity**: Low
-**Component**: `agent/core.py`, `agent/planner.py`
+**Component**: `agent/core.py`, `agent/planner.py`, `agent/base_agent.py`
 
 **Description**: During multi-step task execution, Gemini sometimes calls extra tools not requested in the task instruction. For example:
-- Task: "Fetch data" -> Gemini calls `fetch_data` then also tries to plot
-- Task: "Compute running average" -> Gemini asks for clarification instead
+- Task: "Search for flares" -> Gemini also creates DataFrames and plots bar charts
+- Task: "Find date" -> Gemini also delegates to visualization
 
 This happens despite using `tool_config mode="ANY"` which forces function calling.
 
-**Workaround**: None currently. Tasks still complete but may have unexpected side effects.
-
-**Fix needed**:
-- More explicit task instructions from planner
-- Or parse task instruction to validate which tools should be called
+**Mitigation (2026-02-09)**: Added "CRITICAL: Do ONLY what the instruction says" prompt constraints to both `_execute_task()` (core.py) and `_get_task_prompt()` (base_agent.py). Also added anti-duplication rules 8-10 to the planner prompt. This significantly reduces over-execution but Gemini may still occasionally add extra steps.
 
 ---
 
@@ -74,6 +70,10 @@ The task instruction includes the expected labels (e.g., "compute running averag
 | VisualizationAgent infinite loop | Export task called `reset()` and `get_plot_state()` hundreds of times in alternation, never exporting | Created shared `LoopGuard` class (`agent/loop_guard.py`) with 3-layer protection: hard total-call limit, subset-based duplicate detection, cycle detection. Applied to all 5 agents (10 loops). |
 | Inconsistent call fingerprinting | Old `str(sorted(dict(fc.args).items()))` produced non-deterministic keys from Protobuf Struct objects | `make_call_key()` uses `json.dumps(sort_keys=True)` for deterministic serialization |
 | Viz tasks call wrong tools | Planner generated vague instructions like "Plot X together", VisualizationAgent called reset/get_plot_state instead of plot_stored_data | (1) Explicit tool-call guidance in `execute_task` prompt, (2) planner examples now start with tool name ("Use plot_stored_data to..."), (3) viz prompt differentiates conversational vs task-execution workflow |
+| `describe_data` crashes on string columns | `KeyError: 'min'` when describing DataFrames with non-numeric columns (e.g., flare class strings) | Added dtype check: numeric columns get full stats, string/object columns get count/unique/top |
+| Massive Plotly error messages waste context | `custom_visualization` errors returned full Plotly property list (1000+ lines) | Truncate RuntimeError messages to 500 chars |
+| Planner generates duplicate tasks | Round 3 re-created tasks from Rounds 1-2 because result summaries said "Done." with no details | (1) Enriched result summaries to include tool calls list when text is empty, (2) added planner rules 8-10 prohibiting task repetition |
+| Tasks over-execute (do more than asked) | "Search for flares" task also created DataFrames and plotted bar charts, wasting 3-4 of 5 iterations | Added "CRITICAL: Do ONLY what the instruction says" constraint to all task execution prompts |
 
 ### Fixed in 2026-02-08 stability batch
 
