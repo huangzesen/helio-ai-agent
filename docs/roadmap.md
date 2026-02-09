@@ -15,19 +15,24 @@ Future development plan for the helio-ai-agent project.
 | Agent Core | Done | Gemini 3 Pro/Flash Preview with function calling |
 | Plotly Renderer | Done | Interactive Plotly figures, multi-panel, WebGL, PNG/PDF export via kaleido |
 | Custom Visualization | Done | LLM-generated Plotly code sandbox for any customization |
-| Dataset Catalog | Done | 52 spacecraft (8 curated + 44 auto-generated) with keyword search, per-mission JSON knowledge |
+| Dataset Catalog | Done | 52 spacecraft (all auto-generated from CDAWeb) with keyword search, per-mission JSON knowledge |
 | HAPI Client | Done | CDAWeb parameter metadata fetching (3-tier cache: memory/local/network) |
 | Data Pipeline | Done | fetch -> store -> custom_operation -> plot (pandas-backed) |
 | Custom Operations | Done | LLM-generated pandas/numpy code, AST-validated sandbox |
 | Time Parsing | Done | Relative, absolute, date ranges, sub-day precision |
-| Multi-step Planning | Done | Regex complexity detection + Gemini task decomposition |
+| Multi-step Planning | Done | PlannerAgent with plan-execute-replan loop (up to 5 rounds) |
 | Logging | Done | Daily rotation to `~/.helio-agent/logs/` |
 | Cross-platform | Done | Windows + macOS |
 | Token Tracking | Done | Per-session usage statistics (includes all sub-agents) |
 | Gradio Web UI | Done | Browser-based chat with inline Plotly plots, data sidebar |
 | Google Search | Done | Web search grounding via isolated Gemini API call |
+| Data Extraction | Done | Text-to-DataFrame via `store_dataframe` + `read_document` |
+| Document Reading | Done | PDF and images → text extraction via Gemini vision |
+| Multimodal Upload | Done | File upload in Gradio (drag-and-drop, 18+ file types) |
+| Mission Data Refresh | Done | Interactive startup menu + `--refresh`/`--refresh-full`/`--refresh-all` CLI flags |
+| Session Persistence | Done | Auto-save every turn, `--continue`/`--session` CLI, Gradio sidebar |
 
-### Tools (18 Tool Schemas)
+### Tools (21 Tool Schemas)
 
 **Dataset Discovery**: `search_datasets`, `browse_datasets`, `list_parameters`, `get_data_availability`, `get_dataset_docs`, `search_full_catalog`, `google_search`
 
@@ -35,34 +40,44 @@ Future development plan for the helio-ai-agent project.
 
 **Data Operations**: `fetch_data`, `list_fetched_data`, `custom_operation`, `describe_data`, `save_data`
 
+**Data Extraction**: `store_dataframe`
+
+**Document Reading**: `read_document`
+
 **Conversation**: `ask_clarification`
 
-**Routing**: `delegate_to_mission`, `delegate_to_data_ops`, `delegate_to_visualization`
+**Routing**: `delegate_to_mission`, `delegate_to_data_ops`, `delegate_to_visualization`, `delegate_to_data_extraction`
 
-### Supported Spacecraft (8 curated + full CDAWeb catalog)
+### Supported Spacecraft (52 missions + full CDAWeb catalog)
 
-52 missions total: PSP, Solar Orbiter, ACE, OMNI, Wind, DSCOVR, MMS, STEREO-A (8 curated with rich prompts) + 44 auto-generated missions (Cluster, Voyager, THEMIS, GOES, Van Allen Probes, etc.) + all 2000+ CDAWeb datasets searchable via `search_full_catalog`
+52 missions total (all auto-generated from CDAWeb): PSP, Solar Orbiter, ACE, OMNI, Wind, DSCOVR, MMS, STEREO-A, Cluster, Voyager, THEMIS, GOES, Van Allen Probes, and more. All 2000+ CDAWeb datasets searchable via `search_full_catalog`.
 
 ---
 
 ## Completed: Multi-Agent Architecture
 
-- [x] **4-agent architecture**: Orchestrator + Mission + DataOps + Visualization sub-agents
+- [x] **5-agent architecture**: Orchestrator + Mission + DataOps + DataExtraction + Visualization sub-agents
 - [x] **Mission sub-agents**: Per-spacecraft data specialists with rich prompts
 - [x] **DataOps sub-agent**: Data transformation specialist (compute, describe, save)
+- [x] **DataExtraction sub-agent**: Text-to-DataFrame specialist (store_dataframe, read_document)
 - [x] **Visualization sub-agent**: Plotly rendering via 5 core methods + custom Plotly sandbox
 - [x] **Method registry**: Structured data describing 5 core visualization operations
 - [x] **Custom visualization**: Free-form Plotly code for titles, labels, scales, render types, annotations, etc.
 - [x] **Canvas sizing**: Custom width/height for exports
 - [x] **PNG/PDF export**: Via kaleido static image export
+- [x] **PlannerAgent**: Chat-based plan-execute-replan loop (up to 5 rounds) for complex requests
+- [x] **Document reading**: `read_document` tool (PDF, images via Gemini vision)
+- [x] **store_dataframe tool**: Create DataFrames from text (event lists, catalogs, search results)
 
 ## Completed: Plotly Migration
 
 - [x] **Plotly renderer**: Replaced Java Autoplot bridge with pure-Python Plotly
-- [x] **Gradio web UI**: Browser-based chat with inline interactive plots
+- [x] **Gradio web UI**: Browser-based chat with inline interactive plots, multimodal file upload
 - [x] **Google Search grounding**: Web search via custom function tool
 - [x] **custom_visualization tool**: Replaced 10 thin wrapper methods with single Plotly sandbox
 - [x] **JPype/Java removal**: All JVM dependencies eliminated
+- [x] **Mission data startup**: Interactive refresh menu + CLI flags (`--refresh`, `--refresh-full`, `--refresh-all`)
+- [x] **Browse & Fetch sidebar**: Mission → dataset → parameter cascade dropdowns in Gradio UI
 
 ---
 
@@ -177,8 +192,9 @@ Future development plan for the helio-ai-agent project.
 - [ ] REST API for programmatic access
 
 ### Session Management
-- [ ] Save/restore conversation state
-- [ ] Named sessions with history
+- [x] Save/restore conversation state — auto-save every turn to `~/.helio-agent/sessions/`
+- [x] Named sessions with history — `--continue` / `--session ID` CLI flags
+- [x] Gradio sessions sidebar — Load / New / Delete buttons
 - [ ] Export session as script
 - [ ] Replay previous analyses
 

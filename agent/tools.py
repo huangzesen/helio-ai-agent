@@ -465,7 +465,7 @@ Do NOT use imports — only fig, go, and np are available.""",
 - User asks about a mission you don't have a specialist agent for (Cluster, THEMIS, Voyager, GOES, etc.)
 - User wants to search by physical quantity across all missions (e.g., "proton density datasets")
 
-Returns matching dataset IDs and titles. Any dataset found can be fetched with fetch_data — you do NOT need a mission agent for uncurated missions.
+Returns matching dataset IDs and titles. Any dataset found can be fetched with fetch_data — you do NOT need a mission agent for missions not in the routing table.
 
 Do NOT use this for missions already in the routing table (PSP, ACE, etc.) — use delegate_to_mission instead.""",
         "parameters": {

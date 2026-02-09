@@ -52,6 +52,9 @@ scripts/test_*.py
 # Windows artifacts
 nul
 
+# Stray pip output files (from unquoted version specifiers)
+=*
+
 # JVM crash logs
 hs_err_pid*.log
 replay_pid*.log

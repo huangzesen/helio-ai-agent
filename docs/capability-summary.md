@@ -85,7 +85,7 @@ agent/core.py  OrchestratorAgent  (LLM-driven orchestrator)
   |       TaskStore               JSON persistence to ~/.helio-agent/tasks/
   |
   +---> knowledge/                Dataset discovery + prompt generation
-  |       missions/*.json          Per-mission JSON files (8 curated + 44 auto-generated, 52 total)
+  |       missions/*.json          Per-mission JSON files (52 total, all auto-generated from CDAWeb)
   |       mission_loader.py        Lazy-loading cache, routing table, dataset access
   |       mission_prefixes.py      Shared CDAWeb dataset ID prefix map (40+ missions)
   |       cdaweb_metadata.py       CDAWeb REST API client — InstrumentType-based grouping
@@ -205,24 +205,13 @@ The `execute_visualization` tool dispatches to the method registry (`rendering/r
 
 ## Supported Spacecraft
 
-### Curated Missions (8) — Rich prompts with analysis patterns
+### Primary Missions (52, all auto-generated from CDAWeb)
 
-| Spacecraft | Instruments | Example Datasets |
-|-----------|-------------|-----------------|
-| Parker Solar Probe (PSP) | FIELDS/MAG, SWEAP | `PSP_FLD_L2_MAG_RTN_1MIN` |
-| Solar Orbiter (SolO) | MAG, SWA-PAS | Magnetic field, proton moments |
-| ACE | MAG, SWEPAM | `AC_H2_MFI`, `AC_H0_SWE` |
-| OMNI | Combined | `OMNI_HRO_1MIN` |
-| Wind | MFI, SWE | `WI_H2_MFI`, `WI_H1_SWE` |
-| DSCOVR | MAG, FC | `DSCOVR_H0_MAG`, `DSCOVR_H1_FC` |
-| MMS | FGM, FPI-DIS | `MMS1_FGM_SRVY_L2` |
-| STEREO-A | MAG, PLASTIC | `STA_L1_MAG_RTN` |
+All 52 mission JSON files are auto-generated from CDAWeb HAPI metadata via `scripts/generate_mission_data.py`. Key missions include PSP, Solar Orbiter, ACE, OMNI, Wind, DSCOVR, MMS, STEREO-A, Cluster, THEMIS, Van Allen Probes, GOES, Voyager 1/2, Ulysses, and more.
 
 ### Full CDAWeb Catalog Access (2000+ datasets)
 
-All CDAWeb datasets are searchable via the `search_full_catalog` tool, including missions like STEREO-B, THEMIS, Cluster, Van Allen Probes, GOES, Voyager 1/2, Ulysses, Geotail, Polar, IMAGE, FAST, SOHO, Juno, MAVEN, MESSENGER, Cassini, New Horizons, IMP-8, ISEE, Arase/ERG, TIMED, TWINS, IBEX, and more.
-
-New missions can be added as curated missions (with mission agent + rich prompts) by creating a JSON file in `knowledge/missions/` via `scripts/generate_mission_data.py --create-new`. The shared prefix map in `knowledge/mission_prefixes.py` maps dataset ID prefixes to mission identifiers.
+All CDAWeb datasets are searchable via the `search_full_catalog` tool. New missions can be added by creating a JSON file in `knowledge/missions/` via `scripts/generate_mission_data.py --create-new`. The shared prefix map in `knowledge/mission_prefixes.py` maps dataset ID prefixes to mission identifiers.
 
 ## Time Range Parsing
 
@@ -289,7 +278,7 @@ All times are UTC. Outputs `TimeRange` objects with `start`/`end` datetimes.
 - Task plans persist to `~/.helio-agent/tasks/` with round tracking for multi-round plans
 
 ### Per-Mission JSON Knowledge (`knowledge/missions/*.json`)
-- **8 curated JSON files** + 44 auto-generated skeletons (52 total). Curated missions have hand-written profiles (analysis patterns, coordinate systems, data caveats). Auto-generated missions have minimal profiles populated from HAPI metadata.
+- **52 mission JSON files**, all auto-generated from CDAWeb HAPI metadata. Profiles include instrument groupings, dataset parameters, and time ranges populated by `scripts/generate_mission_data.py`.
 - **Shared prefix map**: `knowledge/mission_prefixes.py` maps CDAWeb dataset ID prefixes to mission identifiers (40+ mission groups).
 - **CDAWeb InstrumentType grouping**: `knowledge/cdaweb_metadata.py` fetches the CDAWeb REST API to get authoritative InstrumentType per dataset (18+ categories like "Magnetic Fields (space)", "Plasma and Solar Wind"). Bootstrap uses this to group datasets into meaningful instrument categories with keywords, instead of dumping everything into "General".
 - **Full catalog search**: `knowledge/cdaweb_catalog.py` provides `search_full_catalog` tool — searches all 2000+ CDAWeb datasets by keyword, with 24-hour local cache.

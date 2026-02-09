@@ -8,7 +8,7 @@
 
 ## Summary
 
-9 findings across the codebase. Most redundancy stems from rapid prototyping that created similar patterns in parallel modules (`core.py` vs `mission_agent.py` vs `data_ops_agent.py` vs `visualization_agent.py`) and lack of shared abstractions for common patterns (singletons, Gemini interactions, token tracking).
+9 findings across the codebase. Most redundancy stems from rapid prototyping that created similar patterns in parallel modules (`core.py` vs `mission_agent.py` vs `data_ops_agent.py` vs `data_extraction_agent.py` vs `visualization_agent.py`) and lack of shared abstractions for common patterns (singletons, Gemini interactions, token tracking).
 
 All identified redundancy is safe to consolidate without breaking functionality.
 
@@ -50,9 +50,10 @@ class TaskExecutorMixin:
 - `agent/core.py::_process_single_message()`
 - `agent/mission_agent.py::process_request()`
 - `agent/data_ops_agent.py::process_request()`
+- `agent/data_extraction_agent.py::process_request()`
 - `agent/visualization_agent.py::process_request()`
 
-**Description**: All four agents have nearly identical tool-calling loops: extract function_calls from response parts, execute each tool, build function_responses, send back to model. ~80 lines duplicated across 4 files. Note: duplicate call detection and consecutive error tracking were added to all sub-agents (2026-02-08), which increased the duplicated code.
+**Description**: All five agents have nearly identical tool-calling loops: extract function_calls from response parts, execute each tool, build function_responses, send back to model. ~80 lines duplicated across 5 files. Note: duplicate call detection and consecutive error tracking were added to all sub-agents (2026-02-08), which increased the duplicated code.
 
 **Fix**: Extract into a shared utility:
 ```python
@@ -75,9 +76,10 @@ def execute_tool_call_loop(chat, initial_response, tool_executor,
 - `agent/core.py::_track_usage()` / `get_token_usage()`
 - `agent/mission_agent.py::_track_usage()` / `get_token_usage()`
 - `agent/data_ops_agent.py::_track_usage()` / `get_token_usage()`
+- `agent/data_extraction_agent.py::_track_usage()` / `get_token_usage()`
 - `agent/visualization_agent.py::_track_usage()` / `get_token_usage()`
 
-**Description**: All four agents have identical token tracking methods.
+**Description**: All five agents have identical token tracking methods.
 
 **Fix**: Create a `TokenTrackingMixin` base class.
 
@@ -127,7 +129,7 @@ def execute_tool_call_loop(chat, initial_response, tool_executor,
 
 ### 7. Gemini Text Extraction (multiple occurrences)
 
-**Files**: `agent/core.py`, `agent/mission_agent.py`, `agent/data_ops_agent.py`, `agent/visualization_agent.py`
+**Files**: `agent/core.py`, `agent/mission_agent.py`, `agent/data_ops_agent.py`, `agent/data_extraction_agent.py`, `agent/visualization_agent.py`
 
 Same pattern for extracting text parts from a Gemini response repeated across all agent files.
 
@@ -151,9 +153,9 @@ Hardcoded keyword-to-capability mappings that could be centralized.
 
 ### 9. Verbose Flag Propagation
 
-**Files**: `agent/core.py`, `agent/mission_agent.py`, `agent/data_ops_agent.py`, `agent/visualization_agent.py`
+**Files**: `agent/core.py`, `agent/mission_agent.py`, `agent/data_ops_agent.py`, `agent/data_extraction_agent.py`, `agent/visualization_agent.py`
 
-All four agent classes store `self.verbose = verbose` and use it for conditional printing.
+All five agent classes store `self.verbose = verbose` and use it for conditional printing.
 
 **Fix**: Create a `VerboseLoggingMixin` with a shared `log()` method, or move into a base class.
 
@@ -184,6 +186,7 @@ BaseAgent
   +-- OrchestratorAgent (main orchestrator)
   +-- MissionAgent (mission specialist)
   +-- DataOpsAgent (data ops specialist)
+  +-- DataExtractionAgent (data extraction specialist)
   +-- VisualizationAgent (visualization specialist)
 ```
 
@@ -196,6 +199,6 @@ This single refactor addresses findings 1, 2, 3, 7, and 9 together.
 
 ### Phase 4: Validation
 
-- Run full test suite after each phase (584 tests)
+- Run full test suite after each phase (632 tests across 24 files)
 - Verify no behavior changes (pure refactoring)
 - Update `docs/capability-summary.md` with new architecture

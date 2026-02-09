@@ -3,10 +3,10 @@ Data extraction sub-agent.
 
 Turns unstructured text into structured DataFrames. Handles:
 - Event catalogs, ICME lists, flare lists from search results
-- Tables extracted from documents (PDF, DOCX, etc.)
+- Tables extracted from documents (PDF, images)
 - Any text-to-DataFrame conversion
 
-Uses store_dataframe to create DataFrames and convert_to_markdown to read
+Uses store_dataframe to create DataFrames and read_document to read
 documents. Follows the same patterns as DataOpsAgent: fresh chat per request,
 forced function calling for task execution, token tracking.
 """
@@ -27,7 +27,7 @@ EXTRACTION_EXTRA_TOOLS = ["list_fetched_data"]
 class DataExtractionAgent:
     """A Gemini session specialized for converting unstructured text to DataFrames.
 
-    Uses store_dataframe, convert_to_markdown, ask_clarification tools plus
+    Uses store_dataframe, read_document, ask_clarification tools plus
     list_fetched_data to discover available data in memory.
 
     Attributes:
