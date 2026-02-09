@@ -903,10 +903,18 @@ TOGGLE_JS = """
     } else if (saved === 'dark') {
         document.body.classList.add('dark');
     }
-    window.toggleTheme = function() {
-        const isDark = document.body.classList.toggle('dark');
-        localStorage.setItem('helio-theme', isDark ? 'dark' : 'light');
-    };
+    function attachToggle() {
+        const btn = document.querySelector('.theme-toggle');
+        if (btn) {
+            btn.addEventListener('click', () => {
+                const isDark = document.body.classList.toggle('dark');
+                localStorage.setItem('helio-theme', isDark ? 'dark' : 'light');
+            });
+        } else {
+            setTimeout(attachToggle, 200);
+        }
+    }
+    attachToggle();
 }
 """
 
@@ -931,7 +939,7 @@ def create_app() -> gr.Blocks:
                 </div>
                 <div class="header-controls">
                     <div class="header-badge">Powered by Gemini</div>
-                    <button class="theme-toggle" onclick="toggleTheme()" title="Toggle light/dark mode">
+                    <button class="theme-toggle" title="Toggle light/dark mode">
                         <span class="icon-sun">&#9788;</span>
                         <span class="icon-moon">&#9789;</span>
                     </button>
