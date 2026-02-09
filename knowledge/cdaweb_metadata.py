@@ -207,6 +207,11 @@ def _parse_xml_catalog(xml_content: bytes) -> dict[str, dict]:
             "instrument_types": instrument_types,
             "label": _text(ds, "cda:Label") or "",
             "observatory": _text(ds, "cda:Observatory") or "",
+            "observatory_group": _text(ds, "cda:ObservatoryGroup") or "",
+            "pi_name": _text(ds, "cda:PiName") or "",
+            "pi_affiliation": _text(ds, "cda:PiAffiliation") or "",
+            "doi": _text(ds, "cda:Doi") or "",
+            "notes_url": _text(ds, "cda:Notes") or "",
         }
 
     return result

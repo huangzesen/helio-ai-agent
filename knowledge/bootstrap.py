@@ -307,30 +307,41 @@ def _fetch_all_info(
     return results
 
 
-def _merge_dataset_info(hapi_info: dict) -> dict:
-    """Extract dataset entry from HAPI /info response."""
-    parameters = []
-    for param in hapi_info.get("parameters", []):
-        name = param.get("name", "")
-        if name.lower() == "time":
-            continue
-        param_entry = {
-            "name": name,
-            "type": param.get("type", ""),
-            "units": param.get("units", ""),
-            "description": param.get("description", ""),
-        }
-        size = param.get("size")
-        if size:
-            param_entry["size"] = size
-        parameters.append(param_entry)
+def _merge_dataset_info(hapi_info: dict, cdaweb_entry: dict | None = None) -> dict:
+    """Extract dataset entry from HAPI /info + CDAWeb metadata.
 
-    return {
-        "description": hapi_info.get("description", ""),
+    Only stores lightweight catalog info (description, dates, PI, DOI).
+    Full parameter details stay in the per-dataset HAPI cache files at
+    knowledge/missions/{mission}/hapi/{dataset_id}.json — loaded on demand
+    by hapi_client.py when the agent needs them.
+
+    Args:
+        hapi_info: Response from HAPI /info endpoint.
+        cdaweb_entry: Optional metadata from CDAWeb REST API for this dataset.
+    """
+    entry = {
+        "description": "",
         "start_date": hapi_info.get("startDate", ""),
         "stop_date": hapi_info.get("stopDate", ""),
-        "parameters": parameters,
     }
+
+    # Enrich with CDAWeb metadata
+    if cdaweb_entry:
+        entry["description"] = cdaweb_entry.get("label", "")
+        if cdaweb_entry.get("pi_name"):
+            entry["pi_name"] = cdaweb_entry["pi_name"]
+        if cdaweb_entry.get("pi_affiliation"):
+            entry["pi_affiliation"] = cdaweb_entry["pi_affiliation"]
+        if cdaweb_entry.get("doi"):
+            entry["doi"] = cdaweb_entry["doi"]
+        if cdaweb_entry.get("notes_url"):
+            entry["notes_url"] = cdaweb_entry["notes_url"]
+
+    # Fall back to HAPI description if no CDAWeb label
+    if not entry["description"]:
+        entry["description"] = hapi_info.get("description", "")
+
+    return entry
 
 
 def _merge_into_missions(
@@ -414,8 +425,19 @@ def _merge_into_missions(
                 target_instrument = "General"
 
             inst = mission_data["instruments"][target_instrument]
-            inst.setdefault("datasets", {})[ds_id] = _merge_dataset_info(info)
+            # Look up CDAWeb metadata; fall back to base ID without @N suffix
+            cdaweb_entry = cdaweb_meta.get(ds_id)
+            if cdaweb_entry is None and "@" in ds_id:
+                cdaweb_entry = cdaweb_meta.get(ds_id.split("@")[0])
+            inst.setdefault("datasets", {})[ds_id] = _merge_dataset_info(
+                info, cdaweb_entry
+            )
             updated += 1
+
+            # Store observatory_group at mission level (from first dataset that has it)
+            if cdaweb_entry and cdaweb_entry.get("observatory_group"):
+                if "observatory_group" not in mission_data:
+                    mission_data["observatory_group"] = cdaweb_entry["observatory_group"]
 
         # Backfill keywords for instruments that have keywords=[]
         _backfill_instrument_keywords(mission_data, cdaweb_meta)
