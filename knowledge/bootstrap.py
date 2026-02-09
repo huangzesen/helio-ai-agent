@@ -24,6 +24,7 @@ from .mission_prefixes import (
     create_mission_skeleton,
     get_all_mission_stems,
     get_mission_name,
+    PRIMARY_MISSIONS,
 )
 
 
@@ -38,35 +39,38 @@ _bootstrap_checked = False
 
 
 def ensure_missions_populated():
-    """Check if mission data is complete; download missing missions if needed.
+    """Check if primary mission data exists; download if missing.
 
-    Compares JSON files on disk against the expected set from
-    mission_prefixes.get_all_mission_stems(). If any are missing,
-    downloads only the missing ones. Only runs once per process.
+    On first run, downloads only the 10 primary missions (~1-2 min).
+    Users can download the full catalog (~50 missions) later with:
+        python scripts/generate_mission_data.py --all
+
+    Only runs once per process.
     """
     global _bootstrap_checked
     if _bootstrap_checked:
         return
     _bootstrap_checked = True
 
-    expected_stems = set(get_all_mission_stems())
+    primary_stems = set(PRIMARY_MISSIONS)
     existing_stems = {f.stem for f in MISSIONS_DIR.glob("*.json")}
-    missing = expected_stems - existing_stems
+    missing = primary_stems - existing_stems
 
     if not missing:
-        return  # All missions present
+        return  # All primary missions present
 
     is_fresh = len(existing_stems) == 0
 
     print("\n" + "=" * 60)
     if is_fresh:
-        print("  First run detected — no mission data found.")
-        print("  Downloading CDAWeb HAPI metadata...")
-        print("  (This is a one-time setup, typically 5-10 minutes)")
+        print("  First run detected — downloading primary mission data.")
+        print(f"  ({len(primary_stems)} missions, typically 1-2 minutes)")
     else:
-        print(f"  {len(missing)} of {len(expected_stems)} missions missing.")
-        print(f"  Downloading: {', '.join(sorted(missing)[:10])}"
-              + (f" ... and {len(missing)-10} more" if len(missing) > 10 else ""))
+        print(f"  {len(missing)} primary mission(s) missing.")
+        print(f"  Downloading: {', '.join(sorted(missing))}")
+    print()
+    print("  To download ALL missions (~50), run:")
+    print("    python scripts/generate_mission_data.py --all")
     print("=" * 60 + "\n")
 
     try:
@@ -75,7 +79,7 @@ def ensure_missions_populated():
         print(f"\nWarning: Auto-download failed: {e}")
         print("The agent will start with a partial catalog.")
         print("You can retry by restarting, or run manually:")
-        print("  python scripts/generate_mission_data.py --create-new\n")
+        print("  python scripts/generate_mission_data.py --force\n")
 
 
 def populate_missions(only_stems: set[str] | None = None):
@@ -537,6 +541,40 @@ def _ensure_calibration_exclude(mission_stem: str):
             "ids": [],
         }
         _save_json(exclude_file, exclude_data)
+
+
+def clean_all_missions(only_stems: set[str] | None = None):
+    """Delete mission JSONs and HAPI cache dirs for a fresh rebuild.
+
+    Args:
+        only_stems: If provided, only delete these mission stems.
+                    If None, delete everything.
+
+    Preserves the missions/ directory itself but removes generated content.
+    Returns the count of (deleted_files, deleted_dirs) for logging.
+    """
+    global _bootstrap_checked
+    _bootstrap_checked = False
+
+    deleted_files = 0
+    deleted_dirs = 0
+
+    import shutil
+
+    for filepath in MISSIONS_DIR.glob("*.json"):
+        if only_stems and filepath.stem not in only_stems:
+            continue
+        filepath.unlink()
+        deleted_files += 1
+
+    for subdir in MISSIONS_DIR.iterdir():
+        if subdir.is_dir():
+            if only_stems and subdir.name not in only_stems:
+                continue
+            shutil.rmtree(subdir)
+            deleted_dirs += 1
+
+    return deleted_files, deleted_dirs
 
 
 def _save_json(filepath: Path, data: dict):

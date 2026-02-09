@@ -10,6 +10,23 @@ so that e.g. "PSP_FLD" matches before "PSP_".
 """
 
 
+# Primary missions: auto-downloaded on first run.
+# Covers key heliophysics science areas: inner heliosphere, L1 monitoring,
+# magnetosphere, combined indices, solar, and operational space weather.
+# Users can download additional missions with:
+#   python scripts/generate_mission_data.py --all
+PRIMARY_MISSIONS = [
+    "psp",        # Parker Solar Probe — inner heliosphere flagship
+    "solo",       # Solar Orbiter — inner heliosphere
+    "ace",        # ACE — L1 solar wind monitor
+    "wind",       # Wind — long-running solar wind
+    "ulysses",    # Ulysses — out-of-ecliptic heliosphere
+    "helios",     # Helios — inner heliosphere pioneer
+    "voyager1",   # Voyager 1 — outer heliosphere
+    "voyager2",   # Voyager 2 — outer heliosphere
+]
+
+
 # Comprehensive map of CDAWeb dataset ID prefixes to (mission_stem, instrument_hint).
 # mission_stem is the lowercase JSON filename in knowledge/missions/.
 # instrument_hint is an optional instrument key within the mission JSON.
@@ -345,8 +362,8 @@ MISSION_NAMES = {
     "ace": "ACE",
     "omni": "OMNI",
     "wind": "Wind",
-    "dscovr": "DSCOVR",
-    "mms": "MMS",
+    "dscovr": "DSCOVR Deep Space Climate Observatory",
+    "mms": "MMS Magnetospheric Multiscale",
     "stereo_a": "STEREO-A",
     "stereo_b": "STEREO-B",
     "themis": "THEMIS",
@@ -471,6 +488,25 @@ def get_mission_keywords(mission_stem: str) -> list[str]:
     return sorted(keywords)
 
 
+def get_canonical_id(mission_stem: str) -> str:
+    """Return the canonical mission ID for a stem.
+
+    Most missions use UPPER_CASE, but a few have special casing
+    (e.g., "SolO" for Solar Orbiter, "STEREO_A" with underscore).
+    """
+    _CANONICAL = {
+        "solo": "SolO",
+        "stereo_a": "STEREO_A",
+        "stereo_b": "STEREO_B",
+    }
+    if mission_stem in _CANONICAL:
+        return _CANONICAL[mission_stem]
+    # Default: upper-case, replace _ with -
+    if "_" in mission_stem:
+        return mission_stem.upper().replace("_", "-")
+    return mission_stem.upper()
+
+
 def create_mission_skeleton(mission_stem: str) -> dict:
     """Create a minimal mission JSON skeleton for a new mission.
 
@@ -487,7 +523,7 @@ def create_mission_skeleton(mission_stem: str) -> dict:
     keywords = get_mission_keywords(mission_stem)
 
     return {
-        "id": mission_stem.upper().replace("_", "-") if "_" in mission_stem else mission_stem.upper(),
+        "id": get_canonical_id(mission_stem),
         "name": name,
         "keywords": keywords,
         "profile": {

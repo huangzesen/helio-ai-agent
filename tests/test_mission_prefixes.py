@@ -272,10 +272,10 @@ class TestCreateMissionSkeleton:
         assert "typical_cadence" in profile
 
     def test_skeleton_id_underscore(self):
-        """Mission stems with underscore get hyphenated IDs."""
+        """Mission stems with underscore use canonical IDs."""
         skel = create_mission_skeleton("stereo_b")
-        assert skel["id"] == "STEREO-B"
-        assert skel["name"] == "STEREO-B"
+        assert skel["id"] == "STEREO_B"
+        assert skel["name"] == "STEREO-B"  # Human-readable name uses hyphen
 
     def test_skeleton_unknown_mission(self):
         skel = create_mission_skeleton("xyzzy")

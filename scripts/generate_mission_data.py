@@ -8,10 +8,14 @@ parameters in knowledge/missions/*.json files.
 Hand-curated fields (profile, keywords) are preserved on merge.
 
 Usage:
-    python scripts/generate_mission_data.py              # Update all missions
+    python scripts/generate_mission_data.py                # Update existing missions (serial)
     python scripts/generate_mission_data.py --mission PSP  # Update one mission
     python scripts/generate_mission_data.py --discover     # Show unknown datasets
-    python scripts/generate_mission_data.py --create-new   # Create skeletons for new missions + update all
+    python scripts/generate_mission_data.py --create-new   # Create skeletons for new missions
+    python scripts/generate_mission_data.py --force        # Delete + re-download primary missions (~1-2 min)
+    python scripts/generate_mission_data.py --force --all  # Delete + re-download ALL missions (~10 min)
+    python scripts/generate_mission_data.py --update       # Re-download primary missions (parallel, preserves curated)
+    python scripts/generate_mission_data.py --update --all # Re-download ALL missions (parallel)
 """
 
 import argparse
@@ -328,11 +332,50 @@ def main():
         help="Create skeleton JSON files for new missions found in the HAPI catalog, then update all",
     )
     parser.add_argument(
+        "--force",
+        action="store_true",
+        help="Delete mission data and re-download from scratch "
+             "(primary missions only; combine with --all for everything)",
+    )
+    parser.add_argument(
+        "--update",
+        action="store_true",
+        help="Re-download and merge missions using parallel bootstrap "
+             "(primary missions only; combine with --all for everything)",
+    )
+    parser.add_argument(
+        "--all",
+        action="store_true",
+        help="Include ALL missions (~50) instead of just primary (~10). "
+             "Use with --force or --update.",
+    )
+    parser.add_argument(
         "--verbose", "-v",
         action="store_true",
         help="Print detailed progress",
     )
     args = parser.parse_args()
+
+    # --force and --update use bootstrap.populate_missions() for parallel fetch
+    if args.force or args.update:
+        from knowledge.bootstrap import populate_missions, clean_all_missions
+        from knowledge.mission_prefixes import PRIMARY_MISSIONS
+
+        # Determine scope: primary only or all missions
+        scope_stems = None if args.all else set(PRIMARY_MISSIONS)
+        scope_label = "ALL missions" if args.all else f"{len(PRIMARY_MISSIONS)} primary missions"
+
+        if args.force:
+            print(f"Force mode: deleting {'all' if args.all else 'primary'} mission data...")
+            n_files, n_dirs = clean_all_missions(only_stems=scope_stems)
+            print(f"  Deleted {n_files} JSON files and {n_dirs} cache directories\n")
+
+        print(f"Downloading {scope_label}...")
+        if not args.all:
+            print(f"  ({', '.join(sorted(PRIMARY_MISSIONS))})")
+            print("  Use --all to download all ~50 missions\n")
+        populate_missions(only_stems=scope_stems)
+        return
 
     # Fetch HAPI catalog
     hapi_catalog = fetch_hapi_catalog()
@@ -361,7 +404,7 @@ def main():
             print(f"Error: {e}")
             sys.exit(1)
     else:
-        # Update all missions
+        # Update all missions (serial — use --update for parallel)
         for filepath in sorted(MISSIONS_DIR.glob("*.json")):
             mission_stem = filepath.stem
             try:
