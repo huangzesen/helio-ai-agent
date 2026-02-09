@@ -661,10 +661,9 @@ def respond(message, history: list[dict]):
 # ---------------------------------------------------------------------------
 
 EXAMPLES = [
-    {"text": "Show me ACE magnetic field data for last week"},
-    {"text": "Compare ACE and Wind magnetic field for Jan 10-17, 2024"},
-    {"text": "Compute the magnitude and overlay on the plot"},
-    {"text": "What major solar storms happened in 2024?"},
+    {"text": "How did scientists prove Voyager 1 left the solar system? Show me the data."},
+    {"text": "When did Parker Solar Probe first enter the solar corona? Show me what happened."},
+    {"text": "Show me a powerful coronal mass ejection hitting Earth. What did it look like in the data?"},
 ]
 
 
@@ -1121,7 +1120,7 @@ def create_app() -> gr.Blocks:
             examples=EXAMPLES,
             inputs=msg_input,
             label="Try these",
-            examples_per_page=4,
+            examples_per_page=3,
             elem_id="example-pills",
         )
 
