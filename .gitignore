@@ -40,6 +40,7 @@ tests/**/*_results*.json
 tests/**/*_report*.json
 tests/issue-log-*/
 scripts/test_*.py
+!scripts/test_default_prompts.py
 
 # Generated files
 *.vap
