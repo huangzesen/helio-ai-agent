@@ -689,8 +689,8 @@ def _build_theme():
         table_even_background_fill="#ffffff",
         table_odd_background_fill="#f8fafc",
         table_border_color="#e2e8f0",
-        shadow_drop="0 1px 3px rgba(0, 0, 0, 0.08)",
-        shadow_drop_lg="0 4px 12px rgba(0, 0, 0, 0.1)",
+        shadow_drop="none",
+        shadow_drop_lg="none",
         block_label_text_color="#64748b",
         block_title_text_color="#0f172a",
         checkbox_label_text_color="#0f172a",
@@ -732,28 +732,10 @@ footer { display: none !important; }
     align-items: center;
     justify-content: space-between;
     padding: 0.5rem 1rem;
-    background: linear-gradient(135deg, #f8fafc, #f1f5f9, #e2e8f0);
-    border-bottom: 2px solid var(--border-color-primary);
+    background: var(--background-fill-secondary);
+    border-bottom: 1px solid var(--border-color-primary);
     border-radius: 8px;
     margin-bottom: 0.5rem;
-    position: relative;
-    overflow: hidden;
-}
-.dark .app-header {
-    background: linear-gradient(135deg, #0a0e1a 0%, #141824 50%, #1a1f2e 100%);
-}
-.app-header::before {
-    content: '';
-    position: absolute;
-    top: 0; left: 0; right: 0;
-    height: 3px;
-    background: linear-gradient(90deg, #00b8d9, #ffa500, #00b8d9);
-    background-size: 200% 100%;
-    animation: shimmer 3s ease-in-out infinite;
-}
-@keyframes shimmer {
-    0%, 100% { background-position: 0% 50%; }
-    50% { background-position: 100% 50%; }
 }
 .header-left {
     display: flex;
@@ -769,7 +751,6 @@ footer { display: none !important; }
 }
 .dark .header-title {
     color: #00d9ff;
-    text-shadow: 0 0 20px rgba(0, 217, 255, 0.3);
 }
 .header-subtitle {
     color: var(--body-text-color-subdued);
@@ -820,12 +801,8 @@ footer { display: none !important; }
     border: 1px solid var(--border-color-primary) !important;
     border-radius: 12px !important;
     background: var(--background-fill-primary) !important;
-    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06) !important;
     padding: 0.5rem !important;
     margin-bottom: 0.5rem !important;
-}
-.dark .plot-container {
-    box-shadow: 0 4px 20px rgba(0, 217, 255, 0.05) !important;
 }
 
 /* ---- Chatbot ---- */
@@ -849,11 +826,9 @@ footer { display: none !important; }
 }
 .chat-input textarea:focus {
     border-color: #00b8d9 !important;
-    box-shadow: 0 0 0 2px rgba(0, 184, 217, 0.15) !important;
 }
 .dark .chat-input textarea:focus {
     border-color: #00d9ff !important;
-    box-shadow: 0 0 0 2px rgba(0, 217, 255, 0.2) !important;
 }
 
 /* ---- Examples as compact pills ---- */
@@ -907,12 +882,8 @@ footer { display: none !important; }
 /* ---- Data tables ---- */
 .data-table table th {
     background: var(--background-fill-secondary) !important;
-    color: #00b8d9 !important;
     font-weight: 600 !important;
     border-color: var(--border-color-primary) !important;
-}
-.dark .data-table table th {
-    color: #00d9ff !important;
 }
 .data-table table td {
     border-color: var(--border-color-primary) !important;
