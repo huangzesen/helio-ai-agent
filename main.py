@@ -374,6 +374,14 @@ def main():
             print(f"\nError: {e}")
             print("You can continue the conversation or type 'reset' to start fresh.\n")
 
+    # Extract and save long-term memories from this session
+    try:
+        count = agent.extract_and_save_memories()
+        if count > 0:
+            print(f"  Saved {count} memories from this session.")
+    except Exception:
+        pass
+
     # Print token usage summary and log session end
     usage = agent.get_token_usage()
     if usage["api_calls"] > 0:

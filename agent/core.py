@@ -22,6 +22,7 @@ from .tasks import (
 )
 from .planner import PlannerAgent, is_complex_request, format_plan_for_display, MAX_ROUNDS
 from .session import SessionManager
+from .memory import MemoryStore
 from .mission_agent import MissionAgent
 from .visualization_agent import VisualizationAgent
 from .data_ops_agent import DataOpsAgent
@@ -158,6 +159,14 @@ class OrchestratorAgent:
         self._session_id: Optional[str] = None
         self._session_manager = SessionManager()
         self._auto_save: bool = False
+
+        # Long-term memory
+        self._memory_store = MemoryStore()
+
+    @property
+    def memory_store(self) -> MemoryStore:
+        """Return the long-term memory store (for Gradio UI access)."""
+        return self._memory_store
 
     def get_plotly_figure(self):
         """Return the current Plotly figure (or None)."""
@@ -1666,6 +1675,134 @@ class OrchestratorAgent:
             self.logger.debug("[Router] Created DataExtraction agent")
         return self._data_extraction_agent
 
+    # ---- Long-term memory extraction ----
+
+    def extract_and_save_memories(self) -> int:
+        """Extract memories from the current conversation and save them.
+
+        Uses a lightweight single-shot Gemini call (Flash model) to identify
+        user preferences and generate a session summary.
+
+        Returns:
+            Number of new memories added.
+        """
+        # Get conversation history text
+        try:
+            history = self.chat.get_history()
+        except Exception:
+            return 0
+
+        # Build text from user + model parts only
+        turns = []
+        user_turn_count = 0
+        for content in history:
+            role = getattr(content, "role", "")
+            if role not in ("user", "model"):
+                continue
+            for part in (content.parts or []):
+                text = getattr(part, "text", None)
+                if text:
+                    prefix = "User" if role == "user" else "Agent"
+                    turns.append(f"{prefix}: {text[:500]}")
+                    if role == "user":
+                        user_turn_count += 1
+                    break  # one text part per content
+
+        if user_turn_count < 2:
+            return 0  # too short to extract anything useful
+
+        conversation_text = "\n".join(turns[-40:])  # last 40 turns max
+
+        # Include existing memories so the model doesn't duplicate
+        existing = self._memory_store.get_all()
+        existing_prefs = [m.content for m in existing if m.type == "preference"]
+        existing_sums = [m.content for m in existing if m.type == "summary"]
+        existing_section = ""
+        if existing_prefs:
+            existing_section += "\nExisting preferences (do NOT duplicate these):\n"
+            existing_section += "\n".join(f"- {p}" for p in existing_prefs)
+        if existing_sums:
+            existing_section += "\nExisting summaries (do NOT duplicate these):\n"
+            existing_section += "\n".join(f"- {s}" for s in existing_sums)
+
+        prompt = f"""Analyze this conversation and extract useful information to remember about the user for future sessions.
+
+{existing_section}
+
+Conversation:
+{conversation_text}
+
+Respond with JSON only (no markdown fencing):
+{{"preferences": ["list of user preferences, habits, or styles observed (empty list if none)"], "summary": "one-sentence summary of what was analyzed in this session (empty string if nothing notable)"}}
+
+Rules:
+- Preferences: plot style choices, spacecraft of interest, workflow habits, display preferences
+- Summary: what data was fetched, what analysis was done, key findings
+- Do NOT repeat existing memories listed above
+- Keep each entry concise (one sentence max)
+- Return empty lists/strings if nothing new to remember"""
+
+        try:
+            response = self.client.models.generate_content(
+                model=SUB_AGENT_MODEL,
+                contents=prompt,
+                config=types.GenerateContentConfig(
+                    temperature=0.2,
+                ),
+            )
+            self._track_usage(response)
+
+            text = (response.text or "").strip()
+            # Strip markdown fencing if present
+            if text.startswith("```"):
+                text = text.split("\n", 1)[-1]
+                if text.endswith("```"):
+                    text = text[:-3].strip()
+
+            import json
+            data = json.loads(text)
+        except Exception as e:
+            self.logger.debug(f"[Memory] Extraction failed: {e}")
+            return 0
+
+        session_id = self._session_id or ""
+        count = 0
+
+        # Add preferences (deduplicate)
+        for pref in data.get("preferences", []):
+            if not pref or not isinstance(pref, str):
+                continue
+            # Skip if substring of existing preference
+            if any(pref.lower() in ep.lower() or ep.lower() in pref.lower()
+                   for ep in existing_prefs):
+                continue
+            from .memory import Memory
+            self._memory_store.add(Memory(
+                type="preference",
+                content=pref,
+                source_session=session_id,
+            ))
+            count += 1
+
+        # Add summary
+        summary = data.get("summary", "")
+        if summary and isinstance(summary, str):
+            # Skip if too similar to existing summary
+            if not any(summary.lower() in es.lower() or es.lower() in summary.lower()
+                       for es in existing_sums):
+                from .memory import Memory
+                self._memory_store.add(Memory(
+                    type="summary",
+                    content=summary,
+                    source_session=session_id,
+                ))
+                count += 1
+
+        if count > 0:
+            self.logger.info(f"[Memory] Extracted {count} new memories")
+
+        return count
+
     # ---- Session persistence ----
 
     def start_session(self) -> str:
@@ -1800,11 +1937,21 @@ class OrchestratorAgent:
         loop, where the orchestrator (HIGH thinking) can also call request_planning
         for complex cases the regex missed.
         """
+        # Inject long-term memory context
+        memory_section = self._memory_store.build_prompt_section()
+        if memory_section:
+            augmented = (
+                f"[CONTEXT FROM LONG-TERM MEMORY]\n{memory_section}\n"
+                f"[END MEMORY CONTEXT]\n\n{user_message}"
+            )
+        else:
+            augmented = user_message
+
         if is_complex_request(user_message):
             self.logger.debug("[Orchestrator] Heuristic: request appears complex, routing to planner")
-            result = self._handle_planning_request(user_message)
+            result = self._handle_planning_request(augmented)
         else:
-            result = self._process_single_message(user_message)
+            result = self._process_single_message(augmented)
 
         # Auto-save after each turn
         if self._auto_save and self._session_id:

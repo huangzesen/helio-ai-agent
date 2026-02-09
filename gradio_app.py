@@ -259,7 +259,7 @@ def _on_fetch_click(mission, dataset, param, start_time, end_time, history):
         data_rows, token_text, None,
         gr.update(choices=label_choices, value=selected),
         preview, "",
-        gr.skip(),  # session_list — no change
+        gr.skip(),  # session_radio — no change
     )
 
 
@@ -280,7 +280,7 @@ def _preview_data(label: str) -> list[list] | None:
         subset = pd.concat([df.head(10), df.tail(10)])
     # Only copy the small subset for formatting
     subset = subset.copy()
-    subset.insert(0, "timestamp", subset.index.strftime("%Y-%m-%d %H:%M:%S"))
+    subset.insert(0, "timestamp", subset.index.strftime("%Y-%m-%d %H:%M"))
     subset = subset.reset_index(drop=True)
     num_cols = subset.select_dtypes(include="number").columns
     subset[num_cols] = subset[num_cols].round(4)
@@ -295,23 +295,25 @@ def _preview_data(label: str) -> list[list] | None:
 # Session management helpers
 # ---------------------------------------------------------------------------
 
+def _get_active_session_id() -> str | None:
+    """Return the ID of the currently active agent session, or None."""
+    return _agent.get_session_id() if _agent else None
+
+
 def _get_session_choices() -> list[tuple[str, str]]:
     """Return choices for the session list: (display_label, session_id).
 
-    The currently active session gets a visible marker so the user can
-    identify it at a glance.
+    The Radio's selected state visually indicates the active session.
     """
     from agent.session import SessionManager
     sm = SessionManager()
     sessions = sm.list_sessions()[:20]
-    active_id = _agent.get_session_id() if _agent else None
     choices = []
     for s in sessions:
         preview = s.get("last_message_preview", "").strip()[:40] or "New chat"
         date_str = s.get("updated_at", "")[:10]  # YYYY-MM-DD
         turns = s.get("turn_count", 0)
-        marker = "▶ " if s["id"] == active_id else ""
-        label = f"{marker}{preview}\n{date_str} · {turns} turns"
+        label = f"{preview}\n{date_str} · {turns} turns"
         choices.append((label, s["id"]))
     return choices
 
@@ -346,19 +348,26 @@ def _extract_display_history(contents: list[dict]) -> list[dict]:
     return messages
 
 
-def _on_load_session(session_ids: list[str]):
-    """Load a saved session and restore chat + data.
+def _on_session_radio_change(session_id: str | None):
+    """Load a saved session when clicked in the Radio list.
 
-    ``session_ids`` comes from CheckboxGroup — load the first selected item.
+    Takes a single session_id string (Radio value).
     Returns the full 9-element all_outputs tuple.
     """
-    session_id = session_ids[0] if session_ids else None
     if not session_id or _agent is None:
         return (gr.skip(),) * 9
 
-    # Save current session before switching
+    # Guard: don't reload the already-active session
+    if session_id == _get_active_session_id():
+        return (gr.skip(),) * 9
+
+    # Save current session and extract memories before switching
     try:
         _agent.save_session()
+    except Exception:
+        pass
+    try:
+        _agent.extract_and_save_memories()
     except Exception:
         pass
 
@@ -374,7 +383,7 @@ def _on_load_session(session_ids: list[str]):
             [], _format_tokens(), None,
             gr.update(choices=[], value=None),
             None, "",
-            gr.update(choices=_get_session_choices(), value=[]),
+            gr.update(choices=_get_session_choices(), value=_get_active_session_id()),
         )
 
     display = _extract_display_history(history_dicts)
@@ -403,7 +412,25 @@ def _on_load_session(session_ids: list[str]):
         data_rows, token_text, None,
         gr.update(choices=label_choices, value=selected),
         preview, "",
-        gr.update(choices=_get_session_choices(), value=[]),
+        gr.update(choices=_get_session_choices(), value=_get_active_session_id()),
+    )
+
+
+def _on_enter_manage_mode():
+    """Switch sidebar to manage mode (CheckboxGroup for batch deletion)."""
+    return (
+        gr.update(visible=False),   # normal_mode_group
+        gr.update(visible=True),    # manage_mode_group
+        gr.update(choices=_get_session_choices(), value=[]),  # session_checklist
+    )
+
+
+def _on_exit_manage_mode():
+    """Switch sidebar back to normal mode (Radio for click-to-load)."""
+    return (
+        gr.update(visible=True),    # normal_mode_group
+        gr.update(visible=False),   # manage_mode_group
+        gr.update(value=[]),        # session_checklist — clear selection
     )
 
 
@@ -414,9 +441,13 @@ def _on_new_session():
     Returns the full 9-element all_outputs tuple.
     """
     if _agent is not None:
-        # Save current session before starting a new one
+        # Save current session and extract memories before starting a new one
         try:
             _agent.save_session()
+        except Exception:
+            pass
+        try:
+            _agent.extract_and_save_memories()
         except Exception:
             pass
         _agent.reset()
@@ -433,7 +464,7 @@ def _on_new_session():
         gr.update(choices=[], value=None),  # label_dropdown
         None,  # data_preview
         "",  # verbose_output
-        gr.update(choices=_get_session_choices(), value=[]),  # session_list
+        gr.update(choices=_get_session_choices(), value=_get_active_session_id()),
     )
 
 
@@ -448,19 +479,29 @@ def _on_select_all(current_selection: list[str]):
     return gr.update(value=all_ids)
 
 
-def _on_delete_session(session_ids: list[str]):
-    """Delete one or more saved sessions. Returns updated session_list CheckboxGroup.
+def _on_delete_sessions(session_ids: list[str]):
+    """Delete selected sessions and exit manage mode.
 
-    ``session_ids`` comes from CheckboxGroup — a list of selected values.
-    If the currently active session is among those deleted, start a fresh one.
+    Returns 12 elements:
+      normal_mode_group, manage_mode_group, session_checklist, session_radio,
+      chatbot, plotly_plot, data_table, token_display,
+      msg_input, label_dropdown, data_preview, verbose_output
     """
     if not session_ids:
-        return gr.update(choices=_get_session_choices(), value=[])
+        # Nothing selected — just exit manage mode
+        choices = _get_session_choices()
+        return (
+            gr.update(visible=True),    # normal_mode_group
+            gr.update(visible=False),   # manage_mode_group
+            gr.update(value=[]),        # session_checklist
+            gr.update(choices=choices, value=_get_active_session_id()),  # session_radio
+            *(gr.skip(),) * 8,          # chatbot..verbose_output unchanged
+        )
 
     from agent.session import SessionManager
     sm = SessionManager()
 
-    active_id = _agent.get_session_id() if _agent else None
+    active_id = _get_active_session_id()
     need_reset = False
 
     for sid in session_ids:
@@ -468,13 +509,90 @@ def _on_delete_session(session_ids: list[str]):
             need_reset = True
         sm.delete_session(sid)
 
-    # If the active session was deleted, start a fresh one
+    choices = _get_session_choices()
+
     if need_reset and _agent is not None:
+        # Active session was deleted — reset everything
         _agent.reset()
         from data_ops.store import get_store
         get_store().clear()
+        return (
+            gr.update(visible=True),    # normal_mode_group
+            gr.update(visible=False),   # manage_mode_group
+            gr.update(value=[]),        # session_checklist
+            gr.update(choices=choices, value=_get_active_session_id()),  # session_radio
+            [],                          # chatbot
+            gr.update(visible=False),    # plotly_plot
+            [],                          # data_table
+            "*Session deleted — new session started*",  # token_display
+            None,                        # msg_input
+            gr.update(choices=[], value=None),  # label_dropdown
+            None,                        # data_preview
+            "",                          # verbose_output
+        )
 
-    return gr.update(choices=_get_session_choices(), value=[])
+    # Active session not deleted — just refresh sidebar and exit manage mode
+    return (
+        gr.update(visible=True),    # normal_mode_group
+        gr.update(visible=False),   # manage_mode_group
+        gr.update(value=[]),        # session_checklist
+        gr.update(choices=choices, value=_get_active_session_id()),  # session_radio
+        *(gr.skip(),) * 8,          # chatbot..verbose_output unchanged
+    )
+
+
+# ---------------------------------------------------------------------------
+# Long-term memory helpers
+# ---------------------------------------------------------------------------
+
+def _get_memory_global_enabled() -> bool:
+    """Return whether the memory system is globally enabled."""
+    if _agent is None:
+        return True
+    return _agent.memory_store.is_global_enabled()
+
+
+def _get_memory_choices() -> list[tuple[str, str]]:
+    """Return (display_label, memory_id) pairs for the CheckboxGroup."""
+    if _agent is None:
+        return []
+    memories = _agent.memory_store.get_all()
+    choices = []
+    for m in memories:
+        tag = "[P]" if m.type == "preference" else "[S]"
+        date_str = m.created_at[:10] if m.created_at else ""
+        content_preview = m.content[:60] + "..." if len(m.content) > 60 else m.content
+        label = f"{tag} {content_preview} ({date_str})"
+        choices.append((label, m.id))
+    return choices
+
+
+def _on_memory_global_toggle(enabled: bool):
+    """Toggle the global memory setting."""
+    if _agent is not None:
+        _agent.memory_store.toggle_global(enabled)
+
+
+def _on_memory_delete(selected_ids: list[str]):
+    """Delete selected memories and return updated choices."""
+    if _agent is not None and selected_ids:
+        for mid in selected_ids:
+            _agent.memory_store.remove(mid)
+    return gr.update(choices=_get_memory_choices(), value=[])
+
+
+def _on_memory_clear():
+    """Clear all memories and return updated choices."""
+    if _agent is not None:
+        _agent.memory_store.clear_all()
+    return gr.update(choices=_get_memory_choices(), value=[])
+
+
+def _on_memory_refresh():
+    """Refresh the memory list from disk."""
+    if _agent is not None:
+        _agent.memory_store.load()
+    return gr.update(choices=_get_memory_choices(), value=[])
 
 
 # ---------------------------------------------------------------------------
@@ -563,7 +681,7 @@ def respond(message, history: list[dict]):
             data_rows, token_text, None,
             gr.update(choices=label_choices, value=selected),
             preview, "",
-            gr.update(choices=_get_session_choices(), value=[]),
+            gr.update(choices=_get_session_choices(), value=_get_active_session_id()),
         )
         return
 
@@ -652,7 +770,7 @@ def respond(message, history: list[dict]):
         data_rows, token_text, None,
         gr.update(choices=label_choices, value=selected),
         preview, "",
-        gr.update(choices=_get_session_choices(), value=[]),
+        gr.update(choices=_get_session_choices(), value=_get_active_session_id()),
     )
 
 
@@ -674,6 +792,7 @@ EXAMPLES = [
 def _build_theme():
     """Build Gradio theme with distinct light and dark mode palettes."""
     return gr.themes.Base(
+        text_size=gr.themes.sizes.text_lg,
         primary_hue=gr.themes.Color(
             c50="#e0f7ff", c100="#b3ecff", c200="#80dfff",
             c300="#4dd2ff", c400="#1ac5ff", c500="#00d9ff",
@@ -747,6 +866,7 @@ def _build_theme():
         block_label_text_color_dark="#a2a9bc",
         block_title_text_color_dark="#e8eaf0",
         checkbox_label_text_color_dark="#e8eaf0",
+        chatbot_text_size="*text_md",
     )
 
 
@@ -765,19 +885,19 @@ footer { display: none !important; }
     display: flex;
     align-items: center;
     justify-content: space-between;
-    padding: 0.5rem 1rem;
+    padding: 0.8rem 1.2rem;
     background: var(--background-fill-secondary);
     border-bottom: 1px solid var(--border-color-primary);
     border-radius: 8px;
-    margin-bottom: 0.5rem;
+    margin-bottom: 0.75rem;
 }
 .header-left {
     display: flex;
     align-items: center;
-    gap: 0.8rem;
+    gap: 1rem;
 }
 .header-title {
-    font-size: 1.3rem;
+    font-size: 1.5rem;
     font-weight: 700;
     color: #0097b2;
     margin: 0;
@@ -788,21 +908,21 @@ footer { display: none !important; }
 }
 .header-subtitle {
     color: var(--body-text-color-subdued);
-    font-size: 0.8rem;
+    font-size: 0.9rem;
     margin: 0;
     white-space: nowrap;
 }
 .header-controls {
     display: flex;
     align-items: center;
-    gap: 0.6rem;
+    gap: 0.75rem;
 }
 .header-badge {
     background: var(--background-fill-secondary);
     color: #f57c00;
-    font-size: 0.7rem;
+    font-size: 0.8rem;
     font-weight: 600;
-    padding: 0.25rem 0.6rem;
+    padding: 0.3rem 0.75rem;
     border-radius: 20px;
     border: 1px solid #ffa500;
     white-space: nowrap;
@@ -833,25 +953,40 @@ footer { display: none !important; }
 /* ---- Plot container ---- */
 .plot-container {
     border: 1px solid var(--border-color-primary) !important;
-    border-radius: 12px !important;
+    border-radius: 14px !important;
     background: var(--background-fill-primary) !important;
-    padding: 0.5rem !important;
-    margin-bottom: 0.5rem !important;
+    padding: 0.75rem !important;
+    margin-bottom: 0.75rem !important;
 }
 
-/* ---- Chatbot ---- */
+/* ---- Chatbot bubbles ---- */
 .chat-window .message-row .message {
-    border-radius: 10px !important;
+    padding: 0.75rem 1rem !important;
+    line-height: 1.6 !important;
+    box-shadow: 0 1px 2px rgba(0,0,0,0.04) !important;
 }
 .chat-window .message-row.user-row .message {
-    background: var(--background-fill-secondary) !important;
+    background: rgba(0,184,217,0.08) !important;
+    border: 1px solid rgba(0,184,217,0.18) !important;
+    border-radius: 14px 14px 4px 14px !important;
 }
 .chat-window .message-row.bot-row .message {
-    background: var(--background-fill-primary) !important;
+    background: var(--background-fill-secondary) !important;
+    border: 1px solid var(--border-color-primary) !important;
+    border-radius: 14px 14px 14px 4px !important;
+}
+/* Dark mode bubble variants */
+.dark .chat-window .message-row.user-row .message {
+    background: rgba(0,217,255,0.06) !important;
+    border-color: rgba(0,217,255,0.15) !important;
+}
+.dark .chat-window .message-row.bot-row .message {
+    background: var(--background-fill-secondary) !important;
+    border-color: var(--border-color-primary) !important;
 }
 .chat-window {
     border: 1px solid var(--border-color-primary) !important;
-    border-radius: 12px !important;
+    border-radius: 14px !important;
 }
 
 /* ---- Input textbox ---- */
@@ -860,75 +995,172 @@ footer { display: none !important; }
 }
 .chat-input textarea:focus {
     border-color: #00b8d9 !important;
+    box-shadow: 0 0 0 2px rgba(0, 184, 217, 0.1) !important;
 }
 .dark .chat-input textarea:focus {
     border-color: #00d9ff !important;
+    box-shadow: 0 0 0 2px rgba(0, 217, 255, 0.1) !important;
 }
 
-/* ---- Examples as compact pills ---- */
+/* ---- Examples as card-style prompts ---- */
 #example-pills .gr-samples-table {
-    gap: 0.4rem !important;
+    gap: 0.6rem !important;
 }
 #example-pills button.gr-sample-btn,
 #example-pills .gr-sample {
     background: var(--background-fill-secondary) !important;
     border: 1px solid var(--border-color-primary) !important;
-    border-radius: 20px !important;
-    color: var(--body-text-color-subdued) !important;
-    font-size: 0.8rem !important;
-    padding: 0.3rem 0.8rem !important;
+    border-radius: 12px !important;
+    color: var(--body-text-color) !important;
+    font-size: 0.9rem !important;
+    padding: 0.6rem 1rem !important;
+}
+#example-pills button.gr-sample-btn:hover,
+#example-pills .gr-sample:hover {
+    border-color: #00b8d9 !important;
+    background: rgba(0,184,217,0.04) !important;
+}
+.dark #example-pills button.gr-sample-btn:hover,
+.dark #example-pills .gr-sample:hover {
+    border-color: #00d9ff !important;
+    background: rgba(0,217,255,0.04) !important;
 }
 
-/* ---- Left session sidebar ---- */
-.session-sidebar .session-list {
-    max-height: calc(100vh - 160px);
+/* ---- Left session sidebar: shared styles ---- */
+.session-sidebar .normal-mode-group,
+.session-sidebar .manage-mode-group {
+    max-height: calc(100vh - 200px);
     overflow-y: auto;
+    border: none !important;
+    background: transparent !important;
 }
-.session-sidebar .session-list label {
+
+/* ---- Radio list (normal mode) ---- */
+.session-radio-list {
+    border: none !important;
+}
+/* Remove Gradio's default container border/shadow */
+.session-radio-list > div {
+    border: none !important;
+    box-shadow: none !important;
+}
+/* Hide radio dots */
+.session-radio-list input[type="radio"] {
+    display: none !important;
+}
+/* Style each label as a clickable list item */
+.session-radio-list label {
     border-radius: 8px !important;
-    padding: 0.5rem 0.7rem !important;
-    margin-bottom: 2px !important;
+    padding: 0.6rem 0.8rem !important;
+    margin-bottom: 3px !important;
     cursor: pointer !important;
-    font-size: 0.82rem !important;
+    font-size: 0.9rem !important;
+    line-height: 1.35 !important;
+    white-space: pre-line !important;
+    border-left: 3px solid transparent !important;
+    border-top: none !important;
+    border-right: none !important;
+    border-bottom: none !important;
+}
+.session-radio-list label:hover {
+    background: rgba(0, 184, 217, 0.06) !important;
+}
+.dark .session-radio-list label:hover {
+    background: rgba(0, 217, 255, 0.06) !important;
+}
+/* Active session: accent left border + background highlight */
+.session-radio-list label:has(input:checked) {
+    background: rgba(0, 184, 217, 0.12) !important;
+    border-left: 3px solid #00b8d9 !important;
+}
+.dark .session-radio-list label:has(input:checked) {
+    background: rgba(0, 217, 255, 0.1) !important;
+    border-left: 3px solid #00d9ff !important;
+}
+
+/* ---- CheckboxGroup (manage mode) ---- */
+.session-checklist {
+    border: none !important;
+}
+.session-checklist > div {
+    border: none !important;
+    box-shadow: none !important;
+}
+.session-checklist label {
+    border-radius: 8px !important;
+    padding: 0.6rem 0.8rem !important;
+    margin-bottom: 3px !important;
+    cursor: pointer !important;
+    font-size: 0.9rem !important;
     line-height: 1.35 !important;
     white-space: pre-line !important;
     border: none !important;
 }
-.session-sidebar .session-list input:checked + span,
-.session-sidebar .session-list label:has(input:checked) {
-    background: rgba(0, 184, 217, 0.12) !important;
+/* Red-tinted background on checked items (deletion visual) */
+.session-checklist label:has(input:checked) {
+    background: rgba(239, 68, 68, 0.1) !important;
 }
-.dark .session-sidebar .session-list input:checked + span,
-.dark .session-sidebar .session-list label:has(input:checked) {
-    background: rgba(0, 217, 255, 0.1) !important;
+.dark .session-checklist label:has(input:checked) {
+    background: rgba(239, 68, 68, 0.15) !important;
 }
-/* Remove Gradio's default accent border on the checkbox group container */
-.session-sidebar .session-list > div {
+
+/* ---- Manage toggle button ---- */
+.manage-toggle-btn {
+    background: transparent !important;
     border: none !important;
     box-shadow: none !important;
+    color: var(--body-text-color-subdued) !important;
+    text-decoration: underline !important;
+    font-size: 0.85rem !important;
+    padding: 0.2rem 0.4rem !important;
+    min-height: unset !important;
+}
+.manage-toggle-btn:hover {
+    color: var(--body-text-color) !important;
 }
 
 /* ---- Right data sidebar ---- */
 .data-sidebar .gr-accordion {
     border-color: var(--border-color-primary) !important;
+    border-radius: 10px !important;
+    margin-bottom: 0.75rem !important;
 }
 
 /* ---- Data tables ---- */
+.data-table {
+    border-radius: 8px !important;
+    overflow: hidden !important;
+    border: 1px solid var(--border-color-primary) !important;
+}
 .data-table table th {
     background: var(--background-fill-secondary) !important;
     font-weight: 600 !important;
-    border-color: var(--border-color-primary) !important;
+    font-size: 0.75rem !important;
+    text-transform: uppercase !important;
+    letter-spacing: 0.05em !important;
+    border-bottom: 2px solid var(--border-color-primary) !important;
+    padding: 0.4rem 0.6rem !important;
 }
 .data-table table td {
     border-color: var(--border-color-primary) !important;
+    padding: 0.4rem 0.6rem !important;
+    font-family: var(--font-mono) !important;
+}
+.data-table table tr:hover td {
+    background: rgba(0,184,217,0.04) !important;
+}
+.dark .data-table table tr:hover td {
+    background: rgba(0,217,255,0.04) !important;
 }
 
 /* ---- Token display ---- */
 .token-display {
     background: var(--background-fill-primary) !important;
     border: 1px solid var(--border-color-primary) !important;
-    border-radius: 8px !important;
-    padding: 0.6rem 0.8rem !important;
+    border-radius: 10px !important;
+    padding: 0.75rem 1rem !important;
+    margin-top: 0.75rem !important;
+    line-height: 1.5 !important;
 }
 
 /* ---- Buttons ---- */
@@ -987,19 +1219,34 @@ def create_app() -> gr.Blocks:
         with gr.Sidebar(position="left", width=280, open=True,
                          elem_classes="session-sidebar"):
             new_session_btn = gr.Button("+ New Chat", variant="primary", size="sm")
-            session_list = gr.CheckboxGroup(
-                choices=_get_session_choices(),
-                label=None, show_label=False,
-                interactive=True,
-                elem_classes="session-list",
-            )
-            with gr.Row():
-                load_session_btn = gr.Button("Load", size="sm")
-                select_all_btn = gr.Button("Select All", size="sm")
-            with gr.Row():
-                delete_session_btn = gr.Button(
-                    "Delete Selected", variant="stop", size="sm",
+
+            # Normal mode — click-to-load via Radio
+            with gr.Group(visible=True, elem_classes="normal-mode-group") as normal_mode_group:
+                session_radio = gr.Radio(
+                    choices=_get_session_choices(),
+                    value=_get_active_session_id(),
+                    label=None, show_label=False,
+                    interactive=True,
+                    elem_classes="session-radio-list",
                 )
+
+            # Manage mode — multi-select for batch deletion
+            with gr.Group(visible=False, elem_classes="manage-mode-group") as manage_mode_group:
+                session_checklist = gr.CheckboxGroup(
+                    choices=_get_session_choices(),
+                    label=None, show_label=False,
+                    interactive=True,
+                    elem_classes="session-checklist",
+                )
+                with gr.Row():
+                    select_all_btn = gr.Button("Select All", size="sm")
+                    delete_btn = gr.Button("Delete", variant="stop", size="sm")
+                    cancel_btn = gr.Button("Cancel", size="sm")
+
+            manage_btn = gr.Button(
+                "Manage", size="sm", variant="secondary",
+                elem_classes="manage-toggle-btn",
+            )
 
         # ---- Right Sidebar: Data Tools ----
         with gr.Sidebar(position="right", width=340, open=True,
@@ -1046,6 +1293,8 @@ def create_app() -> gr.Blocks:
                 interactive=False,
                 wrap=True,
                 row_count=0,
+                max_height=200,
+                column_widths=["30%", "12%", "12%", "30%", "16%"],
                 elem_classes="data-table",
             )
             label_dropdown = gr.Dropdown(
@@ -1058,13 +1307,32 @@ def create_app() -> gr.Blocks:
                 interactive=False,
                 wrap=True,
                 row_count=0,
-                elem_classes="data-table",
+                max_height=300,
+                elem_classes="data-table data-preview-table",
             )
             token_display = gr.Markdown(
                 value="*No API calls yet*",
                 label="Token Usage",
                 elem_classes="token-display",
             )
+            with gr.Accordion("Long-term Memory", open=False):
+                memory_toggle = gr.Checkbox(
+                    label="Enable long-term memory",
+                    value=_get_memory_global_enabled(),
+                )
+                memory_list = gr.CheckboxGroup(
+                    choices=_get_memory_choices(),
+                    label="Memories",
+                    interactive=True,
+                )
+                with gr.Row():
+                    memory_refresh_btn = gr.Button("Refresh", size="sm")
+                    memory_delete_btn = gr.Button(
+                        "Delete Selected", variant="stop", size="sm",
+                    )
+                memory_clear_btn = gr.Button(
+                    "Clear All", variant="stop", size="sm",
+                )
 
         # ---- Center: Header + Plot + Chat ----
         gr.HTML(
@@ -1129,7 +1397,7 @@ def create_app() -> gr.Blocks:
         # ---- Event wiring ----
         all_outputs = [chatbot, plotly_plot, data_table, token_display,
                        msg_input, label_dropdown, data_preview, verbose_output,
-                       session_list]
+                       session_radio]
 
         send_event_args = dict(
             fn=respond,
@@ -1163,9 +1431,10 @@ def create_app() -> gr.Blocks:
         )
 
         # Session management — left sidebar
-        load_session_btn.click(
-            fn=_on_load_session,
-            inputs=[session_list],
+        # Click-to-load in normal mode
+        session_radio.change(
+            fn=_on_session_radio_change,
+            inputs=[session_radio],
             outputs=all_outputs,
         )
         new_session_btn.click(
@@ -1173,15 +1442,53 @@ def create_app() -> gr.Blocks:
             inputs=[],
             outputs=all_outputs,
         )
+
+        # Enter/exit manage mode
+        manage_btn.click(
+            fn=_on_enter_manage_mode,
+            outputs=[normal_mode_group, manage_mode_group, session_checklist],
+        )
+        cancel_btn.click(
+            fn=_on_exit_manage_mode,
+            outputs=[normal_mode_group, manage_mode_group, session_checklist],
+        )
+
+        # Manage mode actions
         select_all_btn.click(
             fn=_on_select_all,
-            inputs=[session_list],
-            outputs=[session_list],
+            inputs=[session_checklist],
+            outputs=[session_checklist],
         )
-        delete_session_btn.click(
-            fn=_on_delete_session,
-            inputs=[session_list],
-            outputs=[session_list],
+
+        delete_outputs = [
+            normal_mode_group, manage_mode_group, session_checklist, session_radio,
+            chatbot, plotly_plot, data_table, token_display,
+            msg_input, label_dropdown, data_preview, verbose_output,
+        ]
+        delete_btn.click(
+            fn=_on_delete_sessions,
+            inputs=[session_checklist],
+            outputs=delete_outputs,
+        )
+
+        # Memory UI — self-contained, no effect on all_outputs
+        memory_toggle.change(
+            fn=_on_memory_global_toggle,
+            inputs=[memory_toggle],
+            outputs=[],
+        )
+        memory_refresh_btn.click(
+            fn=_on_memory_refresh,
+            outputs=[memory_list],
+        )
+        memory_delete_btn.click(
+            fn=_on_memory_delete,
+            inputs=[memory_list],
+            outputs=[memory_list],
+        )
+        memory_clear_btn.click(
+            fn=_on_memory_clear,
+            outputs=[memory_list],
         )
 
     return app

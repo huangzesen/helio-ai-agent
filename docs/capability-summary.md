@@ -82,6 +82,10 @@ agent/core.py  OrchestratorAgent  (LLM-driven orchestrator)
   |       SessionManager          Save/load chat history + DataStore to ~/.helio-agent/sessions/
   |                                Auto-save every turn, --continue/--session CLI flags
   |
+  +---> agent/memory.py            Long-term memory (cross-session)
+  |       MemoryStore              Persist preferences + summaries to ~/.helio-agent/memory.json
+  |                                Inject into prompts, extract at session boundaries
+  |
   +---> agent/tasks.py            Task management
   |       Task, TaskPlan          Data structures (mission, depends_on fields)
   |       TaskStore               JSON persistence to ~/.helio-agent/tasks/
@@ -292,7 +296,19 @@ All times are UTC. Outputs `TimeRange` objects with `start`/`end` datetimes.
 - **Auto-generation**: `scripts/generate_mission_data.py` queries CDAWeb HAPI to populate parameters, dates, descriptions. Use `--create-new` to create skeleton JSON files for new missions.
 - **Loader**: `knowledge/mission_loader.py` provides lazy-loading cache, routing table, and dataset access. Routing table derives capabilities from instrument keywords (magnetic field, plasma, energetic particles, electric field, radio/plasma waves, geomagnetic indices, ephemeris, composition, coronagraph, imaging).
 
-### Session Persistence (`agent/session.py`)
+### Long-term Memory (`agent/memory.py`)
+- Cross-session memory that persists user preferences and session summaries
+- Storage: `~/.helio-agent/memory.json` — global, not per-session
+- Two memory types: `"preference"` (plot styles, spacecraft of interest, workflow habits) and `"summary"` (what was analyzed in each session)
+- Automatic extraction at session boundaries via lightweight Gemini Flash call (no tools, no thinking)
+- Injection: prepends memory context to user messages in `process_message()` (avoids chat recreation)
+- Deduplication: skips new memories that are substrings of existing ones
+- Capped at 15 preferences + 15 summaries per injection to keep prompt size reasonable
+- Global enable/disable toggle + per-memory enable/disable
+- Gradio UI: "Long-term Memory" accordion in right sidebar with toggle, delete, and clear controls
+- CLI: memories extracted automatically on session exit (`main.py`)
+
+
 - `SessionManager` saves and restores chat history + DataStore across process restarts
 - Storage layout: `~/.helio-agent/sessions/{session_id}/` with `metadata.json`, `history.json`, and `data/*.pkl`
 - Auto-save after every turn in `process_message()` — survives crashes
@@ -404,6 +420,7 @@ Features:
 ```bash
 python -m pytest tests/test_store.py tests/test_custom_ops.py   # Data ops tests
 python -m pytest tests/test_session.py                           # Session persistence tests
+python -m pytest tests/test_memory.py                            # Long-term memory tests
 python -m pytest tests/                                          # All tests
 ```
 
