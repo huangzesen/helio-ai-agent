@@ -44,7 +44,7 @@ from data_ops.custom_ops import run_custom_operation, run_dataframe_creation, ru
 # Orchestrator sees discovery, web search, conversation, and routing tools
 # (NOT data fetching or data_ops — handled by sub-agents)
 ORCHESTRATOR_CATEGORIES = ["discovery", "web_search", "conversation", "routing", "document"]
-ORCHESTRATOR_EXTRA_TOOLS = ["list_fetched_data"]
+ORCHESTRATOR_EXTRA_TOOLS = ["list_fetched_data", "preview_data"]
 
 DEFAULT_MODEL = GEMINI_MODEL
 SUB_AGENT_MODEL = GEMINI_SUB_AGENT_MODEL
@@ -829,6 +829,41 @@ class OrchestratorAgent:
                 "nan_percentage": round(nan_count / (total_points * len(df.columns)) * 100, 1) if total_points > 0 else 0,
                 "statistics": stats,
             }
+
+        elif tool_name == "preview_data":
+            store = get_store()
+            entry = store.get(tool_args["label"])
+            if entry is None:
+                return {"status": "error", "message": f"Label '{tool_args['label']}' not found in memory"}
+
+            df = entry.data
+            n_rows = min(tool_args.get("n_rows", 5), 50)
+            position = tool_args.get("position", "both")
+
+            def _df_to_rows(sub_df):
+                rows = []
+                for ts, row in sub_df.iterrows():
+                    d = {"timestamp": str(ts)}
+                    for col in sub_df.columns:
+                        v = row[col]
+                        d[col] = float(v) if isinstance(v, (int, float)) else str(v)
+                    rows.append(d)
+                return rows
+
+            result = {
+                "status": "success",
+                "label": entry.label,
+                "units": entry.units,
+                "total_rows": len(df),
+                "columns": list(df.columns),
+            }
+
+            if position in ("head", "both"):
+                result["head"] = _df_to_rows(df.head(n_rows))
+            if position in ("tail", "both"):
+                result["tail"] = _df_to_rows(df.tail(n_rows))
+
+            return result
 
         elif tool_name == "save_data":
             store = get_store()

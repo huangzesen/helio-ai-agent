@@ -372,6 +372,36 @@ Returns statistics (min, max, mean, std, percentiles, NaN count) and the LLM can
     },
     {
         "category": "data_ops_compute",
+        "name": "preview_data",
+        "description": """Preview actual values (first/last N rows) of an in-memory timeseries. Use this when:
+- You need to see actual data values to diagnose an issue
+- User asks "show me the data" or "what values are in there?"
+- A plot looks wrong and you want to check the underlying data
+- You want to verify a computation produced correct results
+
+Returns timestamps and values for the requested rows. Use describe_data for statistics instead.""",
+        "parameters": {
+            "type": "object",
+            "properties": {
+                "label": {
+                    "type": "string",
+                    "description": "Label of the data in memory (e.g., 'AC_H2_MFI.BGSEc')"
+                },
+                "n_rows": {
+                    "type": "integer",
+                    "description": "Number of rows to show from each end (default: 5, max: 50)"
+                },
+                "position": {
+                    "type": "string",
+                    "enum": ["head", "tail", "both"],
+                    "description": "Which rows to show: 'head' (first N), 'tail' (last N), or 'both' (default: 'both')"
+                }
+            },
+            "required": ["label"]
+        }
+    },
+    {
+        "category": "data_ops_compute",
         "name": "save_data",
         "description": """Export an in-memory timeseries to a CSV file.
 
