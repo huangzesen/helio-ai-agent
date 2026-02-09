@@ -31,22 +31,28 @@ Future development plan for the helio-ai-agent project.
 | Multimodal Upload | Done | File upload in Gradio (drag-and-drop, 18+ file types) |
 | Mission Data Refresh | Done | Interactive startup menu + `--refresh`/`--refresh-full`/`--refresh-all` CLI flags |
 | Session Persistence | Done | Auto-save every turn, `--continue`/`--session` CLI, Gradio sidebar |
+| Long-term Memory | Done | Cross-session memory (preferences, summaries, pitfalls) in `~/.helio-agent/memory.json` |
+| Passive MemoryAgent | Done | Auto-triggered session analysis, pitfall extraction, error pattern reports |
+| Model Fallback | Done | Auto-switch to `GEMINI_FALLBACK_MODEL` on 429 quota errors (session-level) |
+| Plot Self-Review | Done | Structured review metadata on every `plot_data` call for LLM self-assessment |
 
-### Tools (21 Tool Schemas)
+### Tools (26 Tool Schemas)
 
 **Dataset Discovery**: `search_datasets`, `browse_datasets`, `list_parameters`, `get_data_availability`, `get_dataset_docs`, `search_full_catalog`, `google_search`
 
-**Visualization**: `execute_visualization` (dispatches to 5 core registry methods), `custom_visualization` (free-form Plotly sandbox)
+**Visualization**: `plot_data`, `style_plot`, `manage_plot` (3 declarative tools — no free-form code generation)
 
-**Data Operations**: `fetch_data`, `list_fetched_data`, `custom_operation`, `describe_data`, `save_data`
+**Data Operations**: `fetch_data`, `list_fetched_data`, `custom_operation`, `compute_spectrogram`, `describe_data`, `preview_data`, `save_data`
 
 **Data Extraction**: `store_dataframe`
 
 **Document Reading**: `read_document`
 
+**Memory**: `recall_memories`
+
 **Conversation**: `ask_clarification`
 
-**Routing**: `delegate_to_mission`, `delegate_to_data_ops`, `delegate_to_visualization`, `delegate_to_data_extraction`
+**Routing**: `delegate_to_mission`, `delegate_to_data_ops`, `delegate_to_visualization`, `delegate_to_data_extraction`, `request_planning`
 
 ### Supported Spacecraft (52 missions + full CDAWeb catalog)
 
@@ -170,6 +176,7 @@ Future development plan for the helio-ai-agent project.
 - [ ] Conda-forge recipe
 
 ### Reliability
+- [x] Automatic model fallback — switch to `GEMINI_FALLBACK_MODEL` on 429 quota errors (session-level)
 - [ ] Retry logic for network failures
 - [x] Graceful degradation when services unavailable — auto-clamp time ranges to dataset availability, consecutive error tracking breaks agent loops
 - [x] Session recovery after crashes — via TaskStore persistence
@@ -195,6 +202,9 @@ Future development plan for the helio-ai-agent project.
 - [x] Save/restore conversation state — auto-save every turn to `~/.helio-agent/sessions/`
 - [x] Named sessions with history — `--continue` / `--session ID` CLI flags
 - [x] Gradio sessions sidebar — Load / New / Delete buttons
+- [x] Long-term memory — cross-session preferences, summaries, pitfalls in `~/.helio-agent/memory.json`
+- [x] Passive MemoryAgent — auto-triggered session analysis with pitfall extraction
+- [x] Empty session auto-cleanup — removes abandoned sessions on startup
 - [ ] Export session as script
 - [ ] Replay previous analyses
 

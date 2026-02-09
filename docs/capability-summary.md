@@ -126,7 +126,7 @@ agent/core.py  OrchestratorAgent  (LLM-driven orchestrator)
           stress_test.py            Stress testing
 ```
 
-## Tools (24 tool schemas)
+## Tools (26 tool schemas)
 
 ### Dataset Discovery
 | Tool | Purpose |
@@ -164,6 +164,7 @@ The LLM inspects this metadata within the existing tool loop and can self-correc
 | `custom_operation` | LLM-generated pandas/numpy code (AST-validated, sandboxed) — handles magnitude, arithmetic, smoothing, resampling, derivatives, and any other transformation |
 | `compute_spectrogram` | LLM-generated scipy.signal code to compute spectrograms from timeseries (AST-validated, sandboxed) |
 | `describe_data` | Statistical summary of in-memory data (min/max/mean/std/percentiles/NaN) |
+| `preview_data` | Preview actual values (first/last N rows) of in-memory timeseries for debugging or inspection |
 | `save_data` | Export in-memory timeseries to CSV file |
 
 ### Data Extraction
@@ -175,6 +176,11 @@ The LLM inspects this metadata within the existing tool loop and can self-correc
 | Tool | Purpose |
 |------|---------|
 | `read_document` | Read PDF and image files using Gemini vision (extracts text, tables, charts) |
+
+### Memory
+| Tool | Purpose |
+|------|---------|
+| `recall_memories` | Search or browse archived memories from past sessions (preferences, summaries, pitfalls) |
 
 ### Conversation
 | Tool | Purpose |
@@ -367,6 +373,24 @@ All times are UTC. Outputs `TimeRange` objects with `start`/`end` datetimes.
 - `run_mission_refresh()` invokes bootstrap to refresh time ranges, rebuild primary missions, or rebuild all missions
 - After refresh, clears mission_loader and hapi_client caches
 
+### Automatic Model Fallback (`agent/model_fallback.py`)
+- When any Gemini API call hits a 429 RESOURCE_EXHAUSTED (quota/rate limit), all agents automatically switch to `GEMINI_FALLBACK_MODEL` for the remainder of the session
+- Session-level global flag — once activated, every subsequent `client.chats.create()` and `models.generate_content()` call uses the fallback model
+- The OrchestratorAgent's persistent chat is recreated with the fallback model on first 429 error
+- Sub-agents (BaseSubAgent, PlannerAgent, MemoryAgent) use `get_active_model()` at chat/call creation time, so they pick up the fallback automatically
+- Configurable via `GEMINI_FALLBACK_MODEL` env var (default: `gemini-2.5-flash`)
+- If the fallback model also fails, the error propagates normally (no retry chain)
+
+### Empty Session Auto-Cleanup
+- On startup, `SessionManager` auto-removes sessions with no chat history and no stored data
+- Prevents clutter from abandoned or crashed sessions
+- Session save is skipped when there's nothing to persist
+
+### Eager HAPI Cache Download
+- When mission JSON files are loaded at startup, HAPI `/info` metadata is pre-fetched for all datasets
+- Shows progress in Gradio live log via tqdm integration
+- Reduces latency on first data request (cache is warm)
+
 ### Google Search Grounding
 - `google_search` tool provides web search via Google Search grounding API
 - Implemented as a custom function tool that makes an isolated Gemini API call with only GoogleSearch configured (Gemini API does not support google_search + function_declarations in the same call)
@@ -381,6 +405,7 @@ GOOGLE_API_KEY=<gemini-api-key>
 GEMINI_MODEL=<optional, default: gemini-3-pro-preview>
 GEMINI_SUB_AGENT_MODEL=<optional, default: gemini-3-flash-preview>
 GEMINI_PLANNER_MODEL=<optional, default: GEMINI_MODEL>
+GEMINI_FALLBACK_MODEL=<optional, default: gemini-2.5-flash>
 ```
 
 ## Running
