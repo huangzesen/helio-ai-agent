@@ -73,8 +73,8 @@ def show_mission_menu() -> str:
     print()
     print("  [Enter] Continue with current data")
     print("  [r]     Refresh time ranges (fast — updates start/stop dates only)")
-    print("  [f]     Full rebuild of primary missions (re-download everything)")
-    print("  [a]     Download ALL missions (~50 from CDAWeb, full rebuild)")
+    print("  [h]     Download detailed HAPI cache for all missions")
+    print("  [f]     Full rebuild (delete and re-download everything)")
     print()
 
     try:
@@ -85,10 +85,10 @@ def show_mission_menu() -> str:
 
     if choice in ("r", "refresh"):
         return "refresh"
+    elif choice in ("h", "hapi"):
+        return "hapi_cache"
     elif choice in ("f", "full"):
-        return "refresh_full"
-    elif choice in ("a", "all"):
-        return "all"
+        return "rebuild"
     return "continue"
 
 
@@ -97,27 +97,26 @@ def run_mission_refresh(action: str):
 
     Args:
         action: "refresh" for lightweight time-range update,
-                "refresh_full" for destructive rebuild of primary missions,
-                "all" for full rebuild of every CDAWeb mission.
+                "rebuild" for destructive full rebuild of all missions,
+                "hapi_cache" for downloading HAPI parameter cache.
     """
-    from knowledge.bootstrap import populate_missions, clean_all_missions, refresh_time_ranges
-    from knowledge.mission_prefixes import PRIMARY_MISSIONS
+    from knowledge.bootstrap import (
+        populate_missions, clean_all_missions, refresh_time_ranges,
+        populate_all_hapi_caches,
+    )
     import knowledge.bootstrap as bootstrap_mod
 
     if action == "refresh":
         print("\nRefreshing dataset time ranges...")
-        refresh_time_ranges()  # all existing missions — lightweight enough
-    elif action == "refresh_full":
-        print("\nFull rebuild of primary missions...")
-        stems = set(PRIMARY_MISSIONS)
-        clean_all_missions(only_stems=stems)
-        bootstrap_mod._bootstrap_checked = False
-        populate_missions(only_stems=stems)
-    elif action == "all":
-        print("\nDownloading ALL missions from CDAWeb...")
+        refresh_time_ranges()
+    elif action == "rebuild":
+        print("\nFull rebuild of all missions from CDAWeb...")
         clean_all_missions()
         bootstrap_mod._bootstrap_checked = False
         populate_missions()
+    elif action == "hapi_cache":
+        print("\nDownloading detailed HAPI cache for all missions...")
+        populate_all_hapi_caches()
 
     from knowledge.mission_loader import clear_cache
     from knowledge.hapi_client import clear_cache as clear_hapi_cache
@@ -130,20 +129,22 @@ def resolve_refresh_flags(
     refresh: bool = False,
     refresh_full: bool = False,
     refresh_all: bool = False,
+    download_hapi_cache: bool = False,
 ):
     """Map CLI flags to an action, or show interactive menu.
 
     Args:
         refresh: True if --refresh was passed (lightweight time-range update).
         refresh_full: True if --refresh-full was passed (destructive rebuild).
-        refresh_all: True if --refresh-all was passed (all missions).
+        refresh_all: True if --refresh-all was passed (rebuild, same as refresh_full).
+        download_hapi_cache: True if --download-hapi-cache was passed.
     """
     if refresh:
         run_mission_refresh("refresh")
-    elif refresh_full:
-        run_mission_refresh("refresh_full")
-    elif refresh_all:
-        run_mission_refresh("all")
+    elif refresh_full or refresh_all:
+        run_mission_refresh("rebuild")
+    elif download_hapi_cache:
+        run_mission_refresh("hapi_cache")
     else:
         action = show_mission_menu()
         if action != "continue":

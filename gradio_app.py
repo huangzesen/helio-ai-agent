@@ -114,7 +114,16 @@ def _on_mission_change(mission_id: str):
             "",
         )
 
-    datasets = browse_datasets(mission_id) or []
+    datasets = browse_datasets(mission_id)
+    if datasets is None:
+        # Lazy download HAPI cache for this mission
+        try:
+            from knowledge.bootstrap import populate_mission_hapi_cache
+            populate_mission_hapi_cache(mission_id.lower().replace("-", "_"))
+            datasets = browse_datasets(mission_id)
+        except Exception:
+            pass
+    datasets = datasets or []
     choices = []
     for d in datasets:
         n_params = d.get("parameter_count", "?")
@@ -1142,6 +1151,7 @@ def main():
     parser.add_argument("--refresh", action="store_true", help="Refresh dataset time ranges (fast — updates start/stop dates only)")
     parser.add_argument("--refresh-full", action="store_true", help="Full rebuild of primary mission data (re-download everything)")
     parser.add_argument("--refresh-all", action="store_true", help="Download ALL missions from CDAWeb (full rebuild)")
+    parser.add_argument("--download-hapi-cache", action="store_true", help="Pre-download detailed HAPI parameter cache for all missions")
     args = parser.parse_args()
 
     _verbose = args.verbose
@@ -1152,6 +1162,7 @@ def main():
         refresh=args.refresh,
         refresh_full=args.refresh_full,
         refresh_all=args.refresh_all,
+        download_hapi_cache=args.download_hapi_cache,
     )
 
     # Initialize agent

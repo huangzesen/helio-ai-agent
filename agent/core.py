@@ -561,10 +561,21 @@ class OrchestratorAgent:
 
         elif tool_name == "browse_datasets":
             from knowledge.hapi_client import browse_datasets as hapi_browse
-            datasets = hapi_browse(tool_args["mission_id"])
+            mission_id = tool_args["mission_id"]
+            datasets = hapi_browse(mission_id)
             if datasets is None:
-                return {"status": "error", "message": f"No dataset index for '{tool_args['mission_id']}'."}
-            return {"status": "success", "mission_id": tool_args["mission_id"],
+                # Lazy download HAPI cache for this mission
+                mission_stem = mission_id.lower().replace("-", "_")
+                try:
+                    from knowledge.bootstrap import populate_mission_hapi_cache
+                    self.logger.info("[Bootstrap] Downloading HAPI cache for %s...", mission_id)
+                    populate_mission_hapi_cache(mission_stem)
+                    datasets = hapi_browse(mission_id)
+                except Exception as e:
+                    self.logger.warning("HAPI cache download failed for %s: %s", mission_id, e)
+            if datasets is None:
+                return {"status": "error", "message": f"No dataset index for '{mission_id}'."}
+            return {"status": "success", "mission_id": mission_id,
                     "dataset_count": len(datasets), "datasets": datasets}
 
         elif tool_name == "get_dataset_docs":
