@@ -319,3 +319,151 @@ class TestBuildAnalysisPrompt:
         assert "OMNI may fail" in prompt
         assert "Analyzed ACE" in prompt
         assert "do NOT duplicate" in prompt
+
+
+# ---- consolidate() ----
+
+class TestConsolidate:
+    def test_skips_when_under_limit(self, agent, memory_store):
+        """Should not call LLM when memory count is at or below max_total."""
+        memory_store.add(Memory(type="preference", content="A"))
+        memory_store.add(Memory(type="pitfall", content="B"))
+        removed = agent.consolidate(max_total=5)
+        assert removed == 0
+        # Client should NOT have been called
+        agent.client.models.generate_content.assert_not_called()
+
+    def test_consolidates_when_over_limit(self, agent, memory_store):
+        """Should call LLM and reduce memory count."""
+        for i in range(15):
+            memory_store.add(Memory(
+                id=f"m{i}", type="preference", content=f"Pref {i}",
+            ))
+        # Mock LLM response with 5 merged entries
+        consolidated = json.dumps([
+            {"id": "m0", "type": "preference", "content": "Merged pref A"},
+            {"id": "m3", "type": "preference", "content": "Merged pref B"},
+            {"id": "new1", "type": "pitfall", "content": "Merged pitfall"},
+            {"id": "m7", "type": "summary", "content": "Merged summary"},
+            {"id": "m10", "type": "preference", "content": "Merged pref C"},
+        ])
+        mock_response = MagicMock()
+        mock_response.text = consolidated
+        agent.client.models.generate_content.return_value = mock_response
+
+        removed = agent.consolidate(max_total=10)
+        assert removed == 10  # 15 - 5
+        assert len(memory_store.get_all()) == 5
+        contents = [m.content for m in memory_store.get_all()]
+        assert "Merged pref A" in contents
+        assert "Merged pitfall" in contents
+
+    def test_preserves_disabled_memories(self, agent, memory_store):
+        """Disabled memories should be kept even if not in LLM output."""
+        # Add some enabled
+        for i in range(12):
+            memory_store.add(Memory(
+                id=f"e{i}", type="preference", content=f"Enabled {i}",
+            ))
+        # Add a disabled memory
+        memory_store.add(Memory(
+            id="dis1", type="preference", content="Disabled one", enabled=False,
+        ))
+
+        consolidated = json.dumps([
+            {"id": "e0", "type": "preference", "content": "Kept pref"},
+        ])
+        mock_response = MagicMock()
+        mock_response.text = consolidated
+        agent.client.models.generate_content.return_value = mock_response
+
+        agent.consolidate(max_total=10)
+        all_memories = memory_store.get_all()
+        assert len(all_memories) == 2  # 1 disabled + 1 consolidated
+        disabled = [m for m in all_memories if not m.enabled]
+        assert len(disabled) == 1
+        assert disabled[0].id == "dis1"
+
+    def test_handles_llm_failure(self, agent, memory_store):
+        """Should return 0 and keep memories intact on LLM failure."""
+        for i in range(12):
+            memory_store.add(Memory(
+                id=f"f{i}", type="preference", content=f"Pref {i}",
+            ))
+        agent.client.models.generate_content.side_effect = Exception("API error")
+
+        removed = agent.consolidate(max_total=10)
+        assert removed == 0
+        assert len(memory_store.get_all()) == 12
+
+    def test_handles_invalid_json_response(self, agent, memory_store):
+        """Should return 0 on unparseable LLM response."""
+        for i in range(12):
+            memory_store.add(Memory(
+                id=f"j{i}", type="preference", content=f"Pref {i}",
+            ))
+        mock_response = MagicMock()
+        mock_response.text = "not valid json at all"
+        agent.client.models.generate_content.return_value = mock_response
+
+        removed = agent.consolidate(max_total=10)
+        assert removed == 0
+        assert len(memory_store.get_all()) == 12
+
+    def test_handles_empty_response(self, agent, memory_store):
+        """Should return 0 if LLM returns empty list."""
+        for i in range(12):
+            memory_store.add(Memory(
+                id=f"z{i}", type="preference", content=f"Pref {i}",
+            ))
+        mock_response = MagicMock()
+        mock_response.text = "[]"
+        agent.client.models.generate_content.return_value = mock_response
+
+        removed = agent.consolidate(max_total=10)
+        assert removed == 0
+        assert len(memory_store.get_all()) == 12
+
+    def test_strips_markdown_fencing(self, agent, memory_store):
+        """Should handle LLM response wrapped in markdown fencing."""
+        for i in range(12):
+            memory_store.add(Memory(
+                id=f"md{i}", type="pitfall", content=f"Pitfall {i}",
+            ))
+        consolidated = json.dumps([
+            {"id": "md0", "type": "pitfall", "content": "Merged pitfall A"},
+            {"id": "md1", "type": "pitfall", "content": "Merged pitfall B"},
+        ])
+        mock_response = MagicMock()
+        mock_response.text = f"```json\n{consolidated}\n```"
+        agent.client.models.generate_content.return_value = mock_response
+
+        removed = agent.consolidate(max_total=10)
+        assert removed == 10  # 12 - 2
+        assert len(memory_store.get_enabled()) == 2
+
+    def test_evicted_memories_archived_to_cold(self, agent, memory_store):
+        """Evicted memories should be written to cold storage, not deleted."""
+        for i in range(12):
+            memory_store.add(Memory(
+                id=f"arc{i}", type="pitfall", content=f"Pitfall {i}",
+            ))
+        # LLM keeps only 2
+        consolidated = json.dumps([
+            {"id": "arc0", "type": "pitfall", "content": "Pitfall 0"},
+            {"id": "arc5", "type": "pitfall", "content": "Pitfall 5"},
+        ])
+        mock_response = MagicMock()
+        mock_response.text = consolidated
+        agent.client.models.generate_content.return_value = mock_response
+
+        agent.consolidate(max_total=10)
+        # Cold storage should have the 10 evicted memories
+        assert memory_store.cold_path.exists()
+        cold_data = json.loads(memory_store.cold_path.read_text())
+        assert len(cold_data) == 10
+        cold_ids = {m["id"] for m in cold_data}
+        assert "arc0" not in cold_ids  # kept
+        assert "arc5" not in cold_ids  # kept
+        assert "arc1" in cold_ids  # evicted
+        assert "arc11" in cold_ids  # evicted

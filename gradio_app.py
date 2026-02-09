@@ -36,6 +36,15 @@ _verbose = True
 # Helper functions
 # ---------------------------------------------------------------------------
 
+def _extract_memories_background():
+    """Extract memories from the current session in a background thread."""
+    try:
+        if _agent is not None:
+            _agent.extract_and_save_memories()
+    except Exception:
+        pass
+
+
 def _get_current_figure():
     """Return the current Plotly figure from the renderer, or None."""
     if _agent is None:
@@ -400,15 +409,14 @@ def _on_session_radio_change(session_id: str | None):
     if session_id == _get_active_session_id():
         return (gr.skip(),) * 10
 
-    # Save current session and extract memories before switching
+    # Save current session before switching; extract memories in background
     try:
         _agent.save_session()
     except Exception:
         pass
-    try:
-        _agent.extract_and_save_memories()
-    except Exception:
-        pass
+    threading.Thread(
+        target=_extract_memories_background, daemon=True
+    ).start()
 
     # First, read the saved history for display (before _agent.load_session
     # which may fail on Gemini chat recreation but should still restore data)
@@ -482,15 +490,14 @@ def _on_new_session():
     Returns the full 10-element all_outputs tuple.
     """
     if _agent is not None:
-        # Save current session and extract memories before starting a new one
+        # Save current session; extract memories in background (non-blocking)
         try:
             _agent.save_session()
         except Exception:
             pass
-        try:
-            _agent.extract_and_save_memories()
-        except Exception:
-            pass
+        threading.Thread(
+            target=_extract_memories_background, daemon=True
+        ).start()
         _agent.reset()
 
     from data_ops.store import get_store

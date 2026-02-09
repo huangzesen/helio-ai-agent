@@ -219,6 +219,13 @@ class MemoryAgent:
                 last_offset, get_log_size(log_path), turn_count,
             )
 
+        # Consolidate if memory count exceeds target
+        enabled_count = len(self.memory_store.get_enabled())
+        if enabled_count > 30:
+            removed = self.consolidate(max_total=30)
+            if removed > 0:
+                logger.info(f"[MemoryAgent] Consolidated memories: removed {removed}, kept {enabled_count - removed}")
+
         # Update state
         log_path = get_current_log_path()
         new_state = {
@@ -230,6 +237,108 @@ class MemoryAgent:
         self._save_state(new_state)
 
         return result
+
+    # ---- Consolidation ----
+
+    def consolidate(self, max_total: int = 10) -> int:
+        """Merge and prune memories down to max_total using an LLM call.
+
+        Returns the number of memories removed.
+        """
+        enabled = self.memory_store.get_enabled()
+        if len(enabled) <= max_total:
+            return 0
+
+        before_count = len(enabled)
+
+        # Build memory listing for the prompt
+        memory_lines = []
+        for m in enabled:
+            memory_lines.append(
+                f'  {{"id": "{m.id}", "type": "{m.type}", '
+                f'"content": "{m.content}", "created_at": "{m.created_at}"}}'
+            )
+        memories_json = "[\n" + ",\n".join(memory_lines) + "\n]"
+
+        prompt = f"""You are managing a memory system for an AI heliophysics assistant.
+Below are all current memories. Consolidate them to at most {max_total} entries.
+
+Rules:
+- Merge duplicates/overlapping entries into one concise entry
+- Keep the most actionable and generalizable entries
+- Prefer recent entries over old ones for summaries
+- Keep at most 10-15 preferences, 5-10 summaries, 10-15 pitfalls
+- For kept-as-is entries, preserve the original id
+- For merged entries, use a new id (any short string)
+- Return JSON array only, no markdown fencing
+
+Each entry must have: {{"id": "...", "type": "preference|summary|pitfall", "content": "..."}}
+
+Current memories:
+{memories_json}"""
+
+        try:
+            response = self.client.models.generate_content(
+                model=get_active_model(self.model_name),
+                contents=prompt,
+                config=types.GenerateContentConfig(temperature=0.1),
+            )
+        except Exception as e:
+            logger.debug(f"[MemoryAgent] Consolidation LLM call failed: {e}")
+            return 0
+
+        text = (response.text or "").strip()
+
+        # Strip markdown fencing if present
+        if text.startswith("```"):
+            text = text.split("\n", 1)[-1]
+            if text.endswith("```"):
+                text = text[:-3].strip()
+
+        try:
+            entries = json.loads(text)
+        except (json.JSONDecodeError, ValueError) as e:
+            logger.debug(f"[MemoryAgent] Consolidation parse failed: {e}")
+            return 0
+
+        if not isinstance(entries, list):
+            logger.debug("[MemoryAgent] Consolidation returned non-list")
+            return 0
+
+        # Build new Memory objects
+        new_memories = []
+        for entry in entries[:max_total]:
+            if not isinstance(entry, dict):
+                continue
+            content = entry.get("content", "").strip()
+            mem_type = entry.get("type", "preference")
+            if not content:
+                continue
+            if mem_type not in ("preference", "summary", "pitfall"):
+                mem_type = "preference"
+            new_memories.append(Memory(
+                id=str(entry.get("id", ""))[:12] or None,
+                type=mem_type,
+                content=content,
+                created_at=datetime.now().isoformat(),
+            ))
+
+        if not new_memories:
+            logger.debug("[MemoryAgent] Consolidation produced no memories, skipping")
+            return 0
+
+        # Archive evicted memories to cold storage
+        kept_ids = {m.id for m in new_memories}
+        evicted = [m for m in enabled if m.id not in kept_ids]
+        if evicted:
+            self.memory_store.archive_to_cold(evicted)
+
+        # Also preserve any disabled memories (consolidation only touches enabled)
+        disabled = [m for m in self.memory_store.get_all() if not m.enabled]
+        self.memory_store.replace_all(disabled + new_memories)
+
+        removed = before_count - len(new_memories)
+        return max(removed, 0)
 
     # ---- Prompt building ----
 

@@ -53,6 +53,54 @@ class TestMemoryCRUD:
     def test_toggle_nonexistent(self, store):
         assert not store.toggle("nonexistent", True)
 
+    def test_replace_all(self, store):
+        store.add(Memory(id="old1", type="preference", content="Old A"))
+        store.add(Memory(id="old2", type="summary", content="Old B"))
+        new_memories = [
+            Memory(id="new1", type="pitfall", content="New X"),
+        ]
+        store.replace_all(new_memories)
+        assert len(store.get_all()) == 1
+        assert store.get_all()[0].id == "new1"
+        assert store.get_all()[0].content == "New X"
+
+    def test_replace_all_persists(self, tmp_path_file):
+        store1 = MemoryStore(path=tmp_path_file)
+        store1.add(Memory(type="preference", content="Original"))
+        store1.replace_all([Memory(id="r1", type="pitfall", content="Replaced")])
+        store2 = MemoryStore(path=tmp_path_file)
+        assert len(store2.get_all()) == 1
+        assert store2.get_all()[0].id == "r1"
+
+    def test_replace_all_empty(self, store):
+        store.add(Memory(type="preference", content="A"))
+        store.replace_all([])
+        assert len(store.get_all()) == 0
+
+    def test_archive_to_cold(self, store):
+        memories = [
+            Memory(id="c1", type="preference", content="Cold A"),
+            Memory(id="c2", type="pitfall", content="Cold B"),
+        ]
+        store.archive_to_cold(memories)
+        assert store.cold_path.exists()
+        data = json.loads(store.cold_path.read_text())
+        assert len(data) == 2
+        assert data[0]["id"] == "c1"
+        assert data[1]["content"] == "Cold B"
+
+    def test_archive_to_cold_appends(self, store):
+        store.archive_to_cold([Memory(id="a1", type="preference", content="First")])
+        store.archive_to_cold([Memory(id="a2", type="pitfall", content="Second")])
+        data = json.loads(store.cold_path.read_text())
+        assert len(data) == 2
+        assert data[0]["id"] == "a1"
+        assert data[1]["id"] == "a2"
+
+    def test_archive_to_cold_empty_noop(self, store):
+        store.archive_to_cold([])
+        assert not store.cold_path.exists()
+
     def test_clear_all(self, store):
         store.add(Memory(type="preference", content="A"))
         store.add(Memory(type="summary", content="B"))
@@ -257,6 +305,80 @@ class TestPitfallPrompt:
         assert "### Preferences" in section
         assert "### Past Sessions" in section
         assert "## Operational Knowledge" in section
+
+
+# ---- Cold storage reads ----
+
+class TestColdStorageRead:
+    def test_read_cold_empty(self, store):
+        assert store.read_cold() == []
+
+    def test_read_cold_after_archive(self, store):
+        store.archive_to_cold([
+            Memory(id="c1", type="preference", content="Dark theme"),
+            Memory(id="c2", type="summary", content="Analyzed ACE mag data"),
+        ])
+        cold = store.read_cold()
+        assert len(cold) == 2
+        assert cold[0]["id"] == "c1"
+        assert cold[1]["content"] == "Analyzed ACE mag data"
+
+    def test_read_cold_corrupt_file(self, store):
+        store.cold_path.parent.mkdir(parents=True, exist_ok=True)
+        store.cold_path.write_text("not json")
+        assert store.read_cold() == []
+
+    def test_search_cold_by_keyword(self, store):
+        store.archive_to_cold([
+            Memory(id="s1", type="summary", content="Analyzed ACE magnetic field"),
+            Memory(id="s2", type="summary", content="Plotted PSP solar wind speed"),
+            Memory(id="s3", type="pitfall", content="ACE data has gaps in January"),
+        ])
+        results = store.search_cold("ACE")
+        assert len(results) == 2
+        assert results[0]["id"] == "s1"
+        assert results[1]["id"] == "s3"
+
+    def test_search_cold_case_insensitive(self, store):
+        store.archive_to_cold([
+            Memory(id="s1", type="summary", content="Magnetic field analysis"),
+        ])
+        results = store.search_cold("magnetic")
+        assert len(results) == 1
+        results = store.search_cold("MAGNETIC")
+        assert len(results) == 1
+
+    def test_search_cold_with_type_filter(self, store):
+        store.archive_to_cold([
+            Memory(id="s1", type="summary", content="ACE analysis session"),
+            Memory(id="s2", type="pitfall", content="ACE data gaps"),
+            Memory(id="s3", type="preference", content="ACE preferred mission"),
+        ])
+        results = store.search_cold("ACE", mem_type="pitfall")
+        assert len(results) == 1
+        assert results[0]["id"] == "s2"
+
+    def test_search_cold_with_limit(self, store):
+        store.archive_to_cold([
+            Memory(id=f"m{i}", type="summary", content=f"Session {i} analysis")
+            for i in range(10)
+        ])
+        results = store.search_cold("analysis", limit=3)
+        assert len(results) == 3
+        # Should return the last 3 matches
+        assert results[0]["id"] == "m7"
+        assert results[2]["id"] == "m9"
+
+    def test_search_cold_no_match(self, store):
+        store.archive_to_cold([
+            Memory(id="s1", type="summary", content="Analyzed ACE data"),
+        ])
+        results = store.search_cold("nonexistent")
+        assert results == []
+
+    def test_search_cold_empty_store(self, store):
+        results = store.search_cold("anything")
+        assert results == []
 
 
 # ---- Memory dataclass defaults ----

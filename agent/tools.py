@@ -671,6 +671,37 @@ Returns the extracted text content and the saved file path.""",
         }
     },
 
+    # --- Memory ---
+    {
+        "category": "memory",
+        "name": "recall_memories",
+        "description": """Search or browse archived memories from past sessions. Use when:
+- The user references something from a previous session ("last time", "before", "we did X")
+- You need context about past analyses, preferences, or lessons learned
+- The user asks what they've done before or what data they've looked at
+
+Returns a list of archived memory entries with type, content, and date.""",
+        "parameters": {
+            "type": "object",
+            "properties": {
+                "query": {
+                    "type": "string",
+                    "description": "Search keyword (e.g., 'ACE magnetic', 'smoothing'). Leave empty to list recent entries."
+                },
+                "type": {
+                    "type": "string",
+                    "enum": ["preference", "summary", "pitfall"],
+                    "description": "Optional: filter by memory type"
+                },
+                "limit": {
+                    "type": "integer",
+                    "description": "Max entries to return (default 20)"
+                }
+            },
+            "required": []
+        }
+    },
+
     # --- Routing ---
     {
         "category": "routing",

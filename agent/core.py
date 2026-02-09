@@ -45,7 +45,7 @@ from data_ops.custom_ops import run_custom_operation, run_dataframe_creation, ru
 
 # Orchestrator sees discovery, web search, conversation, and routing tools
 # (NOT data fetching or data_ops — handled by sub-agents)
-ORCHESTRATOR_CATEGORIES = ["discovery", "web_search", "conversation", "routing", "document"]
+ORCHESTRATOR_CATEGORIES = ["discovery", "web_search", "conversation", "routing", "document", "memory"]
 ORCHESTRATOR_EXTRA_TOOLS = ["list_fetched_data", "preview_data"]
 
 DEFAULT_MODEL = GEMINI_MODEL
@@ -1109,6 +1109,23 @@ class OrchestratorAgent:
                 "result": sub_result,
             }
 
+        elif tool_name == "recall_memories":
+            query = tool_args.get("query", "")
+            mem_type = tool_args.get("type")
+            limit = tool_args.get("limit", 20)
+            if query:
+                results = self._memory_store.search_cold(query, mem_type=mem_type, limit=limit)
+            else:
+                results = self._memory_store.read_cold()
+                if mem_type:
+                    results = [m for m in results if m.get("type") == mem_type]
+                results = results[-limit:]
+            return {
+                "status": "success",
+                "count": len(results),
+                "memories": results,
+            }
+
         elif tool_name == "request_planning":
             request = tool_args["request"]
             reasoning = tool_args.get("reasoning", "")
@@ -2011,9 +2028,13 @@ Example: ["Compare this with solar wind speed", "Zoom in to January 10-15", "Exp
     def start_session(self) -> str:
         """Create a new session and enable auto-save.
 
+        Also cleans up empty sessions from previous runs (fast no-op
+        when there are none).
+
         Returns:
             The new session_id.
         """
+        self._session_manager.cleanup_empty_sessions()
         self._session_id = self._session_manager.create_session(self.model_name)
         self._auto_save = True
         self.logger.debug(f"[Session] Started: {self._session_id}")

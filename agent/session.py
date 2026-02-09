@@ -87,8 +87,6 @@ class SessionManager:
             base_dir = Path.home() / ".helio-agent" / "sessions"
         self.base_dir = base_dir
         self.base_dir.mkdir(parents=True, exist_ok=True)
-        # Automatically clean up empty sessions from previous runs
-        self.cleanup_empty_sessions()
 
     def create_session(self, model_name: str = "") -> str:
         """Create a new session directory with initial metadata.

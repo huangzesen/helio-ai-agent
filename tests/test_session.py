@@ -226,18 +226,18 @@ class TestCleanupEmptySessions:
         assert deleted == 0
         assert len(sm.list_sessions()) == 1
 
-    def test_cleanup_on_init(self, tmp_dir):
-        """Creating a new SessionManager cleans up empty sessions from prior runs."""
-        sm1 = SessionManager(base_dir=tmp_dir)
-        sid_empty = sm1.create_session("model")
-        sid_full = sm1.create_session("model")
-        sm1.save_session(sid_full, [
+    def test_cleanup_explicit_call(self, tmp_dir):
+        """Explicit cleanup_empty_sessions() removes empties, keeps populated."""
+        sm = SessionManager(base_dir=tmp_dir)
+        sid_empty = sm.create_session("model")
+        sid_full = sm.create_session("model")
+        sm.save_session(sid_full, [
             {"role": "user", "parts": [{"text": "Hello"}]},
         ], DataStore(), {"turn_count": 1})
 
-        # New SessionManager triggers cleanup in __init__
-        sm2 = SessionManager(base_dir=tmp_dir)
-        sessions = sm2.list_sessions()
+        assert len(sm.list_sessions()) == 2
+        sm.cleanup_empty_sessions()
+        sessions = sm.list_sessions()
         assert len(sessions) == 1
         assert sessions[0]["id"] == sid_full
 

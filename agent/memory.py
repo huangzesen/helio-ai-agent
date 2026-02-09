@@ -20,9 +20,9 @@ from .logging import get_logger
 
 logger = get_logger()
 
-# Maximum memories injected per type to keep prompt size reasonable
+# Maximum memories injected per type (budget: ~10k tokens total)
 MAX_PREFERENCES = 15
-MAX_SUMMARIES = 15
+MAX_SUMMARIES = 10
 MAX_PITFALLS = 20
 
 
@@ -45,6 +45,7 @@ class MemoryStore:
         if path is None:
             path = Path.home() / ".helio-agent" / "memory.json"
         self.path = path
+        self.cold_path = path.with_name("memory_cold.json")
         self._global_enabled: bool = True
         self._memories: list[Memory] = []
         self.load()
@@ -102,6 +103,55 @@ class MemoryStore:
                 self.save()
                 return True
         return False
+
+    def replace_all(self, memories: list[Memory]) -> None:
+        """Replace all memories with a new list and save."""
+        self._memories = memories
+        self.save()
+
+    def archive_to_cold(self, memories: list[Memory]) -> None:
+        """Append memories to cold storage file for archival."""
+        if not memories:
+            return
+        # Load existing cold storage
+        existing = []
+        if self.cold_path.exists():
+            try:
+                with open(self.cold_path, "r", encoding="utf-8") as f:
+                    existing = json.load(f)
+            except (json.JSONDecodeError, OSError):
+                existing = []
+        existing.extend(asdict(m) for m in memories)
+        # Write atomically
+        self.cold_path.parent.mkdir(parents=True, exist_ok=True)
+        tmp = self.cold_path.with_suffix(".tmp")
+        with open(tmp, "w", encoding="utf-8") as f:
+            json.dump(existing, f, indent=2)
+        tmp.replace(self.cold_path)
+        logger.debug(f"[Memory] Archived {len(memories)} memories to cold storage")
+
+    def read_cold(self) -> list[dict]:
+        """Load all cold-storage memories as dicts."""
+        if not self.cold_path.exists():
+            return []
+        try:
+            with open(self.cold_path, "r", encoding="utf-8") as f:
+                return json.load(f)
+        except (json.JSONDecodeError, OSError) as e:
+            logger.warning(f"[Memory] Could not load cold storage {self.cold_path}: {e}")
+            return []
+
+    def search_cold(self, query: str, mem_type: str | None = None, limit: int = 20) -> list[dict]:
+        """Search cold memories by substring match on content. Optional type filter."""
+        entries = self.read_cold()
+        query_lower = query.lower()
+        results = []
+        for entry in entries:
+            if mem_type and entry.get("type") != mem_type:
+                continue
+            if query_lower in entry.get("content", "").lower():
+                results.append(entry)
+        return results[-limit:]
 
     def clear_all(self) -> int:
         """Remove all memories. Returns count removed."""

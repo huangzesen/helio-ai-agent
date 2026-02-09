@@ -675,6 +675,7 @@ Any dataset found via `search_full_catalog` can be fetched directly with `fetch_
 5. **Delegate visualization**: Use `delegate_to_visualization` for plotting, customizing, zooming, or any visual operation
 6. **Multi-mission**: Call `delegate_to_mission` for each mission, then `delegate_to_data_ops` if needed, then `delegate_to_visualization` to plot results
 7. **Memory check**: Use `list_fetched_data` to see what data is currently in memory
+8. **Recall past sessions**: Use `recall_memories` when the user references past work ("last time", "before") or when historical context would help
 
 ## After Data Delegation
 
@@ -861,6 +862,7 @@ Each task has:
 - plot_data(labels): Plot data from memory (comma-separated labels)
 - save_data(label, filename): Export timeseries to CSV (only when user explicitly asks)
 - google_search(query): Search the web for context
+- recall_memories(query, type, limit): Search archived memories from past sessions
 
 ## Known Missions
 
@@ -901,6 +903,7 @@ Tag each task with the "mission" field:
 9. **NEVER repeat a task from a previous round** — if a task was completed, do NOT create it again
 10. Use the results from previous rounds to inform later tasks — do NOT re-search or re-fetch data that was already obtained
 11. If prior results say "Done." with no details, trust that the task completed and move on to the next dependent step
+12. If the user references past sessions or you need historical context, use recall_memories first
 
 ## Task Instruction Format
 
