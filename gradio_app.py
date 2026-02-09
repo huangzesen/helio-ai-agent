@@ -115,16 +115,13 @@ def _on_mission_change(mission_id: str):
             "",
         )
 
-    datasets = browse_datasets(mission_id)
-    if datasets is None:
-        # Lazy download HAPI cache for this mission
-        try:
-            from knowledge.bootstrap import populate_mission_hapi_cache
-            populate_mission_hapi_cache(mission_id.lower().replace("-", "_"))
-            datasets = browse_datasets(mission_id)
-        except Exception:
-            pass
-    datasets = datasets or []
+    # load_mission() ensures HAPI cache exists (downloads if needed)
+    from knowledge.mission_loader import load_mission as _load_mission
+    try:
+        _load_mission(mission_id)
+    except FileNotFoundError:
+        pass
+    datasets = browse_datasets(mission_id) or []
     choices = []
     for d in datasets:
         n_params = d.get("parameter_count", "?")

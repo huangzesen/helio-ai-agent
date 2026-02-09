@@ -12,7 +12,7 @@ from typing import Optional
 from google import genai
 from google.genai import types
 
-from config import GOOGLE_API_KEY, GEMINI_MODEL, GEMINI_SUB_AGENT_MODEL, GEMINI_PLANNER_MODEL
+from config import GOOGLE_API_KEY, GEMINI_MODEL, GEMINI_SUB_AGENT_MODEL, GEMINI_PLANNER_MODEL, GEMINI_FALLBACK_MODEL
 from .tools import get_tool_schemas
 from .prompts import get_system_prompt, format_tool_result
 from .time_utils import parse_time_range, TimeRangeError
@@ -31,7 +31,9 @@ from .logging import (
     setup_logging, get_logger, log_error, log_tool_call,
     log_tool_result, log_plan_event, log_session_end,
 )
+from .memory_agent import MemoryAgent
 from .loop_guard import LoopGuard, make_call_key
+from .model_fallback import activate_fallback, get_active_model, is_quota_error
 from rendering.registry import get_method
 from rendering.plotly_renderer import PlotlyRenderer
 from knowledge.catalog import search_by_keywords
@@ -559,18 +561,14 @@ class OrchestratorAgent:
 
         elif tool_name == "browse_datasets":
             from knowledge.hapi_client import browse_datasets as hapi_browse
+            from knowledge.mission_loader import load_mission as _load_mission
             mission_id = tool_args["mission_id"]
+            # Ensure HAPI cache exists (triggers download if needed)
+            try:
+                _load_mission(mission_id)
+            except FileNotFoundError:
+                pass
             datasets = hapi_browse(mission_id)
-            if datasets is None:
-                # Lazy download HAPI cache for this mission
-                mission_stem = mission_id.lower().replace("-", "_")
-                try:
-                    from knowledge.bootstrap import populate_mission_hapi_cache
-                    self.logger.info("[Bootstrap] Downloading HAPI cache for %s...", mission_id)
-                    populate_mission_hapi_cache(mission_stem)
-                    datasets = hapi_browse(mission_id)
-                except Exception as e:
-                    self.logger.warning("HAPI cache download failed for %s: %s", mission_id, e)
             if datasets is None:
                 return {"status": "error", "message": f"No dataset index for '{mission_id}'."}
             return {"status": "success", "mission_id": mission_id,
