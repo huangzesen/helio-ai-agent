@@ -17,6 +17,7 @@ import gc
 import logging
 import sys
 import threading
+import time
 from datetime import datetime, timedelta, timezone
 from pathlib import Path
 
@@ -189,7 +190,7 @@ def _on_dataset_change(dataset_id: str):
 def _on_fetch_click(mission, dataset, param, start_time, end_time, history):
     """Directly fetch HAPI data into the store, then notify the agent."""
     if not dataset or not param:
-        return history, gr.skip(), gr.skip(), gr.skip(), gr.skip(), gr.skip(), gr.skip(), gr.skip()
+        return history, gr.skip(), gr.skip(), gr.skip(), gr.skip(), gr.skip(), gr.skip(), gr.skip(), gr.skip()
 
     from data_ops.fetch import fetch_hapi_data
     from data_ops.store import get_store, DataEntry
@@ -211,7 +212,7 @@ def _on_fetch_click(mission, dataset, param, start_time, end_time, history):
         history = history + [
             {"role": "assistant", "content": error_msg},
         ]
-        return history, gr.skip(), gr.skip(), gr.skip(), gr.skip(), gr.skip(), gr.skip(), gr.skip()
+        return history, gr.skip(), gr.skip(), gr.skip(), gr.skip(), gr.skip(), gr.skip(), gr.skip(), gr.skip()
 
     label = f"{dataset}.{param}"
     entry = DataEntry(
@@ -253,10 +254,12 @@ def _on_fetch_click(mission, dataset, param, start_time, end_time, history):
     preview = _preview_data(selected) if selected else None
 
     return (
-        history, fig, data_rows, token_text, None,
+        history,
+        gr.update(visible=fig is not None, value=fig),
+        data_rows, token_text, None,
         gr.update(choices=label_choices, value=selected),
-        preview,
-        "",
+        preview, "",
+        gr.skip(),  # session_list — no change
     )
 
 
@@ -293,16 +296,16 @@ def _preview_data(label: str) -> list[list] | None:
 # ---------------------------------------------------------------------------
 
 def _get_session_choices() -> list[tuple[str, str]]:
-    """Return dropdown choices for saved sessions: (display_label, session_id)."""
+    """Return choices for the session list: (display_label, session_id)."""
     from agent.session import SessionManager
     sm = SessionManager()
     sessions = sm.list_sessions()[:20]
     choices = []
     for s in sessions:
+        preview = s.get("last_message_preview", "").strip()[:40] or "New chat"
+        date_str = s.get("updated_at", "")[:10]  # YYYY-MM-DD
         turns = s.get("turn_count", 0)
-        preview = s.get("last_message_preview", "")[:30]
-        updated = s.get("updated_at", "")[:16].replace("T", " ")
-        label = f"{updated} ({turns} turns) {preview}"
+        label = f"{preview}\n{date_str} · {turns} turns"
         choices.append((label, s["id"]))
     return choices
 
@@ -337,10 +340,15 @@ def _extract_display_history(contents: list[dict]) -> list[dict]:
     return messages
 
 
-def _on_load_session(session_id: str):
-    """Load a saved session and restore chat + data."""
+def _on_load_session(session_ids: list[str]):
+    """Load a saved session and restore chat + data.
+
+    ``session_ids`` comes from CheckboxGroup — load the first selected item.
+    Returns the full 9-element all_outputs tuple.
+    """
+    session_id = session_ids[0] if session_ids else None
     if not session_id or _agent is None:
-        return gr.skip(), gr.skip(), gr.skip(), gr.skip(), gr.skip(), gr.skip(), gr.skip()
+        return (gr.skip(),) * 9
 
     # First, read the saved history for display (before _agent.load_session
     # which may fail on Gemini chat recreation but should still restore data)
@@ -350,10 +358,11 @@ def _on_load_session(session_id: str):
         # Session files are missing/corrupt — show error in chat
         return (
             [{"role": "assistant", "content": f"Failed to read session: {e}"}],
-            None, [], _format_tokens(),
+            gr.update(visible=False),  # plotly_plot
+            [], _format_tokens(), None,
             gr.update(choices=[], value=None),
-            None,
-            gr.update(choices=_get_session_choices(), value=None),
+            None, "",
+            gr.update(choices=_get_session_choices(), value=[]),
         )
 
     display = _extract_display_history(history_dicts)
@@ -377,15 +386,20 @@ def _on_load_session(session_id: str):
     preview = _preview_data(selected) if selected else None
 
     return (
-        display, fig, data_rows, token_text,
+        display,
+        gr.update(visible=fig is not None, value=fig),
+        data_rows, token_text, None,
         gr.update(choices=label_choices, value=selected),
-        preview,
-        gr.update(choices=_get_session_choices(), value=session_id),
+        preview, "",
+        gr.update(choices=_get_session_choices(), value=[]),
     )
 
 
 def _on_new_session():
-    """Start a fresh session (reset + create new)."""
+    """Start a fresh session (reset + create new).
+
+    Returns the full 9-element all_outputs tuple.
+    """
     if _agent is not None:
         _agent.reset()
 
@@ -393,23 +407,45 @@ def _on_new_session():
     get_store().clear()
 
     return (
-        [], None, [], "*New session started*", None,
-        gr.update(choices=[], value=None), None,
-        gr.update(choices=_get_session_choices(), value=_agent.get_session_id() if _agent else None),
+        [],  # chatbot
+        gr.update(visible=False),  # plotly_plot
+        [],  # data_table
+        "*New session started*",  # token_display
+        None,  # msg_input
+        gr.update(choices=[], value=None),  # label_dropdown
+        None,  # data_preview
+        "",  # verbose_output
+        gr.update(choices=_get_session_choices(), value=[]),  # session_list
     )
 
 
-def _on_delete_session(session_id: str):
-    """Delete a saved session."""
-    if not session_id:
-        return gr.update(choices=_get_session_choices())
+def _on_delete_session(session_ids: list[str]):
+    """Delete one or more saved sessions. Returns updated session_list CheckboxGroup.
+
+    ``session_ids`` comes from CheckboxGroup — a list of selected values.
+    If the currently active session is among those deleted, start a fresh one.
+    """
+    if not session_ids:
+        return gr.update(choices=_get_session_choices(), value=[])
+
     from agent.session import SessionManager
     sm = SessionManager()
-    # Don't delete the currently active session
-    if _agent and session_id == _agent.get_session_id():
-        return gr.update(choices=_get_session_choices(), value=session_id)
-    sm.delete_session(session_id)
-    return gr.update(choices=_get_session_choices(), value=None)
+
+    active_id = _agent.get_session_id() if _agent else None
+    need_reset = False
+
+    for sid in session_ids:
+        if sid == active_id:
+            need_reset = True
+        sm.delete_session(sid)
+
+    # If the active session was deleted, start a fresh one
+    if need_reset and _agent is not None:
+        _agent.reset()
+        from data_ops.store import get_store
+        get_store().clear()
+
+    return gr.update(choices=_get_session_choices(), value=[])
 
 
 # ---------------------------------------------------------------------------
@@ -460,7 +496,7 @@ def respond(message, history: list[dict]):
 
     agent_message = "\n".join(parts)
     if not agent_message:
-        yield history, gr.skip(), gr.skip(), gr.skip(), None, gr.skip(), gr.skip(), gr.skip()
+        yield history, gr.skip(), gr.skip(), gr.skip(), None, gr.skip(), gr.skip(), gr.skip(), gr.skip()
         return
 
     # Display user message with file indicators
@@ -478,10 +514,13 @@ def respond(message, history: list[dict]):
 
     if not _verbose:
         # Non-verbose: simple blocking call, no streaming
+        t0 = time.monotonic()
         try:
             response_text = _agent.process_message(message)
         except Exception as e:
             response_text = f"Error: {e}"
+        elapsed = time.monotonic() - t0
+        response_text += f"\n\n*{elapsed:.1f}s*"
         history = history + [{"role": "assistant", "content": response_text}]
         fig = _get_current_figure()
         data_rows = _build_data_table()
@@ -490,9 +529,12 @@ def respond(message, history: list[dict]):
         selected = label_choices[-1] if label_choices else None
         preview = _preview_data(selected) if selected else None
         yield (
-            history, fig, data_rows, token_text, None,
+            history,
+            gr.update(visible=fig is not None, value=fig),
+            data_rows, token_text, None,
             gr.update(choices=label_choices, value=selected),
             preview, "",
+            gr.update(choices=_get_session_choices(), value=[]),
         )
         return
 
@@ -509,6 +551,7 @@ def respond(message, history: list[dict]):
     # Run the agent in a background thread
     result_box: list = [None]  # [response_text]
     error_box: list = [None]
+    t0 = time.monotonic()
 
     def _run():
         try:
@@ -524,17 +567,19 @@ def respond(message, history: list[dict]):
         history + [{"role": "assistant", "content": "*Working...*"}],
         gr.skip(), gr.skip(), gr.skip(), None,
         gr.skip(), gr.skip(), "",
+        gr.skip(),
     )
 
     # Stream live progress while the agent works
     prev_count = 0
     while thread.is_alive():
         thread.join(timeout=0.4)
+        elapsed_so_far = time.monotonic() - t0
         if len(log_lines) > prev_count:
             prev_count = len(log_lines)
             log_text = "\n".join(log_lines)
             thinking = (
-                f"*Working...*\n\n"
+                f"*Working... ({elapsed_so_far:.1f}s)*\n\n"
                 f"<details open><summary>Live Log ({len(log_lines)} lines)</summary>\n\n"
                 f"```\n{log_text}\n```\n\n</details>"
             )
@@ -542,6 +587,7 @@ def respond(message, history: list[dict]):
                 history + [{"role": "assistant", "content": thinking}],
                 gr.skip(), gr.skip(), gr.skip(), None,
                 gr.skip(), gr.skip(), "",
+                gr.skip(),
             )
 
     # Remove handler and restore level
@@ -549,17 +595,19 @@ def respond(message, history: list[dict]):
     logger.setLevel(saved_level)
 
     # Build final response
+    elapsed = time.monotonic() - t0
     response_text = result_box[0] if error_box[0] is None else f"Error: {error_box[0]}"
     verbose_text = "\n".join(log_lines)
 
     if verbose_text:
         full_response = (
             f"{response_text}\n\n"
+            f"*{elapsed:.1f}s*\n\n"
             f"<details><summary>Debug Log ({len(log_lines)} lines)</summary>\n\n"
             f"```\n{verbose_text}\n```\n\n</details>"
         )
     else:
-        full_response = response_text
+        full_response = f"{response_text}\n\n*{elapsed:.1f}s*"
 
     history = history + [{"role": "assistant", "content": full_response}]
     fig = _get_current_figure()
@@ -570,21 +618,13 @@ def respond(message, history: list[dict]):
     preview = _preview_data(selected) if selected else None
 
     yield (
-        history, fig, data_rows, token_text, None,
+        history,
+        gr.update(visible=fig is not None, value=fig),
+        data_rows, token_text, None,
         gr.update(choices=label_choices, value=selected),
         preview, "",
+        gr.update(choices=_get_session_choices(), value=[]),
     )
-
-
-def reset_session() -> tuple:
-    """Reset the agent, data store, and all UI state."""
-    if _agent is not None:
-        _agent.reset()
-
-    from data_ops.store import get_store
-    get_store().clear()
-
-    return [], None, [], "*Session reset*", None, gr.update(choices=[], value=None), None, ""
 
 
 # ---------------------------------------------------------------------------
@@ -686,16 +726,16 @@ CUSTOM_CSS = """
 /* ---- Hide footer ---- */
 footer { display: none !important; }
 
-/* ---- Header ---- */
+/* ---- Header (slim, single-line) ---- */
 .app-header {
     display: flex;
     align-items: center;
     justify-content: space-between;
-    padding: 1.2rem 1.5rem 1rem;
+    padding: 0.5rem 1rem;
     background: linear-gradient(135deg, #f8fafc, #f1f5f9, #e2e8f0);
     border-bottom: 2px solid var(--border-color-primary);
-    border-radius: 12px;
-    margin-bottom: 0.8rem;
+    border-radius: 8px;
+    margin-bottom: 0.5rem;
     position: relative;
     overflow: hidden;
 }
@@ -715,11 +755,17 @@ footer { display: none !important; }
     0%, 100% { background-position: 0% 50%; }
     50% { background-position: 100% 50%; }
 }
+.header-left {
+    display: flex;
+    align-items: center;
+    gap: 0.8rem;
+}
 .header-title {
-    font-size: 1.8rem;
+    font-size: 1.3rem;
     font-weight: 700;
     color: #0097b2;
     margin: 0;
+    white-space: nowrap;
 }
 .dark .header-title {
     color: #00d9ff;
@@ -727,8 +773,9 @@ footer { display: none !important; }
 }
 .header-subtitle {
     color: var(--body-text-color-subdued);
-    font-size: 0.9rem;
-    margin: 0.2rem 0 0 0;
+    font-size: 0.8rem;
+    margin: 0;
+    white-space: nowrap;
 }
 .header-controls {
     display: flex;
@@ -738,9 +785,9 @@ footer { display: none !important; }
 .header-badge {
     background: var(--background-fill-secondary);
     color: #f57c00;
-    font-size: 0.75rem;
+    font-size: 0.7rem;
     font-weight: 600;
-    padding: 0.35rem 0.8rem;
+    padding: 0.25rem 0.6rem;
     border-radius: 20px;
     border: 1px solid #ffa500;
     white-space: nowrap;
@@ -749,14 +796,14 @@ footer { display: none !important; }
     background: var(--background-fill-secondary) !important;
     border: 1px solid var(--border-color-primary) !important;
     border-radius: 50% !important;
-    width: 36px !important;
-    height: 36px !important;
-    min-width: 36px !important;
+    width: 32px !important;
+    height: 32px !important;
+    min-width: 32px !important;
     cursor: pointer !important;
     display: flex !important;
     align-items: center !important;
     justify-content: center !important;
-    font-size: 1.1rem !important;
+    font-size: 1rem !important;
     transition: all 0.2s ease !important;
     padding: 0 !important;
     color: var(--body-text-color) !important;
@@ -844,13 +891,42 @@ footer { display: none !important; }
     color: #00d9ff !important;
 }
 
-/* ---- Sidebar ---- */
-.sidebar .gr-accordion {
-    border-color: var(--border-color-primary) !important;
+/* ---- Left session sidebar ---- */
+.session-sidebar .session-list {
+    max-height: calc(100vh - 160px);
+    overflow-y: auto;
 }
-.sidebar {
-    border-left: 1px solid var(--border-color-primary);
-    padding-left: 0.5rem;
+.session-sidebar .session-list label {
+    border-radius: 8px !important;
+    padding: 0.5rem 0.7rem !important;
+    margin-bottom: 2px !important;
+    cursor: pointer !important;
+    transition: background 0.15s ease !important;
+    font-size: 0.82rem !important;
+    line-height: 1.35 !important;
+    white-space: pre-line !important;
+    border: none !important;
+}
+.session-sidebar .session-list label:hover {
+    background: var(--background-fill-secondary) !important;
+}
+.session-sidebar .session-list input:checked + span,
+.session-sidebar .session-list label:has(input:checked) {
+    background: rgba(0, 184, 217, 0.12) !important;
+}
+.dark .session-sidebar .session-list input:checked + span,
+.dark .session-sidebar .session-list label:has(input:checked) {
+    background: rgba(0, 217, 255, 0.1) !important;
+}
+/* Remove Gradio's default accent border on the checkbox group container */
+.session-sidebar .session-list > div {
+    border: none !important;
+    box-shadow: none !important;
+}
+
+/* ---- Right data sidebar ---- */
+.data-sidebar .gr-accordion {
+    border-color: var(--border-color-primary) !important;
 }
 
 /* ---- Data tables ---- */
@@ -936,15 +1012,97 @@ def create_app() -> gr.Blocks:
     """Build and return the Gradio Blocks application."""
 
     with gr.Blocks(title="Helio AI Agent") as app:
-        # ---- Header ----
+
+        # ---- Left Sidebar: Session History ----
+        with gr.Sidebar(position="left", width=280, open=True,
+                         elem_classes="session-sidebar"):
+            new_session_btn = gr.Button("+ New Chat", variant="primary", size="sm")
+            session_list = gr.CheckboxGroup(
+                choices=_get_session_choices(),
+                label=None, show_label=False,
+                interactive=True,
+                elem_classes="session-list",
+            )
+            with gr.Row():
+                load_session_btn = gr.Button("Load", size="sm")
+                delete_session_btn = gr.Button(
+                    "Delete", variant="stop", size="sm",
+                )
+
+        # ---- Right Sidebar: Data Tools ----
+        with gr.Sidebar(position="right", width=340, open=True,
+                         elem_classes="data-sidebar"):
+            with gr.Accordion("Browse & Fetch", open=False):
+                mission_dropdown = gr.Dropdown(
+                    label="Mission",
+                    choices=_get_mission_choices(),
+                    interactive=True,
+                )
+                dataset_dropdown = gr.Dropdown(
+                    label="Dataset",
+                    choices=[],
+                    interactive=True,
+                )
+                param_dropdown = gr.Dropdown(
+                    label="Parameter",
+                    choices=[],
+                    interactive=True,
+                )
+                browse_info = gr.Markdown(value="")
+                _default_end = datetime.now(tz=timezone.utc).replace(
+                    microsecond=0,
+                )
+                _default_start = _default_end - timedelta(days=7)
+                start_dt_picker = gr.DateTime(
+                    label="Start",
+                    value=_default_start.strftime("%Y-%m-%d %H:%M:%S"),
+                    include_time=True,
+                    type="string",
+                )
+                end_dt_picker = gr.DateTime(
+                    label="End",
+                    value=_default_end.strftime("%Y-%m-%d %H:%M:%S"),
+                    include_time=True,
+                    type="string",
+                )
+                fetch_btn = gr.Button(
+                    "Fetch", variant="primary",
+                )
+            data_table = gr.Dataframe(
+                headers=["Label", "Points", "Units", "Time Range", "Source"],
+                label="Data in Memory",
+                interactive=False,
+                wrap=True,
+                row_count=0,
+                elem_classes="data-table",
+            )
+            label_dropdown = gr.Dropdown(
+                label="Preview",
+                choices=[],
+                interactive=True,
+            )
+            data_preview = gr.Dataframe(
+                label="Data Preview",
+                interactive=False,
+                wrap=True,
+                row_count=0,
+                elem_classes="data-table",
+            )
+            token_display = gr.Markdown(
+                value="*No API calls yet*",
+                label="Token Usage",
+                elem_classes="token-display",
+            )
+
+        # ---- Center: Header + Plot + Chat ----
         gr.HTML(
             """
             <div class="app-header">
-                <div class="header-content">
+                <div class="header-left">
                     <h1 class="header-title">Helio AI Agent</h1>
-                    <p class="header-subtitle">
-                        Talk to NASA's spacecraft data &mdash; 52 missions, 3,000+ datasets
-                    </p>
+                    <span class="header-subtitle">
+                        52 missions &middot; 3,000+ datasets
+                    </span>
                 </div>
                 <div class="header-controls">
                     <div class="header-badge">Powered by Gemini</div>
@@ -957,124 +1115,49 @@ def create_app() -> gr.Blocks:
             """
         )
 
-        # ---- Full-width plot (hero element) ----
-        with gr.Group(elem_classes="plot-container"):
-            plotly_plot = gr.Plot(label="Interactive Plot", elem_classes="plot-area")
+        plotly_plot = gr.Plot(
+            label="Interactive Plot",
+            elem_classes="plot-container",
+            visible=False,
+        )
 
-        with gr.Row():
-            # ---- Main column: Chat ----
-            with gr.Column(scale=3):
-                chatbot = gr.Chatbot(
-                    height=500,
-                    show_label=False,
-                    placeholder=(
-                        "Ask about spacecraft data — e.g. "
-                        "\"Show me ACE magnetic field data for last week\" "
-                        "or \"Compare solar wind speed across missions\""
-                    ),
-                    elem_classes="chat-window",
-                )
-                msg_input = gr.MultimodalTextbox(
-                    placeholder="Ask about spacecraft data...",
-                    show_label=False,
-                    file_count="multiple",
-                    file_types=[".pdf", ".docx", ".pptx", ".xlsx", ".xls",
-                                ".html", ".csv", ".json", ".xml", ".zip",
-                                ".jpg", ".jpeg", ".png", ".gif", ".bmp",
-                                ".epub", ".txt", ".md"],
-                    submit_btn="Send",
-                    stop_btn=False,
-                    elem_classes="chat-input",
-                )
+        chatbot = gr.Chatbot(
+            height=500,
+            show_label=False,
+            placeholder=(
+                "Ask about spacecraft data — e.g. "
+                "\"Show me ACE magnetic field data for last week\" "
+                "or \"Compare solar wind speed across missions\""
+            ),
+            elem_classes="chat-window",
+        )
+        msg_input = gr.MultimodalTextbox(
+            placeholder="Ask about spacecraft data...",
+            show_label=False,
+            file_count="multiple",
+            file_types=[".pdf", ".docx", ".pptx", ".xlsx", ".xls",
+                        ".html", ".csv", ".json", ".xml", ".zip",
+                        ".jpg", ".jpeg", ".png", ".gif", ".bmp",
+                        ".epub", ".txt", ".md"],
+            submit_btn="Send",
+            stop_btn=False,
+            elem_classes="chat-input",
+        )
 
-                gr.Examples(
-                    examples=EXAMPLES,
-                    inputs=msg_input,
-                    label="Try these",
-                    examples_per_page=4,
-                    elem_id="example-pills",
-                )
-
-            # ---- Sidebar: data & controls ----
-            with gr.Column(scale=1, elem_classes="sidebar"):
-                with gr.Accordion("Browse & Fetch", open=False):
-                    mission_dropdown = gr.Dropdown(
-                        label="Mission",
-                        choices=_get_mission_choices(),
-                        interactive=True,
-                    )
-                    dataset_dropdown = gr.Dropdown(
-                        label="Dataset",
-                        choices=[],
-                        interactive=True,
-                    )
-                    param_dropdown = gr.Dropdown(
-                        label="Parameter",
-                        choices=[],
-                        interactive=True,
-                    )
-                    browse_info = gr.Markdown(value="")
-                    _default_end = datetime.now(tz=timezone.utc).replace(
-                        microsecond=0,
-                    )
-                    _default_start = _default_end - timedelta(days=7)
-                    start_dt_picker = gr.DateTime(
-                        label="Start",
-                        value=_default_start.strftime("%Y-%m-%d %H:%M:%S"),
-                        include_time=True,
-                        type="string",
-                    )
-                    end_dt_picker = gr.DateTime(
-                        label="End",
-                        value=_default_end.strftime("%Y-%m-%d %H:%M:%S"),
-                        include_time=True,
-                        type="string",
-                    )
-                    fetch_btn = gr.Button(
-                        "Fetch", variant="primary",
-                    )
-                data_table = gr.Dataframe(
-                    headers=["Label", "Points", "Units", "Time Range", "Source"],
-                    label="Data in Memory",
-                    interactive=False,
-                    wrap=True,
-                    row_count=0,
-                    elem_classes="data-table",
-                )
-                label_dropdown = gr.Dropdown(
-                    label="Preview",
-                    choices=[],
-                    interactive=True,
-                )
-                data_preview = gr.Dataframe(
-                    label="Data Preview",
-                    interactive=False,
-                    wrap=True,
-                    row_count=0,
-                    elem_classes="data-table",
-                )
-                token_display = gr.Markdown(
-                    value="*No API calls yet*",
-                    label="Token Usage",
-                    elem_classes="token-display",
-                )
-                with gr.Accordion("Sessions", open=False):
-                    session_dropdown = gr.Dropdown(
-                        label="Saved Sessions",
-                        choices=_get_session_choices(),
-                        interactive=True,
-                    )
-                    with gr.Row():
-                        load_session_btn = gr.Button("Load", size="sm")
-                        new_session_btn = gr.Button("New", size="sm")
-                        delete_session_btn = gr.Button("Delete", size="sm", variant="stop")
-                reset_btn = gr.Button("Reset Session", variant="secondary")
+        gr.Examples(
+            examples=EXAMPLES,
+            inputs=msg_input,
+            label="Try these",
+            examples_per_page=4,
+            elem_id="example-pills",
+        )
 
         verbose_output = gr.State("")  # captured text, embedded in chat
 
         # ---- Event wiring ----
         all_outputs = [chatbot, plotly_plot, data_table, token_display,
-                       msg_input, label_dropdown, data_preview, verbose_output]
+                       msg_input, label_dropdown, data_preview, verbose_output,
+                       session_list]
 
         send_event_args = dict(
             fn=respond,
@@ -1083,19 +1166,13 @@ def create_app() -> gr.Blocks:
         )
         msg_input.submit(**send_event_args)
 
-        reset_btn.click(
-            fn=reset_session,
-            inputs=[],
-            outputs=all_outputs,
-        )
-
         label_dropdown.change(
             fn=_preview_data,
             inputs=[label_dropdown],
             outputs=[data_preview],
         )
 
-        # Browse & Plot cascade
+        # Browse & Fetch cascade
         mission_dropdown.change(
             fn=_on_mission_change,
             inputs=[mission_dropdown],
@@ -1113,24 +1190,21 @@ def create_app() -> gr.Blocks:
             outputs=all_outputs,
         )
 
-        # Session management
-        session_outputs = [chatbot, plotly_plot, data_table, token_display,
-                           label_dropdown, data_preview, session_dropdown]
+        # Session management — left sidebar
         load_session_btn.click(
             fn=_on_load_session,
-            inputs=[session_dropdown],
-            outputs=session_outputs,
+            inputs=[session_list],
+            outputs=all_outputs,
         )
         new_session_btn.click(
             fn=_on_new_session,
             inputs=[],
-            outputs=[chatbot, plotly_plot, data_table, token_display,
-                     msg_input, label_dropdown, data_preview, session_dropdown],
+            outputs=all_outputs,
         )
         delete_session_btn.click(
             fn=_on_delete_session,
-            inputs=[session_dropdown],
-            outputs=[session_dropdown],
+            inputs=[session_list],
+            outputs=[session_list],
         )
 
     return app
