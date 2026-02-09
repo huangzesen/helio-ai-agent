@@ -4,7 +4,7 @@ Visualization sub-agent.
 Owns all visualization operations via three declarative tools:
 - plot_data — create plots from in-memory data
 - style_plot — apply aesthetics via key-value params
-- manage_plot — structural ops (export, reset, zoom, add/remove traces)
+- manage_plot — structural ops (reset, zoom, add/remove traces)
 
 The orchestrator delegates visualization requests here, keeping data
 operations in mission agents.
@@ -80,7 +80,8 @@ class VisualizationAgent(BaseSubAgent):
             f"Your FIRST call must be: "
             f"plot_data(labels=\"{labels_str}\")\n\n"
             "RULES:\n"
-            "- Do NOT call manage_plot(action='reset'), manage_plot(action='get_state'), or list_fetched_data.\n"
+            "- Do NOT call manage_plot(action='reset'), manage_plot(action='get_state'), manage_plot(action='export'), or list_fetched_data.\n"
             "- Call plot_data with the labels shown above.\n"
-            "- After plotting, you may call style_plot to adjust titles/labels/axes."
+            "- After plotting, you may call style_plot to adjust titles/labels/axes.\n"
+            "- Do NOT export the plot — exporting is handled by the orchestrator."
         )

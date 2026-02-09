@@ -182,8 +182,6 @@ def render_method_catalog() -> str:
         "- Log scale: `style_plot(log_scale=\"y\")`",
         "- Trace color: `style_plot(trace_colors={\"ACE Bmag\": \"red\"})`",
         "- Canvas size: `style_plot(canvas_size={\"width\": 1920, \"height\": 1080})`",
-        "- Export PNG: `manage_plot(action=\"export\", filename=\"output.png\")`",
-        "- Export PDF: `manage_plot(action=\"export\", filename=\"output.pdf\", format=\"pdf\")`",
         "- Zoom: `manage_plot(action=\"set_time_range\", time_range=\"2024-01-15 to 2024-01-20\")`",
         "- Reset: `manage_plot(action=\"reset\")`",
         "- Get state: `manage_plot(action=\"get_state\")`",

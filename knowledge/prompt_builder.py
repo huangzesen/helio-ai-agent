@@ -338,7 +338,7 @@ def build_data_ops_prompt() -> str:
     """Generate the system prompt for the DataOps sub-agent.
 
     Includes computation patterns, code guidelines, and workflow instructions
-    for data transformation, analysis, and export.
+    for data transformation and analysis.
 
     Returns:
         System prompt string for the DataOpsAgent.
@@ -346,7 +346,7 @@ def build_data_ops_prompt() -> str:
     lines = [
         "You are a data transformation and analysis specialist for scientific spacecraft data.",
         "",
-        "Your job is to transform, analyze, describe, and export in-memory timeseries data.",
+        "Your job is to transform, analyze, and describe in-memory timeseries data.",
         "You have access to `list_fetched_data`, `custom_operation`, `describe_data`, and `save_data` tools.",
         "",
         "## Workflow",
@@ -354,7 +354,6 @@ def build_data_ops_prompt() -> str:
         "1. **Discover data**: Call `list_fetched_data` to see what timeseries are in memory",
         "2. **Transform**: Use `custom_operation` to compute derived quantities",
         "3. **Analyze**: Use `describe_data` to get statistical summaries",
-        "4. **Export**: Use `save_data` to write data to CSV files",
         "",
         "## Common Computation Patterns",
         "",
@@ -417,6 +416,7 @@ def build_data_ops_prompt() -> str:
         "",
         "IMPORTANT: Always state the exact label(s) so downstream agents can reference them.",
         "",
+        "Do NOT use `save_data` unless the user explicitly asked to export/save data to CSV.",
         "Do NOT attempt to fetch new data — fetching is handled by mission agents.",
         "Do NOT attempt to plot data — plotting is handled by the visualization agent.",
         "Do NOT attempt to create DataFrames from text — that is handled by the DataExtraction agent.",
@@ -529,7 +529,7 @@ def build_visualization_prompt(gui_mode: bool = False) -> str:
         "You have four tools:",
         "- `plot_data` — create plots from in-memory data (line or spectrogram)",
         "- `style_plot` — apply aesthetics (title, labels, colors, log scale, etc.)",
-        "- `manage_plot` — structural ops (export, reset, zoom, add/remove traces)",
+        "- `manage_plot` — structural ops (reset, zoom, add/remove traces)",
         "- `list_fetched_data` — see what data is available in memory",
         "",
         catalog,
@@ -563,8 +563,6 @@ def build_visualization_prompt(gui_mode: bool = False) -> str:
         "Use the action parameter to select the operation.",
         "",
         "Examples:",
-        "- Export PNG: `manage_plot(action=\"export\", filename=\"output.png\")`",
-        "- Export PDF: `manage_plot(action=\"export\", filename=\"output.pdf\", format=\"pdf\")`",
         "- Zoom: `manage_plot(action=\"set_time_range\", time_range=\"2024-01-15 to 2024-01-20\")`",
         "- Reset: `manage_plot(action=\"reset\")`",
         "- Get state: `manage_plot(action=\"get_state\")`",
@@ -583,12 +581,12 @@ def build_visualization_prompt(gui_mode: bool = False) -> str:
         "1. Call `list_fetched_data` first to see what data is in memory",
         "2. Use `plot_data` to plot data (labels from list_fetched_data)",
         "3. Use `style_plot` for any customization (title, labels, log scale, colors, etc.)",
-        "4. Use `manage_plot` with action=\"export\" when the user wants to save the plot",
+        "4. Do NOT call manage_plot(action=\"export\") — exporting is handled by the orchestrator, not by you",
         "",
         "For task execution (when instruction starts with 'Execute this task'):",
         "- Go straight to the required tool call — do NOT call list_fetched_data or reset first",
         "- 'Use plot_data ...' -> call plot_data with the labels",
-        "- 'Use export ...' -> call manage_plot with action='export'",
+        "- Export requests should never reach you — the orchestrator handles them directly",
         "- Data labels are provided in the instruction — use them directly",
         "",
         "## Notes",
@@ -637,9 +635,9 @@ def build_system_prompt() -> str:
 ## Your Role
 Help users visualize spacecraft data by translating natural language requests into data operations. You orchestrate work by delegating to specialist sub-agents:
 - **Mission agents** handle data fetching (mission-specific knowledge of datasets and parameters)
-- **DataOps agent** handles data transformations, analysis, and export (compute, describe, save)
+- **DataOps agent** handles data transformations and analysis (compute, describe)
 - **DataExtraction agent** handles converting unstructured text to structured DataFrames (event lists, document tables, search results)
-- **Visualization agent** handles all visualization (plotting, customizing, exporting)
+- **Visualization agent** handles all visualization (plotting, customizing, zoom, panel management)
 
 ## Supported Missions
 
@@ -658,9 +656,9 @@ Any dataset found via `search_full_catalog` can be fetched directly with `fetch_
 
 1. **Identify the mission**: Match the user's request to a spacecraft from the table above
 2. **Delegate data fetching**: Use `delegate_to_mission` for fetching data (requires mission-specific knowledge of datasets and parameters)
-3. **Delegate data operations**: Use `delegate_to_data_ops` for computations (magnitude, smoothing, etc.), statistical summaries, and data export
+3. **Delegate data operations**: Use `delegate_to_data_ops` for computations (magnitude, smoothing, etc.) and statistical summaries
 4. **Delegate data extraction**: Use `delegate_to_data_extraction` to turn unstructured text into DataFrames (event lists, document tables, search results)
-5. **Delegate visualization**: Use `delegate_to_visualization` for plotting, customizing, exporting, or any visual operation
+5. **Delegate visualization**: Use `delegate_to_visualization` for plotting, customizing, zooming, or any visual operation
 6. **Multi-mission**: Call `delegate_to_mission` for each mission, then `delegate_to_data_ops` if needed, then `delegate_to_visualization` to plot results
 7. **Memory check**: Use `list_fetched_data` to see what data is currently in memory
 
@@ -842,8 +840,7 @@ Each task has:
 - store_dataframe(pandas_code, output_label, description): Create DataFrame from scratch
 - describe_data(label): Statistical summary of in-memory data
 - plot_data(labels): Plot data from memory (comma-separated labels)
-- export(filename): Save current plot to file
-- save_data(label, filename): Export timeseries to CSV
+- save_data(label, filename): Export timeseries to CSV (only when user explicitly asks)
 - google_search(query): Search the web for context
 
 ## Known Missions
@@ -860,8 +857,8 @@ to discover exact parameter names before fetching. Do NOT guess parameter names.
 
 Tag each task with the "mission" field:
 - Use spacecraft IDs: PSP, SolO, ACE, OMNI, WIND, DSCOVR, MMS, STEREO_A
-- mission="__visualization__" for visualization tasks (plotting, exporting, render changes)
-- mission="__data_ops__" for data transformation/analysis/export (custom_operation, describe_data, save_data)
+- mission="__visualization__" for visualization tasks (plotting, styling, render changes)
+- mission="__data_ops__" for data transformation/analysis (custom_operation, describe_data)
 - mission="__data_extraction__" for creating DataFrames from text (store_dataframe, event catalogs)
 - mission=null for cross-mission tasks that don't fit the above categories
 
@@ -879,24 +876,23 @@ Tag each task with the "mission" field:
 3. For comparisons: fetch both datasets (round 1) -> optional computation (round 2) -> plot together (round 3)
 4. For derived quantities: fetch raw data -> compute derived value -> plot
 5. Keep task count minimal — don't split unnecessarily
-6. Do NOT include plotting steps unless the user explicitly asked to plot/show/display
-7. Labels for fetched data follow the pattern "DATASET.PARAM" (e.g., "AC_H2_MFI.BGSEc")
-8. **NEVER repeat a task from a previous round** — if a task was completed, do NOT create it again
-9. Use the results from previous rounds to inform later tasks — do NOT re-search or re-fetch data that was already obtained
-10. If prior results say "Done." with no details, trust that the task completed and move on to the next dependent step
+6. Do NOT include export or save tasks unless the user explicitly asked to export/save
+7. Do NOT include plotting steps unless the user explicitly asked to plot/show/display
+8. Labels for fetched data follow the pattern "DATASET.PARAM" (e.g., "AC_H2_MFI.BGSEc")
+9. **NEVER repeat a task from a previous round** — if a task was completed, do NOT create it again
+10. Use the results from previous rounds to inform later tasks — do NOT re-search or re-fetch data that was already obtained
+11. If prior results say "Done." with no details, trust that the task completed and move on to the next dependent step
 
 ## Task Instruction Format
 
 Every fetch_data instruction MUST include the exact dataset_id and parameter name.
 Every custom_operation instruction MUST include the exact source_label.
 Every visualization instruction MUST start with "Use plot_data to plot ...".
-Export tasks MUST use "Export the current plot as FILENAME" — they are handled directly, not by the visualization agent.
 
 Example instructions:
 - "Fetch data from dataset AC_H2_MFI, parameter BGSEc, for last week" (mission: "ACE")
 - "Compute the magnitude of AC_H2_MFI.BGSEc, save as ACE_Bmag" (mission: "__data_ops__")
 - "Use plot_data to plot ACE_Bmag and Wind_Bmag together with title 'ACE vs Wind B-field'" (mission: "__visualization__")
-- "Export the current plot as comparison.png" (mission: "__visualization__")
 
 ## Multi-Round Example
 

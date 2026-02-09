@@ -27,6 +27,11 @@ if TYPE_CHECKING:
 # Threshold: above this many points per trace, use Scattergl (WebGL)
 _GL_THRESHOLD = 100_000
 
+# Maximum points per trace for interactive display.
+# Above this, traces are downsampled using min-max decimation to keep
+# visual features (peaks, dips) while reducing JSON payload size.
+_MAX_DISPLAY_POINTS = 5_000
+
 # Default colour sequence (golden-ratio HSL spacing, pre-computed hex)
 _DEFAULT_COLORS = [
     "#cc6633",  # hue=0.000
@@ -38,6 +43,48 @@ _DEFAULT_COLORS = [
     "#33cccc",  # hue=0.708
     "#ccbe33",  # hue=0.326
 ]
+
+def _downsample_minmax(time_arr, val_arr, max_points: int = _MAX_DISPLAY_POINTS):
+    """Downsample using min-max decimation to preserve peaks and dips.
+
+    Splits data into buckets and keeps the min and max value from each
+    bucket, preserving the visual envelope of the signal.
+
+    Returns (time_out, val_out) as lists ready for Plotly.
+    """
+    n = len(val_arr)
+    if n <= max_points:
+        return time_arr, val_arr
+
+    # Each bucket contributes 2 points (min + max), so use half as many buckets
+    n_buckets = max_points // 2
+    bucket_size = n / n_buckets
+
+    indices = []
+    for i in range(n_buckets):
+        start = int(i * bucket_size)
+        end = int((i + 1) * bucket_size)
+        end = min(end, n)
+        if start >= end:
+            continue
+        chunk = val_arr[start:end]
+        # Handle all-NaN buckets
+        finite_mask = np.isfinite(chunk)
+        if not finite_mask.any():
+            indices.append(start)
+            continue
+        idx_min = start + np.nanargmin(chunk)
+        idx_max = start + np.nanargmax(chunk)
+        # Add in chronological order
+        if idx_min <= idx_max:
+            indices.extend([idx_min, idx_max])
+        else:
+            indices.extend([idx_max, idx_min])
+
+    # Deduplicate and sort
+    indices = sorted(set(indices))
+    return [time_arr[i] for i in indices], [val_arr[i] for i in indices]
+
 
 # Explicit layout defaults — prevent Gradio dark theme from overriding
 _DEFAULT_LAYOUT = dict(
@@ -141,10 +188,9 @@ class PlotlyRenderer:
 
         for entry in entries:
             display_name = entry.description or entry.label
-            time_list = [
-                t.isoformat() if hasattr(t, "isoformat") else str(t)
-                for t in entry.time.tolist()
-            ]
+            # Use pandas index (Timestamps with .isoformat()) not numpy
+            # datetime64 (which .tolist() converts to nanosecond ints).
+            time_list = [t.isoformat() for t in entry.data.index]
 
             # Decompose vectors into scalar components
             if entry.values.ndim == 2 and entry.values.shape[1] > 1:
@@ -152,11 +198,15 @@ class PlotlyRenderer:
                 for col in range(entry.values.shape[1]):
                     comp = comp_names[col] if col < 3 else str(col)
                     label = f"{display_name} ({comp})"
-                    val_list = entry.values[:, col].tolist()
-                    Scatter = self._scatter_cls(len(val_list))
+                    val_arr = entry.values[:, col]
+                    t_disp, v_disp = _downsample_minmax(
+                        time_list, val_arr, _MAX_DISPLAY_POINTS,
+                    )
+                    v_disp = [float(v) if np.isfinite(v) else None for v in v_disp]
+                    Scatter = self._scatter_cls(len(v_disp))
                     fig.add_trace(
                         Scatter(
-                            x=time_list, y=val_list,
+                            x=t_disp, y=v_disp,
                             name=label, mode="lines",
                             line=dict(color=self._next_color(label)),
                         ),
@@ -167,11 +217,14 @@ class PlotlyRenderer:
                     added_labels.append(label)
             else:
                 vals = entry.values.ravel() if entry.values.ndim > 1 else entry.values
-                val_list = vals.tolist()
-                Scatter = self._scatter_cls(len(val_list))
+                t_disp, v_disp = _downsample_minmax(
+                    time_list, vals, _MAX_DISPLAY_POINTS,
+                )
+                v_disp = [float(v) if np.isfinite(v) else None for v in v_disp]
+                Scatter = self._scatter_cls(len(v_disp))
                 fig.add_trace(
                     Scatter(
-                        x=time_list, y=val_list,
+                        x=t_disp, y=v_disp,
                         name=display_name, mode="lines",
                         line=dict(color=self._next_color(display_name)),
                     ),
@@ -198,10 +251,7 @@ class PlotlyRenderer:
 
         Returns the trace label.
         """
-        times = [
-            t.isoformat() if hasattr(t, "isoformat") else str(t)
-            for t in entry.data.index.tolist()
-        ]
+        times = [t.isoformat() for t in entry.data.index]
 
         meta = entry.metadata or {}
         bin_values = meta.get("bin_values")

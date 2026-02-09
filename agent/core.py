@@ -990,6 +990,29 @@ class OrchestratorAgent:
             request = tool_args["request"]
             context = tool_args.get("context", "")
             self.logger.debug("[Router] Delegating to Visualization specialist")
+
+            # Intercept export requests — handle directly, no LLM needed
+            req_lower = request.lower()
+            if "export" in req_lower or ".png" in req_lower or ".pdf" in req_lower:
+                import re as _re
+                fn_match = _re.search(r'[\w.-]+\.(?:png|pdf|svg)', request, _re.IGNORECASE)
+                filename = fn_match.group(0) if fn_match else "output.png"
+                fmt = "pdf" if filename.endswith(".pdf") else "png"
+                result = self._renderer.export(filename, format=fmt)
+                if result.get("status") == "success" and not self.gui_mode and not self.web_mode:
+                    try:
+                        import os, platform, subprocess
+                        fp = result["filepath"]
+                        if platform.system() == "Darwin":
+                            subprocess.Popen(["open", fp])
+                        elif platform.system() == "Windows":
+                            os.startfile(fp)
+                        else:
+                            subprocess.Popen(["xdg-open", fp])
+                    except Exception:
+                        pass
+                return {"status": "success", "result": f"Exported plot to {result.get('filepath', filename)}"}
+
             agent = self._get_or_create_viz_agent()
             full_request = f"{request}\n\nContext: {context}" if context else request
             sub_result = agent.process_request(full_request)

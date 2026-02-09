@@ -8,7 +8,7 @@ Categories:
 - "discovery": dataset search and parameter listing
 - "data_ops": shared data tools (list_fetched_data)
 - "data_ops_fetch": mission-specific data fetching (fetch_data)
-- "data_ops_compute": data transformation, statistics, export (custom_operation, describe_data, save_data)
+- "data_ops_compute": data transformation, statistics (custom_operation, describe_data, save_data)
 - "data_extraction": unstructured-to-structured data conversion (store_dataframe)
 - "visualization": plot_data, style_plot, manage_plot (declarative visualization tools)
 - "conversation": ask_clarification
@@ -373,10 +373,10 @@ Returns statistics (min, max, mean, std, percentiles, NaN count) and the LLM can
     {
         "category": "data_ops_compute",
         "name": "save_data",
-        "description": """Export an in-memory timeseries to a CSV file. Use this when:
-- User asks to save, export, or download data
-- User wants data in a file for external use (Excel, MATLAB, etc.)
-- User wants to keep a copy of computed results
+        "description": """Export an in-memory timeseries to a CSV file.
+
+ONLY use this when the user explicitly asks to save, export, or download data.
+Do NOT use this proactively after computations — data stays in memory for plotting.
 
 The CSV file has a datetime column (ISO 8601 UTC) followed by data columns.
 If no filename is given, one is auto-generated from the label.""",
@@ -651,7 +651,7 @@ Returns the extracted text content and the saved file path.""",
 - You need mission-specific knowledge (dataset IDs, parameter names, analysis patterns)
 
 Do NOT delegate:
-- Visualization requests (plotting, zoom, export, render changes) — use delegate_to_visualization
+- Visualization requests (plotting, zoom, render changes) — use delegate_to_visualization
 - Requests to plot already-loaded data — use delegate_to_visualization
 - General questions about capabilities
 
@@ -677,8 +677,9 @@ The specialist will search datasets, fetch data, run computations, and report ba
         "description": """Delegate a visualization request to the visualization specialist agent. Use this when:
 - The user asks to plot, display, or visualize data
 - The user wants to change plot appearance (render type, colors, axis labels, title, log scale)
-- The user wants to zoom, export (PNG/PDF), or save/load sessions
-- The user wants to resize the canvas
+- The user wants to zoom, set time range, or resize the canvas
+
+Export requests (PNG/PDF) are handled automatically when delegated here — no special handling needed.
 
 Do NOT delegate:
 - Data requests (fetch, compute, describe) — use delegate_to_mission
@@ -690,7 +691,7 @@ The specialist has access to all visualization methods and can see what data is 
             "properties": {
                 "request": {
                     "type": "string",
-                    "description": "The visualization request (e.g., 'plot ACE_Bmag and PSP_Bmag together', 'switch to scatter plot', 'export as PDF')"
+                    "description": "The visualization request (e.g., 'plot ACE_Bmag and PSP_Bmag together', 'switch to scatter plot', 'set log scale on y-axis')"
                 },
                 "context": {
                     "type": "string",
@@ -703,16 +704,16 @@ The specialist has access to all visualization methods and can see what data is 
     {
         "category": "routing",
         "name": "delegate_to_data_ops",
-        "description": """Delegate data transformation, analysis, or export to the DataOps specialist agent. Use this when:
+        "description": """Delegate data transformation or analysis to the DataOps specialist agent. Use this when:
 - The user wants to compute derived quantities (magnitude, smoothing, resampling, derivatives, etc.)
 - The user wants statistical summaries (describe data)
-- The user wants to export data to CSV
 
 Do NOT delegate:
 - Data fetching (use delegate_to_mission — fetching requires mission-specific knowledge)
 - Visualization requests (use delegate_to_visualization)
 - Creating datasets from text/search results (use delegate_to_data_extraction)
 - Dataset search or parameter listing (handle directly or use delegate_to_mission)
+- Data export to CSV — only do this when explicitly requested by the user
 
 The DataOps agent can see all data currently in memory via list_fetched_data.""",
         "parameters": {
@@ -720,7 +721,7 @@ The DataOps agent can see all data currently in memory via list_fetched_data."""
             "properties": {
                 "request": {
                     "type": "string",
-                    "description": "What to compute/analyze/export (e.g., 'compute magnitude of AC_H2_MFI.BGSEc', 'describe ACE_Bmag', 'save ACE_Bmag to CSV')"
+                    "description": "What to compute/analyze (e.g., 'compute magnitude of AC_H2_MFI.BGSEc', 'describe ACE_Bmag')"
                 },
                 "context": {
                     "type": "string",
