@@ -726,6 +726,12 @@ CUSTOM_CSS = """
 /* ---- Hide footer ---- */
 footer { display: none !important; }
 
+/* ---- Disable all Gradio animations/transitions globally ---- */
+*, *::before, *::after {
+    animation: none !important;
+    transition: none !important;
+}
+
 /* ---- Header (slim, single-line) ---- */
 .app-header {
     display: flex;
