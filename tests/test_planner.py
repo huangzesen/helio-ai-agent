@@ -133,6 +133,7 @@ class TestPlannerAgentInterface:
         usage = agent.get_token_usage()
         assert usage["input_tokens"] == 0
         assert usage["output_tokens"] == 0
+        assert usage["thinking_tokens"] == 0
 
     def test_reset_clears_chat(self):
         """Reset should clear the chat session."""

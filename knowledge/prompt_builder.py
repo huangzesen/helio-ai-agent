@@ -777,20 +777,26 @@ User: "switch to scatter plot"
 User: "what data is available for Solar Orbiter?"
 -> delegate_to_mission(mission_id="SolO", request="what datasets and parameters are available?")
 
-## Multi-Step Requests
+## Multi-Step Planning
 
-For complex requests (like "compare PSP and ACE magnetic fields"), chain multiple tool calls:
+For complex requests that need coordinated multi-step execution, use `request_planning`.
+This activates the planning system which decomposes the request, executes tasks via
+sub-agents, and adapts the plan based on results.
 
-1. delegate_to_mission("PSP", "fetch magnetic field data for last week")
-2. delegate_to_mission("ACE", "fetch magnetic field data for last week")
-3. delegate_to_visualization("plot PSP and ACE magnetic field data together", context="Labels: PSP_label, ACE_label")
-4. Summarize the comparison
+Use `request_planning` when:
+- Fetching from MULTIPLE missions AND comparing/combining results
+- The request requires 3+ distinct steps (fetch → compute → plot)
+- Multiple transformations before visualization
 
-For "fetch ACE mag, compute magnitude, and plot":
+Do NOT use `request_planning` when:
+- A single delegation handles it (most requests)
+- The user is asking a question or making a simple change
 
-1. delegate_to_mission("ACE", "fetch magnetic field vector data for last week")
-2. delegate_to_data_ops("compute magnitude of AC_H2_MFI.BGSEc", context="Labels: AC_H2_MFI.BGSEc")
-3. delegate_to_visualization("plot the magnitude", context="Labels: ACE_Bmag")
+Examples:
+- "Compare PSP and ACE magnetic fields" → request_planning
+- "Fetch ACE mag, compute magnitude, smooth it, and plot" → request_planning
+- "Show ACE magnetic field data" → delegate_to_mission + delegate_to_visualization
+- "Make the title bigger" → delegate_to_visualization
 """
 
 

@@ -21,7 +21,7 @@ class TestToolCategoryFiltering:
 
     def test_no_filter_returns_all_tools(self):
         all_tools = get_tool_schemas()
-        assert len(all_tools) == 22  # 21 + compute_spectrogram
+        assert len(all_tools) == 23  # 22 + request_planning
         names = {t["name"] for t in all_tools}
         assert "execute_visualization" in names
         assert "custom_visualization" in names
@@ -75,6 +75,7 @@ class TestToolCategoryFiltering:
         assert "delegate_to_visualization" in names
         assert "delegate_to_data_ops" in names
         assert "delegate_to_data_extraction" in names
+        assert "request_planning" in names
         # Should include discovery
         assert "search_datasets" in names
         # Should include list_fetched_data (extra tool)
@@ -358,3 +359,46 @@ class TestDataOpsAgentImportAndInterface:
         from agent.data_ops_agent import DataOpsAgent
         assert hasattr(DataOpsAgent, "get_token_usage")
         assert callable(getattr(DataOpsAgent, "get_token_usage"))
+
+
+class TestRequestPlanningTool:
+    """Test that the request_planning tool is properly configured."""
+
+    def test_tool_exists(self):
+        names = {t["name"] for t in get_tool_schemas()}
+        assert "request_planning" in names
+
+    def test_tool_has_routing_category(self):
+        tool = next(t for t in get_tool_schemas() if t["name"] == "request_planning")
+        assert tool["category"] == "routing"
+
+    def test_tool_requires_request_and_reasoning(self):
+        tool = next(t for t in get_tool_schemas() if t["name"] == "request_planning")
+        assert "request" in tool["parameters"]["properties"]
+        assert "reasoning" in tool["parameters"]["properties"]
+        assert tool["parameters"]["required"] == ["request", "reasoning"]
+
+    def test_tool_in_orchestrator_tools(self):
+        orch_tools = get_tool_schemas(categories=ORCHESTRATOR_CATEGORIES, extra_names=ORCHESTRATOR_EXTRA_TOOLS)
+        names = {t["name"] for t in orch_tools}
+        assert "request_planning" in names
+
+    def test_tool_not_in_mission_agent_tools(self):
+        mission_tools = get_tool_schemas(categories=MISSION_TOOL_CATEGORIES, extra_names=MISSION_EXTRA_TOOLS)
+        names = {t["name"] for t in mission_tools}
+        assert "request_planning" not in names
+
+    def test_tool_not_in_viz_agent_tools(self):
+        viz_tools = get_tool_schemas(categories=VIZ_TOOL_CATEGORIES, extra_names=VIZ_EXTRA_TOOLS)
+        names = {t["name"] for t in viz_tools}
+        assert "request_planning" not in names
+
+    def test_tool_not_in_dataops_agent_tools(self):
+        dataops_tools = get_tool_schemas(categories=DATAOPS_TOOL_CATEGORIES, extra_names=DATAOPS_EXTRA_TOOLS)
+        names = {t["name"] for t in dataops_tools}
+        assert "request_planning" not in names
+
+    def test_tool_not_in_extraction_agent_tools(self):
+        extraction_tools = get_tool_schemas(categories=EXTRACTION_CATEGORIES, extra_names=EXTRACTION_EXTRA_TOOLS)
+        names = {t["name"] for t in extraction_tools}
+        assert "request_planning" not in names

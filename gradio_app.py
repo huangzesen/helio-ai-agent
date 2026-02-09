@@ -84,6 +84,7 @@ def _format_tokens() -> str:
         f"{mem_line}  \n"
         f"**Input:** {usage['input_tokens']:,}  \n"
         f"**Output:** {usage['output_tokens']:,}  \n"
+        f"**Thinking:** {usage.get('thinking_tokens', 0):,}  \n"
         f"**Total:** {usage['total_tokens']:,}  \n"
         f"**API calls:** {usage['api_calls']}"
     )

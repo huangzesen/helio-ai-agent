@@ -94,6 +94,10 @@ class OrchestratorAgent:
         self.config = types.GenerateContentConfig(
             system_instruction=get_system_prompt(gui_mode=gui_mode),
             tools=[tool],
+            thinking_config=types.ThinkingConfig(
+                include_thoughts=True,
+                thinking_level="HIGH",
+            ),
         )
 
         # Create chat session
@@ -108,6 +112,7 @@ class OrchestratorAgent:
         # Token usage tracking
         self._total_input_tokens = 0
         self._total_output_tokens = 0
+        self._total_thinking_tokens = 0
         self._api_calls = 0
 
         # Current plan being executed (if any)
@@ -143,7 +148,13 @@ class OrchestratorAgent:
         if meta:
             self._total_input_tokens += getattr(meta, "prompt_token_count", 0) or 0
             self._total_output_tokens += getattr(meta, "candidates_token_count", 0) or 0
+            self._total_thinking_tokens += getattr(meta, "thoughts_token_count", 0) or 0
         self._api_calls += 1
+        if self.verbose:
+            from .thinking import extract_thoughts
+            for thought in extract_thoughts(response):
+                preview = thought[:200] + "..." if len(thought) > 200 else thought
+                self.logger.debug(f"[Thinking] {preview}")
 
     def _extract_grounding_sources(self, response) -> str:
         """Extract source citations from Google Search grounding metadata."""
@@ -218,6 +229,7 @@ class OrchestratorAgent:
         """Return cumulative token usage for this session (including sub-agents)."""
         input_tokens = self._total_input_tokens
         output_tokens = self._total_output_tokens
+        thinking_tokens = self._total_thinking_tokens
         api_calls = self._api_calls
 
         # Include usage from cached mission agents
@@ -225,6 +237,7 @@ class OrchestratorAgent:
             usage = agent.get_token_usage()
             input_tokens += usage["input_tokens"]
             output_tokens += usage["output_tokens"]
+            thinking_tokens += usage.get("thinking_tokens", 0)
             api_calls += usage["api_calls"]
 
         # Include usage from visualization agent
@@ -232,6 +245,7 @@ class OrchestratorAgent:
             usage = self._viz_agent.get_token_usage()
             input_tokens += usage["input_tokens"]
             output_tokens += usage["output_tokens"]
+            thinking_tokens += usage.get("thinking_tokens", 0)
             api_calls += usage["api_calls"]
 
         # Include usage from data ops agent
@@ -239,6 +253,7 @@ class OrchestratorAgent:
             usage = self._dataops_agent.get_token_usage()
             input_tokens += usage["input_tokens"]
             output_tokens += usage["output_tokens"]
+            thinking_tokens += usage.get("thinking_tokens", 0)
             api_calls += usage["api_calls"]
 
         # Include usage from data extraction agent
@@ -246,6 +261,7 @@ class OrchestratorAgent:
             usage = self._data_extraction_agent.get_token_usage()
             input_tokens += usage["input_tokens"]
             output_tokens += usage["output_tokens"]
+            thinking_tokens += usage.get("thinking_tokens", 0)
             api_calls += usage["api_calls"]
 
         # Include usage from planner agent
@@ -253,11 +269,13 @@ class OrchestratorAgent:
             usage = self._planner_agent.get_token_usage()
             input_tokens += usage["input_tokens"]
             output_tokens += usage["output_tokens"]
+            thinking_tokens += usage.get("thinking_tokens", 0)
 
         return {
             "input_tokens": input_tokens,
             "output_tokens": output_tokens,
-            "total_tokens": input_tokens + output_tokens,
+            "thinking_tokens": thinking_tokens,
+            "total_tokens": input_tokens + output_tokens + thinking_tokens,
             "api_calls": api_calls,
         }
 
@@ -968,6 +986,13 @@ class OrchestratorAgent:
                 "result": sub_result,
             }
 
+        elif tool_name == "request_planning":
+            request = tool_args["request"]
+            reasoning = tool_args.get("reasoning", "")
+            self.logger.debug(f"[Planner] Planning requested: {reasoning}")
+            summary = self._handle_planning_request(request)
+            return {"status": "success", "result": summary, "planning_used": True}
+
         else:
             result = {"status": "error", "message": f"Unknown tool: {tool_name}"}
             log_error(
@@ -1044,6 +1069,10 @@ class OrchestratorAgent:
                 ])],
                 tool_config=types.ToolConfig(
                     function_calling_config=types.FunctionCallingConfig(mode="ANY")
+                ),
+                thinking_config=types.ThinkingConfig(
+                    include_thoughts=True,
+                    thinking_level="LOW",
                 ),
             )
             task_chat = self.client.chats.create(
@@ -1239,9 +1268,9 @@ class OrchestratorAgent:
         else:
             self._execute_task(task)
 
-    def _process_complex_request(self, user_message: str) -> str:
+    def _handle_planning_request(self, user_message: str) -> str:
         """Process a complex multi-step request using the plan-execute-replan loop."""
-        self.logger.debug("[PlannerAgent] Detected complex request, starting planner...")
+        self.logger.debug("[PlannerAgent] Starting planner for complex request...")
 
         planner = self._get_or_create_planner_agent()
 
@@ -1603,85 +1632,17 @@ class OrchestratorAgent:
         """Return the current session ID, or None."""
         return self._session_id
 
-    def _pre_check_clarification(self, user_message: str) -> Optional[str]:
-        """Send a complex request to the orchestrator to check for clarification.
-
-        Before handing off to the PlannerAgent, this gives the orchestrator one
-        chance to ask the user for clarification. The message goes through the
-        orchestrator chat so the exchange is preserved in history for follow-up.
-
-        Returns:
-            - Clarification question if the orchestrator needs more info
-            - Text response if the orchestrator handled the request directly
-              (e.g., a false positive from the complexity regex)
-            - None if the request should proceed to the planner
-        """
-        self.logger.debug("[Orchestrator] Pre-checking complex request for clarification...")
-        response = self.chat.send_message(message=user_message)
-        self._track_usage(response)
-
-        if not response.candidates or not response.candidates[0].content.parts:
-            return None
-
-        # Separate function calls and text parts
-        function_calls = []
-        text_parts = []
-        for part in response.candidates[0].content.parts:
-            if hasattr(part, "function_call") and part.function_call and part.function_call.name:
-                function_calls.append(part.function_call)
-            elif hasattr(part, "text") and part.text:
-                text_parts.append(part.text)
-
-        # Case 1: Text-only response — orchestrator handled it directly
-        if not function_calls:
-            text = "\n".join(text_parts) if text_parts else "Done."
-            text += self._extract_grounding_sources(response)
-            return text
-
-        # Case 2: Clarification requested — return question immediately
-        # (don't send function response back, matching _process_single_message behavior)
-        for fc in function_calls:
-            if fc.name == "ask_clarification":
-                args = dict(fc.args) if fc.args else {}
-                question = args.get("question", "Could you provide more details?")
-                if args.get("context"):
-                    question = f"{args['context']}\n\n{question}"
-                if args.get("options"):
-                    question += "\n\nOptions:\n" + "\n".join(
-                        f"  {i+1}. {opt}" for i, opt in enumerate(args["options"])
-                    )
-                return question
-
-        # Case 3: Tool calls but no clarification — resolve pending calls
-        # so the orchestrator chat stays in a valid state, then proceed to planner
-        dummy_responses = [
-            types.Part.from_function_response(
-                name=fc.name,
-                response={"result": {
-                    "status": "redirected",
-                    "message": "This request is being handled by the planning system.",
-                }}
-            )
-            for fc in function_calls
-        ]
-        close_response = self.chat.send_message(message=dummy_responses)
-        self._track_usage(close_response)
-
-        return None  # proceed to planner
-
     def process_message(self, user_message: str) -> str:
         """Process a user message and return the agent's response.
 
-        Complex multi-step requests get a clarification pre-check via the
-        orchestrator, then route through the PlannerAgent if no clarification
-        is needed. Simple requests go directly to the orchestrator chat loop.
+        Hybrid routing: regex pre-filter catches obvious complex cases and routes
+        them directly to the planner. All other messages go through the orchestrator
+        loop, where the orchestrator (HIGH thinking) can also call request_planning
+        for complex cases the regex missed.
         """
         if is_complex_request(user_message):
-            pre_result = self._pre_check_clarification(user_message)
-            if pre_result is not None:
-                result = pre_result
-            else:
-                result = self._process_complex_request(user_message)
+            self.logger.debug("[Orchestrator] Heuristic: request appears complex, routing to planner")
+            result = self._handle_planning_request(user_message)
         else:
             result = self._process_single_message(user_message)
 

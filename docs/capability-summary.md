@@ -33,9 +33,10 @@ gradio_app.py  (browser-based chat UI, inline Plotly plots, data table sidebar)
 agent/core.py  OrchestratorAgent  (LLM-driven orchestrator)
   |  - Routes: fetch -> mission agents, compute -> DataOps agent, viz -> visualization agent
   |  - Complex multi-mission requests -> planner -> sub-agents
-  |  - Token usage tracking (input/output/api_calls, includes all sub-agents)
+  |  - Token usage tracking (input/output/thinking/api_calls, includes all sub-agents)
   |  - Models: Gemini 3 Pro Preview (orchestrator), Gemini 3 Flash Preview (sub-agents)
   |  - Configurable via GEMINI_MODEL / GEMINI_SUB_AGENT_MODEL env vars
+  |  - Thinking levels: HIGH (orchestrator + planner), LOW (all sub-agents)
   |
   +---> agent/visualization_agent.py  Visualization sub-agent (visualization-only tools)
   |       VisualizationAgent         Focused Gemini session for all visualization
@@ -116,7 +117,7 @@ agent/core.py  OrchestratorAgent  (LLM-driven orchestrator)
           stress_test.py            Stress testing
 ```
 
-## Tools (22 tool schemas)
+## Tools (23 tool schemas)
 
 ### Dataset Discovery
 | Tool | Purpose |
@@ -169,6 +170,7 @@ The `execute_visualization` tool dispatches to the method registry (`rendering/r
 | `delegate_to_data_ops` | LLM-driven delegation to the data ops specialist sub-agent |
 | `delegate_to_data_extraction` | LLM-driven delegation to the data extraction specialist sub-agent |
 | `delegate_to_visualization` | LLM-driven delegation to the visualization sub-agent |
+| `request_planning` | Activate multi-step planning system for complex requests (orchestrator can trigger dynamically) |
 
 ## Sub-Agent Architecture (5 agents)
 
@@ -253,7 +255,7 @@ All times are UTC. Outputs `TimeRange` objects with `start`/`end` datetimes.
 - Tool results are fed back to Gemini as function responses.
 - Orchestrator loop continues until Gemini produces a text response (or 10 iterations), with consecutive delegation error tracking (breaks after 2 failures).
 - Sub-agent loops limited to 5 iterations with duplicate call detection and consecutive error tracking.
-- Token usage accumulated from `response.usage_metadata` (prompt_token_count, candidates_token_count).
+- Token usage accumulated from `response.usage_metadata` (prompt_token_count, candidates_token_count, thoughts_token_count).
 
 ### LLM-Driven Routing (`agent/core.py`, `agent/mission_agent.py`, `agent/data_ops_agent.py`, `agent/visualization_agent.py`)
 - **Routing**: The OrchestratorAgent (LLM) decides whether to handle a request directly or delegate via `delegate_to_mission` (fetching), `delegate_to_data_ops` (computation), `delegate_to_data_extraction` (text-to-DataFrame), or `delegate_to_visualization` (visualization) tools. No regex-based routing — the LLM uses conversation context and the routing table to decide.
@@ -265,16 +267,24 @@ All times are UTC. Outputs `TimeRange` objects with `start`/`end` datetimes.
 - **Post-delegation flow**: After `delegate_to_mission` returns data labels, the orchestrator uses `delegate_to_data_ops` for computation, `delegate_to_data_extraction` for text-to-DataFrame conversion, and then `delegate_to_visualization` to visualize results.
 - **Slim orchestrator**: System prompt contains a routing table (mission names + capabilities) plus delegation instructions. No dataset IDs or analysis tips — those live in mission sub-agents.
 
-### Multi-Step Requests
+### Multi-Step Requests (Hybrid Planning)
 - Simple requests are handled by the orchestrator's conversation loop (up to 10 iterations, with consecutive delegation error guard)
 - "Compare PSP and ACE" -> `delegate_to_mission("PSP", ...)` -> `delegate_to_mission("ACE", ...)` -> `delegate_to_visualization(plot both)` — all in one `process_message` call
-- Complex requests (detected by `is_complex_request()` regex heuristics) are routed to the **PlannerAgent** for plan-execute-replan:
-  1. PlannerAgent decomposes the request into task batches using structured JSON output
-  2. Each batch is executed by routing tasks to the appropriate sub-agent
-  3. Results are fed back to the PlannerAgent, which decides to continue or finish
-  4. Maximum 5 rounds of replanning (configurable via `MAX_ROUNDS`)
-  5. If the planner fails, falls back to direct orchestrator execution
+- Complex requests use **hybrid routing** to the **PlannerAgent** for plan-execute-replan:
+  1. **Regex pre-filter**: `is_complex_request()` regex heuristics catch obvious complex cases (free, no API cost) and route directly to planner
+  2. **Orchestrator override**: The orchestrator (with HIGH thinking) can also call `request_planning` tool for complex cases the regex missed
+  3. PlannerAgent decomposes the request into task batches using structured JSON output
+  4. Each batch is executed by routing tasks to the appropriate sub-agent
+  5. Results are fed back to the PlannerAgent, which decides to continue or finish
+  6. Maximum 5 rounds of replanning (configurable via `MAX_ROUNDS`)
+  7. If the planner fails, falls back to direct orchestrator execution
 - Tasks are tagged with `mission="__visualization__"` for visualization dispatch, `mission="__data_ops__"` for compute dispatch, `mission="__data_extraction__"` for text-to-DataFrame dispatch
+
+### Thinking Levels (Gemini ThinkingConfig)
+- **HIGH**: Orchestrator (`agent/core.py`) and PlannerAgent (`agent/planner.py`) — deep reasoning for routing decisions and plan decomposition
+- **LOW**: MissionAgent, VisualizationAgent, DataOpsAgent, DataExtractionAgent — fast execution with minimal thinking overhead
+- Thinking tokens tracked separately in `get_token_usage()` across all agents
+- Verbose mode logs thought previews (first 200 chars) via `agent/thinking.py` utilities
 - Task plans persist to `~/.helio-agent/tasks/` with round tracking for multi-round plans
 
 ### Per-Mission JSON Knowledge (`knowledge/missions/*.json`)

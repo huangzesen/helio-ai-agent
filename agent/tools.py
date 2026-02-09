@@ -656,6 +656,34 @@ The DataExtraction agent can read documents (read_document), create DataFrames (
             "required": ["request"]
         }
     },
+
+    # --- request_planning ---
+    {
+        "category": "routing",
+        "name": "request_planning",
+        "description": """Activate the multi-step planning system for complex requests that require
+coordinated execution across multiple agents. Use this when:
+- The user's request requires fetching data from MULTIPLE spacecraft/missions
+- The request involves a sequence of 3+ distinct steps (fetch → compute → plot)
+- The request asks to compare data from different sources
+- The request requires searching the web, extracting data, AND plotting it
+
+Do NOT use this for requests that can be satisfied with 1-2 direct delegations.""",
+        "parameters": {
+            "type": "object",
+            "properties": {
+                "request": {
+                    "type": "string",
+                    "description": "The full user request to plan and execute"
+                },
+                "reasoning": {
+                    "type": "string",
+                    "description": "Brief explanation of why this request needs multi-step planning"
+                }
+            },
+            "required": ["request", "reasoning"]
+        }
+    },
 ]
 
 

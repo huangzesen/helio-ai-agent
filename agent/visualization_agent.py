@@ -81,10 +81,15 @@ class VisualizationAgent:
             tool_config=types.ToolConfig(
                 function_calling_config=types.FunctionCallingConfig(mode="ANY")
             ),
+            thinking_config=types.ThinkingConfig(
+                include_thoughts=True,
+                thinking_level="LOW",
+            ),
         )
 
         self._total_input_tokens = 0
         self._total_output_tokens = 0
+        self._total_thinking_tokens = 0
         self._api_calls = 0
 
     def _track_usage(self, response):
@@ -93,14 +98,21 @@ class VisualizationAgent:
         if meta:
             self._total_input_tokens += getattr(meta, "prompt_token_count", 0) or 0
             self._total_output_tokens += getattr(meta, "candidates_token_count", 0) or 0
+            self._total_thinking_tokens += getattr(meta, "thoughts_token_count", 0) or 0
         self._api_calls += 1
+        if self.verbose:
+            from .thinking import extract_thoughts
+            for thought in extract_thoughts(response):
+                preview = thought[:200] + "..." if len(thought) > 200 else thought
+                self.logger.debug(f"[Thinking] {preview}")
 
     def get_token_usage(self) -> dict:
         """Return cumulative token usage for this visualization agent."""
         return {
             "input_tokens": self._total_input_tokens,
             "output_tokens": self._total_output_tokens,
-            "total_tokens": self._total_input_tokens + self._total_output_tokens,
+            "thinking_tokens": self._total_thinking_tokens,
+            "total_tokens": self._total_input_tokens + self._total_output_tokens + self._total_thinking_tokens,
             "api_calls": self._api_calls,
         }
 
@@ -133,6 +145,10 @@ class VisualizationAgent:
                         extra_names=VIZ_EXTRA_TOOLS,
                     )
                 ])],
+                thinking_config=types.ThinkingConfig(
+                    include_thoughts=True,
+                    thinking_level="LOW",
+                ),
             )
             chat = self.client.chats.create(
                 model=self.model_name,

@@ -124,7 +124,7 @@ class PlannerAgent:
         self.model_name = model_name
         self.verbose = verbose
         self._chat = None
-        self._token_usage = {"input_tokens": 0, "output_tokens": 0}
+        self._token_usage = {"input_tokens": 0, "output_tokens": 0, "thinking_tokens": 0}
 
     def _track_usage(self, response):
         """Accumulate token usage from a Gemini response."""
@@ -132,6 +132,12 @@ class PlannerAgent:
         if meta:
             self._token_usage["input_tokens"] += getattr(meta, "prompt_token_count", 0) or 0
             self._token_usage["output_tokens"] += getattr(meta, "candidates_token_count", 0) or 0
+            self._token_usage["thinking_tokens"] += getattr(meta, "thoughts_token_count", 0) or 0
+        if self.verbose:
+            from .thinking import extract_thoughts
+            for thought in extract_thoughts(response):
+                preview = thought[:200] + "..." if len(thought) > 200 else thought
+                logger.debug(f"[Thinking] {preview}")
 
     def _parse_response(self, response) -> Optional[dict]:
         """Parse JSON response from Gemini, normalizing mission fields."""
@@ -168,6 +174,10 @@ class PlannerAgent:
                 system_instruction=system_prompt,
                 response_mime_type="application/json",
                 response_schema=PLANNER_RESPONSE_SCHEMA,
+                thinking_config=types.ThinkingConfig(
+                    include_thoughts=True,
+                    thinking_level="HIGH",
+                ),
             )
 
             self._chat = self.client.chats.create(
@@ -246,6 +256,7 @@ class PlannerAgent:
         return {
             "input_tokens": self._token_usage["input_tokens"],
             "output_tokens": self._token_usage["output_tokens"],
+            "thinking_tokens": self._token_usage["thinking_tokens"],
             "api_calls": 0,  # Planner calls tracked separately from api_calls count
         }
 

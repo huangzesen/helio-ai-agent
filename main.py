@@ -374,10 +374,11 @@ def main():
         print()
         print("-" * 60)
         print(f"  Session token usage:")
-        print(f"    Input tokens:  {usage['input_tokens']:,}")
-        print(f"    Output tokens: {usage['output_tokens']:,}")
-        print(f"    Total tokens:  {usage['total_tokens']:,}")
-        print(f"    API calls:     {usage['api_calls']}")
+        print(f"    Input tokens:    {usage['input_tokens']:,}")
+        print(f"    Output tokens:   {usage['output_tokens']:,}")
+        print(f"    Thinking tokens: {usage['thinking_tokens']:,}")
+        print(f"    Total tokens:    {usage['total_tokens']:,}")
+        print(f"    API calls:       {usage['api_calls']}")
         print("-" * 60)
 
         # Log session end
