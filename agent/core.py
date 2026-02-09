@@ -2032,6 +2032,10 @@ Example: ["Compare this with solar wind speed", "Zoom in to January 10-15", "Exp
         # Count user turns in history
         turn_count = sum(1 for h in history_dicts if h.get("role") == "user")
 
+        # Don't persist empty sessions (no user messages, no data)
+        if turn_count == 0 and len(store) == 0:
+            return
+
         # Preview from last user message
         last_preview = ""
         for h in reversed(history_dicts):

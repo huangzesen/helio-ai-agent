@@ -196,6 +196,64 @@ class TestSessionManager:
             sm.save_session("nonexistent", [], store)
 
 
+class TestCleanupEmptySessions:
+    def test_cleanup_removes_empty_sessions(self, tmp_dir):
+        """Empty sessions (0 turns, no history) are removed by cleanup."""
+        sm = SessionManager(base_dir=tmp_dir)
+        sid_empty = sm.create_session("model")
+        # Create a session with actual content
+        sid_full = sm.create_session("model")
+        sm.save_session(sid_full, [
+            {"role": "user", "parts": [{"text": "Hello"}]},
+            {"role": "model", "parts": [{"text": "Hi!"}]},
+        ], DataStore(), {"turn_count": 1})
+
+        # Before cleanup, both exist
+        assert len(sm.list_sessions()) == 2
+
+        deleted = sm.cleanup_empty_sessions()
+        assert deleted == 1
+        sessions = sm.list_sessions()
+        assert len(sessions) == 1
+        assert sessions[0]["id"] == sid_full
+
+    def test_cleanup_skips_excluded_ids(self, tmp_dir):
+        """Sessions in exclude_ids are not deleted even if empty."""
+        sm = SessionManager(base_dir=tmp_dir)
+        sid = sm.create_session("model")
+
+        deleted = sm.cleanup_empty_sessions(exclude_ids={sid})
+        assert deleted == 0
+        assert len(sm.list_sessions()) == 1
+
+    def test_cleanup_on_init(self, tmp_dir):
+        """Creating a new SessionManager cleans up empty sessions from prior runs."""
+        sm1 = SessionManager(base_dir=tmp_dir)
+        sid_empty = sm1.create_session("model")
+        sid_full = sm1.create_session("model")
+        sm1.save_session(sid_full, [
+            {"role": "user", "parts": [{"text": "Hello"}]},
+        ], DataStore(), {"turn_count": 1})
+
+        # New SessionManager triggers cleanup in __init__
+        sm2 = SessionManager(base_dir=tmp_dir)
+        sessions = sm2.list_sessions()
+        assert len(sessions) == 1
+        assert sessions[0]["id"] == sid_full
+
+    def test_cleanup_keeps_sessions_with_history(self, tmp_dir):
+        """Sessions with history but turn_count=0 (stale metadata) are kept."""
+        sm = SessionManager(base_dir=tmp_dir)
+        sid = sm.create_session("model")
+        # Save history but don't update turn_count
+        sm.save_session(sid, [
+            {"role": "user", "parts": [{"text": "test"}]},
+        ], DataStore())
+
+        deleted = sm.cleanup_empty_sessions()
+        assert deleted == 0
+
+
 class TestDataStorePersistence:
     def test_save_empty_store(self, tmp_dir):
         """Saving an empty store writes an empty index."""

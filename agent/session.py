@@ -87,6 +87,8 @@ class SessionManager:
             base_dir = Path.home() / ".helio-agent" / "sessions"
         self.base_dir = base_dir
         self.base_dir.mkdir(parents=True, exist_ok=True)
+        # Automatically clean up empty sessions from previous runs
+        self.cleanup_empty_sessions()
 
     def create_session(self, model_name: str = "") -> str:
         """Create a new session directory with initial metadata.
@@ -218,6 +220,48 @@ class SessionManager:
             return False
         shutil.rmtree(session_dir)
         return True
+
+    def cleanup_empty_sessions(self, exclude_ids: Optional[set[str]] = None) -> int:
+        """Remove sessions that contain no meaningful content.
+
+        A session is considered empty if it has turn_count == 0 and no
+        chat history entries.  This prevents accumulation of abandoned
+        sessions (e.g. user opened the app and quit without sending a message).
+
+        Args:
+            exclude_ids: Session IDs to skip (e.g. the current active session).
+
+        Returns:
+            Number of sessions deleted.
+        """
+        exclude_ids = exclude_ids or set()
+        deleted = 0
+        for d in list(self.base_dir.iterdir()):
+            if not d.is_dir():
+                continue
+            session_id = d.name
+            if session_id in exclude_ids:
+                continue
+            meta_path = d / "metadata.json"
+            if not meta_path.exists():
+                continue
+            try:
+                meta = self._read_json(meta_path)
+                if not meta:
+                    continue
+                # Check turn count
+                if meta.get("turn_count", 0) > 0:
+                    continue
+                # Double-check: also look at history file
+                history = self._read_json(d / "history.json")
+                if history:  # non-empty list
+                    continue
+                # Empty session — remove it
+                shutil.rmtree(d)
+                deleted += 1
+            except Exception:
+                continue
+        return deleted
 
     def get_most_recent_session(self) -> Optional[str]:
         """Return the session_id of the most recently updated session, or None."""
