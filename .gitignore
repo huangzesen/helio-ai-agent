@@ -35,7 +35,6 @@ spikes/*/*.log
 test_output/
 tests/plots/
 tests/fetched_data/
-test.png
 test_commands.py
 tests/**/*_results*.json
 tests/**/*_report*.json
@@ -77,4 +76,5 @@ knowledge/missions/*/hapi/
 # Autoplot downloaded JAR (user-specific path)
 autoplot.jar
 ~/autoplot.jar
-test111.png
+# Agent-exported figures (PNG at project root)
+*.png

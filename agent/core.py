@@ -6,6 +6,7 @@ The OrchestratorAgent routes requests to:
 - VisualizationAgent sub-agent for all visualization
 """
 
+import math
 from typing import Optional
 
 from google import genai
@@ -48,6 +49,21 @@ DEFAULT_MODEL = GEMINI_MODEL
 SUB_AGENT_MODEL = GEMINI_SUB_AGENT_MODEL
 
 
+def _sanitize_for_json(obj):
+    """Recursively replace NaN/Inf floats with None for JSON safety.
+
+    Gemini's API rejects function_response containing NaN or Inf values
+    (400 INVALID_ARGUMENT). This ensures all tool results are safe.
+    """
+    if isinstance(obj, float) and (math.isnan(obj) or math.isinf(obj)):
+        return None
+    if isinstance(obj, dict):
+        return {k: _sanitize_for_json(v) for k, v in obj.items()}
+    if isinstance(obj, (list, tuple)):
+        return [_sanitize_for_json(v) for v in obj]
+    return obj
+
+
 class OrchestratorAgent:
     """Main orchestrator agent that routes to mission and visualization sub-agents."""
 
@@ -70,8 +86,13 @@ class OrchestratorAgent:
         self.logger = setup_logging(verbose=verbose)
         self.logger.info("Initializing OrchestratorAgent")
 
-        # Initialize Gemini client
-        self.client = genai.Client(api_key=GOOGLE_API_KEY)
+        # Initialize Gemini client with retry for transient errors (503, 429, etc.)
+        self.client = genai.Client(
+            api_key=GOOGLE_API_KEY,
+            http_options=types.HttpOptions(
+                retry_options=types.HttpRetryOptions(),
+            ),
+        )
 
         # Build function declarations for Gemini (orchestrator tools only)
         function_declarations = []
@@ -396,6 +417,21 @@ class OrchestratorAgent:
         Returns:
             Result dict from the bridge method
         """
+        # Check if the LLM confused a tool name with a viz method name
+        known_tools = {
+            "list_fetched_data", "custom_visualization",
+            "custom_operation", "describe_data", "save_data",
+        }
+        if method in known_tools:
+            return {
+                "status": "error",
+                "message": (
+                    f"'{method}' is a tool, not a visualization method. "
+                    f"Use the '{method}' tool directly instead of "
+                    f"execute_visualization."
+                ),
+            }
+
         # Validate against registry
         errors = validate_args(method, args)
         if errors:
@@ -1015,6 +1051,7 @@ class OrchestratorAgent:
         """
         try:
             result = self._execute_tool(tool_name, tool_args)
+            result = _sanitize_for_json(result)
 
             # Log the result
             is_success = result.get("status") != "error"
@@ -1250,6 +1287,13 @@ class OrchestratorAgent:
         mission_tag = f" [{task.mission}]" if task.mission else ""
         self.logger.debug(f"[Plan]{mission_tag}: {task.description}")
 
+        # Inject current data-store contents so sub-agents know what's available
+        store = get_store()
+        entries = store.list_entries()
+        if entries:
+            labels = [f"  - {e['label']} ({e['num_points']} pts)" for e in entries]
+            task.instruction += "\n\nData currently in memory:\n" + "\n".join(labels)
+
         special_missions = {"__visualization__", "__data_ops__", "__data_extraction__"}
 
         if task.mission == "__visualization__":
@@ -1334,6 +1378,12 @@ class OrchestratorAgent:
                     "error": task.error,
                 })
                 store.save(plan)
+
+            # Append current store state so planner knows what data exists
+            store_labels = [e['label'] for e in get_store().list_entries()]
+            if store_labels:
+                for r in round_results:
+                    r["data_in_memory"] = store_labels
 
             if response.get("status") == "done":
                 break

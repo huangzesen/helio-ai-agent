@@ -230,6 +230,15 @@ class PlannerAgent:
                     line += f" | Error: {r['error']}"
                 lines.append(line)
 
+            # Include current data-store state so planner avoids redundant tasks
+            data_labels = None
+            for r in round_results:
+                if r.get("data_in_memory"):
+                    data_labels = r["data_in_memory"]
+                    break
+            if data_labels:
+                lines.append(f"\nData currently in memory: {', '.join(data_labels)}")
+
             message = "\n".join(lines)
 
             if self.verbose:
