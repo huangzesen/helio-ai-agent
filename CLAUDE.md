@@ -111,6 +111,22 @@ CDAWeb URIs follow the pattern: `vap+cdaweb:ds={DATASET_ID}&id={PARAMETER}&timer
 
 Time ranges use `YYYY-MM-DD to YYYY-MM-DD` format. The agent accepts flexible input ("last week", "January 2024", "2024-01-15T06:00 to 2024-01-15T18:00") and converts to this format via `agent/time_utils.py`.
 
+## Logging Conventions
+
+**Never use `print()` for diagnostic output. Always use the project's logging system.**
+
+- **Central config**: `agent/logging.py` — `setup_logging(verbose)` creates a shared `"helio-agent"` logger.
+- **Get the logger**: `from agent.logging import get_logger` then `logger = get_logger()`. Do NOT use `logging.getLogger(__name__)`.
+- **Custom helpers** (prefer these over raw `logger.debug()`):
+  - `log_error(message, exc, context)` — full error with stack trace and context dict
+  - `log_tool_call(tool_name, tool_args)` — tool invocation (DEBUG)
+  - `log_tool_result(tool_name, result, success)` — tool completion (DEBUG/WARNING)
+  - `log_plan_event(event, plan_id, details)` — planning milestones (INFO)
+  - `log_session_end(token_usage)` — session closure stats (INFO)
+- **Log levels**: DEBUG for internal tracing (tool calls, Gemini responses), INFO for milestones (session start, plan events), WARNING for recoverable errors, ERROR for failures with stack traces. Do not use CRITICAL.
+- **Verbose mode** (`--verbose`): console shows DEBUG; normal mode shows WARNING+. File handler (`~/.helio-agent/logs/agent_YYYYMMDD.log`) always captures DEBUG.
+- **Allowed `print()` exceptions**: User-facing CLI output in `main.py` (welcome message, interactive prompts), `gradio_app.py` (startup status), and `scripts/` (test harness progress). These are intentional UI, not diagnostics.
+
 ## For Future Sessions
 
 - Read `docs/capability-summary.md` first to understand what has been implemented.
