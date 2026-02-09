@@ -40,9 +40,9 @@ from data_ops.store import get_store, DataEntry
 from data_ops.fetch import fetch_hapi_data
 from data_ops.custom_ops import run_custom_operation, run_dataframe_creation, run_spectrogram_computation
 
-# Orchestrator sees discovery, conversation, and routing tools
+# Orchestrator sees discovery, web search, conversation, and routing tools
 # (NOT data fetching or data_ops — handled by sub-agents)
-ORCHESTRATOR_CATEGORIES = ["discovery", "conversation", "routing", "document"]
+ORCHESTRATOR_CATEGORIES = ["discovery", "web_search", "conversation", "routing", "document"]
 ORCHESTRATOR_EXTRA_TOOLS = ["list_fetched_data"]
 
 DEFAULT_MODEL = GEMINI_MODEL

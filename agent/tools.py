@@ -588,9 +588,9 @@ Do NOT use this for missions already in the routing table (PSP, ACE, etc.) — u
         }
     },
 
-    # --- Search ---
+    # --- Web Search (orchestrator + planner only) ---
     {
-        "category": "discovery",
+        "category": "web_search",
         "name": "google_search",
         "description": """Search the web using Google Search for real-world context. Use this when:
 - User asks about solar events, flares, CMEs, geomagnetic storms, or space weather
