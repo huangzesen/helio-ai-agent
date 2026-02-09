@@ -1,4 +1,4 @@
-google-genai==1.47.0
+google-genai==1.62.0
 python-dotenv==1.2.1
 requests==2.32.5
 numpy==1.26.4
