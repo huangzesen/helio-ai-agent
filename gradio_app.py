@@ -302,17 +302,26 @@ def _get_session_choices() -> list[tuple[str, str]]:
     """Return choices for the session list: (display_label, session_id).
 
     The Radio's selected state visually indicates the active session.
+    Ensures the currently active session always appears in the list.
     """
     from agent.session import SessionManager
     sm = SessionManager()
     sessions = sm.list_sessions()[:20]
     choices = []
+    choice_ids = set()
     for s in sessions:
         preview = s.get("last_message_preview", "").strip()[:40] or "New chat"
         date_str = s.get("updated_at", "")[:10]  # YYYY-MM-DD
         turns = s.get("turn_count", 0)
         label = f"{preview}\n{date_str} · {turns} turns"
         choices.append((label, s["id"]))
+        choice_ids.add(s["id"])
+
+    # Ensure the active session is always in the list (avoids Radio value errors)
+    active_id = _get_active_session_id()
+    if active_id and active_id not in choice_ids:
+        choices.insert(0, ("New chat\nJust started · 0 turns", active_id))
+
     return choices
 
 
@@ -1215,16 +1224,14 @@ footer { display: none !important; }
     color: var(--body-text-color) !important;
 }
 
-/* ---- Right data sidebar (user-resizable) ---- */
+/* ---- Right data sidebar ---- */
 .data-sidebar {
     min-width: 280px !important;
     max-width: 80vw !important;
-    resize: horizontal !important;
-    overflow: auto !important;
-    direction: rtl !important; /* puts the resize handle on the left edge */
-}
-.data-sidebar > * {
-    direction: ltr !important; /* restore normal text direction for content */
+    /* NOTE: Do NOT set overflow on the sidebar container — Gradio's toggle
+       button is position:absolute outside the sidebar bounds.  Any overflow
+       other than 'visible' (the default) clips the toggle and makes the
+       sidebar impossible to reopen after collapsing. */
 }
 .data-sidebar .gr-accordion {
     border-color: var(--border-color-primary) !important;
