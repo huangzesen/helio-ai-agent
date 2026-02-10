@@ -4,7 +4,7 @@ Logging configuration for helio-ai-agent.
 Provides structured logging to both console and file, with detailed
 error information including stack traces for debugging.
 
-Log files are stored in ~/.helio-agent/logs/ with daily rotation.
+Log files are stored in ~/.helio-agent/logs/ with one file per session.
 """
 
 import logging
@@ -17,6 +17,22 @@ from typing import Optional
 
 # Log directory
 LOG_DIR = Path.home() / ".helio-agent" / "logs"
+
+# Module-level state (shared across re-inits)
+_session_filter: Optional["_SessionFilter"] = None
+_current_log_file: Optional[Path] = None
+
+
+class _SessionFilter(logging.Filter):
+    """Injects session_id into every log record."""
+
+    def __init__(self) -> None:
+        super().__init__()
+        self.session_id = ""
+
+    def filter(self, record: logging.LogRecord) -> bool:
+        record.session_id = self.session_id or "-"
+        return True
 
 
 class _ConsoleFormatter(logging.Formatter):
@@ -41,6 +57,7 @@ def setup_logging(verbose: bool = False) -> logging.Logger:
     Returns:
         Configured logger instance
     """
+    global _session_filter, _current_log_file
     LOG_DIR.mkdir(parents=True, exist_ok=True)
 
     # Create logger
@@ -50,12 +67,18 @@ def setup_logging(verbose: bool = False) -> logging.Logger:
     # Clear existing handlers (in case of re-init)
     logger.handlers.clear()
 
-    # File handler - detailed logging with rotation by date
-    log_file = LOG_DIR / f"agent_{datetime.now().strftime('%Y%m%d')}.log"
+    # Session filter — reuse existing instance to preserve session_id across re-inits
+    if _session_filter is None:
+        _session_filter = _SessionFilter()
+    logger.addFilter(_session_filter)
+
+    # File handler - one log file per session
+    log_file = LOG_DIR / f"agent_{datetime.now().strftime('%Y%m%d_%H%M%S')}.log"
+    _current_log_file = log_file
     file_handler = logging.FileHandler(log_file, encoding="utf-8")
     file_handler.setLevel(logging.DEBUG)
     file_format = logging.Formatter(
-        "%(asctime)s | %(levelname)-8s | %(name)s | %(message)s",
+        "%(asctime)s | %(levelname)-8s | %(name)s | %(session_id)s | %(message)s",
         datefmt="%Y-%m-%d %H:%M:%S"
     )
     file_handler.setFormatter(file_format)
@@ -85,6 +108,19 @@ def get_logger() -> logging.Logger:
         # Not configured yet, set up with defaults
         return setup_logging(verbose=False)
     return logger
+
+
+def set_session_id(session_id: str) -> None:
+    """Set the session ID that will be included in all subsequent log lines.
+
+    Args:
+        session_id: The session identifier (e.g. '20260209_223120_4b7103d5')
+    """
+    global _session_filter
+    if _session_filter is None:
+        # Logger not set up yet — create filter so it's ready when logging starts
+        _session_filter = _SessionFilter()
+    _session_filter.session_id = session_id
 
 
 def log_error(
@@ -186,8 +222,14 @@ def log_session_end(token_usage: dict) -> None:
 
 
 def get_current_log_path() -> Path:
-    """Return the path to today's log file."""
-    return LOG_DIR / f"agent_{datetime.now().strftime('%Y%m%d')}.log"
+    """Return the path to the current session's log file."""
+    if _current_log_file is not None:
+        return _current_log_file
+    # Fallback: find most recent log file in the directory
+    logs = sorted(LOG_DIR.glob("agent_*.log"))
+    if logs:
+        return logs[-1]
+    return LOG_DIR / f"agent_{datetime.now().strftime('%Y%m%d_%H%M%S')}.log"
 
 
 def get_log_size(path: Path) -> int:
@@ -209,14 +251,13 @@ def get_recent_errors(days: int = 7, limit: int = 50) -> list[dict]:
         List of error entries with timestamp, message, and details
     """
     errors = []
-    today = datetime.now()
+    cutoff = datetime.now().timestamp() - days * 86400
+    # Collect all log files, newest first
+    log_files = sorted(LOG_DIR.glob("agent_*.log"), reverse=True)
 
-    for i in range(days):
-        date = today.replace(day=today.day - i) if today.day > i else today
-        log_file = LOG_DIR / f"agent_{date.strftime('%Y%m%d')}.log"
-
-        if not log_file.exists():
-            continue
+    for log_file in log_files:
+        if log_file.stat().st_mtime < cutoff:
+            break
 
         try:
             with open(log_file, "r", encoding="utf-8") as f:
@@ -226,11 +267,22 @@ def get_recent_errors(days: int = 7, limit: int = 50) -> list[dict]:
                         if current_error:
                             errors.append(current_error)
                         # Parse the log line
-                        parts = line.split(" | ", 3)
-                        if len(parts) >= 4:
+                        # Format: timestamp | level | name | session_id | message
+                        parts = line.split(" | ", 4)
+                        if len(parts) >= 5:
                             current_error = {
                                 "timestamp": parts[0].strip(),
                                 "level": parts[1].strip(),
+                                "session_id": parts[3].strip(),
+                                "message": parts[4].strip(),
+                                "details": [],
+                            }
+                        elif len(parts) >= 4:
+                            # Backwards-compat with old 4-field format
+                            current_error = {
+                                "timestamp": parts[0].strip(),
+                                "level": parts[1].strip(),
+                                "session_id": "-",
                                 "message": parts[3].strip(),
                                 "details": [],
                             }

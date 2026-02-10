@@ -30,6 +30,7 @@ from .data_extraction_agent import DataExtractionAgent
 from .logging import (
     setup_logging, get_logger, log_error, log_tool_call,
     log_tool_result, log_plan_event, log_session_end,
+    set_session_id,
 )
 from .memory_agent import MemoryAgent
 from .loop_guard import LoopGuard, make_call_key
@@ -2032,6 +2033,7 @@ Example: ["Compare this with solar wind speed", "Zoom in to January 10-15", "Exp
         self._session_manager.cleanup_empty_sessions()
         self._session_id = self._session_manager.create_session(self.model_name)
         self._auto_save = True
+        set_session_id(self._session_id)
         self.logger.debug(f"[Session] Started: {self._session_id}")
         return self._session_id
 
@@ -2144,6 +2146,7 @@ Example: ["Compare this with solar wind speed", "Zoom in to January 10-15", "Exp
 
         self._session_id = session_id
         self._auto_save = True
+        set_session_id(session_id)
 
         self.logger.debug(f"[Session] Loaded: {session_id}")
         return metadata
@@ -2206,6 +2209,7 @@ Example: ["Compare this with solar wind speed", "Zoom in to January 10-15", "Exp
         # Start a fresh session if auto-save was active
         if self._auto_save:
             self._session_id = self._session_manager.create_session(self.model_name)
+            set_session_id(self._session_id)
             self.logger.debug(f"[Session] New session after reset: {self._session_id}")
 
     def get_current_plan(self) -> Optional[TaskPlan]:
