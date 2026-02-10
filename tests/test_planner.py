@@ -496,3 +496,129 @@ class TestPlannerAgentWithTools:
             tool_executor=self._dummy_executor,
         )
         assert callable(agent._run_discovery)
+
+
+class TestBuildParameterReference:
+    """Test the structured parameter reference builder."""
+
+    def test_empty_when_no_list_parameters(self):
+        """Returns empty string when no list_parameters results."""
+        assert PlannerAgent._build_parameter_reference({}) == ""
+        assert PlannerAgent._build_parameter_reference({"search_datasets": []}) == ""
+
+    def test_basic_parameter_reference(self):
+        """Builds a reference from list_parameters results."""
+        tool_results = {
+            "list_parameters": [
+                {
+                    "args": {"dataset_id": "AC_H2_MFI"},
+                    "result": {
+                        "status": "success",
+                        "parameters": [
+                            {"name": "Time", "type": "isotime", "units": "UTC"},
+                            {"name": "BGSEc", "type": "double", "units": "nT", "size": [3]},
+                            {"name": "Magnitude", "type": "double", "units": "nT"},
+                        ],
+                    },
+                },
+            ],
+        }
+        ref = PlannerAgent._build_parameter_reference(tool_results)
+        assert "VERIFIED PARAMETER REFERENCE" in ref
+        assert "AC_H2_MFI" in ref
+        assert "BGSEc" in ref
+        assert "Magnitude" in ref
+        # Time should be excluded
+        assert "\n  - Time" not in ref
+
+    def test_includes_availability(self):
+        """Includes data availability when get_data_availability results exist."""
+        tool_results = {
+            "list_parameters": [
+                {
+                    "args": {"dataset_id": "AC_H2_MFI"},
+                    "result": {
+                        "status": "success",
+                        "parameters": [
+                            {"name": "BGSEc", "type": "double", "units": "nT"},
+                        ],
+                    },
+                },
+            ],
+            "get_data_availability": [
+                {
+                    "args": {"dataset_id": "AC_H2_MFI"},
+                    "result": {
+                        "status": "success",
+                        "start_date": "1998-01-01",
+                        "end_date": "2025-12-31",
+                    },
+                },
+            ],
+        }
+        ref = PlannerAgent._build_parameter_reference(tool_results)
+        assert "1998-01-01 to 2025-12-31" in ref
+
+    def test_skips_datasets_with_no_parameters(self):
+        """Datasets with 0 parameters are marked as unavailable."""
+        tool_results = {
+            "list_parameters": [
+                {
+                    "args": {"dataset_id": "VG1_PWS_LR"},
+                    "result": {
+                        "status": "success",
+                        "parameters": [],
+                    },
+                },
+            ],
+        }
+        ref = PlannerAgent._build_parameter_reference(tool_results)
+        assert "NO PARAMETERS AVAILABLE" in ref
+        assert "VG1_PWS_LR" in ref
+
+    def test_multiple_datasets(self):
+        """Handles multiple datasets in one reference."""
+        tool_results = {
+            "list_parameters": [
+                {
+                    "args": {"dataset_id": "DS_A"},
+                    "result": {
+                        "status": "success",
+                        "parameters": [
+                            {"name": "ParamA", "type": "double", "units": "nT"},
+                        ],
+                    },
+                },
+                {
+                    "args": {"dataset_id": "DS_B"},
+                    "result": {
+                        "status": "success",
+                        "parameters": [
+                            {"name": "ParamB", "type": "double", "units": "cm/s"},
+                        ],
+                    },
+                },
+            ],
+        }
+        ref = PlannerAgent._build_parameter_reference(tool_results)
+        assert "DS_A" in ref
+        assert "ParamA" in ref
+        assert "DS_B" in ref
+        assert "ParamB" in ref
+
+    def test_critical_instruction_present(self):
+        """The reference includes the CRITICAL instruction to use exact names."""
+        tool_results = {
+            "list_parameters": [
+                {
+                    "args": {"dataset_id": "TEST"},
+                    "result": {
+                        "status": "success",
+                        "parameters": [{"name": "X", "type": "double"}],
+                    },
+                },
+            ],
+        }
+        ref = PlannerAgent._build_parameter_reference(tool_results)
+        assert "CRITICAL" in ref
+        assert "exact" in ref.lower()

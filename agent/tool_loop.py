@@ -41,6 +41,7 @@ def run_tool_loop(
     max_total_calls: int = 10,
     max_iterations: int = 5,
     track_usage=None,
+    collect_tool_results: dict = None,
 ):
     """Run a tool-calling loop on an existing chat session.
 
@@ -55,6 +56,9 @@ def run_tool_loop(
         max_total_calls: Hard cap on total tool invocations.
         max_iterations: Hard cap on loop iterations.
         track_usage: Optional ``(response) -> None`` callback for token accounting.
+        collect_tool_results: Optional dict to collect raw tool results.
+            If provided, results are stored as ``{tool_name: [result, ...]}``
+            so callers can inspect what the tools returned (e.g. parameter lists).
 
     Returns:
         The final Gemini response after tools stop.
@@ -103,6 +107,13 @@ def run_tool_loop(
             logger.debug(f"[{agent_name}] Tool: {tool_name}({tool_args})")
 
             result = tool_executor(tool_name, tool_args)
+
+            # Collect raw results for callers that need them
+            if collect_tool_results is not None:
+                collect_tool_results.setdefault(tool_name, []).append({
+                    "args": tool_args,
+                    "result": result,
+                })
 
             if result.get("status") != "error":
                 all_errors = False

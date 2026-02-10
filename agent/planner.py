@@ -195,13 +195,16 @@ class PlannerAgent:
         """Phase 1: Run discovery tools to gather dataset/parameter info.
 
         Creates a one-shot tool-calling chat that researches the user's request
-        and returns a text summary of what it found.
+        and returns a text summary of what it found.  Importantly, the raw
+        ``list_parameters`` results are captured and appended as a structured
+        reference so the planning LLM can copy-paste exact parameter names
+        rather than inventing "descriptive" alternatives.
 
         Args:
             user_request: The user's original request.
 
         Returns:
-            Text summary of discovery findings (may be empty if no tools called).
+            Text summary of discovery findings with verified parameter reference.
         """
         discovery_prompt = build_discovery_prompt()
 
@@ -225,6 +228,8 @@ class PlannerAgent:
         response = chat.send_message(user_request)
         self._track_usage(response)
 
+        # Collect raw tool results so we can extract list_parameters data
+        tool_results = {}
         response = run_tool_loop(
             chat=chat,
             response=response,
@@ -233,6 +238,7 @@ class PlannerAgent:
             max_total_calls=20,
             max_iterations=8,
             track_usage=self._track_usage,
+            collect_tool_results=tool_results,
         )
 
         text = extract_text_from_response(response)
@@ -240,7 +246,84 @@ class PlannerAgent:
             preview = text[:200] + "..." if len(text) > 200 else text
             logger.debug(f"[PlannerAgent] Discovery result: {preview}")
 
+        # Build a structured parameter reference from raw list_parameters results
+        param_ref = self._build_parameter_reference(tool_results)
+        if param_ref:
+            text = (text or "") + "\n\n" + param_ref
+
         return text
+
+    @staticmethod
+    def _build_parameter_reference(tool_results: dict) -> str:
+        """Build a structured parameter reference from collected tool results.
+
+        Extracts all list_parameters and get_data_availability results to
+        produce a definitive reference that the planning LLM must use
+        verbatim for dataset_id and parameter names.
+
+        Args:
+            tool_results: Dict of {tool_name: [{args, result}, ...]} from
+                the discovery tool loop.
+
+        Returns:
+            Formatted reference string, or empty string if no data.
+        """
+        lp_results = tool_results.get("list_parameters", [])
+        avail_results = tool_results.get("get_data_availability", [])
+
+        if not lp_results:
+            return ""
+
+        # Build availability lookup
+        availability = {}
+        for entry in avail_results:
+            ds_id = entry["args"].get("dataset_id", "")
+            result = entry["result"]
+            if result.get("status") != "error":
+                start = result.get("start_date", "?")
+                end = result.get("end_date", "?")
+                availability[ds_id] = f"{start} to {end}"
+
+        lines = [
+            "## VERIFIED PARAMETER REFERENCE",
+            "",
+            "CRITICAL: Use ONLY these exact dataset_id and parameter names in task instructions.",
+            "Do NOT rename, rephrase, or translate these names.",
+            "",
+        ]
+
+        for entry in lp_results:
+            ds_id = entry["args"].get("dataset_id", "unknown")
+            result = entry["result"]
+            params = result.get("parameters", [])
+
+            if not params or result.get("status") == "error":
+                lines.append(f"Dataset {ds_id}: NO PARAMETERS AVAILABLE (skip this dataset)")
+                continue
+
+            avail = availability.get(ds_id, "unknown")
+            lines.append(f"Dataset {ds_id} (available: {avail}):")
+
+            for p in params:
+                name = p.get("name", "?")
+                if name == "Time":
+                    continue
+                units = p.get("units") or ""
+                ptype = p.get("type", "")
+                size = p.get("size")
+                desc_parts = []
+                if units:
+                    desc_parts.append(units)
+                if ptype:
+                    desc_parts.append(ptype)
+                if size:
+                    desc_parts.append(f"size={size}")
+                desc = ", ".join(desc_parts) if desc_parts else ""
+                lines.append(f"  - {name}" + (f" ({desc})" if desc else ""))
+
+            lines.append("")
+
+        return "\n".join(lines)
 
     def start_planning(self, user_request: str) -> Optional[dict]:
         """Begin planning by sending the user request to a fresh chat.
