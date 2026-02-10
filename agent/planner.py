@@ -230,8 +230,8 @@ class PlannerAgent:
             response=response,
             tool_executor=self.tool_executor,
             agent_name="PlannerAgent/Discovery",
-            max_total_calls=10,
-            max_iterations=5,
+            max_total_calls=20,
+            max_iterations=8,
             track_usage=self._track_usage,
         )
 

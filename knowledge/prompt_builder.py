@@ -878,8 +878,9 @@ Each task has:
 ## Known Dataset IDs
 {dataset_ref}
 
-IMPORTANT: Different spacecraft have DIFFERENT parameter names. Always use list_parameters
-to discover exact parameter names before fetching. Do NOT guess parameter names.
+IMPORTANT: Different spacecraft have DIFFERENT parameter names. Do NOT guess parameter names.
+Use ONLY the exact parameter names from the Discovery Results section. If discovery didn't
+cover a dataset, create a list_parameters discovery task before attempting to fetch from it.
 
 ## Mission Tagging
 
@@ -917,6 +918,12 @@ Tag each task with the "mission" field:
 Every fetch_data instruction MUST include the exact dataset_id and parameter name.
 Every custom_operation instruction MUST include the exact source_label.
 Every visualization instruction MUST start with "Use plot_data to plot ...".
+
+CRITICAL: If a "## Discovery Results" section is provided with your request,
+you MUST use the EXACT parameter names listed there. NEVER guess or invent
+parameter names — only use names that appear in the discovery results.
+If the discovery results don't cover a dataset you need, instruct the mission
+agent to call list_parameters first (as a discovery task), then fetch in a later round.
 
 Example instructions:
 - "Fetch data from dataset AC_H2_MFI, parameter BGSEc, for last week" (mission: "ACE")
@@ -963,25 +970,46 @@ def build_discovery_prompt() -> str:
 Your job is to research the user's request by calling discovery tools, then
 summarize what you found so a planning agent can create an accurate task plan.
 
-## What To Do
+## CRITICAL: Prioritize list_parameters
 
-1. Identify which datasets and parameters the user's request involves.
-2. Call `list_parameters(dataset_id)` to verify the exact parameter names.
-3. If unsure which dataset to use, call `search_datasets(query)` or
-   `browse_datasets(mission_id)` to find candidates.
+The #1 most important thing you do is call `list_parameters(dataset_id)` to get
+the EXACT parameter names for each dataset. The planning agent will use these
+names verbatim in fetch_data calls. If you return wrong names, everything fails.
+
+## Workflow
+
+1. Identify which spacecraft/instruments the user's request involves.
+2. Call `browse_datasets(mission_id)` or `search_datasets(query)` to find candidate dataset IDs.
+3. For EACH candidate dataset, call `list_parameters(dataset_id)` to get exact
+   parameter names. This is the most important step — do NOT skip it.
 4. Call `list_fetched_data()` to check what data is already in memory.
 5. Summarize your findings as structured text.
+
+## Rules
+
+- ALWAYS call `list_parameters` for every dataset you plan to recommend.
+  Do NOT guess parameter names — they vary between datasets.
+- Prefer `browse_datasets` + `list_parameters` over `search_full_catalog`.
+  `search_full_catalog` returns dataset IDs but NOT parameter names.
+- If `list_parameters` returns 0 parameters, that dataset is likely a
+  spectrogram or unsupported format — try a different dataset.
+- Focus on the datasets most relevant to the user's request. Don't waste
+  tool calls searching broadly when you can go directly to known datasets.
 
 ## Output Format
 
 After finishing tool calls, respond with a concise summary listing:
-- Each dataset ID and its verified parameter names
+- Each dataset ID with its VERIFIED parameter names (from list_parameters)
+- Parameter types and units when available
+- Data availability range
 - Any data already in memory (labels)
 - Any issues found (dataset not available, parameter not found, etc.)
 
 Example output:
-  Dataset AC_H2_MFI: parameters BGSEc (nT, vector[3]), Magnitude (nT)
-  Dataset WI_H2_MFI: parameters BGSE (nT, vector[3]), BF1 (nT)
+  Dataset AC_H2_MFI (available 1998-01-01 to 2025-12-31):
+    Parameters: BGSEc (nT, vector[3]), Magnitude (nT)
+  Dataset WI_H2_MFI (available 1997-11-01 to 2025-12-31):
+    Parameters: BGSE (nT, vector[3]), BF1 (nT)
   Data in memory: AC_H2_MFI.BGSEc (5040 pts)
 
 Be concise — this summary will be passed to the planning agent."""
