@@ -63,8 +63,9 @@ agent/core.py  OrchestratorAgent  (LLM-driven orchestrator)
   |
   +---> agent/mission_agent.py    Mission sub-agents (fetch-only tools)
   |       MissionAgent            Focused Gemini session per spacecraft mission
-  |       execute_task()          Forced function calling for plan tasks (max 3 iter)
+  |       execute_task()          Forced function calling for plan tasks (max 5 iter)
   |       process_request()       Full conversational mode (max 5 iter, duplicate + error detection)
+  |                               Two-mode task prompt: candidate inspection vs direct fetch
   |                               Rich system prompt with recommended datasets + analysis patterns
   |                               No compute or plot tools — reports fetched labels to orchestrator
   |
@@ -207,7 +208,10 @@ The LLM inspects this metadata within the existing tool loop and can self-correc
 - Sees tools: discovery, data_ops_fetch, conversation + `list_fetched_data` extra
 - One agent per spacecraft, cached per session
 - Rich system prompt with recommended datasets and analysis patterns
+- **Two-mode operation**: when planner provides `candidate_datasets`, inspects candidates via `list_parameters` and selects best dataset/parameters autonomously; otherwise executes exact instructions directly
+- Handles all-NaN fallback: skips empty parameters, tries next candidate dataset
 - No compute tools — reports fetched data labels to orchestrator
+- See `docs/planning-workflow.md` for detailed flow
 
 ### DataOpsAgent (agent/data_ops_agent.py)
 - Sees tools: data_ops_compute (`custom_operation`, `describe_data`, `save_data`), conversation + `list_fetched_data` extra
@@ -291,11 +295,13 @@ All times are UTC. Outputs `TimeRange` objects with `start`/`end` datetimes.
 - Complex requests use **hybrid routing** to the **PlannerAgent** for plan-execute-replan:
   1. **Regex pre-filter**: `is_complex_request()` regex heuristics catch obvious complex cases (free, no API cost) and route directly to planner
   2. **Orchestrator override**: The orchestrator (with HIGH thinking) can also call `request_planning` tool for complex cases the regex missed
-  3. PlannerAgent decomposes the request into task batches using structured JSON output
-  4. Each batch is executed by routing tasks to the appropriate sub-agent
-  5. Results are fed back to the PlannerAgent, which decides to continue or finish
-  6. Maximum 5 rounds of replanning (configurable via `MAX_ROUNDS`)
-  7. If the planner fails, falls back to direct orchestrator execution
+  3. PlannerAgent runs **discovery phase** (tool-calling) then **planning phase** (JSON-schema-enforced)
+  4. Fetch tasks use **physics-intent instructions** + `candidate_datasets` list — planner does NOT specify parameter names
+  5. Mission agents inspect candidates, select best dataset/parameters, handle all-NaN fallback
+  6. Results (with actual stored labels) are fed back to the PlannerAgent, which decides to continue or finish
+  7. Maximum 5 rounds of replanning (configurable via `MAX_ROUNDS`)
+  8. If the planner fails, falls back to direct orchestrator execution
+  9. See `docs/planning-workflow.md` for the full detailed flow
 - Tasks are tagged with `mission="__visualization__"` for visualization dispatch, `mission="__data_ops__"` for compute dispatch, `mission="__data_extraction__"` for text-to-DataFrame dispatch
 
 ### Thinking Levels (Gemini ThinkingConfig)
