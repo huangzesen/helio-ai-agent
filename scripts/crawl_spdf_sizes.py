@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-Crawl the SPDF archive to compute the total size of all CDF files.
+Crawl the SPDF archive to compute the total size of all science data files.
 
 Usage:
     python scripts/crawl_spdf_sizes.py
@@ -8,8 +8,8 @@ Usage:
     python scripts/crawl_spdf_sizes.py --output spdf_sizes.json
 
 Crawls https://spdf.gsfc.nasa.gov/pub/data/ recursively, parsing Apache
-directory listings to find .cdf files and sum their sizes.
-Shows live progress as it goes.
+directory listings to find science data files (.cdf, .nc, .fits, .hdf5, etc.)
+and sum their sizes. Shows live progress as it goes.
 """
 
 import argparse
@@ -27,6 +27,9 @@ from urllib.parse import urljoin
 import requests
 
 BASE_URL = "https://spdf.gsfc.nasa.gov/pub/data/"
+
+# Science data file extensions to count
+DATA_EXTENSIONS = {".cdf", ".nc", ".fits", ".fit", ".fts", ".hdf5", ".hdf", ".h5"}
 
 # Regex to parse Apache HTML table directory listing rows like:
 # <tr><td><a href="file.cdf">file.cdf</a></td><td align="right">2024-01-15 10:30  </td><td align="right">1.2M</td></tr>
@@ -55,12 +58,14 @@ class Progress:
         self.lock = threading.Lock()
         self.dirs_crawled = 0
         self.dirs_queued = 0
-        self.cdf_files = 0
-        self.cdf_bytes = 0
+        self.data_files = 0
+        self.data_bytes = 0
         self.other_files = 0
         self.errors = 0
         self.mission_sizes = defaultdict(int)  # mission -> bytes
         self.mission_counts = defaultdict(int)  # mission -> count
+        self.format_sizes = defaultdict(int)    # extension -> bytes
+        self.format_counts = defaultdict(int)   # extension -> count
         self.current_dirs = set()
         self.start_time = time.time()
         self._last_print_len = 0
@@ -78,12 +83,14 @@ class Progress:
         with self.lock:
             self.current_dirs.add(url)
 
-    def add_cdf(self, size_bytes: int, mission: str):
+    def add_data_file(self, size_bytes: int, mission: str, ext: str):
         with self.lock:
-            self.cdf_files += 1
-            self.cdf_bytes += size_bytes
+            self.data_files += 1
+            self.data_bytes += size_bytes
             self.mission_sizes[mission] += size_bytes
             self.mission_counts[mission] += 1
+            self.format_sizes[ext] += size_bytes
+            self.format_counts[ext] += 1
 
     def add_other(self):
         with self.lock:
@@ -119,7 +126,7 @@ class Progress:
             line = (
                 f"\r[{elapsed_str}] "
                 f"dirs: {self.dirs_crawled}/{self.dirs_queued} ({rate:.1f}/s) | "
-                f"CDF files: {self.cdf_files:,} ({self.format_size(self.cdf_bytes)}) | "
+                f"data files: {self.data_files:,} ({self.format_size(self.data_bytes)}) | "
                 f"errors: {self.errors}"
                 f"{current}"
             )
@@ -134,16 +141,25 @@ class Progress:
         elapsed_str = str(timedelta(seconds=int(elapsed)))
         print("\n")
         print("=" * 70)
-        print("SPDF CDF File Size Summary")
+        print("SPDF Data File Size Summary")
         print("=" * 70)
-        print(f"Total CDF files:    {self.cdf_files:,}")
-        print(f"Total CDF size:     {self.format_size(self.cdf_bytes)}")
+        print(f"Total data files:   {self.data_files:,}")
+        print(f"Total data size:    {self.format_size(self.data_bytes)}")
         print(f"Other files:        {self.other_files:,}")
         print(f"Directories:        {self.dirs_crawled:,}")
         print(f"Errors:             {self.errors:,}")
         print(f"Time elapsed:       {elapsed_str}")
         print()
-        print("Top 30 missions by CDF size:")
+        print("Breakdown by format:")
+        print("-" * 50)
+        sorted_formats = sorted(
+            self.format_sizes.items(), key=lambda x: x[1], reverse=True
+        )
+        for ext, size in sorted_formats:
+            count = self.format_counts[ext]
+            print(f"  {ext:<10s} {self.format_size(size):>12s}  ({count:,} files)")
+        print()
+        print("Top 30 missions by data size:")
         print("-" * 50)
         sorted_missions = sorted(
             self.mission_sizes.items(), key=lambda x: x[1], reverse=True
@@ -184,10 +200,18 @@ def fetch_directory(url: str, session: requests.Session, progress: Progress, ret
 
         if href.endswith("/"):
             subdirs.append(full_url)
-        elif href.lower().endswith(".cdf"):
-            progress.add_cdf(parse_size(size_str), mission)
         else:
-            progress.add_other()
+            href_lower = href.lower()
+            # Check for any known science data extension
+            ext = None
+            for data_ext in DATA_EXTENSIONS:
+                if href_lower.endswith(data_ext):
+                    ext = data_ext
+                    break
+            if ext:
+                progress.add_data_file(parse_size(size_str), mission, ext)
+            else:
+                progress.add_other()
 
     progress.finish_directory(url)
     return subdirs, mission
@@ -241,7 +265,8 @@ def main():
 
     print(f"Crawling {args.url}")
     print(f"Using {args.workers} concurrent workers")
-    print(f"Looking for .cdf files...\n")
+    exts = ", ".join(sorted(DATA_EXTENSIONS))
+    print(f"Looking for data files: {exts}\n")
 
     try:
         crawl(args.url, args.workers, progress)
@@ -252,11 +277,21 @@ def main():
 
     if args.output:
         result = {
-            "total_cdf_files": progress.cdf_files,
-            "total_cdf_bytes": progress.cdf_bytes,
-            "total_cdf_human": progress.format_size(progress.cdf_bytes),
+            "total_data_files": progress.data_files,
+            "total_data_bytes": progress.data_bytes,
+            "total_data_human": progress.format_size(progress.data_bytes),
             "directories_crawled": progress.dirs_crawled,
             "errors": progress.errors,
+            "formats": {
+                ext: {
+                    "bytes": progress.format_sizes[ext],
+                    "human": progress.format_size(progress.format_sizes[ext]),
+                    "files": progress.format_counts[ext],
+                }
+                for ext in sorted(
+                    progress.format_sizes, key=progress.format_sizes.get, reverse=True
+                )
+            },
             "missions": {
                 m: {
                     "bytes": progress.mission_sizes[m],
