@@ -1,6 +1,6 @@
 # Code Redundancy Report
 
-**Date**: 2026-02-08 (updated — findings still valid post-stability fixes)
+**Date**: 2026-02-08 (updated 2026-02-09 — marked resolved items after BaseSubAgent extraction)
 **Scope**: Full codebase (active source files, excluding tests and deleted `autoplot_bridge/`)
 **Estimated total refactoring effort**: 12-18 hours
 
@@ -24,7 +24,9 @@ All identified redundancy is safe to consolidate without breaking functionality.
 
 ## High-Impact Findings
 
-### 1. Duplicate Task Execution Logic
+### 1. Duplicate Task Execution Logic — **RESOLVED**
+
+> **RESOLVED (2026-02-09):** `BaseSubAgent` in `agent/base_agent.py` provides shared `execute_task()`. All four sub-agents inherit it.
 
 **Files**:
 - `agent/core.py::_execute_task()`
@@ -32,19 +34,15 @@ All identified redundancy is safe to consolidate without breaking functionality.
 
 **Description**: Both agents have nearly identical `execute_task()` methods with the same structure: task status management, fresh chat creation, tool call loop with `mode="ANY"`, duplicate detection, iteration limits, and error handling. ~120 lines duplicated.
 
-**Fix**: Extract shared logic into a base class or mixin:
-```python
-class TaskExecutorMixin:
-    def execute_task_with_tools(self, task, config, tool_executor):
-        # Shared implementation
-        pass
-```
+**Fix**: Extract shared logic into a base class or mixin.
 
 **Effort**: 4-6 hours
 
 ---
 
-### 2. Tool Call Loop Duplication
+### 2. Tool Call Loop Duplication — **RESOLVED**
+
+> **RESOLVED (2026-02-09):** `BaseSubAgent` in `agent/base_agent.py` provides shared `process_request()` with the tool-calling loop, duplicate detection, and consecutive error tracking. All four sub-agents inherit it.
 
 **Files**:
 - `agent/core.py::_process_single_message()`
@@ -53,16 +51,9 @@ class TaskExecutorMixin:
 - `agent/data_extraction_agent.py::process_request()`
 - `agent/visualization_agent.py::process_request()`
 
-**Description**: All five agents have nearly identical tool-calling loops: extract function_calls from response parts, execute each tool, build function_responses, send back to model. ~80 lines duplicated across 5 files. Note: duplicate call detection and consecutive error tracking were added to all sub-agents (2026-02-08), which increased the duplicated code.
+**Description**: All five agents have nearly identical tool-calling loops: extract function_calls from response parts, execute each tool, build function_responses, send back to model. ~80 lines duplicated across 5 files.
 
-**Fix**: Extract into a shared utility:
-```python
-# agent/tool_loop.py
-def execute_tool_call_loop(chat, initial_response, tool_executor,
-                           track_usage_fn, max_iterations=10, verbose=False):
-    """Generic tool-calling loop for Gemini chat sessions."""
-    pass
-```
+**Fix**: Extract into a shared base class.
 
 **Effort**: 3-4 hours
 
@@ -70,7 +61,9 @@ def execute_tool_call_loop(chat, initial_response, tool_executor,
 
 ## Medium-Impact Findings
 
-### 3. Token Usage Tracking Duplication
+### 3. Token Usage Tracking Duplication — **RESOLVED**
+
+> **RESOLVED (2026-02-09):** `BaseSubAgent` provides shared `_track_usage()` and `get_token_usage()`. All four sub-agents inherit them.
 
 **Files**:
 - `agent/core.py::_track_usage()` / `get_token_usage()`
@@ -127,7 +120,9 @@ def execute_tool_call_loop(chat, initial_response, tool_executor,
 
 ---
 
-### 7. Gemini Text Extraction (multiple occurrences)
+### 7. Gemini Text Extraction (multiple occurrences) — **RESOLVED**
+
+> **RESOLVED (2026-02-09):** Text extraction handled in `BaseSubAgent.process_request()`.
 
 **Files**: `agent/core.py`, `agent/mission_agent.py`, `agent/data_ops_agent.py`, `agent/data_extraction_agent.py`, `agent/visualization_agent.py`
 
@@ -151,7 +146,9 @@ Hardcoded keyword-to-capability mappings that could be centralized.
 
 ---
 
-### 9. Verbose Flag Propagation
+### 9. Verbose Flag Propagation — **RESOLVED**
+
+> **RESOLVED (2026-02-09):** `BaseSubAgent.__init__()` handles `self.verbose` for all sub-agents.
 
 **Files**: `agent/core.py`, `agent/mission_agent.py`, `agent/data_ops_agent.py`, `agent/data_extraction_agent.py`, `agent/visualization_agent.py`
 
@@ -171,26 +168,23 @@ All five agent classes store `self.verbose = verbose` and use it for conditional
 2. Add `_error_result()` / `_success_result()` helpers (Finding 6)
 3. Add `extract_text_from_response()` utility (Finding 7)
 
-### Phase 2: Agent Base Class (6-10 hours)
+### Phase 2: Agent Base Class (6-10 hours) — **DONE**
 
-Create a `BaseAgent` class that all four agents inherit from:
+> **Completed (2026-02-09):** `BaseSubAgent` extracted in `agent/base_agent.py`. All four sub-agents inherit shared logic. Findings 1, 2, 3, 7, and 9 resolved.
 
 ```
-BaseAgent
+BaseSubAgent (agent/base_agent.py)
   - _track_usage() / get_token_usage()     (Finding 3)
-  - execute_tool_call_loop()               (Finding 2)
+  - process_request() with tool call loop  (Finding 2)
   - execute_task()                         (Finding 1)
-  - extract_text_from_response()           (Finding 7)
+  - text extraction                        (Finding 7)
   - verbose logging                        (Finding 9)
   |
-  +-- OrchestratorAgent (main orchestrator)
   +-- MissionAgent (mission specialist)
   +-- DataOpsAgent (data ops specialist)
   +-- DataExtractionAgent (data extraction specialist)
   +-- VisualizationAgent (visualization specialist)
 ```
-
-This single refactor addresses findings 1, 2, 3, 7, and 9 together.
 
 ### Phase 3: Shared Utilities (2-3 hours)
 

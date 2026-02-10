@@ -62,7 +62,7 @@ Built for the [Gemini 3 Hackathon](https://gemini3.devpost.com/) — **Marathon 
 |---|---|
 | **Thought Signatures** | Preserve reasoning state across multi-tool chains — the orchestrator maintains context through fetch → compute → plot sequences spanning 10+ tool calls without losing track of what it's building toward |
 | **Thinking Levels** | HIGH for the orchestrator and planner (complex routing: "which of 52 missions has this data? which instrument? which coordinate system?"), LOW for sub-agents (fast execution of well-defined subtasks) |
-| **Function Calling** | 23 tools across 5 specialized agents — the LLM decides which spacecraft agent to delegate to, what computation to run, and how to visualize results. No hardcoded routing. |
+| **Function Calling** | 26 tools across 5 specialized agents — the LLM decides which spacecraft agent to delegate to, what computation to run, and how to visualize results. No hardcoded routing. |
 | **Structured JSON Output** | PlannerAgent decomposes "compare 3 spacecraft and compute derived quantities" into ordered task batches, observes intermediate results, and replans up to 5 rounds |
 | **Google Search Grounding** | Real-time space weather context — "what CMEs hit Earth in 2024?" becomes a structured dataset that feeds into the analysis pipeline |
 | **Multimodal Input** | Upload a PDF of an ICME catalog or a screenshot of a data table — Gemini vision extracts the data, the agent converts it to a plottable DataFrame |
@@ -95,7 +95,7 @@ OrchestratorAgent (Gemini 3 Pro, HIGH thinking)
 
 **Key design decisions:**
 - **LLM-driven routing** — the orchestrator uses conversation context and a 52-mission routing table to decide which specialist handles each request. No regex dispatching.
-- **Code generation sandboxes** — the LLM writes pandas/numpy code for data transformations and Plotly code for visualization customization. All generated code is AST-validated before execution (blocks imports, exec/eval, os/sys access).
+- **Code generation sandbox** — the LLM writes pandas/numpy code for data transformations. All generated code is AST-validated before execution (blocks imports, exec/eval, os/sys access). Visualization uses 3 declarative tools (`plot_data`, `style_plot`, `manage_plot`) — no free-form code generation.
 - **Per-mission knowledge base** — 52 auto-generated mission JSON files with instrument groupings, dataset IDs, parameter metadata, and time ranges. The orchestrator sees only a routing table; sub-agents receive rich domain-specific prompts with recommended datasets and analysis patterns.
 - **Three-tier caching** — HAPI metadata: memory → local JSON file → network. Mission data: auto-downloaded on first run, refreshable via single CDAWeb API call (~3 seconds for all 3,000 datasets).
 
@@ -124,8 +124,8 @@ OrchestratorAgent (Gemini 3 Pro, HIGH thinking)
 ### Setup
 
 ```bash
-git clone https://github.com/zhuang/ai-autoplot.git
-cd ai-autoplot
+git clone https://github.com/huangzesen/helio-ai-agent.git
+cd helio-ai-agent
 python -m venv venv
 source venv/bin/activate  # or venv\Scripts\activate on Windows
 
@@ -186,14 +186,14 @@ Gemini vision reads the PDF, the DataExtractionAgent converts the table to a str
 ## Project Structure
 
 ```
-agent/                  Core agent layer (5 agents + planner + 23 tools)
+agent/                  Core agent layer (5 agents + planner + 26 tools)
   core.py                 OrchestratorAgent — routes, dispatches, plans
   mission_agent.py        MissionAgent — per-spacecraft data fetching
   data_ops_agent.py       DataOpsAgent — pandas/numpy/scipy computation
   data_extraction_agent.py DataExtractionAgent — text/PDF to DataFrames
   visualization_agent.py  VisualizationAgent — Plotly rendering
   planner.py              PlannerAgent — plan-execute-replan loop
-  tools.py                23 tool schemas with category-based filtering
+  tools.py                26 tool schemas with category-based filtering
   session.py              Session persistence (auto-save every turn)
 
 knowledge/              52-mission knowledge base + prompt generation
@@ -210,8 +210,7 @@ data_ops/               pandas-backed data pipeline
 
 rendering/              Plotly visualization engine
   plotly_renderer.py      Multi-panel figures, WebGL, PNG/PDF export
-  registry.py             6 core visualization methods
-  custom_viz_ops.py       AST-validated sandbox for Plotly code
+  registry.py             3 declarative visualization tools (plot_data, style_plot, manage_plot)
 
 main.py                 CLI entry point
 gradio_app.py           Gradio web UI with inline plots
@@ -229,7 +228,7 @@ gradio_app.py           Gradio web UI with inline plots
 ## Tests
 
 ```bash
-python -m pytest tests/           # ~650 unit tests (no API key needed)
+python -m pytest tests/           # ~500 unit tests (no API key needed)
 python -m pytest tests/ -x -q     # Stop on first failure
 ```
 

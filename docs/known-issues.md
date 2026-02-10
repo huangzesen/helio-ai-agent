@@ -2,7 +2,7 @@
 
 Tracking bugs and issues in helio-ai-agent.
 
-**Last updated**: February 2026
+**Last updated**: 2026-02-09
 
 ---
 
@@ -69,12 +69,12 @@ The task instruction includes the expected labels (e.g., "compute running averag
 |-------|-------------|-----|
 | VisualizationAgent infinite loop | Export task called `reset()` and `get_plot_state()` hundreds of times in alternation, never exporting | Created shared `LoopGuard` class (`agent/loop_guard.py`) with 3-layer protection: hard total-call limit, subset-based duplicate detection, cycle detection. Applied to all 5 agents (10 loops). |
 | Inconsistent call fingerprinting | Old `str(sorted(dict(fc.args).items()))` produced non-deterministic keys from Protobuf Struct objects | `make_call_key()` uses `json.dumps(sort_keys=True)` for deterministic serialization |
-| Viz tasks call wrong tools | Planner generated vague instructions like "Plot X together", VisualizationAgent called reset/get_plot_state instead of plot_stored_data | (1) Explicit tool-call guidance in `execute_task` prompt, (2) planner examples now start with tool name ("Use plot_stored_data to..."), (3) viz prompt differentiates conversational vs task-execution workflow |
+| Viz tasks call wrong tools | Planner generated vague instructions like "Plot X together", VisualizationAgent called reset/get_plot_state instead of `plot_data` | (1) Explicit tool-call guidance in `execute_task` prompt, (2) planner examples now start with tool name ("Use `plot_data` to..."), (3) viz prompt differentiates conversational vs task-execution workflow |
 | `describe_data` crashes on string columns | `KeyError: 'min'` when describing DataFrames with non-numeric columns (e.g., flare class strings) | Added dtype check: numeric columns get full stats, string/object columns get count/unique/top |
-| Massive Plotly error messages waste context | `custom_visualization` errors returned full Plotly property list (1000+ lines) | Truncate RuntimeError messages to 500 chars |
+| Massive Plotly error messages waste context | `style_plot` errors returned full Plotly property list (1000+ lines) | Truncate RuntimeError messages to 500 chars |
 | Planner generates duplicate tasks | Round 3 re-created tasks from Rounds 1-2 because result summaries said "Done." with no details | (1) Enriched result summaries to include tool calls list when text is empty, (2) added planner rules 8-10 prohibiting task repetition |
 | Tasks over-execute (do more than asked) | "Search for flares" task also created DataFrames and plotted bar charts, wasting 3-4 of 5 iterations | Added "CRITICAL: Do ONLY what the instruction says" constraint to all task execution prompts |
-| Viz agent calls reset/get_plot_state instead of plotting | VisualizationAgent ignored "Do NOT call reset" prompt; called plot_stored_data with empty labels | (1) `_get_task_prompt` now injects actual labels from data store, (2) `_execute_plan_task` prepends "Use plot_stored_data to plot LABEL1,LABEL2" when planner omits labels |
+| Viz agent calls reset/get_plot_state instead of plotting | VisualizationAgent ignored "Do NOT call reset" prompt; called `plot_data` with empty labels | (1) `_get_task_prompt` now injects actual labels from data store, (2) `_execute_plan_task` prepends "Use `plot_data` to plot LABEL1,LABEL2" when planner omits labels |
 | Export tasks waste viz agent iterations | Export routed to VisualizationAgent which called reset/get_plot_state instead of exporting | Export tasks now intercepted by orchestrator's `_handle_export_task()` — direct dispatch, no LLM needed |
 
 ### Fixed in 2026-02-08 stability batch
@@ -91,7 +91,7 @@ The task instruction includes the expected labels (e.g., "compute running averag
 | Issue | Description | Fix |
 |-------|-------------|-----|
 | Autoplot bridge removed | Entire `autoplot_bridge/` package with JPype/Java dependency | Replaced with pure-Python Plotly renderer (`rendering/`) |
-| 10 thin viz wrappers | `set_title`, `set_axis_label`, `toggle_log_scale`, etc. | Replaced by single `custom_visualization` tool (Plotly sandbox) |
+| 10 thin viz wrappers | `set_title`, `set_axis_label`, `toggle_log_scale`, etc. | Replaced by declarative `style_plot` tool |
 | JVM crashes | 4+ panels crashed JVM, `waitUntilIdle` race condition | No longer applicable — Plotly has no JVM |
 | Relative paths rejected | `export_png/pdf` with relative paths failed | Resolve to absolute with `Path.resolve()` |
 | DatetimeIndex for rolling | Time-based rolling windows (`'2H'`) failed | Ensure DatetimeIndex before executing code |

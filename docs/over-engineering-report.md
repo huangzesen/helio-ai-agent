@@ -1,10 +1,13 @@
 # Over-Engineering & Dead Code Report
 
 *Generated: 2026-02-08*
+*Updated: 2026-02-09*
 
 ## CRITICAL — Massive Duplication
 
-### 1. Four sub-agents are 85% copy-paste (~700 lines)
+### 1. Four sub-agents are 85% copy-paste (~700 lines) — **RESOLVED**
+
+> **RESOLVED (2026-02-09):** `BaseSubAgent` extracted in `agent/base_agent.py`. All four sub-agents now inherit shared `process_request()`, `execute_task()`, `_track_usage()`, and `get_token_usage()` from the base class. Each sub-agent is now ~20 lines.
 
 `mission_agent.py`, `visualization_agent.py`, `data_ops_agent.py`, `data_extraction_agent.py` each duplicate:
 - `_track_usage()` — identical in all 5 agents (including orchestrator)
@@ -14,7 +17,9 @@
 
 **Fix:** Extract a `BaseSubAgent` class. Each sub-agent becomes ~20 lines setting categories, prompt builder, and name.
 
-### 2. Three near-identical sandbox executors in `data_ops/custom_ops.py` (~150 lines)
+### 2. Three near-identical sandbox executors in `data_ops/custom_ops.py` (~150 lines) — **RESOLVED**
+
+> **RESOLVED (2026-02-09):** Consolidated into a shared `_execute_in_sandbox()` function in `data_ops/custom_ops.py`. The three public functions are now thin wrappers.
 
 `execute_custom_operation()`, `execute_dataframe_creation()`, `execute_spectrogram_computation()` share ~80% identical code (builtins setup, exec, result extraction, validation). Plus three identical `run_*` validate-then-execute wrappers.
 
@@ -141,4 +146,9 @@ These are well-designed with meaningful tests:
 | Dead production code lines | ~260+ |
 | Duplicated production code lines | ~850+ |
 
-The two biggest wins would be: (1) extracting a `BaseSubAgent` to eliminate ~700 lines of agent duplication, and (2) deleting dead code (`plotting.py`, dead prompt formatters, dead prompt_builder functions).
+**Update (2026-02-09):** The biggest win — extracting `BaseSubAgent` — has been completed, eliminating ~700 lines of agent duplication. The sandbox consolidation is also done. Remaining work: deleting dead code (`plotting.py`, dead prompt formatters, dead prompt_builder functions).
+
+| Category | Original Estimate | Post-Refactor |
+|----------|-------------------|---------------|
+| Duplicated production code lines | ~850+ | ~150 (remaining singleton + error dict patterns) |
+| Dead production code lines | ~260+ | ~260+ (unchanged — still needs cleanup) |

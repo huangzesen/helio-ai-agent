@@ -2,7 +2,7 @@
 
 Future development plan for the helio-ai-agent project.
 
-**Last updated**: February 2026
+**Last updated**: 2026-02-09
 
 ---
 
@@ -66,9 +66,9 @@ Future development plan for the helio-ai-agent project.
 - [x] **Mission sub-agents**: Per-spacecraft data specialists with rich prompts
 - [x] **DataOps sub-agent**: Data transformation specialist (compute, describe, save)
 - [x] **DataExtraction sub-agent**: Text-to-DataFrame specialist (store_dataframe, read_document)
-- [x] **Visualization sub-agent**: Plotly rendering via 5 core methods + custom Plotly sandbox
-- [x] **Method registry**: Structured data describing 5 core visualization operations
-- [x] **Custom visualization**: Free-form Plotly code for titles, labels, scales, render types, annotations, etc.
+- [x] **Visualization sub-agent**: Plotly rendering via 3 declarative tools (`plot_data`, `style_plot`, `manage_plot`)
+- [x] **Tool registry**: Structured data describing 3 declarative visualization tools
+- [x] **Style customization**: Declarative key-value styling via `style_plot` for titles, labels, scales, render types, annotations, etc.
 - [x] **Canvas sizing**: Custom width/height for exports
 - [x] **PNG/PDF export**: Via kaleido static image export
 - [x] **PlannerAgent**: Chat-based plan-execute-replan loop (up to 5 rounds) for complex requests
@@ -80,7 +80,7 @@ Future development plan for the helio-ai-agent project.
 - [x] **Plotly renderer**: Replaced Java Autoplot bridge with pure-Python Plotly
 - [x] **Gradio web UI**: Browser-based chat with inline interactive plots, multimodal file upload
 - [x] **Google Search grounding**: Web search via custom function tool
-- [x] **custom_visualization tool**: Replaced 10 thin wrapper methods with single Plotly sandbox
+- [x] **Declarative viz tools**: Replaced 10 thin wrapper methods with 3 declarative tools (`plot_data`, `style_plot`, `manage_plot`)
 - [x] **JPype/Java removal**: All JVM dependencies eliminated
 - [x] **Mission data startup**: Interactive refresh menu + CLI flags (`--refresh`, `--refresh-full`, `--refresh-all`)
 - [x] **Browse & Fetch sidebar**: Mission → dataset → parameter cascade dropdowns in Gradio UI
@@ -112,7 +112,7 @@ Future development plan for the helio-ai-agent project.
 ## Visualization Enhancements
 
 ### Layout
-- [x] Multi-panel stack plots — via `plot_stored_data` with panel index
+- [x] Multi-panel stack plots — via `plot_data` with panel index
 - [ ] Synchronized time axes across panels
 - [ ] Panel add/remove/reorder
 
@@ -123,14 +123,14 @@ Future development plan for the helio-ai-agent project.
 - [ ] Histogram/distribution plots
 
 ### Styling
-- [x] Configurable axis labels and titles — via `custom_visualization`
-- [x] Log/linear scale toggle — via `custom_visualization`
-- [x] Canvas sizing — via `custom_visualization`
-- [x] Per-trace line color/styling — via `custom_visualization`
+- [x] Configurable axis labels and titles — via `style_plot`
+- [x] Log/linear scale toggle — via `style_plot`
+- [x] Canvas sizing — via `style_plot`
+- [x] Per-trace line color/styling — via `style_plot`
 - [ ] Grid and tick customization
 
 ### Annotations
-- [x] Event markers, shaded regions, text annotations — via `custom_visualization` (Plotly code)
+- [x] Event markers, shaded regions, text annotations — via `style_plot`
 - [ ] Legend customization
 
 ---
@@ -232,9 +232,9 @@ Future development plan for the helio-ai-agent project.
 
 ### Adding New Visualization Capabilities
 
-Most Plotly customizations already work via `custom_visualization` — no code changes needed.
+Most Plotly customizations already work via `style_plot` — no code changes needed.
 
-For **new core methods** (that need special logic like `plot_stored_data`):
+For **new visualization capabilities** (that need special logic like `plot_data`):
 1. Add entry to `rendering/registry.py` (method definition)
 2. Implement renderer method in `rendering/plotly_renderer.py`
 3. Add dispatch handler in `agent/core.py:_dispatch_viz_method()`
