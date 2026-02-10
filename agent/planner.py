@@ -201,10 +201,10 @@ class PlannerAgent:
         """Phase 1: Run discovery tools to gather dataset/parameter info.
 
         Creates a one-shot tool-calling chat that researches the user's request
-        and returns a text summary of what it found.  Importantly, the raw
+        and returns a text summary of what it found.  The raw
         ``list_parameters`` results are captured and appended as a structured
-        reference so the planning LLM can copy-paste exact parameter names
-        rather than inventing "descriptive" alternatives.
+        reference so the planning LLM can select candidate dataset IDs based
+        on verified parameter availability.
 
         Args:
             user_request: The user's original request.

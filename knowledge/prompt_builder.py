@@ -300,17 +300,7 @@ def build_mission_prompt(mission_id: str) -> str:
     lines.append("  are merged products from COHOWeb/HelioWeb — also valid for fetch_data.")
     lines.append("")
 
-    # --- Bounded Data Selection ---
-    lines.append("## Bounded Data Selection")
-    lines.append("")
-    lines.append("The `fetch_data` tool pre-validates dataset and parameter IDs against the")
-    lines.append("local HAPI metadata cache. If you pass a dataset_id or parameter_id that")
-    lines.append("doesn't exist in the cache, the call is rejected immediately with a helpful")
-    lines.append("error — no network request is wasted. Always use exact IDs from your")
-    lines.append("recommended datasets or from `browse_datasets` / `list_parameters` results.")
-    lines.append("")
-
-    # --- Data Operations Documentation ---
+    # --- Dataset Selection Workflow ---
     lines.append("## Dataset Selection Workflow")
     lines.append("")
     lines.append("1. **Check if data is already in memory** — see 'Data currently in memory' in the request.")
@@ -318,12 +308,11 @@ def build_mission_prompt(mission_id: str) -> str:
     lines.append("2. **When given candidate datasets**: Call `list_parameters` for each candidate to see")
     lines.append("   available parameters. Select the best dataset based on parameter coverage and relevance.")
     lines.append("   Then call `fetch_data` for each relevant parameter.")
-    lines.append("3. **When given an exact dataset ID and parameter**: Call `fetch_data` DIRECTLY.")
-    lines.append("4. **When given a vague request**: Use recommended datasets above or `browse_datasets`.")
-    lines.append("5. **If a parameter returns all-NaN**: Skip it and try the next candidate dataset.")
-    lines.append("4. **Time range format**: '2024-01-15 to 2024-01-20' (use ' to ' separator, NOT '/').")
+    lines.append("3. **When given a vague request**: Use recommended datasets above or `browse_datasets`.")
+    lines.append("4. **If a parameter returns all-NaN**: Skip it and try the next candidate dataset.")
+    lines.append("5. **Time range format**: '2024-01-15 to 2024-01-20' (use ' to ' separator, NOT '/').")
     lines.append("   Also accepts 'last week', 'January 2024', etc.")
-    lines.append("5. **Labels**: fetch_data stores data with label `DATASET.PARAM`.")
+    lines.append("6. **Labels**: fetch_data stores data with label `DATASET.PARAM`.")
     lines.append("")
     lines.append("## Reporting Results")
     lines.append("")
@@ -760,7 +749,7 @@ Use `ask_clarification` when:
 Do NOT ask when:
 - You can make a reasonable default choice
 - The user gives clear, specific instructions
-- The user provides a specific dataset_id AND parameter_id — use them directly without asking
+- The user provides a specific dataset and physical quantity — delegate to the mission agent
 - The user names a spacecraft + data type (e.g., "ACE magnetic field") — delegate to the mission agent immediately
 - It's a follow-up action on current plot
 
@@ -1000,8 +989,8 @@ summarize what you found so a planning agent can create an accurate task plan.
 ## CRITICAL: Prioritize list_parameters
 
 The #1 most important thing you do is call `list_parameters(dataset_id)` to get
-the EXACT parameter names for each dataset. The planning agent will use these
-names verbatim in fetch_data calls. If you return wrong names, everything fails.
+the EXACT parameter names for each dataset. The planning agent uses these to choose
+candidate dataset IDs, and mission agents use them to select which parameters to fetch.
 
 ## Discovery Hierarchy (Bounded Data Selection)
 

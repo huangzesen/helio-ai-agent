@@ -177,12 +177,12 @@ class TestBuildMissionPrompt:
         assert "data specialist agent" in prompt.lower()
 
     def test_mission_prompt_has_explore_before_fetch_workflow(self):
-        """Workflow guides: direct fetch when given exact IDs, browse for vague requests."""
+        """Workflow guides: candidate inspection, browse for vague requests."""
         prompt = build_mission_prompt("PSP")
-        workflow_start = prompt.index("## Data Operations Workflow")
+        workflow_start = prompt.index("## Dataset Selection Workflow")
         workflow_end = prompt.index("## Reporting Results")
         workflow_section = prompt[workflow_start:workflow_end]
-        assert "exact dataset ID and parameter" in workflow_section
+        assert "candidate datasets" in workflow_section
         assert "fetch_data" in workflow_section
         assert "vague request" in workflow_section
         # Compute tools no longer in mission workflow
