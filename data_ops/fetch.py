@@ -126,7 +126,7 @@ def fetch_hapi_data(
     }
 
 
-def check_hapi_status(timeout: float = 10) -> bool:
+def check_hapi_status(timeout: float = 2) -> bool:
     """Check whether the CDAWeb HAPI service is reachable.
 
     Sends a lightweight GET to the /hapi/capabilities endpoint.

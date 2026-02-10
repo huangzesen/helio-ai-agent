@@ -35,7 +35,9 @@ Data flows: User input → Gemini function calling → tool execution → result
 
 ## Commands
 
-**Shell note:** On this Windows machine, the Bash tool runs Git Bash (`/usr/bin/bash`), so always use forward slashes for paths. Use `./venv/Scripts/python.exe` (not `venv\Scripts\python.exe`).
+**Important:** Always use the project's virtualenv Python (`venv/bin/python` on macOS/Linux, `./venv/Scripts/python.exe` on Windows) for running tests, scripts, and the agent. Do NOT use the system or conda Python — dependencies like `cdflib` and `google-genai` are only installed in the venv.
+
+**Shell note (Windows):** The Bash tool runs Git Bash (`/usr/bin/bash`), so always use forward slashes for paths. Use `./venv/Scripts/python.exe` (not `venv\Scripts\python.exe`).
 
 ```bash
 # Setup
