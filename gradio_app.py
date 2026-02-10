@@ -753,13 +753,40 @@ def respond(message, history: list[dict]):
     history = history + [{"role": "user", "content": "\n".join(display_parts)}]
 
     if not _verbose:
-        # Non-verbose: simple blocking call, no streaming
+        # Non-verbose: background thread + yield loop (enables stop button)
+        result_box: list = [None]
+        error_box: list = [None]
         t0 = time.monotonic()
-        try:
-            response_text = _agent.process_message(message)
-        except Exception as e:
-            response_text = f"Error: {e}"
+
+        def _run_quiet():
+            try:
+                result_box[0] = _agent.process_message(message)
+            except Exception as exc:
+                error_box[0] = exc
+
+        thread = threading.Thread(target=_run_quiet, daemon=True)
+        thread.start()
+
+        # Show immediate "Working..." feedback
+        yield (
+            history + [{"role": "assistant", "content": "*Working...*"}],
+            gr.skip(), gr.skip(), gr.skip(), None,
+            gr.skip(), gr.skip(), "",
+            gr.skip(),
+            gr.update(visible=False, choices=[], value=None),
+        )
+
+        # Poll until thread finishes (generator stays alive for stop btn)
+        while thread.is_alive():
+            thread.join(timeout=0.5)
+
         elapsed = time.monotonic() - t0
+        if error_box[0] is not None:
+            response_text = f"Error: {error_box[0]}"
+        elif result_box[0]:
+            response_text = result_box[0]
+        else:
+            response_text = "Done."
         response_text += f"\n\n*{elapsed:.1f}s*"
         history = history + [{"role": "assistant", "content": response_text}]
         try:
@@ -783,7 +810,18 @@ def respond(message, history: list[dict]):
             selected = None
             preview = gr.skip()
             session_update = gr.skip()
-        # First yield: show response, hide old pills
+        # Generate follow-ups (skip if cancelled)
+        suggestions = []
+        if not _agent.is_cancelled():
+            try:
+                suggestions = _agent.generate_follow_ups()
+            except Exception:
+                suggestions = []
+        followup_update = (
+            gr.update(choices=suggestions, value=None, visible=True)
+            if suggestions
+            else gr.update(visible=False, choices=[], value=None)
+        )
         yield (
             history,
             gr.update(visible=fig is not None, value=fig),
@@ -791,19 +829,8 @@ def respond(message, history: list[dict]):
             gr.update(choices=label_choices, value=selected),
             preview, "",
             session_update,
-            gr.update(visible=False, choices=[], value=None),
+            followup_update,
         )
-        # Second yield: generate and show follow-up suggestions
-        try:
-            suggestions = _agent.generate_follow_ups()
-        except Exception:
-            suggestions = []
-        if suggestions:
-            yield (
-                gr.skip(), gr.skip(), gr.skip(), gr.skip(), gr.skip(),
-                gr.skip(), gr.skip(), gr.skip(), gr.skip(),
-                gr.update(choices=suggestions, value=None, visible=True),
-            )
         return
 
     # --- Verbose streaming mode ---
@@ -915,7 +942,23 @@ def respond(message, history: list[dict]):
         preview = gr.skip()
         session_update = gr.skip()
 
-    # First yield: show response, hide old pills
+    # Generate follow-up suggestions BEFORE the final yield so the
+    # response and suggestions arrive together atomically.  If follow-ups
+    # were a separate yield, a new user message could cancel the generator
+    # between the two yields, causing the response to be lost.
+    # Skip if cancelled — no point generating follow-ups for an interrupted request.
+    suggestions = []
+    if not _agent.is_cancelled():
+        try:
+            suggestions = _agent.generate_follow_ups()
+        except Exception:
+            suggestions = []
+    followup_update = (
+        gr.update(choices=suggestions, value=None, visible=True)
+        if suggestions
+        else gr.update(visible=False, choices=[], value=None)
+    )
+
     yield (
         history,
         gr.update(visible=fig is not None, value=fig),
@@ -923,19 +966,8 @@ def respond(message, history: list[dict]):
         gr.update(choices=label_choices, value=selected),
         preview, "",
         session_update,
-        gr.update(visible=False, choices=[], value=None),
+        followup_update,
     )
-    # Second yield: generate and show follow-up suggestions
-    try:
-        suggestions = _agent.generate_follow_ups()
-    except Exception:
-        suggestions = []
-    if suggestions:
-        yield (
-            gr.skip(), gr.skip(), gr.skip(), gr.skip(), gr.skip(),
-            gr.skip(), gr.skip(), gr.skip(), gr.skip(),
-            gr.update(choices=suggestions, value=None, visible=True),
-        )
 
 
 # ---------------------------------------------------------------------------
@@ -1678,7 +1710,7 @@ def create_app() -> gr.Blocks:
                         ".jpg", ".jpeg", ".png", ".gif", ".bmp",
                         ".epub", ".txt", ".md"],
             submit_btn="Send",
-            stop_btn=False,
+            stop_btn="Stop",
             elem_classes="chat-input",
         )
 
@@ -1709,7 +1741,7 @@ def create_app() -> gr.Blocks:
             inputs=[msg_input, chatbot],
             outputs=all_outputs,
         )
-        msg_input.submit(**send_event_args)
+        submit_event = msg_input.submit(**send_event_args)
 
         # Follow-up pill click → fill input and auto-submit
         def _on_followup_click(suggestion):
@@ -1717,7 +1749,7 @@ def create_app() -> gr.Blocks:
                 return gr.skip()
             return {"text": suggestion, "files": []}
 
-        followup_radio.change(
+        followup_event = followup_radio.change(
             fn=_on_followup_click,
             inputs=[followup_radio],
             outputs=[msg_input],
@@ -1725,6 +1757,22 @@ def create_app() -> gr.Blocks:
             fn=respond,
             inputs=[msg_input, chatbot],
             outputs=all_outputs,
+        )
+
+        # Stop button: signal the agent to cancel, append interruption message
+        def _on_stop(history):
+            if _agent is not None:
+                _agent.request_cancel()
+            history = history + [
+                {"role": "assistant", "content": "*Interrupted by user.*"},
+            ]
+            return history
+
+        msg_input.stop(
+            fn=_on_stop,
+            inputs=[chatbot],
+            outputs=[chatbot],
+            cancels=[submit_event, followup_event],
         )
 
         label_dropdown.change(

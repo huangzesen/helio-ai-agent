@@ -7,6 +7,7 @@ The OrchestratorAgent routes requests to:
 """
 
 import math
+import threading
 from typing import Optional
 
 from google import genai
@@ -85,6 +86,7 @@ class OrchestratorAgent:
         self.verbose = verbose
         self.gui_mode = gui_mode
         self.web_mode = False  # Set True by gradio_app.py to suppress auto-open
+        self._cancel_event = threading.Event()
 
         # Initialize logging
         self.logger = setup_logging(verbose=verbose)
@@ -171,6 +173,21 @@ class OrchestratorAgent:
 
         # Passive memory agent (lazy-initialized)
         self._memory_agent: Optional[MemoryAgent] = None
+
+    # ---- Cancellation API ----
+
+    def request_cancel(self):
+        """Signal the agent to stop after the current atomic operation."""
+        self._cancel_event.set()
+        self.logger.info("[Cancel] Cancellation requested")
+
+    def clear_cancel(self):
+        """Clear the cancellation flag (called at start of process_message)."""
+        self._cancel_event.clear()
+
+    def is_cancelled(self) -> bool:
+        """Check whether cancellation has been requested."""
+        return self._cancel_event.is_set()
 
     @property
     def memory_store(self) -> MemoryStore:
@@ -1318,6 +1335,11 @@ class OrchestratorAgent:
                     last_stop_reason = stop_reason
                     break
 
+                if self._cancel_event.is_set():
+                    self.logger.info("[Cancel] Stopping task execution loop")
+                    last_stop_reason = "cancelled by user"
+                    break
+
                 if not response.candidates or not response.candidates[0].content.parts:
                     break
 
@@ -1469,6 +1491,7 @@ class OrchestratorAgent:
                 model_name=GEMINI_PLANNER_MODEL,
                 tool_executor=self._execute_tool_safe,
                 verbose=self.verbose,
+                cancel_event=self._cancel_event,
             )
             self.logger.debug(f"[Router] Created PlannerAgent ({GEMINI_PLANNER_MODEL})")
         return self._planner_agent
@@ -1649,6 +1672,11 @@ class OrchestratorAgent:
         round_num = 0
         while round_num < MAX_ROUNDS:
             round_num += 1
+
+            if self._cancel_event.is_set():
+                self.logger.info("[Cancel] Stopping plan loop between rounds")
+                break
+
             tasks_data = response.get("tasks", [])
 
             if not tasks_data and response.get("status") == "done":
@@ -1683,7 +1711,16 @@ class OrchestratorAgent:
 
             # Execute batch — snapshot store labels before to detect new data
             round_results = []
-            for task in new_tasks:
+            cancelled = False
+            for i, task in enumerate(new_tasks):
+                if self._cancel_event.is_set():
+                    self.logger.info("[Cancel] Stopping plan mid-batch")
+                    # Mark remaining tasks as SKIPPED
+                    for remaining in new_tasks[i:]:
+                        remaining.status = TaskStatus.SKIPPED
+                        remaining.error = "Cancelled by user"
+                    cancelled = True
+                    break
                 labels_before = set(e['label'] for e in get_store().list_entries())
                 self._execute_plan_task(task, plan)
                 labels_after = set(e['label'] for e in get_store().list_entries())
@@ -1708,6 +1745,10 @@ class OrchestratorAgent:
                 })
                 store.save(plan)
 
+            if cancelled:
+                store.save(plan)
+                break
+
             # Append current store state so planner knows what data exists
             store_labels = [e['label'] for e in get_store().list_entries()]
             if store_labels:
@@ -1728,7 +1769,10 @@ class OrchestratorAgent:
                 break
 
         # Finalize
-        if plan.get_failed_tasks():
+        if self._cancel_event.is_set():
+            plan.status = PlanStatus.CANCELLED
+            log_plan_event("cancelled", plan.id, plan.progress_summary())
+        elif plan.get_failed_tasks():
             plan.status = PlanStatus.FAILED
             log_plan_event("failed", plan.id, plan.progress_summary())
         else:
@@ -1760,6 +1804,10 @@ class OrchestratorAgent:
 
         while iteration < max_iterations:
             iteration += 1
+
+            if self._cancel_event.is_set():
+                self.logger.info("[Cancel] Stopping orchestrator loop")
+                break
 
             if not response.candidates or not response.candidates[0].content.parts:
                 break
@@ -1858,6 +1906,7 @@ class OrchestratorAgent:
                 model_name=SUB_AGENT_MODEL,
                 tool_executor=self._execute_tool_safe,
                 verbose=self.verbose,
+                cancel_event=self._cancel_event,
             )
             self.logger.debug(f"[Router] Created {mission_id} mission agent ({SUB_AGENT_MODEL})")
         return self._mission_agents[mission_id]
@@ -1871,6 +1920,7 @@ class OrchestratorAgent:
                 tool_executor=self._execute_tool_safe,
                 verbose=self.verbose,
                 gui_mode=self.gui_mode,
+                cancel_event=self._cancel_event,
             )
             self.logger.debug(f"[Router] Created Visualization agent ({SUB_AGENT_MODEL})")
         return self._viz_agent
@@ -1883,6 +1933,7 @@ class OrchestratorAgent:
                 model_name=SUB_AGENT_MODEL,
                 tool_executor=self._execute_tool_safe,
                 verbose=self.verbose,
+                cancel_event=self._cancel_event,
             )
             self.logger.debug("[Router] Created DataOps agent")
         return self._dataops_agent
@@ -1895,6 +1946,7 @@ class OrchestratorAgent:
                 model_name=SUB_AGENT_MODEL,
                 tool_executor=self._execute_tool_safe,
                 verbose=self.verbose,
+                cancel_event=self._cancel_event,
             )
             self.logger.debug("[Router] Created DataExtraction agent")
         return self._data_extraction_agent
@@ -2163,6 +2215,8 @@ Example: ["Compare this with solar wind speed", "Zoom in to January 10-15", "Exp
         loop, where the orchestrator (HIGH thinking) can also call request_planning
         for complex cases the regex missed.
         """
+        self.clear_cancel()
+
         # Inject long-term memory context
         memory_section = self._memory_store.build_prompt_section()
         if memory_section:
@@ -2193,6 +2247,7 @@ Example: ["Compare this with solar wind speed", "Zoom in to January 10-15", "Exp
 
     def reset(self):
         """Reset conversation history, mission agent cache, and sub-agents."""
+        self._cancel_event.clear()
         self.chat = self.client.chats.create(
             model=get_active_model(self.model_name),
             config=self.config

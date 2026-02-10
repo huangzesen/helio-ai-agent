@@ -6,6 +6,8 @@ keeps a persistent chat across rounds) can also run tool calls without
 inheriting from BaseSubAgent.
 """
 
+import threading
+
 from google.genai import types
 
 from .logging import get_logger
@@ -42,6 +44,7 @@ def run_tool_loop(
     max_iterations: int = 5,
     track_usage=None,
     collect_tool_results: dict = None,
+    cancel_event: threading.Event | None = None,
 ):
     """Run a tool-calling loop on an existing chat session.
 
@@ -70,6 +73,10 @@ def run_tool_loop(
         stop_reason = guard.check_iteration()
         if stop_reason:
             logger.debug(f"[{agent_name}] Tool loop stopping: {stop_reason}")
+            break
+
+        if cancel_event and cancel_event.is_set():
+            logger.info(f"[{agent_name}] Tool loop interrupted by user")
             break
 
         parts = (

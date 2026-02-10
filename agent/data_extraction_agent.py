@@ -29,6 +29,7 @@ class DataExtractionAgent(BaseSubAgent):
         model_name: str,
         tool_executor,
         verbose: bool = False,
+        cancel_event=None,
     ):
         super().__init__(
             client=client,
@@ -39,4 +40,5 @@ class DataExtractionAgent(BaseSubAgent):
             system_prompt=build_data_extraction_prompt(),
             tool_categories=EXTRACTION_CATEGORIES,
             extra_tool_names=EXTRACTION_EXTRA_TOOLS,
+            cancel_event=cancel_event,
         )

@@ -49,6 +49,7 @@ class VisualizationAgent(BaseSubAgent):
         tool_executor,
         verbose: bool = False,
         gui_mode: bool = False,
+        cancel_event=None,
     ):
         self.gui_mode = gui_mode
         super().__init__(
@@ -60,6 +61,7 @@ class VisualizationAgent(BaseSubAgent):
             system_prompt=build_visualization_prompt(gui_mode=gui_mode),
             tool_categories=VIZ_TOOL_CATEGORIES,
             extra_tool_names=VIZ_EXTRA_TOOLS,
+            cancel_event=cancel_event,
         )
 
     def _get_task_prompt(self, task: Task) -> str:

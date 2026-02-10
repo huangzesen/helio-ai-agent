@@ -133,11 +133,13 @@ class PlannerAgent:
     """
 
     def __init__(self, client: genai.Client, model_name: str,
-                 tool_executor=None, verbose: bool = False):
+                 tool_executor=None, verbose: bool = False,
+                 cancel_event=None):
         self.client = client
         self.model_name = model_name
         self.tool_executor = tool_executor
         self.verbose = verbose
+        self._cancel_event = cancel_event
         self._chat = None
         self._token_usage = {"input_tokens": 0, "output_tokens": 0, "thinking_tokens": 0}
 
@@ -239,6 +241,7 @@ class PlannerAgent:
             max_iterations=8,
             track_usage=self._track_usage,
             collect_tool_results=tool_results,
+            cancel_event=self._cancel_event,
         )
 
         text = extract_text_from_response(response)

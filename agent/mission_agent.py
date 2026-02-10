@@ -33,6 +33,7 @@ class MissionAgent(BaseSubAgent):
         model_name: str,
         tool_executor,
         verbose: bool = False,
+        cancel_event=None,
     ):
         self.mission_id = mission_id
         super().__init__(
@@ -44,6 +45,7 @@ class MissionAgent(BaseSubAgent):
             system_prompt=build_mission_prompt(mission_id),
             tool_categories=MISSION_TOOL_CATEGORIES,
             extra_tool_names=MISSION_EXTRA_TOOLS,
+            cancel_event=cancel_event,
         )
 
     # ---- Hook overrides ----

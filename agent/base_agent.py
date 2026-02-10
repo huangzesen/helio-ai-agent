@@ -9,6 +9,7 @@ Sub-agents override:
 - Hook methods for agent-specific behavior (e.g., clarification interception)
 """
 
+import threading
 from typing import Optional
 
 from google import genai
@@ -37,6 +38,7 @@ class BaseSubAgent:
         system_prompt: str = "",
         tool_categories: list[str] | None = None,
         extra_tool_names: list[str] | None = None,
+        cancel_event: threading.Event | None = None,
     ):
         self.client = client
         self.model_name = model_name
@@ -44,6 +46,7 @@ class BaseSubAgent:
         self.verbose = verbose
         self.agent_name = agent_name
         self.system_prompt = system_prompt
+        self._cancel_event = cancel_event
         self.logger = get_logger()
 
         # Build function declarations from categories
@@ -171,6 +174,10 @@ class BaseSubAgent:
                     self.logger.debug(f"[{self.agent_name}] Stopping: {stop_reason}")
                     break
 
+                if self._cancel_event and self._cancel_event.is_set():
+                    self.logger.info(f"[{self.agent_name}] Interrupted by user")
+                    return "Interrupted by user."
+
                 parts = (
                     response.candidates[0].content.parts
                     if response.candidates and response.candidates[0].content
@@ -292,6 +299,11 @@ class BaseSubAgent:
                 if stop_reason:
                     self.logger.debug(f"[{self.agent_name}] Stopping: {stop_reason}")
                     last_stop_reason = stop_reason
+                    break
+
+                if self._cancel_event and self._cancel_event.is_set():
+                    self.logger.info(f"[{self.agent_name}] Task interrupted by user")
+                    last_stop_reason = "cancelled by user"
                     break
 
                 if not response.candidates or not response.candidates[0].content.parts:
