@@ -842,7 +842,12 @@ def respond(message, history: list[dict]):
 
     # Build final response
     elapsed = time.monotonic() - t0
-    response_text = result_box[0] if error_box[0] is None else f"Error: {error_box[0]}"
+    if error_box[0] is not None:
+        response_text = f"Error: {error_box[0]}"
+    elif result_box[0]:
+        response_text = result_box[0]
+    else:
+        response_text = "Done."
     verbose_text = "\n".join(log_lines)
 
     if verbose_text:
