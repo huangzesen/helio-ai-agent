@@ -1,8 +1,526 @@
 {
-  "total_cdf_files": 0,
-  "total_cdf_bytes": 0,
-  "total_cdf_human": "0.00 B",
-  "directories_crawled": 1,
-  "errors": 0,
-  "missions": {}
+  "total_data_files": 20281115,
+  "total_data_bytes": 241981967798451,
+  "total_data_human": "220.08 TB",
+  "directories_crawled": 139722,
+  "errors": 19,
+  "formats": {
+    ".cdf": {
+      "bytes": 138771808692281,
+      "human": "126.21 TB",
+      "files": 9387434
+    },
+    ".nc": {
+      "bytes": 102925298471695,
+      "human": "93.61 TB",
+      "files": 10807503
+    },
+    ".hdf": {
+      "bytes": 268074590367,
+      "human": "249.66 GB",
+      "files": 9595
+    },
+    ".fits": {
+      "bytes": 14702958592,
+      "human": "13.69 GB",
+      "files": 72242
+    },
+    ".fts": {
+      "bytes": 2082385100,
+      "human": "1.94 GB",
+      "files": 4340
+    },
+    ".h5": {
+      "bytes": 700416,
+      "human": "684.00 KB",
+      "files": 1
+    }
+  },
+  "missions": {
+    "cluster": {
+      "bytes": 85421552698382,
+      "human": "77.69 TB",
+      "files": 4516776
+    },
+    "awe": {
+      "bytes": 71180209160915,
+      "human": "64.74 TB",
+      "files": 146865
+    },
+    "gold": {
+      "bytes": 28967234213181,
+      "human": "26.35 TB",
+      "files": 10585332
+    },
+    "themis": {
+      "bytes": 13295911085328,
+      "human": "12.09 TB",
+      "files": 1153461
+    },
+    "arase": {
+      "bytes": 11321833576110,
+      "human": "10.30 TB",
+      "files": 697099
+    },
+    "erg": {
+      "bytes": 11321833576110,
+      "human": "10.30 TB",
+      "files": 697099
+    },
+    "polar": {
+      "bytes": 5933063762751,
+      "human": "5.40 TB",
+      "files": 195549
+    },
+    "psp": {
+      "bytes": 2406540637561,
+      "human": "2.19 TB",
+      "files": 66645
+    },
+    "aaa_groundbased": {
+      "bytes": 2342534637522,
+      "human": "2.13 TB",
+      "files": 16232
+    },
+    "timed": {
+      "bytes": 1997304742834,
+      "human": "1.82 TB",
+      "files": 256804
+    },
+    "wind": {
+      "bytes": 1609734382680,
+      "human": "1.46 TB",
+      "files": 427060
+    },
+    "goes": {
+      "bytes": 1249619325020,
+      "human": "1.14 TB",
+      "files": 44566
+    },
+    "image": {
+      "bytes": 600975899834,
+      "human": "559.70 GB",
+      "files": 46292
+    },
+    "aaa_balloons": {
+      "bytes": 440312685533,
+      "human": "410.07 GB",
+      "files": 4906
+    },
+    "balloons": {
+      "bytes": 440312685533,
+      "human": "410.07 GB",
+      "files": 4906
+    },
+    "twins": {
+      "bytes": 418837339519,
+      "human": "390.07 GB",
+      "files": 28795
+    },
+    "aaa_planetary": {
+      "bytes": 405578429681,
+      "human": "377.72 GB",
+      "files": 6145
+    },
+    "dmsp": {
+      "bytes": 264191029344,
+      "human": "246.05 GB",
+      "files": 20320
+    },
+    "geotail": {
+      "bytes": 237165614379,
+      "human": "220.88 GB",
+      "files": 172294
+    },
+    "ace": {
+      "bytes": 232377495257,
+      "human": "216.42 GB",
+      "files": 198274
+    },
+    "cnofs": {
+      "bytes": 229173098185,
+      "human": "213.43 GB",
+      "files": 27632
+    },
+    "icon": {
+      "bytes": 224798498092,
+      "human": "209.36 GB",
+      "files": 13512
+    },
+    "formosat-rocsat": {
+      "bytes": 214100397934,
+      "human": "199.40 GB",
+      "files": 313269
+    },
+    "noaa": {
+      "bytes": 181357809161,
+      "human": "168.90 GB",
+      "files": 34383
+    },
+    "de": {
+      "bytes": 171372535456,
+      "human": "159.60 GB",
+      "files": 93244
+    },
+    "map": {
+      "bytes": 127179766638,
+      "human": "118.45 GB",
+      "files": 19906
+    },
+    "sampex": {
+      "bytes": 90471374222,
+      "human": "84.26 GB",
+      "files": 28120
+    },
+    "messenger": {
+      "bytes": 85192512444,
+      "human": "79.34 GB",
+      "files": 3245
+    },
+    "isee": {
+      "bytes": 74278347785,
+      "human": "69.18 GB",
+      "files": 24461
+    },
+    "rbsp": {
+      "bytes": 63994873326,
+      "human": "59.60 GB",
+      "files": 9949
+    },
+    "aim": {
+      "bytes": 56416275751,
+      "human": "52.54 GB",
+      "files": 4791
+    },
+    "reach": {
+      "bytes": 42245683135,
+      "human": "39.34 GB",
+      "files": 18896
+    },
+    "fast": {
+      "bytes": 35171809897,
+      "human": "32.76 GB",
+      "files": 11401
+    },
+    "dscovr": {
+      "bytes": 33231475239,
+      "human": "30.95 GB",
+      "files": 13248
+    },
+    "stereo": {
+      "bytes": 30930832713,
+      "human": "28.81 GB",
+      "files": 23306
+    },
+    "barrel": {
+      "bytes": 28196942028,
+      "human": "26.26 GB",
+      "files": 4801
+    },
+    "imp": {
+      "bytes": 23064100092,
+      "human": "21.48 GB",
+      "files": 30724
+    },
+    "elfin": {
+      "bytes": 21388403451,
+      "human": "19.92 GB",
+      "files": 8685
+    },
+    "gps": {
+      "bytes": 20386707123,
+      "human": "18.99 GB",
+      "files": 25789
+    },
+    "soho": {
+      "bytes": 17143813291,
+      "human": "15.97 GB",
+      "files": 86807
+    },
+    "skylab": {
+      "bytes": 15763965132,
+      "human": "14.68 GB",
+      "files": 55802
+    },
+    "ampte": {
+      "bytes": 12985847188,
+      "human": "12.09 GB",
+      "files": 1233
+    },
+    "aaa_smallsats_cubesats": {
+      "bytes": 12482349805,
+      "human": "11.63 GB",
+      "files": 5162
+    },
+    "raids": {
+      "bytes": 10507416936,
+      "human": "9.79 GB",
+      "files": 824
+    },
+    "omni": {
+      "bytes": 10189837532,
+      "human": "9.49 GB",
+      "files": 2713
+    },
+    "ulysses": {
+      "bytes": 8554150439,
+      "human": "7.97 GB",
+      "files": 14534
+    },
+    "lanl": {
+      "bytes": 7730498148,
+      "human": "7.20 GB",
+      "files": 35673
+    },
+    "ibex": {
+      "bytes": 5594973761,
+      "human": "5.21 GB",
+      "files": 3709
+    },
+    "hawkeye": {
+      "bytes": 5201021158,
+      "human": "4.84 GB",
+      "files": 4249
+    },
+    "darn": {
+      "bytes": 4143572947,
+      "human": "3.86 GB",
+      "files": 12316
+    },
+    "st5": {
+      "bytes": 3851617062,
+      "human": "3.59 GB",
+      "files": 272
+    },
+    "stp": {
+      "bytes": 3137311649,
+      "human": "2.92 GB",
+      "files": 379
+    },
+    "munin": {
+      "bytes": 2857865026,
+      "human": "2.66 GB",
+      "files": 1351
+    },
+    "apollo": {
+      "bytes": 2735439322,
+      "human": "2.55 GB",
+      "files": 5858
+    },
+    "international_space_station_iss": {
+      "bytes": 2261241218,
+      "human": "2.11 GB",
+      "files": 1767
+    },
+    "crres": {
+      "bytes": 1944269618,
+      "human": "1.81 GB",
+      "files": 85
+    },
+    "interball": {
+      "bytes": 1393364992,
+      "human": "1.30 GB",
+      "files": 17293
+    },
+    "galileo": {
+      "bytes": 1352854695,
+      "human": "1.26 GB",
+      "files": 145
+    },
+    "explorer": {
+      "bytes": 1349472807,
+      "human": "1.26 GB",
+      "files": 1557
+    },
+    "aaa_sounding_rockets": {
+      "bytes": 1176678806,
+      "human": "1.10 GB",
+      "files": 23
+    },
+    "sounding_rockets": {
+      "bytes": 1176678806,
+      "human": "1.10 GB",
+      "files": 23
+    },
+    "helios": {
+      "bytes": 1118543868,
+      "human": "1.04 GB",
+      "files": 1978
+    },
+    "isis": {
+      "bytes": 986150906,
+      "human": "940.47 MB",
+      "files": 1460
+    },
+    "canopus": {
+      "bytes": 907868160,
+      "human": "865.81 MB",
+      "files": 11123
+    },
+    "equator-s": {
+      "bytes": 878611563,
+      "human": "837.91 MB",
+      "files": 746
+    },
+    "sesame": {
+      "bytes": 657058816,
+      "human": "626.62 MB",
+      "files": 11706
+    },
+    "solar-orbiter": {
+      "bytes": 634303692,
+      "human": "604.92 MB",
+      "files": 976
+    },
+    "voyager": {
+      "bytes": 606888332,
+      "human": "578.77 MB",
+      "files": 1144
+    },
+    "new-horizons": {
+      "bytes": 370405970,
+      "human": "353.25 MB",
+      "files": 185
+    },
+    "cdaw9": {
+      "bytes": 354030679,
+      "human": "337.63 MB",
+      "files": 409
+    },
+    "mms": {
+      "bytes": 329252864,
+      "human": "314.00 MB",
+      "files": 10
+    },
+    "planet_and_comet_positions": {
+      "bytes": 324347904,
+      "human": "309.32 MB",
+      "files": 35
+    },
+    "pioneer": {
+      "bytes": 249621504,
+      "human": "238.06 MB",
+      "files": 727
+    },
+    "cassini": {
+      "bytes": 166105497,
+      "human": "158.41 MB",
+      "files": 7
+    },
+    "csswe": {
+      "bytes": 161339392,
+      "human": "153.87 MB",
+      "files": 952
+    },
+    "prognoz": {
+      "bytes": 154555367,
+      "human": "147.40 MB",
+      "files": 87
+    },
+    "snoe": {
+      "bytes": 131405824,
+      "human": "125.32 MB",
+      "files": 1834
+    },
+    "lws-set": {
+      "bytes": 82837504,
+      "human": "79.00 MB",
+      "files": 2
+    },
+    "alouette": {
+      "bytes": 68916417,
+      "human": "65.72 MB",
+      "files": 111
+    },
+    "finnish_meteor_inst_fmi": {
+      "bytes": 52901888,
+      "human": "50.45 MB",
+      "files": 917
+    },
+    "genesis": {
+      "bytes": 42800106,
+      "human": "40.82 MB",
+      "files": 33
+    },
+    "zzz_testing": {
+      "bytes": 24425062,
+      "human": "23.29 MB",
+      "files": 3
+    },
+    "dawn": {
+      "bytes": 11712512,
+      "human": "11.17 MB",
+      "files": 2
+    },
+    "stelab": {
+      "bytes": 11218944,
+      "human": "10.70 MB",
+      "files": 22
+    },
+    "juno": {
+      "bytes": 5704499,
+      "human": "5.44 MB",
+      "files": 2
+    },
+    "sakigake": {
+      "bytes": 4438016,
+      "human": "4.23 MB",
+      "files": 2
+    },
+    "rosetta": {
+      "bytes": 4228300,
+      "human": "4.03 MB",
+      "files": 2
+    },
+    "maven": {
+      "bytes": 3882598,
+      "human": "3.70 MB",
+      "files": 2
+    },
+    "suisei": {
+      "bytes": 3743334,
+      "human": "3.57 MB",
+      "files": 2
+    },
+    "bepicolombo": {
+      "bytes": 2896281,
+      "human": "2.76 MB",
+      "files": 2
+    },
+    "juice": {
+      "bytes": 2726297,
+      "human": "2.60 MB",
+      "files": 1
+    },
+    "pointer_files": {
+      "bytes": 2596851,
+      "human": "2.48 MB",
+      "files": 68
+    },
+    "psyche": {
+      "bytes": 1887436,
+      "human": "1.80 MB",
+      "files": 1
+    },
+    "imap": {
+      "bytes": 732160,
+      "human": "715.00 KB",
+      "files": 2
+    },
+    "giotto": {
+      "bytes": 488448,
+      "human": "477.00 KB",
+      "files": 2
+    },
+    "phobos": {
+      "bytes": 340992,
+      "human": "333.00 KB",
+      "files": 2
+    },
+    "mariner": {
+      "bytes": 169984,
+      "human": "166.00 KB",
+      "files": 1
+    }
+  }
 }
