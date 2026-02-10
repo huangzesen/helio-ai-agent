@@ -506,17 +506,10 @@ class PlotlyRenderer:
                             trace.mode = style_dict["mode"]
 
         if log_scale is not None:
-            if log_scale == "x":
-                fig.update_xaxes(type="log")
-            elif log_scale == "y":
-                for row in range(1, self._panel_count + 1):
-                    fig.update_yaxes(type="log", row=row, col=1)
-            elif log_scale == "both":
-                fig.update_xaxes(type="log")
+            if log_scale == "y":
                 for row in range(1, self._panel_count + 1):
                     fig.update_yaxes(type="log", row=row, col=1)
             elif log_scale == "linear":
-                fig.update_xaxes(type="linear")
                 for row in range(1, self._panel_count + 1):
                     fig.update_yaxes(type="linear", row=row, col=1)
 

@@ -510,6 +510,16 @@ class OrchestratorAgent:
 
     def _handle_style_plot(self, tool_args: dict) -> dict:
         """Handle the style_plot tool call."""
+        # Parse y_label dict string: "{1: 'B (nT)', 2: '...'}" -> dict
+        y_label = tool_args.get("y_label")
+        if isinstance(y_label, str) and y_label.strip().startswith("{"):
+            try:
+                import ast
+                parsed = ast.literal_eval(y_label)
+                if isinstance(parsed, dict):
+                    tool_args = {**tool_args, "y_label": parsed}
+            except (ValueError, SyntaxError):
+                pass
         try:
             result = self._renderer.style(**tool_args)
         except Exception as e:
@@ -804,6 +814,19 @@ class OrchestratorAgent:
             response = {"status": "success", **entry.summary()}
             if adjustment_note:
                 response["time_range_note"] = adjustment_note
+
+            # Add NaN diagnostic
+            nan_total = numeric_cols.isna().sum().sum()
+            nan_pct = round(100 * nan_total / numeric_cols.size, 1) if numeric_cols.size > 0 else 0.0
+            if nan_pct > 0:
+                response["nan_percentage"] = nan_pct
+            if nan_pct >= 50:
+                response["warning"] = (
+                    f"{nan_pct}% of values are NaN/fill. "
+                    f"This parameter may have sparse coverage in the requested time range. "
+                    f"Consider trying a different parameter or dataset."
+                )
+
             return response
 
         elif tool_name == "list_fetched_data":

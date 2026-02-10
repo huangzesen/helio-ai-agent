@@ -527,8 +527,8 @@ Use this for titles, axis labels, log scale, colors, line styles, canvas size, a
                 },
                 "log_scale": {
                     "type": "string",
-                    "enum": ["x", "y", "both", "linear"],
-                    "description": "Set log scale: 'x', 'y', 'both', or 'linear' to reset"
+                    "enum": ["y", "linear"],
+                    "description": "Set y-axis to log scale ('y') or reset to linear ('linear')"
                 },
                 "x_range": {
                     "type": "array",
