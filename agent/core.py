@@ -689,7 +689,9 @@ class OrchestratorAgent:
             if existing is not None and len(existing.data) > 0:
                 existing_start = existing.data.index[0].to_pydatetime().replace(tzinfo=None)
                 existing_end = existing.data.index[-1].to_pydatetime().replace(tzinfo=None)
-                if existing_start <= fetch_start and existing_end >= fetch_end:
+                fetch_start_naive = fetch_start.replace(tzinfo=None)
+                fetch_end_naive = fetch_end.replace(tzinfo=None)
+                if existing_start <= fetch_start_naive and existing_end >= fetch_end_naive:
                     self.logger.debug(
                         f"[DataOps] Dedup: '{label}' already in memory "
                         f"({existing_start} to {existing_end}), skipping fetch"
