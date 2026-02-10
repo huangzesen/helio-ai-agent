@@ -738,12 +738,27 @@ def respond(message, history: list[dict]):
         elapsed = time.monotonic() - t0
         response_text += f"\n\n*{elapsed:.1f}s*"
         history = history + [{"role": "assistant", "content": response_text}]
-        fig = _get_current_figure()
-        data_rows = _build_data_table()
-        token_text = _format_tokens()
-        label_choices = _get_label_choices()
-        selected = label_choices[-1] if label_choices else None
-        preview = _preview_data(selected) if selected else None
+        try:
+            fig = _get_current_figure()
+            data_rows = _build_data_table()
+            token_text = _format_tokens()
+            label_choices = _get_label_choices()
+            selected = label_choices[-1] if label_choices else None
+            preview = _preview_data(selected) if selected else None
+            session_update = gr.update(
+                choices=_get_session_choices(), value=_get_active_session_id(),
+            )
+        except Exception as exc:
+            logging.getLogger("helio-agent").warning(
+                f"[GradioApp] Sidebar update failed after response: {exc}"
+            )
+            fig = None
+            data_rows = gr.skip()
+            token_text = gr.skip()
+            label_choices = []
+            selected = None
+            preview = gr.skip()
+            session_update = gr.skip()
         # First yield: show response, hide old pills
         yield (
             history,
@@ -751,7 +766,7 @@ def respond(message, history: list[dict]):
             data_rows, token_text, None,
             gr.update(choices=label_choices, value=selected),
             preview, "",
-            gr.update(choices=_get_session_choices(), value=_get_active_session_id()),
+            session_update,
             gr.update(visible=False, choices=[], value=None),
         )
         # Second yield: generate and show follow-up suggestions
@@ -841,12 +856,30 @@ def respond(message, history: list[dict]):
         full_response = f"{response_text}\n\n*{elapsed:.1f}s*"
 
     history = history + [{"role": "assistant", "content": full_response}]
-    fig = _get_current_figure()
-    data_rows = _build_data_table()
-    token_text = _format_tokens()
-    label_choices = _get_label_choices()
-    selected = label_choices[-1] if label_choices else None
-    preview = _preview_data(selected) if selected else None
+
+    # Build sidebar state — wrapped in try/except so the response is ALWAYS
+    # shown even if sidebar helpers fail (prevents stuck "Working..." state).
+    try:
+        fig = _get_current_figure()
+        data_rows = _build_data_table()
+        token_text = _format_tokens()
+        label_choices = _get_label_choices()
+        selected = label_choices[-1] if label_choices else None
+        preview = _preview_data(selected) if selected else None
+        session_update = gr.update(
+            choices=_get_session_choices(), value=_get_active_session_id(),
+        )
+    except Exception as exc:
+        logging.getLogger("helio-agent").warning(
+            f"[GradioApp] Sidebar update failed after response: {exc}"
+        )
+        fig = None
+        data_rows = gr.skip()
+        token_text = gr.skip()
+        label_choices = []
+        selected = None
+        preview = gr.skip()
+        session_update = gr.skip()
 
     # First yield: show response, hide old pills
     yield (
@@ -855,7 +888,7 @@ def respond(message, history: list[dict]):
         data_rows, token_text, None,
         gr.update(choices=label_choices, value=selected),
         preview, "",
-        gr.update(choices=_get_session_choices(), value=_get_active_session_id()),
+        session_update,
         gr.update(visible=False, choices=[], value=None),
     )
     # Second yield: generate and show follow-up suggestions
