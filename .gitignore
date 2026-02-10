@@ -86,6 +86,9 @@ dataset_sizes.json
 dataset_sizes.log
 dataset_sizes_*.log
 
+# CDF file cache (local data downloads)
+cdaweb_data/
+
 # Agent-exported files (figures, data exports at project root)
 *.png
 *.csv

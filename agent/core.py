@@ -48,7 +48,7 @@ from knowledge.hapi_client import (
     validate_parameter_id as hapi_validate_parameter_id,
 )
 from data_ops.store import get_store, DataEntry
-from data_ops.fetch import fetch_hapi_data
+from data_ops.fetch import fetch_data
 from data_ops.custom_ops import run_custom_operation, run_dataframe_creation, run_spectrogram_computation
 
 # Orchestrator sees discovery, web search, conversation, and routing tools
@@ -779,7 +779,7 @@ class OrchestratorAgent:
                     return response
 
             try:
-                result = fetch_hapi_data(
+                result = fetch_data(
                     dataset_id=tool_args["dataset_id"],
                     parameter_id=tool_args["parameter_id"],
                     time_min=fetch_start.strftime("%Y-%m-%dT%H:%M:%SZ"),
@@ -816,12 +816,13 @@ class OrchestratorAgent:
                     ),
                 }
 
+            from config import DATA_BACKEND
             entry = DataEntry(
                 label=label,
                 data=df,
                 units=result["units"],
                 description=result["description"],
-                source="hapi",
+                source=DATA_BACKEND,
             )
             store.put(entry)
             self.logger.debug(f"[DataOps] Stored '{label}' ({len(entry.time)} points)")

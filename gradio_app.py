@@ -185,20 +185,21 @@ def _on_dataset_change(dataset_id: str):
 
 
 def _on_fetch_click(mission, dataset, param, start_time, end_time, history):
-    """Directly fetch HAPI data into the store, then notify the agent."""
+    """Directly fetch data into the store, then notify the agent."""
     if not dataset or not param:
         return history, gr.skip(), gr.skip(), gr.skip(), gr.skip(), gr.skip(), gr.skip(), gr.skip(), gr.skip(), gr.update(visible=False, choices=[], value=None)
 
-    from data_ops.fetch import fetch_hapi_data
+    import config
+    from data_ops.fetch import fetch_data
     from data_ops.store import get_store, DataEntry
 
-    # Convert picker strings to ISO format for HAPI
+    # Convert picker strings to ISO format
     start_iso = (start_time or "").replace(" ", "T") + "Z"
     end_iso = (end_time or "").replace(" ", "T") + "Z"
 
     # Direct fetch — exact IDs, no LLM interpretation
     try:
-        result = fetch_hapi_data(
+        result = fetch_data(
             dataset_id=dataset,
             parameter_id=param,
             time_min=start_iso,
@@ -217,7 +218,7 @@ def _on_fetch_click(mission, dataset, param, start_time, end_time, history):
         data=result["data"],
         units=result["units"],
         description=result["description"],
-        source="hapi",
+        source=config.DATA_BACKEND,
     )
     get_store().put(entry)
     n_points = len(result["data"])
@@ -1898,6 +1899,26 @@ def main():
         refresh_all=args.refresh_all,
         download_hapi_cache=args.download_hapi_cache,
     )
+
+    # Check HAPI availability and auto-fallback to CDF if needed
+    import config
+    from data_ops.fetch import check_hapi_status
+
+    if config.DATA_BACKEND == "hapi":
+        print("Checking HAPI service availability...")
+        if check_hapi_status():
+            print("HAPI service is online.")
+        else:
+            print(
+                "WARNING: CDAWeb HAPI service is unreachable. "
+                "Falling back to direct CDF file download backend."
+            )
+            config.DATA_BACKEND = "cdf"
+
+    if config.DATA_BACKEND == "cdf":
+        print(f"Data backend: CDF (direct file download)")
+    else:
+        print(f"Data backend: HAPI")
 
     # Initialize agent
     print("Initializing agent...")

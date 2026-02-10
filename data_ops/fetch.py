@@ -1,9 +1,13 @@
 """
-HAPI data fetcher — pulls timeseries from CDAWeb into pandas DataFrames.
+Data fetcher — pulls timeseries from CDAWeb into pandas DataFrames.
 
-Reuses HAPI_BASE and get_dataset_info() from knowledge/hapi_client.py
-for metadata (units, size, fill value). Fetches actual data via the
-HAPI /data endpoint in CSV format.
+Supports two backends:
+  - HAPI CSV (default) via CDAWeb's /hapi/data endpoint
+  - CDF file download via CDAWeb's REST API + cdflib
+
+The active backend is controlled by config.DATA_BACKEND ("hapi" or "cdf").
+On startup, check_hapi_status() can probe HAPI availability and trigger
+automatic fallback to the CDF backend.
 """
 
 import io
@@ -120,6 +124,42 @@ def fetch_hapi_data(
         "description": description,
         "fill_value": fill_value,
     }
+
+
+def check_hapi_status(timeout: float = 10) -> bool:
+    """Check whether the CDAWeb HAPI service is reachable.
+
+    Sends a lightweight GET to the /hapi/capabilities endpoint.
+
+    Args:
+        timeout: Request timeout in seconds.
+
+    Returns:
+        True if HAPI responded with HTTP 200, False otherwise.
+    """
+    try:
+        resp = requests.get(f"{HAPI_BASE}/capabilities", timeout=timeout)
+        return resp.status_code == 200
+    except (requests.ConnectionError, requests.Timeout, requests.RequestException):
+        return False
+
+
+def fetch_data(
+    dataset_id: str,
+    parameter_id: str,
+    time_min: str,
+    time_max: str,
+) -> dict:
+    """Route data fetching to the configured backend (HAPI or CDF).
+
+    Reads DATA_BACKEND from config to decide which path to use.
+    Same return format regardless of backend.
+    """
+    import config
+    if config.DATA_BACKEND == "cdf":
+        from data_ops.fetch_cdf import fetch_cdf_data
+        return fetch_cdf_data(dataset_id, parameter_id, time_min, time_max)
+    return fetch_hapi_data(dataset_id, parameter_id, time_min, time_max)
 
 
 def _find_parameter_meta(info: dict, parameter_id: str) -> dict:
