@@ -82,7 +82,8 @@ class MissionAgent(BaseSubAgent):
                 "- Select the best dataset and parameters for the physical quantity requested.\n"
                 "- If a parameter returns all-NaN data, skip it and try another candidate.\n"
                 "- Call fetch_data for each selected parameter.\n"
-                "- After fetching, STOP. Do NOT call get_dataset_docs or describe_data.\n"
+                "- After ALL fetch_data calls succeed, STOP IMMEDIATELY. Do NOT call "
+                "list_fetched_data, get_data_availability, get_dataset_docs, or describe_data.\n"
                 "- Return the stored label(s) and point count as concise text."
             )
         else:

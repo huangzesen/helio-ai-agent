@@ -394,6 +394,7 @@ class PlannerAgent:
                     f"[PlannerAgent] Round 1: status={result['status']}, "
                     f"{len(result.get('tasks', []))} tasks"
                 )
+                self._log_plan_details(result, round_num=1)
 
             return result
 
@@ -473,12 +474,32 @@ class PlannerAgent:
                     f"[PlannerAgent] Next round: status={result['status']}, "
                     f"{len(result.get('tasks', []))} tasks"
                 )
+                self._log_plan_details(result, round_num=round_num)
 
             return result
 
         except Exception as e:
             logger.warning(f"[PlannerAgent] Error in continue_planning: {e}")
             return None
+
+    def _log_plan_details(self, result: dict, round_num: int) -> None:
+        """Log full task details (instructions, candidates, reasoning) for debugging."""
+        if not result:
+            return
+        lines = [f"[PlannerAgent] === Round {round_num} Plan Details ==="]
+        if result.get("reasoning"):
+            lines.append(f"  Reasoning: {result['reasoning']}")
+        for i, task in enumerate(result.get("tasks", []), 1):
+            lines.append(f"  Task {i}:")
+            lines.append(f"    description: {task.get('description', '?')}")
+            lines.append(f"    mission: {task.get('mission', 'null')}")
+            lines.append(f"    instruction: {task.get('instruction', '?')}")
+            candidates = task.get("candidate_datasets")
+            if candidates:
+                lines.append(f"    candidate_datasets: {candidates}")
+        if result.get("summary"):
+            lines.append(f"  Summary: {result['summary']}")
+        logger.debug("\n".join(lines))
 
     def get_token_usage(self) -> dict:
         """Return accumulated token usage."""
