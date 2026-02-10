@@ -285,11 +285,13 @@ class BaseSubAgent:
             self._track_usage(response)
 
             guard = LoopGuard(max_total_calls=10, max_iterations=5)
+            last_stop_reason = None
 
             while True:
                 stop_reason = guard.check_iteration()
                 if stop_reason:
                     self.logger.debug(f"[{self.agent_name}] Stopping: {stop_reason}")
+                    last_stop_reason = stop_reason
                     break
 
                 if not response.candidates or not response.candidates[0].content.parts:
@@ -315,6 +317,7 @@ class BaseSubAgent:
                 stop_reason = guard.check_calls(call_keys)
                 if stop_reason:
                     self.logger.debug(f"[{self.agent_name}] Stopping: {stop_reason}")
+                    last_stop_reason = stop_reason
                     break
 
                 # Execute tools via the shared executor
@@ -359,10 +362,17 @@ class BaseSubAgent:
                         text_parts.append(part.text)
 
             result_text = "\n".join(text_parts) if text_parts else "Done."
-            task.status = TaskStatus.COMPLETED
+
+            if last_stop_reason:
+                task.status = TaskStatus.FAILED
+                task.error = f"Task stopped by loop guard: {last_stop_reason}"
+                result_text += f" [STOPPED: {last_stop_reason}]"
+            else:
+                task.status = TaskStatus.COMPLETED
+
             task.result = result_text
 
-            self.logger.debug(f"[{self.agent_name}] Completed: {task.description}")
+            self.logger.debug(f"[{self.agent_name}] {'Failed' if last_stop_reason else 'Completed'}: {task.description}")
 
             return result_text
 

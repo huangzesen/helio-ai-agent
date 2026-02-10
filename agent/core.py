@@ -157,6 +157,9 @@ class OrchestratorAgent:
         # Cached planner agent
         self._planner_agent: Optional[PlannerAgent] = None
 
+        # Canonical time range for the current plan (reset after plan completes)
+        self._plan_time_range: Optional['TimeRange'] = None
+
         # Session persistence
         self._session_id: Optional[str] = None
         self._session_manager = SessionManager()
@@ -1305,11 +1308,13 @@ class OrchestratorAgent:
 
             # Process tool calls with loop guard
             guard = LoopGuard(max_total_calls=10, max_iterations=5)
+            last_stop_reason = None
 
             while True:
                 stop_reason = guard.check_iteration()
                 if stop_reason:
                     self.logger.debug(f"[Task] Stopping: {stop_reason}")
+                    last_stop_reason = stop_reason
                     break
 
                 if not response.candidates or not response.candidates[0].content.parts:
@@ -1335,6 +1340,7 @@ class OrchestratorAgent:
                 stop_reason = guard.check_calls(call_keys)
                 if stop_reason:
                     self.logger.debug(f"[Task] Stopping: {stop_reason}")
+                    last_stop_reason = stop_reason
                     break
 
                 function_responses = []
@@ -1378,10 +1384,17 @@ class OrchestratorAgent:
                         text_parts.append(part.text)
 
             result_text = "\n".join(text_parts) if text_parts else "Done."
-            task.status = TaskStatus.COMPLETED
+
+            if last_stop_reason:
+                task.status = TaskStatus.FAILED
+                task.error = f"Task stopped by loop guard: {last_stop_reason}"
+                result_text += f" [STOPPED: {last_stop_reason}]"
+            else:
+                task.status = TaskStatus.COMPLETED
+
             task.result = result_text
 
-            self.logger.debug(f"[Task] Completed: {task.description}")
+            self.logger.debug(f"[Task] {'Failed' if last_stop_reason else 'Completed'}: {task.description}")
 
             return result_text
 
@@ -1470,6 +1483,11 @@ class OrchestratorAgent:
         """
         mission_tag = f" [{task.mission}]" if task.mission else ""
         self.logger.debug(f"[Plan]{mission_tag}: {task.description}")
+
+        # Inject canonical time range so all tasks use the same dates
+        if self._plan_time_range:
+            tr_str = self._plan_time_range.to_time_range_string()
+            task.instruction += f"\n\nCanonical time range for this plan: {tr_str}"
 
         # Inject current data-store contents so sub-agents know what's available
         store = get_store()
@@ -1560,14 +1578,58 @@ class OrchestratorAgent:
             task.error = result.get("message", "Export failed")
             task.result = f"Export failed: {task.error}"
 
+    def _extract_time_range(self, text: str):
+        """Try to extract a resolved TimeRange from a user message.
+
+        Uses parse_time_range() on the full text and common sub-patterns.
+        Returns a TimeRange on success, or None if parsing fails.
+        """
+        import re as _re
+
+        # Try the whole text first (works for "ACE mag for 2024-01-01 to 2024-01-15")
+        try:
+            return parse_time_range(text)
+        except (TimeRangeError, ValueError):
+            pass
+
+        # Try to extract a "for <time_expr>" or "from <time_expr>" clause
+        for pattern in [
+            r'\bfor\s+(.+?)(?:\s*$)',
+            r'\bfrom\s+(\d{4}.+?)(?:\s*$)',
+            r'\bduring\s+(.+?)(?:\s*$)',
+            r'(\d{4}-\d{2}-\d{2}\s+to\s+\d{4}-\d{2}-\d{2})',
+            r'(\d{4}-\d{2}-\d{2}T[\d:]+\s+to\s+\d{4}-\d{2}-\d{2}T[\d:]+)',
+            r'((?:last\s+(?:\d+\s+)?(?:week|day|month|year))s?)',
+            r'((?:january|february|march|april|may|june|july|august|september|october|november|december|jan|feb|mar|apr|jun|jul|aug|sep|oct|nov|dec)\s+\d{4})',
+        ]:
+            match = _re.search(pattern, text, _re.IGNORECASE)
+            if match:
+                try:
+                    return parse_time_range(match.group(1).strip())
+                except (TimeRangeError, ValueError):
+                    continue
+
+        return None
+
     def _handle_planning_request(self, user_message: str) -> str:
         """Process a complex multi-step request using the plan-execute-replan loop."""
         self.logger.debug("[PlannerAgent] Starting planner for complex request...")
 
+        # Resolve and store the canonical time range for this plan
+        self._plan_time_range = self._extract_time_range(user_message)
+        if self._plan_time_range:
+            self.logger.debug(f"[PlannerAgent] Resolved time range: {self._plan_time_range.to_time_range_string()}")
+
         planner = self._get_or_create_planner_agent()
 
+        # Build planning message, injecting resolved time range if available
+        planning_msg = user_message
+        if self._plan_time_range:
+            tr_str = self._plan_time_range.to_time_range_string()
+            planning_msg = f"{user_message}\n\nResolved time range: {tr_str}. Use this exact range for ALL fetch tasks."
+
         # Round 1: initial planning
-        response = planner.start_planning(user_message)
+        response = planner.start_planning(planning_msg)
         if response is None:
             self.logger.debug("[PlannerAgent] Planner failed, falling back to direct execution")
             return self._process_single_message(user_message)
@@ -1615,15 +1677,24 @@ class OrchestratorAgent:
             )
             self.logger.debug(format_plan_for_display(plan))
 
-            # Execute batch
+            # Execute batch — snapshot store labels before to detect new data
             round_results = []
             for task in new_tasks:
+                labels_before = set(e['label'] for e in get_store().list_entries())
                 self._execute_plan_task(task, plan)
+                labels_after = set(e['label'] for e in get_store().list_entries())
 
                 # Build an informative result summary for the planner
-                result_text = (task.result or "")[:300]
+                result_text = (task.result or "")[:500]
                 if result_text in ("", "Done.") and task.tool_calls:
                     result_text = f"Tools called: {', '.join(task.tool_calls)}"
+
+                # Append concrete outcome signals
+                new_labels = labels_after - labels_before
+                if new_labels:
+                    result_text += f" | New data labels: {', '.join(sorted(new_labels))}"
+                elif task.status == TaskStatus.FAILED:
+                    result_text += " | No new data added."
 
                 round_results.append({
                     "description": task.description,
@@ -1642,8 +1713,12 @@ class OrchestratorAgent:
             if response.get("status") == "done":
                 break
 
-            # Replan: send results back to planner
-            response = planner.continue_planning(round_results)
+            # Replan: send results back to planner with round budget
+            response = planner.continue_planning(
+                round_results,
+                round_num=round_num,
+                max_rounds=MAX_ROUNDS,
+            )
             if response is None:
                 self.logger.debug("[PlannerAgent] Planner error mid-plan, finalizing")
                 break
@@ -1660,6 +1735,7 @@ class OrchestratorAgent:
 
         summary = self._summarize_plan_execution(plan)
         self._current_plan = None
+        self._plan_time_range = None
 
         return summary
 
@@ -2116,6 +2192,7 @@ Example: ["Compare this with solar wind speed", "Zoom in to January 10-15", "Exp
             config=self.config
         )
         self._current_plan = None
+        self._plan_time_range = None
         self._mission_agents.clear()
         self._viz_agent = None
         self._dataops_agent = None
@@ -2162,6 +2239,7 @@ Example: ["Compare this with solar wind speed", "Zoom in to January 10-15", "Exp
 
         completed = len(plan.get_completed_tasks())
         self._current_plan = None
+        self._plan_time_range = None
 
         return f"Plan cancelled. {completed} task(s) completed, {skipped_count} skipped."
 
@@ -2239,6 +2317,7 @@ Example: ["Compare this with solar wind speed", "Zoom in to January 10-15", "Exp
 
         summary = self._summarize_plan_execution(plan)
         self._current_plan = None
+        self._plan_time_range = None
 
         return summary
 

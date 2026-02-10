@@ -394,11 +394,14 @@ class PlannerAgent:
             logger.warning(f"[PlannerAgent] Error in start_planning: {e}")
             return None
 
-    def continue_planning(self, round_results: list[dict]) -> Optional[dict]:
+    def continue_planning(self, round_results: list[dict],
+                           round_num: int = 0, max_rounds: int = MAX_ROUNDS) -> Optional[dict]:
         """Send execution results back to the planner for the next round.
 
         Args:
             round_results: List of dicts with {description, status, result_summary, error}
+            round_num: Current round number (1-based).
+            max_rounds: Maximum number of rounds allowed.
 
         Returns:
             Dict with {status, reasoning, tasks, summary} or None on failure.
@@ -428,6 +431,26 @@ class PlannerAgent:
                     break
             if data_labels:
                 lines.append(f"\nData currently in memory: {', '.join(data_labels)}")
+
+            # Collect ALL failed task descriptions (current + previous rounds)
+            failed_descs = []
+            for r in round_results:
+                if r.get("status") == "failed":
+                    failed_descs.append(r.get("description", "unknown"))
+            if failed_descs:
+                lines.append("\n## IMPORTANT: The following tasks FAILED and must NOT be retried:")
+                for desc in failed_descs:
+                    lines.append(f"  - {desc}")
+                lines.append("Do NOT create new tasks that attempt the same searches. "
+                             "Proceed with available data or set status='done'.")
+
+            # Round budget awareness
+            remaining = max_rounds - round_num
+            if remaining <= 2 and remaining > 0:
+                lines.append(f"\n## BUDGET WARNING: Only {remaining} round(s) remaining.")
+                lines.append("Prioritize essential tasks. Consider setting status='done' with partial results.")
+            if remaining <= 0:
+                lines.append("\n## FINAL ROUND: This is the last round. Set status='done' unless critical work remains.")
 
             message = "\n".join(lines)
 
