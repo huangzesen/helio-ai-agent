@@ -433,7 +433,15 @@ class OrchestratorAgent:
     def _handle_plot_data(self, tool_args: dict) -> dict:
         """Handle the plot_data tool call."""
         store = get_store()
-        labels = [l.strip() for l in tool_args["labels"].split(",")]
+        # Derive labels from panels if labels not explicitly provided
+        labels_str = tool_args.get("labels", "")
+        if not labels_str and tool_args.get("panels"):
+            labels_str = ",".join(
+                label for panel in tool_args["panels"] for label in panel
+            )
+        if not labels_str:
+            return {"status": "error", "message": "Missing 'labels' parameter"}
+        labels = [l.strip() for l in labels_str.split(",")]
         entries = []
         for label in labels:
             entry = store.get(label)
