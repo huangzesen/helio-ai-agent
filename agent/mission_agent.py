@@ -68,6 +68,17 @@ class MissionAgent(BaseSubAgent):
             return True
         return False
 
+    def _get_task_prompt(self, task: Task) -> str:
+        """Strict task prompt to prevent unnecessary post-fetch tool calls."""
+        return (
+            f"Execute this task: {task.instruction}\n\n"
+            "RULES:\n"
+            "- Do ONLY what the instruction says. Do NOT add extra steps.\n"
+            "- After a successful fetch_data call, STOP. Do NOT call list_fetched_data, "
+            "get_data_availability, list_parameters, describe_data, or get_dataset_docs.\n"
+            "- Return the stored label and point count as concise text."
+        )
+
     def _get_error_context(self, **kwargs) -> dict:
         """Add mission_id to error context."""
         kwargs["mission"] = self.mission_id

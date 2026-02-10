@@ -10,6 +10,7 @@ and visualization in the visualization agent.
 from google import genai
 
 from .base_agent import BaseSubAgent
+from .tasks import Task
 from knowledge.prompt_builder import build_data_ops_prompt
 
 # DataOps agent gets compute tools + list_fetched_data to discover available data
@@ -36,4 +37,17 @@ class DataOpsAgent(BaseSubAgent):
             system_prompt=build_data_ops_prompt(),
             tool_categories=DATAOPS_TOOL_CATEGORIES,
             extra_tool_names=DATAOPS_EXTRA_TOOLS,
+        )
+
+    def _get_task_prompt(self, task: Task) -> str:
+        """Strict task prompt to prevent unnecessary post-compute tool calls."""
+        return (
+            f"Execute this task: {task.instruction}\n\n"
+            "RULES:\n"
+            "- Do ONLY what the instruction says. Do NOT add extra steps.\n"
+            "- After a successful custom_operation or compute_spectrogram, STOP. "
+            "Do NOT call list_fetched_data, describe_data, or preview_data afterward.\n"
+            "- If the operation fails due to wrong column names, call preview_data ONCE "
+            "to check column names, then retry with corrected code.\n"
+            "- Return the output label and point count as concise text."
         )

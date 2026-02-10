@@ -1493,7 +1493,10 @@ class OrchestratorAgent:
         store = get_store()
         entries = store.list_entries()
         if entries:
-            labels = [f"  - {e['label']} ({e['num_points']} pts)" for e in entries]
+            labels = [
+                f"  - {e['label']} (columns: {e.get('columns', [])}, {e['num_points']} pts)"
+                for e in entries
+            ]
             task.instruction += "\n\nData currently in memory:\n" + "\n".join(labels)
 
         special_missions = {"__visualization__", "__data_ops__", "__data_extraction__"}

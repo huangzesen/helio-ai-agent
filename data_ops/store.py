@@ -60,6 +60,7 @@ class DataEntry:
             shape_desc = "scalar" if ncols == 1 else f"vector[{ncols}]"
         result = {
             "label": self.label,
+            "columns": list(self.data.columns),
             "num_points": n,
             "shape": shape_desc,
             "units": self.units,
