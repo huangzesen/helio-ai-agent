@@ -669,7 +669,19 @@ def _get_autocomplete_candidates() -> list[str]:
 # ---------------------------------------------------------------------------
 
 class _ListHandler(logging.Handler):
-    """Logging handler that appends formatted messages to a list (thread-safe)."""
+    """Logging handler that filters log lines for Gradio display.
+
+    Shows thinking/reasoning, plan steps, data operations, and errors.
+    Tool calls and internal plumbing go to the terminal only.
+    """
+
+    _KEY_PREFIXES = (
+        "[Thinking]", "[Plan]", "[DataOps]", "[Search]",
+        "Plan completed:", "Plan failed:",
+    )
+    _KEY_SUBSTRINGS = (
+        "Executing:", "Completed:", "Progress:", "Round ",
+    )
 
     def __init__(self, target_list: list):
         super().__init__(level=logging.DEBUG)
@@ -677,7 +689,19 @@ class _ListHandler(logging.Handler):
         self._target = target_list
 
     def emit(self, record: logging.LogRecord) -> None:
-        self._target.append(self.format(record))
+        msg = self.format(record)
+        stripped = msg.strip()
+        if not stripped:
+            return
+        # Always include warnings/errors
+        if record.levelno >= logging.WARNING:
+            self._target.append(msg)
+            return
+        # Filter to thinking, plan events, data ops, progress
+        if any(stripped.startswith(p) for p in self._KEY_PREFIXES):
+            self._target.append(msg)
+        elif any(s in stripped for s in self._KEY_SUBSTRINGS):
+            self._target.append(msg)
 
 
 def respond(message, history: list[dict]):
@@ -816,13 +840,18 @@ def respond(message, history: list[dict]):
     )
 
     # Stream live progress while the agent works
+    MAX_STREAM_LINES = 80  # keep streaming payload small
     prev_count = 0
     while thread.is_alive():
         thread.join(timeout=0.4)
         elapsed_so_far = time.monotonic() - t0
         if len(log_lines) > prev_count:
             prev_count = len(log_lines)
-            log_text = "\n".join(log_lines)
+            tail = log_lines[-MAX_STREAM_LINES:]
+            truncated = len(log_lines) - len(tail)
+            log_text = "\n".join(tail)
+            if truncated:
+                log_text = f"... ({truncated} earlier lines hidden)\n{log_text}"
             thinking = (
                 f"*Working... ({elapsed_so_far:.1f}s)*\n\n"
                 f"<details open><summary>Live Log ({len(log_lines)} lines)</summary>\n\n"
@@ -854,7 +883,7 @@ def respond(message, history: list[dict]):
         full_response = (
             f"{response_text}\n\n"
             f"*{elapsed:.1f}s*\n\n"
-            f"<details><summary>Debug Log ({len(log_lines)} lines)</summary>\n\n"
+            f"<details><summary>Activity Log ({len(log_lines)} events)</summary>\n\n"
             f"```\n{verbose_text}\n```\n\n</details>"
         )
     else:
