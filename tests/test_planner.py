@@ -11,6 +11,8 @@ from agent.planner import (
     format_plan_for_display,
     PlannerAgent,
     PLANNER_RESPONSE_SCHEMA,
+    PLANNER_TOOL_CATEGORIES,
+    PLANNER_EXTRA_TOOLS,
     MAX_ROUNDS,
 )
 from agent.tasks import Task, TaskPlan, TaskStatus, PlanStatus, create_task, create_plan
@@ -126,6 +128,8 @@ class TestPlannerAgentInterface:
         assert agent._chat is None
         assert agent.model_name == "test-model"
         assert agent.verbose is False
+        assert agent.tool_executor is None
+        assert agent._function_declarations == []
 
     def test_get_token_usage_initial(self):
         """Token usage starts at zero."""
@@ -412,3 +416,83 @@ class TestFormatPlanForDisplay:
         assert "Round" not in output
         assert "Step A" in output
         assert "Step B" in output
+
+
+class TestPlannerAgentWithTools:
+    """Test PlannerAgent tool integration (no API calls needed)."""
+
+    def _dummy_executor(self, tool_name, tool_args):
+        return {"status": "success", "message": "mock"}
+
+    def test_init_with_tool_executor_has_declarations(self):
+        """When tool_executor is provided, function declarations should be built."""
+        agent = PlannerAgent(
+            client=None,
+            model_name="test-model",
+            tool_executor=self._dummy_executor,
+        )
+        assert agent.tool_executor is not None
+        assert len(agent._function_declarations) > 0
+
+    def test_init_without_tool_executor_no_declarations(self):
+        """When tool_executor is None, no function declarations."""
+        agent = PlannerAgent(client=None, model_name="test-model")
+        assert agent.tool_executor is None
+        assert agent._function_declarations == []
+
+    def test_tool_names_include_discovery(self):
+        """Function declarations should include discovery tools."""
+        agent = PlannerAgent(
+            client=None,
+            model_name="test-model",
+            tool_executor=self._dummy_executor,
+        )
+        tool_names = {fd.name for fd in agent._function_declarations}
+        # Discovery tools
+        assert "search_datasets" in tool_names
+        assert "list_parameters" in tool_names
+        assert "get_data_availability" in tool_names
+        assert "browse_datasets" in tool_names
+        assert "get_dataset_docs" in tool_names
+        assert "search_full_catalog" in tool_names
+        # Extra tool
+        assert "list_fetched_data" in tool_names
+
+    def test_tool_names_exclude_routing_and_visualization(self):
+        """Function declarations should NOT include routing or visualization tools."""
+        agent = PlannerAgent(
+            client=None,
+            model_name="test-model",
+            tool_executor=self._dummy_executor,
+        )
+        tool_names = {fd.name for fd in agent._function_declarations}
+        # Routing tools should NOT be present
+        assert "delegate_to_mission" not in tool_names
+        assert "delegate_to_visualization" not in tool_names
+        assert "delegate_to_data_ops" not in tool_names
+        assert "request_planning" not in tool_names
+        # Visualization tools should NOT be present
+        assert "plot_data" not in tool_names
+        assert "style_plot" not in tool_names
+        assert "manage_plot" not in tool_names
+        # Fetch / compute tools should NOT be present
+        assert "fetch_data" not in tool_names
+        assert "custom_operation" not in tool_names
+
+    def test_planner_tool_categories_constant(self):
+        """PLANNER_TOOL_CATEGORIES should be discovery only."""
+        assert PLANNER_TOOL_CATEGORIES == ["discovery"]
+
+    def test_planner_extra_tools_constant(self):
+        """PLANNER_EXTRA_TOOLS should include list_fetched_data."""
+        assert "list_fetched_data" in PLANNER_EXTRA_TOOLS
+
+    def test_has_run_discovery_method(self):
+        """PlannerAgent should have a _run_discovery method for two-phase planning."""
+        assert hasattr(PlannerAgent, "_run_discovery")
+        agent = PlannerAgent(
+            client=None,
+            model_name="test-model",
+            tool_executor=self._dummy_executor,
+        )
+        assert callable(agent._run_discovery)

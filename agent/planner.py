@@ -17,9 +17,15 @@ from google.genai import types
 from .logging import get_logger
 from .model_fallback import get_active_model
 from .tasks import Task, TaskPlan, create_task, create_plan
-from knowledge.prompt_builder import build_planner_agent_prompt
+from .tools import get_tool_schemas
+from .tool_loop import run_tool_loop, extract_text_from_response
+from knowledge.prompt_builder import build_planner_agent_prompt, build_discovery_prompt
 
 logger = get_logger()
+
+# Tool categories the planner can use for dataset discovery
+PLANNER_TOOL_CATEGORIES = ["discovery"]
+PLANNER_EXTRA_TOOLS = ["list_fetched_data"]
 
 MAX_ROUNDS = 5
 
@@ -116,16 +122,38 @@ PLANNER_RESPONSE_SCHEMA = {
 class PlannerAgent:
     """Chat-based planner that decomposes complex requests into task batches.
 
-    Uses a stateful Gemini chat session with structured JSON output.
-    The planner emits task batches, observes execution results, and adapts.
+    Uses a two-phase approach when tools are available:
+    1. **Discovery phase**: A tool-calling session verifies dataset IDs and
+       parameter names via discovery tools (search_datasets, list_parameters, etc.).
+    2. **Planning phase**: A JSON-schema-enforced session produces the task plan,
+       enriched with the discovery context from phase 1.
+
+    Without a tool_executor, skips the discovery phase (legacy mode).
+    The planning phase always uses JSON schema enforcement for guaranteed output.
     """
 
-    def __init__(self, client: genai.Client, model_name: str, verbose: bool = False):
+    def __init__(self, client: genai.Client, model_name: str,
+                 tool_executor=None, verbose: bool = False):
         self.client = client
         self.model_name = model_name
+        self.tool_executor = tool_executor
         self.verbose = verbose
         self._chat = None
         self._token_usage = {"input_tokens": 0, "output_tokens": 0, "thinking_tokens": 0}
+
+        # Build function declarations when tools are available
+        self._function_declarations = []
+        if self.tool_executor is not None:
+            for tool_schema in get_tool_schemas(
+                categories=PLANNER_TOOL_CATEGORIES,
+                extra_names=PLANNER_EXTRA_TOOLS,
+            ):
+                fd = types.FunctionDeclaration(
+                    name=tool_schema["name"],
+                    description=tool_schema["description"],
+                    parameters=tool_schema["parameters"],
+                )
+                self._function_declarations.append(fd)
 
     def _track_usage(self, response):
         """Accumulate token usage from a Gemini response."""
@@ -141,7 +169,11 @@ class PlannerAgent:
                 logger.debug(f"[Thinking] {preview}")
 
     def _parse_response(self, response) -> Optional[dict]:
-        """Parse JSON response from Gemini, normalizing mission fields."""
+        """Parse JSON response from Gemini, normalizing mission fields.
+
+        The planning phase always uses JSON schema enforcement, so the
+        response text is guaranteed to be valid JSON.
+        """
         try:
             text = response.text
             if not text:
@@ -159,8 +191,65 @@ class PlannerAgent:
             logger.warning(f"[PlannerAgent] Failed to parse response: {e}")
             return None
 
+    def _run_discovery(self, user_request: str) -> str:
+        """Phase 1: Run discovery tools to gather dataset/parameter info.
+
+        Creates a one-shot tool-calling chat that researches the user's request
+        and returns a text summary of what it found.
+
+        Args:
+            user_request: The user's original request.
+
+        Returns:
+            Text summary of discovery findings (may be empty if no tools called).
+        """
+        discovery_prompt = build_discovery_prompt()
+
+        config = types.GenerateContentConfig(
+            system_instruction=discovery_prompt,
+            tools=[types.Tool(function_declarations=self._function_declarations)],
+            thinking_config=types.ThinkingConfig(
+                include_thoughts=True,
+                thinking_level="LOW",
+            ),
+        )
+
+        chat = self.client.chats.create(
+            model=get_active_model(self.model_name),
+            config=config,
+        )
+
+        if self.verbose:
+            logger.debug(f"[PlannerAgent] Discovery phase for: {user_request[:80]}...")
+
+        response = chat.send_message(user_request)
+        self._track_usage(response)
+
+        response = run_tool_loop(
+            chat=chat,
+            response=response,
+            tool_executor=self.tool_executor,
+            agent_name="PlannerAgent/Discovery",
+            max_total_calls=10,
+            max_iterations=5,
+            track_usage=self._track_usage,
+        )
+
+        text = extract_text_from_response(response)
+        if self.verbose and text:
+            preview = text[:200] + "..." if len(text) > 200 else text
+            logger.debug(f"[PlannerAgent] Discovery result: {preview}")
+
+        return text
+
     def start_planning(self, user_request: str) -> Optional[dict]:
         """Begin planning by sending the user request to a fresh chat.
+
+        When tools are available, runs a two-phase process:
+        1. Discovery phase — calls tools to verify datasets/parameters.
+        2. Planning phase — JSON-schema-enforced chat produces the task plan.
+
+        Without tools, goes straight to the planning phase.
 
         Args:
             user_request: The user's original request.
@@ -169,6 +258,12 @@ class PlannerAgent:
             Dict with {status, reasoning, tasks, summary} or None on failure.
         """
         try:
+            # Phase 1: Discovery (only when tools are available)
+            discovery_context = ""
+            if self._function_declarations and self.tool_executor:
+                discovery_context = self._run_discovery(user_request)
+
+            # Phase 2: Planning (always JSON-schema-enforced)
             system_prompt = build_planner_agent_prompt()
 
             config = types.GenerateContentConfig(
@@ -186,10 +281,21 @@ class PlannerAgent:
                 config=config,
             )
 
+            # Build the planning message with discovery context
+            if discovery_context:
+                planning_message = (
+                    f"{user_request}\n\n"
+                    f"## Discovery Results\n\n"
+                    f"The following dataset and parameter information was verified:\n\n"
+                    f"{discovery_context}"
+                )
+            else:
+                planning_message = user_request
+
             if self.verbose:
                 logger.debug(f"[PlannerAgent] Starting planning for: {user_request[:80]}...")
 
-            response = self._chat.send_message(user_request)
+            response = self._chat.send_message(planning_message)
             self._track_usage(response)
 
             result = self._parse_response(response)

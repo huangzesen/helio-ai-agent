@@ -682,6 +682,27 @@ class OrchestratorAgent:
                     f"{adjustment_note}"
                 )
 
+            # Dedup: skip fetch if identical data already exists in store
+            label = f"{tool_args['dataset_id']}.{tool_args['parameter_id']}"
+            store = get_store()
+            existing = store.get(label)
+            if existing is not None and len(existing.data) > 0:
+                existing_start = existing.data.index[0].to_pydatetime().replace(tzinfo=None)
+                existing_end = existing.data.index[-1].to_pydatetime().replace(tzinfo=None)
+                if existing_start <= fetch_start and existing_end >= fetch_end:
+                    self.logger.debug(
+                        f"[DataOps] Dedup: '{label}' already in memory "
+                        f"({existing_start} to {existing_end}), skipping fetch"
+                    )
+                    response = {
+                        "status": "success",
+                        "already_loaded": True,
+                        **existing.summary(),
+                    }
+                    if adjustment_note:
+                        response["time_range_note"] = adjustment_note
+                    return response
+
             try:
                 result = fetch_hapi_data(
                     dataset_id=tool_args["dataset_id"],
@@ -691,7 +712,6 @@ class OrchestratorAgent:
                 )
             except Exception as e:
                 return {"status": "error", "message": str(e)}
-            label = f"{tool_args['dataset_id']}.{tool_args['parameter_id']}"
             entry = DataEntry(
                 label=label,
                 data=result["data"],
@@ -699,7 +719,6 @@ class OrchestratorAgent:
                 description=result["description"],
                 source="hapi",
             )
-            store = get_store()
             store.put(entry)
             self.logger.debug(f"[DataOps] Stored '{label}' ({len(entry.time)} points)")
             response = {"status": "success", **entry.summary()}
@@ -1038,6 +1057,19 @@ class OrchestratorAgent:
             self.logger.debug(f"[Router] Delegating to {mission_id} specialist")
             try:
                 agent = self._get_or_create_mission_agent(mission_id)
+                # Inject current data store contents so mission agent knows what's loaded
+                store = get_store()
+                entries = store.list_entries()
+                if entries:
+                    labels = [
+                        f"  - {e['label']} ({e['num_points']} pts, {e['time_min']} to {e['time_max']})"
+                        for e in entries
+                    ]
+                    request += (
+                        "\n\nData currently in memory:\n"
+                        + "\n".join(labels)
+                        + "\nDo NOT re-fetch data that is already in memory with a matching label and time range."
+                    )
                 sub_result = agent.process_request(request)
                 return {
                     "status": "success",
@@ -1382,6 +1414,7 @@ class OrchestratorAgent:
             self._planner_agent = PlannerAgent(
                 client=self.client,
                 model_name=GEMINI_PLANNER_MODEL,
+                tool_executor=self._execute_tool_safe,
                 verbose=self.verbose,
             )
             self.logger.debug(f"[Router] Created PlannerAgent ({GEMINI_PLANNER_MODEL})")

@@ -303,7 +303,14 @@ def build_mission_prompt(mission_id: str) -> str:
     # --- Data Operations Documentation ---
     lines.append("## Data Operations Workflow")
     lines.append("")
-    lines.append("1. **When given an exact dataset ID and parameter**: Call `fetch_data` DIRECTLY.")
+    lines.append("**IMPORTANT — Avoid duplicate fetches:**")
+    lines.append("0. **Before fetching ANY data**, check if it is already in memory.")
+    lines.append("   The request may include a 'Data currently in memory' section — read it carefully.")
+    lines.append("   If a label like `DATASET.PARAM` already exists with a time range that covers your")
+    lines.append("   request, do NOT call fetch_data again. Just report the existing label.")
+    lines.append("")
+    lines.append("1. **When given an exact dataset ID and parameter**: Call `fetch_data` DIRECTLY")
+    lines.append("   (unless the data is already in memory — see rule 0).")
     lines.append("   Do NOT call browse_datasets or search_datasets first — go straight to fetch_data.")
     lines.append("   The caller has already identified the dataset and parameter for you.")
     lines.append("2. **When given a vague request** (e.g., \"get magnetic field data\"): Use your recommended")
@@ -940,3 +947,41 @@ Round 3 response:
 {{"status": "done", "reasoning": "All data ready, plotting comparison", "tasks": [
   {{"description": "Plot comparison", "instruction": "Use plot_data to plot ACE_Bmag and Wind_Bmag together with title 'ACE vs Wind Magnetic Field Magnitude'", "mission": "__visualization__"}}
 ], "summary": "Fetched ACE and Wind magnetic field data, computed magnitudes, and plotted them together."}}"""
+
+
+def build_discovery_prompt() -> str:
+    """Build the system prompt for the planner's discovery phase.
+
+    This prompt guides a tool-calling session that researches datasets and
+    parameters before the planning phase produces the task plan.
+
+    Returns:
+        System prompt string for the discovery agent.
+    """
+    return """You are a dataset discovery assistant for a heliophysics data tool.
+
+Your job is to research the user's request by calling discovery tools, then
+summarize what you found so a planning agent can create an accurate task plan.
+
+## What To Do
+
+1. Identify which datasets and parameters the user's request involves.
+2. Call `list_parameters(dataset_id)` to verify the exact parameter names.
+3. If unsure which dataset to use, call `search_datasets(query)` or
+   `browse_datasets(mission_id)` to find candidates.
+4. Call `list_fetched_data()` to check what data is already in memory.
+5. Summarize your findings as structured text.
+
+## Output Format
+
+After finishing tool calls, respond with a concise summary listing:
+- Each dataset ID and its verified parameter names
+- Any data already in memory (labels)
+- Any issues found (dataset not available, parameter not found, etc.)
+
+Example output:
+  Dataset AC_H2_MFI: parameters BGSEc (nT, vector[3]), Magnitude (nT)
+  Dataset WI_H2_MFI: parameters BGSE (nT, vector[3]), BF1 (nT)
+  Data in memory: AC_H2_MFI.BGSEc (5040 pts)
+
+Be concise — this summary will be passed to the planning agent."""

@@ -19,6 +19,7 @@ from knowledge.prompt_builder import (
     build_system_prompt,
     build_planner_agent_prompt,
     build_visualization_prompt,
+    build_discovery_prompt,
 )
 
 
@@ -334,6 +335,27 @@ class TestBuildPlannerAgentPrompt:
     def test_contains_routing_table(self):
         prompt = build_planner_agent_prompt()
         assert "Known Missions" in prompt
+
+
+class TestBuildDiscoveryPrompt:
+    """Test the discovery phase prompt for the planner."""
+
+    def test_returns_nonempty_string(self):
+        prompt = build_discovery_prompt()
+        assert isinstance(prompt, str)
+        assert len(prompt) > 100
+
+    def test_mentions_list_parameters(self):
+        prompt = build_discovery_prompt()
+        assert "list_parameters" in prompt
+
+    def test_mentions_search_datasets(self):
+        prompt = build_discovery_prompt()
+        assert "search_datasets" in prompt
+
+    def test_mentions_output_format(self):
+        prompt = build_discovery_prompt()
+        assert "summary" in prompt.lower()
 
 
 class TestBuildDataOpsPrompt:
