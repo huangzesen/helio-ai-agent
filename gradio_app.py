@@ -1157,6 +1157,13 @@ footer { display: none !important; }
     max-height: 90vh !important;
 }
 
+/* ---- Log code blocks: wrap long lines ---- */
+.chat-window .message-row details pre,
+.chat-window .message-row details code {
+    white-space: pre-wrap !important;
+    word-break: break-word !important;
+}
+
 /* ---- Input textbox ---- */
 .chat-input textarea {
     border-radius: 10px !important;

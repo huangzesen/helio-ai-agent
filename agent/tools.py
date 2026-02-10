@@ -228,6 +228,10 @@ Do NOT call this tool when the request cannot be expressed as a pandas/numpy ope
                 "description": {
                     "type": "string",
                     "description": "Human-readable description of the operation"
+                },
+                "units": {
+                    "type": "string",
+                    "description": "Physical units of the result (e.g., 'nT', 'km/s', 'nT/s', 'cm^-3'). If omitted, inherits from source. Set explicitly when the operation changes dimensions (e.g., derivative adds '/s', multiply changes units, normalize produces dimensionless '')."
                 }
             },
             "required": ["source_label", "pandas_code", "output_label", "description"]

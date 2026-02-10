@@ -329,13 +329,15 @@ class OrchestratorAgent:
         }
 
     def _validate_time_range(self, dataset_id: str, start, end) -> dict | None:
-        """Check and clamp a requested time range to a dataset's availability.
+        """Check a requested time range against a dataset's availability.
 
-        Auto-adjusts the time range to fit the available data window:
+        Validates and adjusts the time range:
         - Fully within range → returns None (no adjustment needed)
         - Partial overlap → clamps to available window
-        - No overlap (after stop) → shifts window to end at available stop
-        - No overlap (before start) → shifts window to start at available start
+        - No overlap → returns error dict (does NOT silently shift)
+
+        Note: This validates dataset-level availability only. Individual
+        parameters may still return all-NaN data within a valid range.
 
         Args:
             dataset_id: CDAWeb dataset ID
@@ -347,6 +349,7 @@ class OrchestratorAgent:
                 - "start": clamped start datetime
                 - "end": clamped end datetime
                 - "note": human-readable note about the adjustment
+            Returns error dict with "status"="error" if no overlap.
             Returns None if the HAPI call fails (fail-open).
         """
         from datetime import datetime, timezone
@@ -441,10 +444,26 @@ class OrchestratorAgent:
                 return {"status": "error", "message": f"Label '{label}' not found in memory"}
             entries.append(entry)
 
+        # Auto-split into panels by units when panels not explicitly provided
+        panels = tool_args.get("panels")
+        if panels is None and len(entries) > 1:
+            unit_groups: dict[str, list[str]] = {}
+            for entry in entries:
+                unit_key = (entry.units or "").strip() or "_dimensionless_"
+                unit_groups.setdefault(unit_key, []).append(entry.label)
+            if len(unit_groups) > 1:
+                panels = list(unit_groups.values())
+                self.logger.debug(
+                    f"[PlotReview] Auto-split into {len(panels)} panels by units: "
+                    + ", ".join(
+                        f"{k}: {v}" for k, v in unit_groups.items()
+                    )
+                )
+
         try:
             result = self._renderer.plot_data(
                 entries=entries,
-                panels=tool_args.get("panels"),
+                panels=panels,
                 title=tool_args.get("title", ""),
                 plot_type=tool_args.get("plot_type", "line"),
                 colorscale=tool_args.get("colorscale", "Viridis"),
@@ -716,9 +735,24 @@ class OrchestratorAgent:
                 )
             except Exception as e:
                 return {"status": "error", "message": str(e)}
+            # Detect all-NaN fetches (parameter has no real data in range)
+            df = result["data"]
+            numeric_cols = df.select_dtypes(include="number")
+            if len(df) > 0 and len(numeric_cols.columns) > 0 and numeric_cols.isna().all(axis=None):
+                return {
+                    "status": "error",
+                    "message": (
+                        f"Parameter '{tool_args['parameter_id']}' in dataset "
+                        f"'{tool_args['dataset_id']}' returned {len(df)} rows "
+                        f"but ALL values are fill/NaN — no real data available "
+                        f"for this parameter in the requested time range. "
+                        f"Try a different parameter or dataset."
+                    ),
+                }
+
             entry = DataEntry(
                 label=label,
-                data=result["data"],
+                data=df,
                 units=result["units"],
                 description=result["description"],
                 source="hapi",
@@ -747,10 +781,11 @@ class OrchestratorAgent:
             except RuntimeError as e:
                 return {"status": "error", "message": f"Execution error: {e}"}
             desc = tool_args.get("description", f"Custom operation on {source.label}")
+            units = tool_args.get("units", source.units)
             entry = DataEntry(
                 label=tool_args["output_label"],
                 data=result_df,
-                units=source.units,
+                units=units,
                 description=desc,
                 source="computed",
             )
