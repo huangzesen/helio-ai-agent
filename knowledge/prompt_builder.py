@@ -300,6 +300,16 @@ def build_mission_prompt(mission_id: str) -> str:
     lines.append("  are merged products from COHOWeb/HelioWeb — also valid for fetch_data.")
     lines.append("")
 
+    # --- Bounded Data Selection ---
+    lines.append("## Bounded Data Selection")
+    lines.append("")
+    lines.append("The `fetch_data` tool pre-validates dataset and parameter IDs against the")
+    lines.append("local HAPI metadata cache. If you pass a dataset_id or parameter_id that")
+    lines.append("doesn't exist in the cache, the call is rejected immediately with a helpful")
+    lines.append("error — no network request is wasted. Always use exact IDs from your")
+    lines.append("recommended datasets or from `browse_datasets` / `list_parameters` results.")
+    lines.append("")
+
     # --- Data Operations Documentation ---
     lines.append("## Data Operations Workflow")
     lines.append("")
@@ -928,6 +938,12 @@ Tag each task with the "mission" field:
 14. If a task FAILED, NEVER recreate it. Failed searches are definitive.
 15. Prefer status='done' with partial data over continued searching.
 
+## Bounded Data Selection
+
+For fetch tasks, include the `dataset_id` and `parameter_id` fields in the task object
+for traceability. These are validated against the local HAPI cache — any unknown ID
+is rejected immediately without a network call. Only use IDs from the Discovery Results.
+
 ## Task Instruction Format
 
 Every fetch_data instruction MUST include the exact dataset_id and parameter name.
@@ -991,14 +1007,26 @@ The #1 most important thing you do is call `list_parameters(dataset_id)` to get
 the EXACT parameter names for each dataset. The planning agent will use these
 names verbatim in fetch_data calls. If you return wrong names, everything fails.
 
+## Discovery Hierarchy (Bounded Data Selection)
+
+Dataset and parameter selection is strictly bounded by the local HAPI cache.
+The `fetch_data` tool validates all IDs against cached metadata and rejects
+unknown dataset or parameter IDs immediately — no network call is wasted.
+
+Use this 3-level lookup:
+1. `list_missions()` — see all available missions and dataset counts
+2. `browse_datasets(mission_id)` — list all science datasets for a mission
+3. `list_parameters(dataset_id)` — get exact parameter names for a dataset
+
 ## Workflow
 
 1. Identify which spacecraft/instruments the user's request involves.
-2. Call `browse_datasets(mission_id)` or `search_datasets(query)` to find candidate dataset IDs.
-3. For EACH candidate dataset, call `list_parameters(dataset_id)` to get exact
+2. Call `list_missions()` if unsure which missions are available.
+3. Call `browse_datasets(mission_id)` or `search_datasets(query)` to find candidate dataset IDs.
+4. For EACH candidate dataset, call `list_parameters(dataset_id)` to get exact
    parameter names. This is the most important step — do NOT skip it.
-4. Call `list_fetched_data()` to check what data is already in memory.
-5. Summarize your findings as structured text.
+5. Call `list_fetched_data()` to check what data is already in memory.
+6. Summarize your findings as structured text.
 
 ## Rules
 

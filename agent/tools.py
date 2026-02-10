@@ -96,6 +96,21 @@ Each entry has: id, description, start_date, stop_date, parameter_count, instrum
     },
     {
         "category": "discovery",
+        "name": "list_missions",
+        "description": """List all missions with cached HAPI metadata. Use this when:
+- User asks "what missions/spacecraft are available?"
+- You need to see which missions have local data before browsing datasets
+- You want a quick overview of the data catalog
+
+Returns mission IDs and dataset counts. No parameters required.""",
+        "parameters": {
+            "type": "object",
+            "properties": {},
+            "required": []
+        }
+    },
+    {
+        "category": "discovery",
         "name": "get_dataset_docs",
         "description": """Look up detailed CDAWeb documentation for a dataset. Use this when:
 - User asks about coordinate systems, calibration, or data quality

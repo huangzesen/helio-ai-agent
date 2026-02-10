@@ -51,6 +51,8 @@ class Task:
     error: Optional[str] = None
     tool_calls: list[str] = field(default_factory=list)
     round: int = 0
+    dataset_id: Optional[str] = None
+    parameter_id: Optional[str] = None
 
     def to_dict(self) -> dict:
         """Convert to JSON-serializable dictionary."""
@@ -65,6 +67,8 @@ class Task:
             "error": self.error,
             "tool_calls": self.tool_calls,
             "round": self.round,
+            "dataset_id": self.dataset_id,
+            "parameter_id": self.parameter_id,
         }
 
     @classmethod
@@ -81,6 +85,8 @@ class Task:
             error=data.get("error"),
             tool_calls=data.get("tool_calls", []),
             round=data.get("round", 0),
+            dataset_id=data.get("dataset_id"),
+            parameter_id=data.get("parameter_id"),
         )
 
 

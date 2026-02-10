@@ -40,7 +40,13 @@ from rendering.registry import get_method
 from rendering.plotly_renderer import PlotlyRenderer
 from knowledge.catalog import search_by_keywords
 from knowledge.cdaweb_catalog import search_catalog as search_full_cdaweb_catalog
-from knowledge.hapi_client import list_parameters as hapi_list_parameters, get_dataset_time_range
+from knowledge.hapi_client import (
+    list_parameters as hapi_list_parameters,
+    get_dataset_time_range,
+    list_missions as hapi_list_missions,
+    validate_dataset_id as hapi_validate_dataset_id,
+    validate_parameter_id as hapi_validate_parameter_id,
+)
 from data_ops.store import get_store, DataEntry
 from data_ops.fetch import fetch_hapi_data
 from data_ops.custom_ops import run_custom_operation, run_dataframe_creation, run_spectrogram_computation
@@ -636,6 +642,10 @@ class OrchestratorAgent:
             return {"status": "success", "mission_id": mission_id,
                     "dataset_count": len(datasets), "datasets": datasets}
 
+        elif tool_name == "list_missions":
+            missions = hapi_list_missions()
+            return {"status": "success", "missions": missions, "count": len(missions)}
+
         elif tool_name == "get_dataset_docs":
             from knowledge.hapi_client import get_dataset_docs
             docs = get_dataset_docs(tool_args["dataset_id"])
@@ -700,6 +710,17 @@ class OrchestratorAgent:
         # --- Data Operations Tools ---
 
         elif tool_name == "fetch_data":
+            # Pre-fetch validation: reject dataset/parameter IDs not in local cache
+            ds_validation = hapi_validate_dataset_id(tool_args["dataset_id"])
+            if not ds_validation["valid"]:
+                return {"status": "error", "message": ds_validation["message"]}
+
+            param_validation = hapi_validate_parameter_id(
+                tool_args["dataset_id"], tool_args["parameter_id"]
+            )
+            if not param_validation["valid"]:
+                return {"status": "error", "message": param_validation["message"]}
+
             try:
                 time_range = parse_time_range(tool_args["time_range"])
             except TimeRangeError as e:
@@ -1698,6 +1719,8 @@ class OrchestratorAgent:
                     mission=mission,
                 )
                 task.round = round_num
+                task.dataset_id = td.get("dataset_id")
+                task.parameter_id = td.get("parameter_id")
                 new_tasks.append(task)
 
             plan.add_tasks(new_tasks)
@@ -1736,6 +1759,16 @@ class OrchestratorAgent:
                     result_text += f" | New data labels: {', '.join(sorted(new_labels))}"
                 elif task.status == TaskStatus.FAILED:
                     result_text += " | No new data added."
+
+                # Post-execution validation: check expected data landed in store
+                if (task.dataset_id and task.parameter_id
+                        and task.status == TaskStatus.COMPLETED):
+                    expected_label = f"{task.dataset_id}.{task.parameter_id}"
+                    if expected_label not in labels_after:
+                        result_text += (
+                            f" | WARNING: Expected label '{expected_label}' "
+                            f"not found in store after task completion."
+                        )
 
                 round_results.append({
                     "description": task.description,

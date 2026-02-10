@@ -107,6 +107,8 @@ PLANNER_RESPONSE_SCHEMA = {
                     "description": {"type": "string"},
                     "instruction": {"type": "string"},
                     "mission": {"type": "string"},
+                    "dataset_id": {"type": "string"},
+                    "parameter_id": {"type": "string"},
                 },
                 "required": ["description", "instruction"],
             },

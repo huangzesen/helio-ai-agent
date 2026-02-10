@@ -232,6 +232,121 @@ def browse_datasets(mission_id: str) -> Optional[list[dict]]:
     return result
 
 
+def list_missions() -> list[dict]:
+    """List all missions that have cached HAPI metadata on disk.
+
+    Scans for _index.json files across all mission directories.
+    Pure filesystem lookup — no network.
+
+    Returns:
+        List of dicts with mission_id and dataset_count.
+    """
+    results = []
+    for mission_dir in sorted(_MISSIONS_DIR.iterdir()):
+        if not mission_dir.is_dir():
+            continue
+        index_path = mission_dir / "hapi" / "_index.json"
+        if not index_path.exists():
+            continue
+        try:
+            index = json.loads(index_path.read_text(encoding="utf-8"))
+            results.append({
+                "mission_id": index.get("mission_id", mission_dir.name.upper()),
+                "dataset_count": index.get("dataset_count", len(index.get("datasets", []))),
+            })
+        except (json.JSONDecodeError, OSError):
+            continue
+    return results
+
+
+def validate_dataset_id(dataset_id: str) -> dict:
+    """Check if a dataset ID exists in the local HAPI cache.
+
+    Uses _find_local_cache() to check all mission directories.
+    No network call is made.
+
+    Args:
+        dataset_id: CDAWeb dataset ID (e.g., "AC_H2_MFI").
+
+    Returns:
+        Dict with valid (bool), mission_id (str|None), message (str).
+    """
+    cache_path = _find_local_cache(dataset_id)
+    if cache_path is not None:
+        # Extract mission_id from the path: .../missions/{mission}/hapi/{file}.json
+        mission_id = cache_path.parent.parent.name.upper()
+        return {
+            "valid": True,
+            "mission_id": mission_id,
+            "message": f"Dataset '{dataset_id}' found in {mission_id} cache.",
+        }
+    return {
+        "valid": False,
+        "mission_id": None,
+        "message": (
+            f"Dataset '{dataset_id}' not found in local HAPI cache. "
+            f"Use browse_datasets(mission_id) to see available datasets."
+        ),
+    }
+
+
+def validate_parameter_id(dataset_id: str, parameter_id: str) -> dict:
+    """Check if a parameter ID exists in a cached dataset's metadata.
+
+    Reads the cached dataset JSON directly — no network call.
+
+    Args:
+        dataset_id: CDAWeb dataset ID.
+        parameter_id: Parameter name to validate.
+
+    Returns:
+        Dict with valid (bool), available_parameters (list[str]), message (str).
+    """
+    cache_path = _find_local_cache(dataset_id)
+    if cache_path is None:
+        return {
+            "valid": False,
+            "available_parameters": [],
+            "message": (
+                f"Cannot validate parameter — dataset '{dataset_id}' "
+                f"not found in local HAPI cache."
+            ),
+        }
+
+    try:
+        info = json.loads(cache_path.read_text(encoding="utf-8"))
+    except (json.JSONDecodeError, OSError):
+        return {
+            "valid": False,
+            "available_parameters": [],
+            "message": f"Cannot read cache file for dataset '{dataset_id}'.",
+        }
+
+    # Collect all non-Time parameter names
+    available = [
+        p["name"]
+        for p in info.get("parameters", [])
+        if p.get("name", "").lower() != "time"
+    ]
+
+    if parameter_id in available:
+        return {
+            "valid": True,
+            "available_parameters": available,
+            "message": f"Parameter '{parameter_id}' is valid for dataset '{dataset_id}'.",
+        }
+
+    return {
+        "valid": False,
+        "available_parameters": available,
+        "message": (
+            f"Parameter '{parameter_id}' not found in dataset '{dataset_id}'. "
+            f"Available parameters: {', '.join(available)}. "
+            f"Use list_parameters('{dataset_id}') for details."
+        ),
+    }
+
+
 class _HTMLToText(HTMLParser):
     """Minimal HTML-to-text converter using stdlib HTMLParser.
 

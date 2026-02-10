@@ -19,6 +19,9 @@ from knowledge.hapi_client import (
     list_parameters,
     list_cached_datasets,
     browse_datasets,
+    list_missions,
+    validate_dataset_id,
+    validate_parameter_id,
     clear_cache,
 )
 
@@ -94,6 +97,45 @@ def fake_missions_dir(tmp_path):
     # Write _index.json
     index_file = psp_hapi / "_index.json"
     index_file.write_text(json.dumps(SAMPLE_INDEX), encoding="utf-8")
+
+    # Create ACE cache (second mission for list_missions tests)
+    ace_hapi = missions_dir / "ace" / "hapi"
+    ace_hapi.mkdir(parents=True)
+    ace_index = {
+        "mission_id": "ACE",
+        "dataset_count": 1,
+        "generated_at": "2026-02-07T00:00:00Z",
+        "datasets": [
+            {
+                "id": "AC_H2_MFI",
+                "description": "ACE MFI Level 2 Data",
+                "start_date": "1998-01-01",
+                "stop_date": "2025-12-31",
+                "parameter_count": 2,
+                "instrument": "MFI",
+            },
+        ],
+    }
+    ace_index_file = ace_hapi / "_index.json"
+    ace_index_file.write_text(json.dumps(ace_index), encoding="utf-8")
+    ace_cache = ace_hapi / "AC_H2_MFI.json"
+    ace_hapi_info = {
+        "HAPI": "3.0",
+        "startDate": "1998-01-01T00:00:00.000Z",
+        "stopDate": "2025-12-31T00:00:00.000Z",
+        "parameters": [
+            {"name": "Time", "type": "isotime", "units": "UTC", "length": 24},
+            {"name": "BGSEc", "type": "double", "units": "nT", "size": [3],
+             "description": "Magnetic field in GSE coordinates"},
+            {"name": "Magnitude", "type": "double", "units": "nT", "size": [1],
+             "description": "Total magnetic field"},
+        ],
+    }
+    ace_cache.write_text(json.dumps(ace_hapi_info), encoding="utf-8")
+
+    # Create a dir without _index.json (should be skipped by list_missions)
+    empty_mission = missions_dir / "empty_mission" / "hapi"
+    empty_mission.mkdir(parents=True)
 
     # Also create a non-directory file (the psp.json mission file)
     mission_file = missions_dir / "psp.json"
@@ -267,3 +309,97 @@ class TestBrowseDatasets:
         with patch("knowledge.hapi_client._MISSIONS_DIR", fake_missions_dir):
             result = browse_datasets("NONEXISTENT")
             assert result is None
+
+
+class TestListMissions:
+    def test_returns_correct_structure(self, fake_missions_dir):
+        """list_missions returns list of dicts with mission_id and dataset_count."""
+        with patch("knowledge.hapi_client._MISSIONS_DIR", fake_missions_dir):
+            missions = list_missions()
+            assert isinstance(missions, list)
+            assert len(missions) >= 2  # PSP and ACE
+            for m in missions:
+                assert "mission_id" in m
+                assert "dataset_count" in m
+
+    def test_includes_missions_with_index(self, fake_missions_dir):
+        """list_missions includes missions that have _index.json."""
+        with patch("knowledge.hapi_client._MISSIONS_DIR", fake_missions_dir):
+            missions = list_missions()
+            ids = [m["mission_id"] for m in missions]
+            assert "PSP" in ids
+            assert "ACE" in ids
+
+    def test_skips_dirs_without_index(self, fake_missions_dir):
+        """list_missions skips mission dirs that have no _index.json."""
+        with patch("knowledge.hapi_client._MISSIONS_DIR", fake_missions_dir):
+            missions = list_missions()
+            ids = [m["mission_id"] for m in missions]
+            assert "EMPTY_MISSION" not in ids
+
+    def test_skips_non_directories(self, fake_missions_dir):
+        """list_missions skips non-directory entries (like psp.json)."""
+        with patch("knowledge.hapi_client._MISSIONS_DIR", fake_missions_dir):
+            # Should not crash even with psp.json file at top level
+            missions = list_missions()
+            assert len(missions) >= 2
+
+
+class TestValidateDatasetId:
+    def test_valid_cached_dataset(self, fake_missions_dir):
+        """validate_dataset_id returns valid=True for cached dataset with mission_id."""
+        with patch("knowledge.hapi_client._MISSIONS_DIR", fake_missions_dir):
+            result = validate_dataset_id("PSP_FLD_L2_MAG_RTN_1MIN")
+            assert result["valid"] is True
+            assert result["mission_id"] == "PSP"
+            assert "found" in result["message"].lower()
+
+    def test_valid_ace_dataset(self, fake_missions_dir):
+        """validate_dataset_id works for ACE dataset too."""
+        with patch("knowledge.hapi_client._MISSIONS_DIR", fake_missions_dir):
+            result = validate_dataset_id("AC_H2_MFI")
+            assert result["valid"] is True
+            assert result["mission_id"] == "ACE"
+
+    def test_invalid_dataset(self, fake_missions_dir):
+        """validate_dataset_id returns valid=False for unknown dataset."""
+        with patch("knowledge.hapi_client._MISSIONS_DIR", fake_missions_dir):
+            result = validate_dataset_id("FAKE_DATASET_XYZ")
+            assert result["valid"] is False
+            assert result["mission_id"] is None
+            assert "not found" in result["message"].lower()
+            assert "browse_datasets" in result["message"]
+
+
+class TestValidateParameterId:
+    def test_valid_parameter(self, fake_missions_dir):
+        """validate_parameter_id returns valid=True for known parameter."""
+        with patch("knowledge.hapi_client._MISSIONS_DIR", fake_missions_dir):
+            result = validate_parameter_id("AC_H2_MFI", "BGSEc")
+            assert result["valid"] is True
+            assert "BGSEc" in result["available_parameters"]
+            assert "Magnitude" in result["available_parameters"]
+
+    def test_invalid_parameter(self, fake_missions_dir):
+        """validate_parameter_id returns valid=False with available parameter list."""
+        with patch("knowledge.hapi_client._MISSIONS_DIR", fake_missions_dir):
+            result = validate_parameter_id("AC_H2_MFI", "NonexistentParam")
+            assert result["valid"] is False
+            assert "BGSEc" in result["available_parameters"]
+            assert "Magnitude" in result["available_parameters"]
+            assert "NonexistentParam" in result["message"]
+            assert "Available parameters" in result["message"]
+
+    def test_invalid_dataset(self, fake_missions_dir):
+        """validate_parameter_id returns valid=False for unknown dataset."""
+        with patch("knowledge.hapi_client._MISSIONS_DIR", fake_missions_dir):
+            result = validate_parameter_id("FAKE_DATASET", "BGSEc")
+            assert result["valid"] is False
+            assert result["available_parameters"] == []
+            assert "not found" in result["message"].lower()
+
+    def test_excludes_time_parameter(self, fake_missions_dir):
+        """validate_parameter_id excludes Time from available parameters."""
+        with patch("knowledge.hapi_client._MISSIONS_DIR", fake_missions_dir):
+            result = validate_parameter_id("AC_H2_MFI", "BGSEc")
+            assert "Time" not in result["available_parameters"]
