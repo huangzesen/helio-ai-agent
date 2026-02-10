@@ -1568,6 +1568,10 @@ class OrchestratorAgent:
         elif task.mission == "__data_extraction__":
             self._get_or_create_data_extraction_agent().execute_task(task)
         elif task.mission and task.mission not in special_missions:
+            # Inject candidate datasets into instruction for mission agent
+            if task.candidate_datasets:
+                ds_list = ", ".join(task.candidate_datasets)
+                task.instruction += f"\n\nCandidate datasets to inspect: {ds_list}"
             try:
                 agent = self._get_or_create_mission_agent(task.mission)
                 agent.execute_task(task)
@@ -1719,8 +1723,7 @@ class OrchestratorAgent:
                     mission=mission,
                 )
                 task.round = round_num
-                task.dataset_id = td.get("dataset_id")
-                task.parameter_id = td.get("parameter_id")
+                task.candidate_datasets = td.get("candidate_datasets")
                 new_tasks.append(task)
 
             plan.add_tasks(new_tasks)
@@ -1759,16 +1762,6 @@ class OrchestratorAgent:
                     result_text += f" | New data labels: {', '.join(sorted(new_labels))}"
                 elif task.status == TaskStatus.FAILED:
                     result_text += " | No new data added."
-
-                # Post-execution validation: check expected data landed in store
-                if (task.dataset_id and task.parameter_id
-                        and task.status == TaskStatus.COMPLETED):
-                    expected_label = f"{task.dataset_id}.{task.parameter_id}"
-                    if expected_label not in labels_after:
-                        result_text += (
-                            f" | WARNING: Expected label '{expected_label}' "
-                            f"not found in store after task completion."
-                        )
 
                 round_results.append({
                     "description": task.description,

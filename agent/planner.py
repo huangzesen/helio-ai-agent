@@ -107,8 +107,10 @@ PLANNER_RESPONSE_SCHEMA = {
                     "description": {"type": "string"},
                     "instruction": {"type": "string"},
                     "mission": {"type": "string"},
-                    "dataset_id": {"type": "string"},
-                    "parameter_id": {"type": "string"},
+                    "candidate_datasets": {
+                        "type": "array",
+                        "items": {"type": "string"},
+                    },
                 },
                 "required": ["description", "instruction"],
             },
@@ -292,8 +294,8 @@ class PlannerAgent:
         lines = [
             "## VERIFIED PARAMETER REFERENCE",
             "",
-            "CRITICAL: Use ONLY these exact dataset_id and parameter names in task instructions.",
-            "Do NOT rename, rephrase, or translate these names.",
+            "REFERENCE: Verified parameters per dataset. Recommend these dataset IDs as candidates;",
+            "the mission agent selects specific parameters.",
             "",
         ]
 

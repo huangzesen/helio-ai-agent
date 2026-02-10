@@ -71,15 +71,29 @@ class MissionAgent(BaseSubAgent):
         return False
 
     def _get_task_prompt(self, task: Task) -> str:
-        """Strict task prompt to prevent unnecessary post-fetch tool calls."""
-        return (
-            f"Execute this task: {task.instruction}\n\n"
-            "RULES:\n"
-            "- Do ONLY what the instruction says. Do NOT add extra steps.\n"
-            "- After a successful fetch_data call, STOP. Do NOT call list_fetched_data, "
-            "get_data_availability, list_parameters, describe_data, or get_dataset_docs.\n"
-            "- Return the stored label and point count as concise text."
-        )
+        """Task prompt — allows dataset inspection when candidates are provided."""
+        has_candidates = "Candidate datasets to inspect:" in task.instruction
+
+        if has_candidates:
+            return (
+                f"Execute this task: {task.instruction}\n\n"
+                "RULES:\n"
+                "- Inspect the candidate datasets by calling list_parameters for each.\n"
+                "- Select the best dataset and parameters for the physical quantity requested.\n"
+                "- If a parameter returns all-NaN data, skip it and try another candidate.\n"
+                "- Call fetch_data for each selected parameter.\n"
+                "- After fetching, STOP. Do NOT call get_dataset_docs or describe_data.\n"
+                "- Return the stored label(s) and point count as concise text."
+            )
+        else:
+            return (
+                f"Execute this task: {task.instruction}\n\n"
+                "RULES:\n"
+                "- Do ONLY what the instruction says. Do NOT add extra steps.\n"
+                "- After a successful fetch_data call, STOP. Do NOT call list_fetched_data, "
+                "get_data_availability, list_parameters, describe_data, or get_dataset_docs.\n"
+                "- Return the stored label and point count as concise text."
+            )
 
     def _get_error_context(self, **kwargs) -> dict:
         """Add mission_id to error context."""

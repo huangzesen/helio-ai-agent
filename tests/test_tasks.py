@@ -74,7 +74,8 @@ class TestTask:
             depends_on=["task-0"],
             status=TaskStatus.COMPLETED,
             result="Done",
-            tool_calls=["fetch_data", "compute_magnitude"]
+            tool_calls=["fetch_data", "compute_magnitude"],
+            candidate_datasets=["AC_H2_MFI", "AC_H0_MFI"],
         )
         d = task.to_dict()
         assert d["id"] == "task-1"
@@ -83,6 +84,9 @@ class TestTask:
         assert d["tool_calls"] == ["fetch_data", "compute_magnitude"]
         assert d["mission"] == "ACE"
         assert d["depends_on"] == ["task-0"]
+        assert d["candidate_datasets"] == ["AC_H2_MFI", "AC_H0_MFI"]
+        assert "dataset_id" not in d
+        assert "parameter_id" not in d
 
     def test_to_dict_null_mission(self):
         task = Task(id="t", description="D", instruction="I")
@@ -100,7 +104,8 @@ class TestTask:
             "status": "failed",
             "result": None,
             "error": "Something went wrong",
-            "tool_calls": ["plot_data"]
+            "tool_calls": ["plot_data"],
+            "candidate_datasets": ["AC_H2_MFI", "AC_H0_MFI"],
         }
         task = Task.from_dict(data)
         assert task.id == "task-2"
@@ -109,9 +114,10 @@ class TestTask:
         assert task.tool_calls == ["plot_data"]
         assert task.mission == "PSP"
         assert task.depends_on == ["task-1"]
+        assert task.candidate_datasets == ["AC_H2_MFI", "AC_H0_MFI"]
 
     def test_from_dict_missing_new_fields(self):
-        """Backward compat: old task dicts without mission/depends_on still load."""
+        """Backward compat: old task dicts without mission/depends_on/candidate_datasets still load."""
         data = {
             "id": "task-old",
             "description": "Old task",
@@ -121,6 +127,20 @@ class TestTask:
         task = Task.from_dict(data)
         assert task.mission is None
         assert task.depends_on == []
+        assert task.candidate_datasets is None
+
+    def test_from_dict_backward_compat_dataset_id(self):
+        """Backward compat: old dicts with dataset_id convert to candidate_datasets."""
+        data = {
+            "id": "task-old2",
+            "description": "Old fetch task",
+            "instruction": "Fetch data from AC_H2_MFI",
+            "status": "completed",
+            "dataset_id": "AC_H2_MFI",
+            "parameter_id": "BGSEc",
+        }
+        task = Task.from_dict(data)
+        assert task.candidate_datasets == ["AC_H2_MFI"]
 
     def test_roundtrip(self):
         original = Task(
@@ -130,7 +150,8 @@ class TestTask:
             mission="OMNI",
             depends_on=["task-a", "task-b"],
             status=TaskStatus.IN_PROGRESS,
-            tool_calls=["search_datasets"]
+            tool_calls=["search_datasets"],
+            candidate_datasets=["OMNI_HRO_1MIN"],
         )
         restored = Task.from_dict(original.to_dict())
         assert restored.id == original.id
@@ -138,6 +159,7 @@ class TestTask:
         assert restored.tool_calls == original.tool_calls
         assert restored.mission == original.mission
         assert restored.depends_on == original.depends_on
+        assert restored.candidate_datasets == original.candidate_datasets
 
 
 class TestTaskPlan:

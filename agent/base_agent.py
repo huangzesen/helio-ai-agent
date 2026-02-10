@@ -291,7 +291,7 @@ class BaseSubAgent:
             response = chat.send_message(task_prompt)
             self._track_usage(response)
 
-            guard = LoopGuard(max_total_calls=10, max_iterations=3)
+            guard = LoopGuard(max_total_calls=12, max_iterations=5)
             last_stop_reason = None
             had_successful_tool = False
 

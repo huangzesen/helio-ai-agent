@@ -311,22 +311,16 @@ def build_mission_prompt(mission_id: str) -> str:
     lines.append("")
 
     # --- Data Operations Documentation ---
-    lines.append("## Data Operations Workflow")
+    lines.append("## Dataset Selection Workflow")
     lines.append("")
-    lines.append("**IMPORTANT — Avoid duplicate fetches:**")
-    lines.append("0. **Before fetching ANY data**, check if it is already in memory.")
-    lines.append("   The request may include a 'Data currently in memory' section — read it carefully.")
-    lines.append("   If a label like `DATASET.PARAM` already exists with a time range that covers your")
-    lines.append("   request, do NOT call fetch_data again. Just report the existing label.")
-    lines.append("")
-    lines.append("1. **When given an exact dataset ID and parameter**: Call `fetch_data` DIRECTLY")
-    lines.append("   (unless the data is already in memory — see rule 0).")
-    lines.append("   Do NOT call browse_datasets or search_datasets first — go straight to fetch_data.")
-    lines.append("   The caller has already identified the dataset and parameter for you.")
-    lines.append("2. **When given a vague request** (e.g., \"get magnetic field data\"): Use your recommended")
-    lines.append("   datasets above, or call `browse_datasets` to find the right dataset, then `fetch_data`.")
-    lines.append("3. **Parameter verification**: Only call `list_parameters` if you're unsure of the")
-    lines.append("   parameter name. If the parameter name is provided, trust it and call fetch_data directly.")
+    lines.append("1. **Check if data is already in memory** — see 'Data currently in memory' in the request.")
+    lines.append("   If a label already covers your needs, skip fetching.")
+    lines.append("2. **When given candidate datasets**: Call `list_parameters` for each candidate to see")
+    lines.append("   available parameters. Select the best dataset based on parameter coverage and relevance.")
+    lines.append("   Then call `fetch_data` for each relevant parameter.")
+    lines.append("3. **When given an exact dataset ID and parameter**: Call `fetch_data` DIRECTLY.")
+    lines.append("4. **When given a vague request**: Use recommended datasets above or `browse_datasets`.")
+    lines.append("5. **If a parameter returns all-NaN**: Skip it and try the next candidate dataset.")
     lines.append("4. **Time range format**: '2024-01-15 to 2024-01-20' (use ' to ' separator, NOT '/').")
     lines.append("   Also accepts 'last week', 'January 2024', etc.")
     lines.append("5. **Labels**: fetch_data stores data with label `DATASET.PARAM`.")
@@ -888,9 +882,9 @@ Each task has:
 ## Known Dataset IDs
 {dataset_ref}
 
-IMPORTANT: Different spacecraft have DIFFERENT parameter names. Do NOT guess parameter names.
-Use ONLY the exact parameter names from the Discovery Results section. If discovery didn't
-cover a dataset, create a list_parameters discovery task before attempting to fetch from it.
+IMPORTANT: Do NOT specify parameter names in fetch task instructions — the mission agent
+selects parameters autonomously. Describe the physical quantity instead (e.g., "magnetic field
+vector", "proton density"). Use Discovery Results to choose candidate dataset IDs.
 
 ## Mission Tagging
 
@@ -930,7 +924,7 @@ Tag each task with the "mission" field:
 6. Keep task count minimal — don't split unnecessarily
 7. Do NOT include export or save tasks unless the user explicitly asked to export/save
 8. Do NOT include plotting steps unless the user explicitly asked to plot/show/display
-9. Labels for fetched data follow the pattern "DATASET.PARAM" (e.g., "AC_H2_MFI.BGSEc")
+9. After the mission agent fetches data, labels follow the pattern 'DATASET.PARAM' — use labels reported in execution results for downstream tasks
 10. **NEVER repeat a task from a previous round** — if a task was completed, do NOT create it again
 11. Use the results from previous rounds to inform later tasks — do NOT re-search or re-fetch data that was already obtained
 12. If prior results say "Done." with no details, trust that the task completed and move on to the next dependent step
@@ -938,28 +932,30 @@ Tag each task with the "mission" field:
 14. If a task FAILED, NEVER recreate it. Failed searches are definitive.
 15. Prefer status='done' with partial data over continued searching.
 
-## Bounded Data Selection
+## Dataset Selection
 
-For fetch tasks, include the `dataset_id` and `parameter_id` fields in the task object
-for traceability. These are validated against the local HAPI cache — any unknown ID
-is rejected immediately without a network call. Only use IDs from the Discovery Results.
+For fetch tasks, include the `candidate_datasets` field with a list of 1-3 dataset IDs
+that could satisfy the physics requirement. The mission agent will inspect these candidates
+(checking parameters, availability, data quality) and choose the best one.
+Only use dataset IDs from the Known Dataset IDs list or Discovery Results.
+
+Do NOT specify parameter names in task instructions — the mission agent selects parameters.
+Describe the physical quantity needed instead (e.g., "magnetic field vector", "proton density").
 
 ## Task Instruction Format
 
-Every fetch_data instruction MUST include the exact dataset_id and parameter name.
+Every fetch instruction MUST describe the physical quantity needed and time range.
+Do NOT include specific parameter names — the mission agent selects parameters.
 Every custom_operation instruction MUST include the exact source_label.
 Every visualization instruction MUST start with "Use plot_data to plot ...".
 
-CRITICAL: If a "## Discovery Results" section is provided with your request,
-you MUST use the EXACT parameter names listed there. NEVER guess or invent
-parameter names — only use names that appear in the discovery results.
-If the discovery results don't cover a dataset you need, instruct the mission
-agent to call list_parameters first (as a discovery task), then fetch in a later round.
-
 Example instructions:
-- "Fetch data from dataset AC_H2_MFI, parameter BGSEc, for last week" (mission: "ACE")
-- "Compute the magnitude of AC_H2_MFI.BGSEc, save as ACE_Bmag" (mission: "__data_ops__")
-- "Use plot_data to plot ACE_Bmag and Wind_Bmag together with title 'ACE vs Wind B-field'" (mission: "__visualization__")
+- "Fetch magnetic field vector components for 2024-01-10 to 2024-01-17" (mission: "ACE",
+  candidate_datasets: ["AC_H2_MFI", "AC_H0_MFI"])
+- "Fetch solar wind plasma data (density, speed) for last week" (mission: "PSP",
+  candidate_datasets: ["PSP_COHO1HR_MERGED_MAG_PLASMA", "PSP_SWP_SPI_SF00_L3_MOM"])
+- "Compute magnitude of AC_H2_MFI.BGSEc, save as ACE_Bmag" (mission: "__data_ops__")
+- "Use plot_data to plot ACE_Bmag and Wind_Bmag" (mission: "__visualization__")
 
 ## Multi-Round Example
 
@@ -967,11 +963,11 @@ User: "Compare ACE and Wind magnetic field, compute magnitude of each, plot them
 
 Round 1 response:
 {{"status": "continue", "reasoning": "Need to fetch data from both missions first", "tasks": [
-  {{"description": "Fetch ACE mag data", "instruction": "Fetch data from dataset AC_H2_MFI, parameter BGSEc, for last week", "mission": "ACE"}},
-  {{"description": "Fetch Wind mag data", "instruction": "Fetch data from dataset WI_H2_MFI, parameter BGSE, for last week", "mission": "WIND"}}
+  {{"description": "Fetch ACE mag data", "instruction": "Fetch magnetic field vector components for last week", "mission": "ACE", "candidate_datasets": ["AC_H2_MFI", "AC_H0_MFI"]}},
+  {{"description": "Fetch Wind mag data", "instruction": "Fetch magnetic field vector components for last week", "mission": "WIND", "candidate_datasets": ["WI_H2_MFI", "WI_H0_MFI"]}}
 ]}}
 
-After receiving results showing both fetches succeeded:
+After receiving results showing both fetches succeeded with labels AC_H2_MFI.BGSEc and WI_H2_MFI.BGSE:
 
 Round 2 response:
 {{"status": "continue", "reasoning": "Data fetched, now compute magnitudes", "tasks": [
