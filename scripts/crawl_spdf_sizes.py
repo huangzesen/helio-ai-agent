@@ -15,6 +15,7 @@ and sum their sizes. Shows live progress as it goes.
 import argparse
 import json
 import re
+import signal
 import sys
 import time
 import threading
@@ -54,7 +55,7 @@ def parse_size(size_str: str) -> int:
 class Progress:
     """Thread-safe progress tracker with live terminal output."""
 
-    def __init__(self):
+    def __init__(self, output_path=None):
         self.lock = threading.Lock()
         self.dirs_crawled = 0
         self.dirs_queued = 0
@@ -69,6 +70,8 @@ class Progress:
         self.current_dirs = set()
         self.start_time = time.time()
         self._last_print_len = 0
+        self._output_path = output_path
+        self._last_save_time = 0
 
     def add_directory(self, count=1):
         with self.lock:
@@ -135,6 +138,51 @@ class Progress:
             sys.stderr.write(line + " " * pad)
             sys.stderr.flush()
             self._last_print_len = len(line)
+
+            # Auto-save every 30 seconds
+            now = time.time()
+            if self._output_path and now - self._last_save_time > 30:
+                self._last_save_time = now
+                self._auto_save()
+
+    def to_dict(self):
+        """Build results dict (caller must hold lock or be single-threaded)."""
+        return {
+            "total_data_files": self.data_files,
+            "total_data_bytes": self.data_bytes,
+            "total_data_human": self.format_size(self.data_bytes),
+            "directories_crawled": self.dirs_crawled,
+            "errors": self.errors,
+            "formats": {
+                ext: {
+                    "bytes": self.format_sizes[ext],
+                    "human": self.format_size(self.format_sizes[ext]),
+                    "files": self.format_counts[ext],
+                }
+                for ext in sorted(
+                    self.format_sizes, key=self.format_sizes.get, reverse=True
+                )
+            },
+            "missions": {
+                m: {
+                    "bytes": self.mission_sizes[m],
+                    "human": self.format_size(self.mission_sizes[m]),
+                    "files": self.mission_counts[m],
+                }
+                for m in sorted(
+                    self.mission_sizes, key=self.mission_sizes.get, reverse=True
+                )
+            },
+        }
+
+    def _auto_save(self):
+        """Save current results to output file (called under lock)."""
+        try:
+            result = self.to_dict()
+            with open(self._output_path, "w") as f:
+                json.dump(result, f, indent=2)
+        except Exception:
+            pass  # Don't let save errors interrupt crawling
 
     def print_summary(self):
         elapsed = time.time() - self.start_time
@@ -217,6 +265,9 @@ def fetch_directory(url: str, session: requests.Session, progress: Progress, ret
     return subdirs, mission
 
 
+_stop_flag = threading.Event()
+
+
 def crawl(base_url: str, max_workers: int, progress: Progress):
     """BFS crawl of the SPDF directory tree."""
     session = requests.Session()
@@ -226,7 +277,7 @@ def crawl(base_url: str, max_workers: int, progress: Progress):
     queue = [base_url]
 
     with ThreadPoolExecutor(max_workers=max_workers) as executor:
-        while queue:
+        while queue and not _stop_flag.is_set():
             # Submit a batch of directory fetches
             futures = {}
             for url in queue:
@@ -236,6 +287,9 @@ def crawl(base_url: str, max_workers: int, progress: Progress):
 
             # Collect results and enqueue subdirectories
             for future in as_completed(futures):
+                if _stop_flag.is_set():
+                    executor.shutdown(wait=False, cancel_futures=True)
+                    return
                 subdirs, mission = future.result()
                 if subdirs:
                     progress.add_directory(len(subdirs))
@@ -261,48 +315,30 @@ def main():
     )
     args = parser.parse_args()
 
-    progress = Progress()
+    progress = Progress(output_path=args.output)
 
     print(f"Crawling {args.url}")
     print(f"Using {args.workers} concurrent workers")
     exts = ", ".join(sorted(DATA_EXTENSIONS))
     print(f"Looking for data files: {exts}\n")
 
+    # Handle SIGTERM (from TaskStop / kill) — set flag so threads stop gracefully
+    def _sigterm_handler(signum, frame):
+        _stop_flag.set()
+    signal.signal(signal.SIGTERM, _sigterm_handler)
+
     try:
         crawl(args.url, args.workers, progress)
     except KeyboardInterrupt:
+        _stop_flag.set()
+
+    if _stop_flag.is_set():
         print("\n\nInterrupted! Showing partial results...")
 
     progress.print_summary()
 
     if args.output:
-        result = {
-            "total_data_files": progress.data_files,
-            "total_data_bytes": progress.data_bytes,
-            "total_data_human": progress.format_size(progress.data_bytes),
-            "directories_crawled": progress.dirs_crawled,
-            "errors": progress.errors,
-            "formats": {
-                ext: {
-                    "bytes": progress.format_sizes[ext],
-                    "human": progress.format_size(progress.format_sizes[ext]),
-                    "files": progress.format_counts[ext],
-                }
-                for ext in sorted(
-                    progress.format_sizes, key=progress.format_sizes.get, reverse=True
-                )
-            },
-            "missions": {
-                m: {
-                    "bytes": progress.mission_sizes[m],
-                    "human": progress.format_size(progress.mission_sizes[m]),
-                    "files": progress.mission_counts[m],
-                }
-                for m in sorted(
-                    progress.mission_sizes, key=progress.mission_sizes.get, reverse=True
-                )
-            },
-        }
+        result = progress.to_dict()
         with open(args.output, "w") as f:
             json.dump(result, f, indent=2)
         print(f"\nResults saved to {args.output}")
