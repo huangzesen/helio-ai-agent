@@ -802,6 +802,20 @@ class OrchestratorAgent:
                     ),
                 }
 
+            # Check NaN percentage before storing
+            nan_total = numeric_cols.isna().sum().sum()
+            nan_pct = round(100 * nan_total / numeric_cols.size, 1) if numeric_cols.size > 0 else 0.0
+            if nan_pct >= 25:
+                return {
+                    "status": "error",
+                    "message": (
+                        f"Parameter '{tool_args['parameter_id']}' in dataset "
+                        f"'{tool_args['dataset_id']}' has {nan_pct}% NaN/fill values — "
+                        f"not suitable for the requested time range. "
+                        f"Try a different parameter or dataset."
+                    ),
+                }
+
             entry = DataEntry(
                 label=label,
                 data=df,
@@ -815,17 +829,9 @@ class OrchestratorAgent:
             if adjustment_note:
                 response["time_range_note"] = adjustment_note
 
-            # Add NaN diagnostic
-            nan_total = numeric_cols.isna().sum().sum()
-            nan_pct = round(100 * nan_total / numeric_cols.size, 1) if numeric_cols.size > 0 else 0.0
+            # Report NaN percentage for transparency
             if nan_pct > 0:
                 response["nan_percentage"] = nan_pct
-            if nan_pct >= 50:
-                response["warning"] = (
-                    f"{nan_pct}% of values are NaN/fill. "
-                    f"This parameter may have sparse coverage in the requested time range. "
-                    f"Consider trying a different parameter or dataset."
-                )
 
             return response
 

@@ -80,7 +80,7 @@ class MissionAgent(BaseSubAgent):
                 "RULES:\n"
                 "- Inspect the candidate datasets by calling list_parameters for each.\n"
                 "- Select the best dataset and parameters for the physical quantity requested.\n"
-                "- If fetch_data returns a warning about high NaN percentage (>50%), or returns "
+                "- If fetch_data returns an error about high NaN percentage (>25%), or returns "
                 "an error about all-NaN data, skip that parameter and try a different candidate dataset.\n"
                 "- Call fetch_data for each selected parameter.\n"
                 "- After ALL fetch_data calls succeed, STOP IMMEDIATELY. Do NOT call "

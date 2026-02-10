@@ -136,3 +136,5 @@ Time ranges use `YYYY-MM-DD to YYYY-MM-DD` format. The agent accepts flexible in
 - When adding new spacecraft: create a JSON file in `knowledge/missions/` (copy an existing one as template). Include `id`, `name`, `keywords`, `profile`, and `instruments` with `datasets` dict. Then run `python scripts/generate_mission_data.py --mission <id>` to populate HAPI metadata. The catalog, prompts, and routing table are all auto-generated from the JSON files.
 - Data operations (`data_ops/custom_ops.py`) use an AST-validated sandbox for LLM-generated pandas/numpy code — easy to test.
 - Plotting always goes through the Plotly renderer (`rendering/plotly_renderer.py`), not matplotlib.
+- Session data is saved to `~/.helio-agent/sessions/` (conversation history, figure JSON, metadata).
+- Debug logs are at `~/.helio-agent/logs/` (one file per session, always captures DEBUG level).

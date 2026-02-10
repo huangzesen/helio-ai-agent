@@ -93,6 +93,15 @@ _DEFAULT_LAYOUT = dict(
     font_color="#2a3f5f",
 )
 
+_LEGEND_MAX_CHARS = 30
+
+
+def _short_display_name(name: str, max_len: int = _LEGEND_MAX_CHARS) -> str:
+    """Truncate a display name for legend readability."""
+    if len(name) <= max_len:
+        return name
+    return name[:max_len - 1] + "\u2026"
+
 
 class PlotlyRenderer:
     """Stateful Plotly renderer for heliophysics data visualization."""
@@ -137,7 +146,10 @@ class PlotlyRenderer:
                 rows=max(rows, 1), cols=1, shared_xaxes=True,
                 vertical_spacing=0.06,
             )
-            self._figure.update_layout(**_DEFAULT_LAYOUT)
+            self._figure.update_layout(
+                **_DEFAULT_LAYOUT,
+                legend=dict(font=dict(size=11), tracegroupgap=2),
+            )
             self._panel_count = max(rows, 1)
         return self._figure
 
@@ -151,7 +163,10 @@ class PlotlyRenderer:
             rows=needed, cols=1, shared_xaxes=True,
             vertical_spacing=0.06,
         )
-        new_fig.update_layout(**_DEFAULT_LAYOUT)
+        new_fig.update_layout(
+            **_DEFAULT_LAYOUT,
+            legend=dict(font=dict(size=11), tracegroupgap=2),
+        )
 
         # Copy traces from old figure, preserving row assignment
         if old_fig is not None:
@@ -207,7 +222,8 @@ class PlotlyRenderer:
                     fig.add_trace(
                         Scatter(
                             x=t_disp, y=v_disp,
-                            name=label, mode="lines",
+                            name=_short_display_name(label),
+                            mode="lines",
                             line=dict(color=self._next_color(label)),
                         ),
                         row=row, col=1,
@@ -225,7 +241,8 @@ class PlotlyRenderer:
                 fig.add_trace(
                     Scatter(
                         x=t_disp, y=v_disp,
-                        name=display_name, mode="lines",
+                        name=_short_display_name(display_name),
+                        mode="lines",
                         line=dict(color=self._next_color(display_name)),
                     ),
                     row=row, col=1,
