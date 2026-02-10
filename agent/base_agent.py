@@ -291,8 +291,9 @@ class BaseSubAgent:
             response = chat.send_message(task_prompt)
             self._track_usage(response)
 
-            guard = LoopGuard(max_total_calls=10, max_iterations=5)
+            guard = LoopGuard(max_total_calls=10, max_iterations=3)
             last_stop_reason = None
+            had_successful_tool = False
 
             while True:
                 stop_reason = guard.check_iteration()
@@ -341,7 +342,9 @@ class BaseSubAgent:
                     task.tool_calls.append(tool_name)
                     result = self.tool_executor(tool_name, tool_args)
 
-                    if result.get("status") == "error":
+                    if result.get("status") == "success":
+                        had_successful_tool = True
+                    elif result.get("status") == "error":
                         self.logger.warning(f"[{self.agent_name}] Tool error: {result.get('message', '')}")
 
                     function_responses.append(
@@ -376,15 +379,23 @@ class BaseSubAgent:
             result_text = "\n".join(text_parts) if text_parts else "Done."
 
             if last_stop_reason:
-                task.status = TaskStatus.FAILED
-                task.error = f"Task stopped by loop guard: {last_stop_reason}"
-                result_text += f" [STOPPED: {last_stop_reason}]"
+                if last_stop_reason == "cancelled by user":
+                    task.status = TaskStatus.FAILED
+                    task.error = f"Task cancelled by user"
+                    result_text += f" [CANCELLED]"
+                elif had_successful_tool:
+                    task.status = TaskStatus.COMPLETED
+                    result_text += f" [loop guard stopped extra calls]"
+                else:
+                    task.status = TaskStatus.FAILED
+                    task.error = f"Task stopped by loop guard: {last_stop_reason}"
+                    result_text += f" [STOPPED: {last_stop_reason}]"
             else:
                 task.status = TaskStatus.COMPLETED
 
             task.result = result_text
 
-            self.logger.debug(f"[{self.agent_name}] {'Failed' if last_stop_reason else 'Completed'}: {task.description}")
+            self.logger.debug(f"[{self.agent_name}] {task.status.value}: {task.description}")
 
             return result_text
 
