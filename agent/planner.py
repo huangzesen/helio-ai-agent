@@ -439,6 +439,7 @@ class PlannerAgent:
                     break
             if data_labels:
                 lines.append(f"\nData currently in memory: {', '.join(data_labels)}")
+                logger.debug(f"[DataOps] Data currently in memory: {', '.join(data_labels)}")
 
             # Collect ALL failed task descriptions (current + previous rounds)
             failed_descs = []
