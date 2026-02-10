@@ -564,6 +564,11 @@ Use this for titles, axis labels, log scale, colors, line styles, canvas size, a
                 "theme": {
                     "type": "string",
                     "description": "Plotly template name (e.g., 'plotly_dark', 'plotly_white')"
+                },
+                "vlines": {
+                    "type": "array",
+                    "items": {"type": "object"},
+                    "description": "Vertical lines: [{x, label, color, dash, width}, ...]. x is a timestamp string."
                 }
             },
             "required": []

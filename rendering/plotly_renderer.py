@@ -404,6 +404,13 @@ class PlotlyRenderer:
         # Ensure the x-axis is rendered as formatted dates
         fig.update_xaxes(type="date")
 
+        # Apply stored time range to the new figure
+        if self._current_time_range:
+            fig.update_xaxes(range=[
+                self._current_time_range.start.isoformat(),
+                self._current_time_range.end.isoformat(),
+            ])
+
         if title:
             fig.update_layout(title_text=title)
 
@@ -436,6 +443,7 @@ class PlotlyRenderer:
         annotations: list | None = None,
         colorscale: str | None = None,
         theme: str | None = None,
+        vlines: list | None = None,
     ) -> dict:
         """Apply aesthetic changes to the current figure.
 
@@ -456,6 +464,7 @@ class PlotlyRenderer:
             annotations: List of {text, x, y} dicts.
             colorscale: Plotly colorscale name (for heatmap traces).
             theme: Plotly template name (e.g. "plotly_dark").
+            vlines: List of {x, label, color, dash, width} dicts for vertical lines.
 
         Returns:
             Result dict with status.
@@ -556,6 +565,29 @@ class PlotlyRenderer:
 
         if theme is not None:
             fig.update_layout(template=theme)
+
+        if vlines is not None:
+            for vl in vlines:
+                x_val = vl.get("x")
+                if x_val is None:
+                    continue
+                color = vl.get("color", "white")
+                width = vl.get("width", 1.5)
+                dash = vl.get("dash", "dash")
+                label = vl.get("label")
+                # Draw line across all panels
+                for row in range(1, self._panel_count + 1):
+                    fig.add_vline(
+                        x=x_val, row=row, col=1,
+                        line_width=width, line_dash=dash, line_color=color,
+                    )
+                # Add text annotation at top panel if label provided
+                if label:
+                    fig.add_annotation(
+                        x=x_val, y=1.02, yref="paper",
+                        text=label, showarrow=False,
+                        font=dict(size=11, color=color),
+                    )
 
         return {"status": "success", "message": "Style applied.", "display": "plotly"}
 

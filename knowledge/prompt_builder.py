@@ -557,6 +557,7 @@ def build_visualization_prompt(gui_mode: bool = False) -> str:
         "- Theme: `style_plot(theme=\"plotly_dark\")`",
         "- Annotations: `style_plot(annotations=[{\"text\": \"Event\", \"x\": \"2024-01-15\", \"y\": 5}])`",
         "- Line style: `style_plot(line_styles={\"ACE Bmag\": {\"mode\": \"markers\"}})`",
+        "- Vertical line: `style_plot(vlines=[{\"x\": \"2024-01-15T09:33:00\", \"label\": \"Event\", \"color\": \"white\"}])`",
         "",
         "## Using manage_plot",
         "",

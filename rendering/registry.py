@@ -71,6 +71,8 @@ TOOLS = [
              "description": "Plotly colorscale for heatmap traces (e.g., Viridis, Jet)"},
             {"name": "theme", "type": "string", "required": False,
              "description": "Plotly template name (e.g., 'plotly_dark', 'plotly_white')"},
+            {"name": "vlines", "type": "array", "required": False,
+             "description": "Vertical lines: [{x, label, color, dash, width}, ...]. x is a timestamp string."},
         ],
     },
     {
@@ -182,6 +184,7 @@ def render_method_catalog() -> str:
         "- Log scale: `style_plot(log_scale=\"y\")`",
         "- Trace color: `style_plot(trace_colors={\"ACE Bmag\": \"red\"})`",
         "- Canvas size: `style_plot(canvas_size={\"width\": 1920, \"height\": 1080})`",
+        "- Vertical line: `style_plot(vlines=[{\"x\": \"2024-01-15T09:33:00\", \"label\": \"Event\", \"color\": \"white\"}])`",
         "- Zoom: `manage_plot(action=\"set_time_range\", time_range=\"2024-01-15 to 2024-01-20\")`",
         "- Reset: `manage_plot(action=\"reset\")`",
         "- Get state: `manage_plot(action=\"get_state\")`",

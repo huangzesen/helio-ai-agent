@@ -1570,6 +1570,10 @@ class OrchestratorAgent:
         special_missions = {"__visualization__", "__data_ops__", "__data_extraction__"}
 
         if task.mission == "__visualization__":
+            # Set renderer time range from plan so plot_data auto-applies it
+            if self._plan_time_range:
+                self._renderer.set_time_range(self._plan_time_range)
+
             instr_lower = task.instruction.lower()
             is_export = "export" in instr_lower or ".png" in instr_lower or ".pdf" in instr_lower
 

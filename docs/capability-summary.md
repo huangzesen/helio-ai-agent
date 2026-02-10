@@ -144,7 +144,7 @@ agent/core.py  OrchestratorAgent  (LLM-driven orchestrator)
 | Tool | Purpose |
 |------|---------|
 | `plot_data` | Create plots from in-memory data (single panel overlay or multi-panel layout) |
-| `style_plot` | Apply aesthetics via key-value params: titles, labels, colors, scales, fonts, annotations |
+| `style_plot` | Apply aesthetics via key-value params: titles, labels, colors, scales, fonts, annotations, vertical lines |
 | `manage_plot` | Structural operations: export (PNG/PDF), reset, zoom/time range, add/remove traces |
 
 Three declarative tools replace the old `execute_visualization` + `custom_visualization` approach. All customization is done via bounded parameter sets — no free-form code generation. The tool registry (`rendering/registry.py`) describes all 3 tools with their parameters and examples.
