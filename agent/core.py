@@ -382,31 +382,23 @@ class OrchestratorAgent:
 
             # No overlap — request is entirely after available data
             if req_start >= avail_stop:
-                new_end = avail_stop
-                new_start = max(avail_start, avail_stop - duration)
                 return {
-                    "start": new_start,
-                    "end": new_end,
+                    "error": True,
                     "note": (
-                        f"Requested dates are after the latest available data for "
-                        f"'{dataset_id}' (available: {avail_range_str}). "
-                        f"Auto-adjusted to {new_start.strftime('%Y-%m-%d')} to "
-                        f"{new_end.strftime('%Y-%m-%d')}."
+                        f"No data available for '{dataset_id}' in the requested period. "
+                        f"Dataset covers {avail_range_str}. "
+                        f"Try a different dataset or adjust your time range."
                     ),
                 }
 
             # No overlap — request is entirely before available data
             if req_end <= avail_start:
-                new_start = avail_start
-                new_end = min(avail_stop, avail_start + duration)
                 return {
-                    "start": new_start,
-                    "end": new_end,
+                    "error": True,
                     "note": (
-                        f"Requested dates are before the earliest available data for "
-                        f"'{dataset_id}' (available: {avail_range_str}). "
-                        f"Auto-adjusted to {new_start.strftime('%Y-%m-%d')} to "
-                        f"{new_end.strftime('%Y-%m-%d')}."
+                        f"No data available for '{dataset_id}' in the requested period. "
+                        f"Dataset covers {avail_range_str}. "
+                        f"Try a different dataset or adjust your time range."
                     ),
                 }
 
@@ -682,6 +674,8 @@ class OrchestratorAgent:
                 tool_args["dataset_id"], time_range.start, time_range.end
             )
             if validation is not None:
+                if validation.get("error"):
+                    return {"status": "error", "message": validation["note"]}
                 fetch_start = validation["start"]
                 fetch_end = validation["end"]
                 adjustment_note = validation["note"]
