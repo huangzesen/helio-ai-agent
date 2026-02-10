@@ -14,6 +14,8 @@ and sum their sizes. Shows live progress as it goes.
 
 import argparse
 import json
+import logging
+import os
 import re
 import signal
 import sys
@@ -21,7 +23,7 @@ import time
 import threading
 from collections import defaultdict
 from concurrent.futures import ThreadPoolExecutor, as_completed
-from datetime import timedelta
+from datetime import datetime, timedelta
 from html.parser import HTMLParser
 from urllib.parse import urljoin
 
@@ -30,7 +32,20 @@ import requests
 BASE_URL = "https://spdf.gsfc.nasa.gov/pub/data/"
 
 # Science data file extensions to count
-DATA_EXTENSIONS = {".cdf", ".nc", ".fits", ".fit", ".fts", ".hdf5", ".hdf", ".h5"}
+DATA_EXTENSIONS = {
+    # CDF / NetCDF
+    ".cdf", ".nc",
+    # FITS
+    ".fits", ".fit", ".fts",
+    # HDF
+    ".hdf5", ".hdf", ".h5",
+    # IDL save files
+    ".sav",
+    # Plain-text / tabular data
+    ".dat", ".csv", ".txt", ".asc", ".tab",
+    # VOTable / XML science data
+    ".xml", ".vot",
+}
 
 # Regex to parse Apache HTML table directory listing rows like:
 # <tr><td><a href="file.cdf">file.cdf</a></td><td align="right">2024-01-15 10:30  </td><td align="right">1.2M</td></tr>
@@ -184,6 +199,32 @@ class Progress:
         except Exception:
             pass  # Don't let save errors interrupt crawling
 
+    def spacecraft_snapshot(self) -> str:
+        """Return a formatted string of per-spacecraft stats (acquires lock)."""
+        with self.lock:
+            elapsed = time.time() - self.start_time
+            elapsed_str = str(timedelta(seconds=int(elapsed)))
+            lines = []
+            lines.append(f"=== Spacecraft Data Snapshot [{elapsed_str}] ===")
+            lines.append(
+                f"Dirs crawled: {self.dirs_crawled}/{self.dirs_queued}  |  "
+                f"Total data files: {self.data_files:,}  |  "
+                f"Total size: {self.format_size(self.data_bytes)}  |  "
+                f"Errors: {self.errors}"
+            )
+            lines.append(f"{'Spacecraft':<30s} {'Files':>10s} {'Size':>14s}")
+            lines.append("-" * 56)
+            sorted_missions = sorted(
+                self.mission_sizes.items(), key=lambda x: x[1], reverse=True
+            )
+            for mission, size in sorted_missions:
+                count = self.mission_counts[mission]
+                lines.append(
+                    f"{mission:<30s} {count:>10,} {self.format_size(size):>14s}"
+                )
+            lines.append("=" * 56)
+            return "\n".join(lines)
+
     def print_summary(self):
         elapsed = time.time() - self.start_time
         elapsed_str = str(timedelta(seconds=int(elapsed)))
@@ -297,6 +338,25 @@ def crawl(base_url: str, max_workers: int, progress: Progress):
                 progress.print_status()
 
 
+def _setup_spacecraft_logger(log_path: str) -> logging.Logger:
+    """Create a file logger for periodic spacecraft snapshots."""
+    logger = logging.getLogger("spdf_spacecraft")
+    logger.setLevel(logging.INFO)
+    logger.propagate = False
+    handler = logging.FileHandler(log_path, mode="w", encoding="utf-8")
+    handler.setFormatter(logging.Formatter("%(asctime)s\n%(message)s\n"))
+    logger.addHandler(handler)
+    return logger
+
+
+def _spacecraft_log_loop(progress: Progress, logger: logging.Logger, interval: float = 5.0):
+    """Background thread: write per-spacecraft snapshot to log every `interval` seconds."""
+    while not _stop_flag.is_set():
+        _stop_flag.wait(interval)
+        snapshot = progress.spacecraft_snapshot()
+        logger.info(snapshot)
+
+
 def main():
     parser = argparse.ArgumentParser(
         description="Crawl SPDF to compute total CDF file sizes"
@@ -313,24 +373,44 @@ def main():
         "--url", type=str, default=BASE_URL,
         help=f"Base URL to crawl (default: {BASE_URL})"
     )
+    parser.add_argument(
+        "--log", type=str,
+        default=f"spdf_spacecraft_{datetime.now().strftime('%Y%m%d_%H%M%S')}.log",
+        help="Log file for per-spacecraft snapshots every 5s (default: spdf_spacecraft_<timestamp>.log)"
+    )
     args = parser.parse_args()
 
     progress = Progress(output_path=args.output)
 
+    # Set up the per-spacecraft logger
+    sc_logger = _setup_spacecraft_logger(args.log)
+    log_thread = threading.Thread(
+        target=_spacecraft_log_loop, args=(progress, sc_logger), daemon=True
+    )
+
     print(f"Crawling {args.url}")
     print(f"Using {args.workers} concurrent workers")
     exts = ", ".join(sorted(DATA_EXTENSIONS))
-    print(f"Looking for data files: {exts}\n")
+    print(f"Looking for data files: {exts}")
+    print(f"Spacecraft log: {os.path.abspath(args.log)}\n")
 
     # Handle SIGTERM (from TaskStop / kill) — set flag so threads stop gracefully
     def _sigterm_handler(signum, frame):
         _stop_flag.set()
     signal.signal(signal.SIGTERM, _sigterm_handler)
 
+    log_thread.start()
+
     try:
         crawl(args.url, args.workers, progress)
     except KeyboardInterrupt:
         _stop_flag.set()
+
+    _stop_flag.set()  # ensure log thread exits
+    log_thread.join(timeout=2)
+
+    # Write one final snapshot
+    sc_logger.info(progress.spacecraft_snapshot())
 
     if _stop_flag.is_set():
         print("\n\nInterrupted! Showing partial results...")
@@ -342,6 +422,8 @@ def main():
         with open(args.output, "w") as f:
             json.dump(result, f, indent=2)
         print(f"\nResults saved to {args.output}")
+
+    print(f"Spacecraft log saved to {os.path.abspath(args.log)}")
 
 
 if __name__ == "__main__":

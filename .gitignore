@@ -77,8 +77,14 @@ knowledge/missions/*/hapi/
 # Autoplot downloaded JAR (user-specific path)
 autoplot.jar
 ~/autoplot.jar
-# SPDF crawl output
+# SPDF crawl / dataset size outputs
 spdf_sizes.json
+spdf_spacecraft.log
+spdf_spacecraft_*.log
+spdf_spacecraft_results.json
+dataset_sizes.json
+dataset_sizes.log
+dataset_sizes_*.log
 
 # Agent-exported files (figures, data exports at project root)
 *.png
