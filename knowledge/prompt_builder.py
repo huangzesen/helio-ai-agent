@@ -8,7 +8,7 @@ The main agent gets a slim routing table (no dataset IDs or analysis tips).
 Mission sub-agents get rich, focused prompts with full domain knowledge.
 """
 
-from .catalog import SPACECRAFT
+from .catalog import SPACECRAFT, classify_instrument_type
 from .mission_loader import load_mission, load_all_missions, get_routing_table, get_mission_datasets
 from .hapi_client import list_parameters as _list_parameters
 from rendering.registry import render_method_catalog
@@ -61,24 +61,7 @@ def generate_dataset_quick_reference() -> str:
     for sc_id, sc in SPACECRAFT.items():
         name = sc["name"]
         for inst_id, inst in sc["instruments"].items():
-            # Determine type from instrument keywords
-            kws = inst["keywords"]
-            if any(k in kws for k in ("magnetic", "mag", "b-field", "magnetometer")):
-                dtype = "Magnetic"
-            elif any(k in kws for k in ("plasma", "solar wind", "ion", "electron")):
-                dtype = "Plasma"
-            elif any(k in kws for k in ("particle", "energetic", "cosmic ray")):
-                dtype = "Particles"
-            elif any(k in kws for k in ("electric", "e-field")):
-                dtype = "Electric"
-            elif any(k in kws for k in ("radio", "wave", "plasma wave")):
-                dtype = "Waves"
-            elif any(k in kws for k in ("index", "indices", "geomagnetic")):
-                dtype = "Indices"
-            elif any(k in kws for k in ("ephemeris", "orbit", "attitude", "position")):
-                dtype = "Ephemeris"
-            else:
-                dtype = "Combined"
+            dtype = classify_instrument_type(inst["keywords"]).capitalize()
             for ds in inst["datasets"]:
                 lines.append(f"| {name} | {ds} | {dtype} | use list_parameters |")
     return "\n".join(lines)
@@ -94,23 +77,7 @@ def generate_planner_dataset_reference() -> str:
     for mission_id, mission in missions.items():
         parts = []
         for inst_id, inst in mission.get("instruments", {}).items():
-            kws = inst.get("keywords", [])
-            if any(k in kws for k in ("magnetic", "mag", "magnetometer")):
-                kind = "magnetic"
-            elif any(k in kws for k in ("plasma", "solar wind", "ion", "electron")):
-                kind = "plasma"
-            elif any(k in kws for k in ("particle", "energetic", "cosmic ray")):
-                kind = "particles"
-            elif any(k in kws for k in ("electric", "e-field")):
-                kind = "electric"
-            elif any(k in kws for k in ("radio", "wave", "plasma wave")):
-                kind = "waves"
-            elif any(k in kws for k in ("index", "indices", "geomagnetic")):
-                kind = "indices"
-            elif any(k in kws for k in ("ephemeris", "orbit", "attitude", "position")):
-                kind = "ephemeris"
-            else:
-                kind = "combined"
+            kind = classify_instrument_type(inst.get("keywords", []))
             for ds_id, ds_info in inst.get("datasets", {}).items():
                 parts.append(f"dataset={ds_id} ({kind})")
         lines.append(f"- {mission['name']}: {'; '.join(parts)}")
@@ -314,22 +281,6 @@ def build_mission_prompt(mission_id: str) -> str:
     lines.append("   Also accepts 'last week', 'January 2024', etc.")
     lines.append("6. **Labels**: fetch_data stores data with label `DATASET.PARAM`.")
     lines.append("")
-
-    # --- CDF Backend Instructions ---
-    import config
-    if config.DATA_BACKEND == "cdf":
-        lines.append("## CDF Backend Active")
-        lines.append("")
-        lines.append("The data backend uses direct CDF file downloads (not HAPI).")
-        lines.append("When you call `list_parameters`, the result includes:")
-        lines.append("- `parameters`: HAPI parameter names with descriptions/units (for reference only)")
-        lines.append("- `cdf_variables`: Actual CDF variable names that work with `fetch_data`")
-        lines.append("")
-        lines.append("IMPORTANT: Use variable names from `cdf_variables` in fetch_data calls.")
-        lines.append("HAPI parameter names may NOT work. Match the physical quantity from the")
-        lines.append("orchestrator's request to the best CDF variable using its description,")
-        lines.append("units, and shape.")
-        lines.append("")
 
     lines.append("## Reporting Results")
     lines.append("")
@@ -873,7 +824,6 @@ def build_planner_agent_prompt() -> str:
     Returns:
         System prompt string (no placeholders — user request comes via chat).
     """
-    dataset_ref = generate_planner_dataset_reference()
     routing = get_routing_table()
     routing_lines = []
     for entry in routing:
@@ -922,9 +872,6 @@ Each task has:
 ## Known Missions
 
 {routing_text}
-
-## Known Dataset IDs
-{dataset_ref}
 
 IMPORTANT: Do NOT specify parameter names in fetch task instructions — the mission agent
 selects parameters autonomously. Describe the physical quantity instead (e.g., "magnetic field
@@ -984,15 +931,16 @@ Tag each task with the "mission" field:
 
 ## Dataset Selection
 
-For fetch tasks, include the `candidate_datasets` field with a list of 2-3 dataset IDs
-that could satisfy the physics requirement. Always include at least 2 candidates when
-multiple datasets are available — this gives the mission agent a fallback if the primary
-dataset has no data or all-NaN values in the requested time range. The mission agent will
-inspect these candidates (checking parameters, availability, data quality) and choose the
-best one. Only use dataset IDs from the Known Dataset IDs list or Discovery Results.
+For fetch tasks, include the `candidate_datasets` field with 2-3 dataset IDs
+from the Discovery Results. Prefer datasets marked [VERIFIED] — these had their
+parameters confirmed by list_parameters. Non-verified datasets from browse_datasets
+are also valid candidates; the mission agent will verify them at fetch time.
 
-Do NOT specify parameter names in task instructions — the mission agent selects parameters.
-Describe the physical quantity needed instead (e.g., "magnetic field vector", "proton density").
+CRITICAL: Only use dataset IDs that appear in the Discovery Results.
+Do NOT invent dataset IDs.
+
+Do NOT specify parameter names — the mission agent selects parameters.
+Describe the physical quantity needed (e.g., "magnetic field vector", "proton density").
 
 ## Task Instruction Format
 
@@ -1049,43 +997,29 @@ def build_discovery_prompt() -> str:
 Your job is to research the user's request by calling discovery tools, then
 summarize what you found so a planning agent can create an accurate task plan.
 
-## CRITICAL: Prioritize list_parameters
+## Discovery Strategy: Browse First, Verify Top Picks
 
-The #1 most important thing you do is call `list_parameters(dataset_id)` to get
-the EXACT parameter names for each dataset. The planning agent uses these to choose
-candidate dataset IDs, and mission agents use them to select which parameters to fetch.
+### Phase 1: Broad Search
+1. Identify relevant missions from the user's request.
+2. Call `browse_datasets(mission_id)` for each relevant mission.
+   - Returns all datasets with date ranges, parameter counts, instrument, and type.
+   - No network cost — reads from local cache.
+   - Gives the planner visibility into ALL available datasets.
 
-## Discovery Hierarchy (Bounded Data Selection)
+### Phase 2: Verify Top Picks
+3. From browse results, identify the 2-3 most promising datasets per physical
+   quantity the user needs (e.g., magnetic field, proton density).
+   Prefer datasets with: recent stop_date, high parameter_count, Level 2 data.
+4. Call `list_parameters(dataset_id)` ONLY for these top picks.
+5. Optionally call `get_data_availability(dataset_id)` if the user specified
+   a time range and you need to verify coverage.
+6. Call `list_fetched_data()` to check what data is already in memory.
 
-Dataset and parameter selection is strictly bounded by the local HAPI cache.
-The `fetch_data` tool validates all IDs against cached metadata and rejects
-unknown dataset or parameter IDs immediately — no network call is wasted.
-
-Use this 3-level lookup:
-1. `list_missions()` — see all available missions and dataset counts
-2. `browse_datasets(mission_id)` — list all science datasets for a mission
-3. `list_parameters(dataset_id)` — get exact parameter names for a dataset
-
-## Workflow
-
-1. Identify which spacecraft/instruments the user's request involves.
-2. Call `list_missions()` if unsure which missions are available.
-3. Call `browse_datasets(mission_id)` or `search_datasets(query)` to find candidate dataset IDs.
-4. For EACH candidate dataset, call `list_parameters(dataset_id)` to get exact
-   parameter names. This is the most important step — do NOT skip it.
-5. Call `list_fetched_data()` to check what data is already in memory.
-6. Summarize your findings as structured text.
-
-## Rules
-
-- ALWAYS call `list_parameters` for every dataset you plan to recommend.
-  Do NOT guess parameter names — they vary between datasets.
-- Prefer `browse_datasets` + `list_parameters` over `search_full_catalog`.
-  `search_full_catalog` returns dataset IDs but NOT parameter names.
-- If `list_parameters` returns 0 parameters, that dataset is likely a
-  spectrogram or unsupported format — try a different dataset.
-- Focus on the datasets most relevant to the user's request. Don't waste
-  tool calls searching broadly when you can go directly to known datasets.
+### Rules
+- Call `browse_datasets` BEFORE `list_parameters` — browse is free, list_parameters is expensive.
+- Do NOT call `list_parameters` for every dataset. Only the top 2-3 per quantity.
+- If `list_parameters` returns 0 parameters, try a different dataset from browse results.
+- Focus on datasets relevant to the user's request — skip ephemeris/engineering unless asked.
 
 ## Output Format
 

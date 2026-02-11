@@ -47,6 +47,37 @@ def _build_spacecraft_dict() -> dict:
 SPACECRAFT = _build_spacecraft_dict()
 
 
+def classify_instrument_type(keywords: list[str]) -> str:
+    """Classify instrument type from keywords.
+
+    Used by browse_datasets enrichment and prompt generation to categorize
+    datasets by physical measurement type.
+
+    Args:
+        keywords: List of keyword strings from the mission JSON.
+
+    Returns:
+        A type string: magnetic, plasma, particles, electric, waves, indices,
+        ephemeris, or other.
+    """
+    kws = [k.lower() for k in keywords]
+    if any(k in kws for k in ("magnetic", "mag", "b-field", "magnetometer")):
+        return "magnetic"
+    if any(k in kws for k in ("plasma", "solar wind", "ion", "electron")):
+        return "plasma"
+    if any(k in kws for k in ("particle", "energetic", "cosmic ray")):
+        return "particles"
+    if any(k in kws for k in ("electric", "e-field")):
+        return "electric"
+    if any(k in kws for k in ("radio", "wave", "plasma wave")):
+        return "waves"
+    if any(k in kws for k in ("index", "indices", "geomagnetic")):
+        return "indices"
+    if any(k in kws for k in ("ephemeris", "orbit", "attitude", "position")):
+        return "ephemeris"
+    return "other"
+
+
 def list_spacecraft() -> list[dict]:
     """List all supported spacecraft.
 

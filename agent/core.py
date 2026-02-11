@@ -233,13 +233,7 @@ class OrchestratorAgent:
         if self.verbose:
             from .thinking import extract_thoughts
             for thought in extract_thoughts(response):
-                # Full text to terminal/file (untagged)
-                self.logger.debug(f"[Thinking] {thought}")
-                # Truncated preview to Gradio (tagged)
-                preview = thought[:500]
-                if len(thought) > 500:
-                    preview += "..."
-                self.logger.debug(f"[Thinking] {preview}", extra=tagged("thinking"))
+                self.logger.debug(f"[Thinking] {thought}", extra=tagged("thinking"))
 
     def _send_message(self, message):
         """Send a message on self.chat with automatic model fallback on 429."""
@@ -657,28 +651,26 @@ class OrchestratorAgent:
                 return {"status": "success", "message": "No matching datasets found."}
 
         elif tool_name == "list_parameters":
-            self.logger.debug(f"[HAPI] Fetching parameters for {tool_args['dataset_id']}...")
-            params = hapi_list_parameters(tool_args["dataset_id"])
-            self.logger.debug(f"[HAPI] Got {len(params)} parameters.")
-            result = {"status": "success", "parameters": params}
-
-            # When using CDF backend, also include actual CDF variable names
+            dataset_id = tool_args["dataset_id"]
             from config import DATA_BACKEND
+
             if DATA_BACKEND == "cdf":
+                # CDF backend: return CDF variable names directly — these are
+                # the only names fetch_data accepts.  Fall back to HAPI if the
+                # CDF introspection fails.
                 try:
                     from data_ops.fetch_cdf import list_cdf_variables
-                    cdf_vars = list_cdf_variables(tool_args["dataset_id"])
-                    result["cdf_variables"] = cdf_vars
-                    result["note"] = (
-                        "IMPORTANT: Use names from cdf_variables (not parameters) for "
-                        "fetch_data calls. HAPI parameter names will NOT work."
-                    )
+                    cdf_vars = list_cdf_variables(dataset_id)
+                    self.logger.debug(f"[CDF] Listed {len(cdf_vars)} data variables for {dataset_id}")
+                    return {"status": "success", "parameters": cdf_vars}
                 except Exception as e:
-                    self.logger.debug(
-                        f"[CDF] Could not list CDF variables for "
-                        f"{tool_args['dataset_id']}: {e}"
-                    )
-            return result
+                    self.logger.debug(f"[CDF] Could not list variables for {dataset_id}: {e}, falling back to HAPI")
+
+            # HAPI backend (or CDF fallback)
+            self.logger.debug(f"[HAPI] Fetching parameters for {dataset_id}...")
+            params = hapi_list_parameters(dataset_id)
+            self.logger.debug(f"[HAPI] Got {len(params)} parameters.")
+            return {"status": "success", "parameters": params}
 
         elif tool_name == "get_data_availability":
             dataset_id = tool_args["dataset_id"]
@@ -695,6 +687,7 @@ class OrchestratorAgent:
         elif tool_name == "browse_datasets":
             from knowledge.hapi_client import browse_datasets as hapi_browse
             from knowledge.mission_loader import load_mission as _load_mission
+            from knowledge.catalog import SPACECRAFT, classify_instrument_type
             mission_id = tool_args["mission_id"]
             # Ensure HAPI cache exists (triggers download if needed)
             try:
@@ -704,6 +697,20 @@ class OrchestratorAgent:
             datasets = hapi_browse(mission_id)
             if datasets is None:
                 return {"status": "error", "message": f"No dataset index for '{mission_id}'."}
+
+            # Enrich with instrument/type from mission JSON
+            sc = SPACECRAFT.get(mission_id, {})
+            ds_to_instrument = {}
+            for inst_id, inst in sc.get("instruments", {}).items():
+                kws = inst.get("keywords", [])
+                for ds_id in inst.get("datasets", []):
+                    ds_to_instrument[ds_id] = {"instrument": inst_id, "keywords": kws}
+
+            for ds in datasets:
+                info = ds_to_instrument.get(ds["id"], {})
+                ds["instrument"] = info.get("instrument", "")
+                ds["type"] = classify_instrument_type(info.get("keywords", []))
+
             return {"status": "success", "mission_id": mission_id,
                     "dataset_count": len(datasets), "datasets": datasets}
 
@@ -1854,6 +1861,7 @@ class OrchestratorAgent:
 
             # Create Task objects for this batch
             new_tasks = []
+            all_candidates_invalid = False
             for td in tasks_data:
                 mission = td.get("mission")
                 if isinstance(mission, str) and mission.lower() in ("null", "none", ""):
@@ -1865,7 +1873,62 @@ class OrchestratorAgent:
                 )
                 task.round = round_num
                 task.candidate_datasets = td.get("candidate_datasets")
+
+                # Validate candidate_datasets against local HAPI cache
+                if task.candidate_datasets:
+                    valid = []
+                    invalid = []
+                    for ds_id in task.candidate_datasets:
+                        v = hapi_validate_dataset_id(ds_id)
+                        if v["valid"]:
+                            valid.append(ds_id)
+                        else:
+                            invalid.append(ds_id)
+                    if invalid:
+                        self.logger.debug(
+                            f"[Plan] Stripped invalid candidate_datasets "
+                            f"from '{task.description}': {invalid}"
+                        )
+                    if valid:
+                        task.candidate_datasets = valid
+                    else:
+                        # ALL candidates invalid — flag for re-prompt
+                        self.logger.warning(
+                            f"[Plan] ALL candidate_datasets invalid for "
+                            f"'{task.description}': {invalid}"
+                        )
+                        all_candidates_invalid = True
                 new_tasks.append(task)
+
+            # If any task has all-invalid candidates, re-prompt the planner
+            if all_candidates_invalid:
+                invalid_ids = []
+                for t in new_tasks:
+                    if t.candidate_datasets:
+                        for ds_id in t.candidate_datasets:
+                            v = hapi_validate_dataset_id(ds_id)
+                            if not v["valid"]:
+                                invalid_ids.append(ds_id)
+                correction_msg = (
+                    "VALIDATION ERROR: The following dataset IDs do not exist "
+                    f"in the local HAPI cache: {invalid_ids}. "
+                    "Re-emit the same tasks using ONLY dataset IDs from the "
+                    "Discovery Results. Do NOT invent dataset IDs."
+                )
+                self.logger.debug(f"[Plan] Sending correction to planner: {correction_msg}")
+                response = planner.continue_planning(
+                    [{"description": "Dataset ID validation",
+                      "status": "failed",
+                      "result_summary": correction_msg,
+                      "error": correction_msg}],
+                    round_num=round_num,
+                    max_rounds=MAX_ROUNDS,
+                )
+                if response is None:
+                    self.logger.debug("[PlannerAgent] Planner error after correction, finalizing")
+                    break
+                # Re-process the corrected response in the next loop iteration
+                continue
 
             plan.add_tasks(new_tasks)
             store.save(plan)

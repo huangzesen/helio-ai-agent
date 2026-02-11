@@ -289,11 +289,11 @@ class PlannerAgent:
 
     @staticmethod
     def _build_parameter_reference(tool_results: dict) -> str:
-        """Build a structured parameter reference from collected tool results.
+        """Build a structured dataset reference from collected tool results.
 
-        Extracts all list_parameters and get_data_availability results to
-        produce a definitive reference that the planning LLM must use
-        verbatim for dataset_id and parameter names.
+        Combines browse_datasets (broad catalog view) and list_parameters
+        (verified parameter details) into a single reference the planning
+        LLM uses to select candidate dataset IDs.
 
         Args:
             tool_results: Dict of {tool_name: [{args, result}, ...]} from
@@ -302,10 +302,11 @@ class PlannerAgent:
         Returns:
             Formatted reference string, or empty string if no data.
         """
+        browse_results = tool_results.get("browse_datasets", [])
         lp_results = tool_results.get("list_parameters", [])
         avail_results = tool_results.get("get_data_availability", [])
 
-        if not lp_results:
+        if not browse_results and not lp_results:
             return ""
 
         # Build availability lookup
@@ -318,44 +319,100 @@ class PlannerAgent:
                 end = result.get("end_date", "?")
                 availability[ds_id] = f"{start} to {end}"
 
-        lines = [
-            "## VERIFIED PARAMETER REFERENCE",
-            "",
-            "REFERENCE: Verified parameters per dataset. Recommend these dataset IDs as candidates;",
-            "the mission agent selects specific parameters.",
-            "",
-        ]
-
+        # Build verified parameters lookup
+        verified_params = {}
         for entry in lp_results:
             ds_id = entry["args"].get("dataset_id", "unknown")
             result = entry["result"]
             params = result.get("parameters", [])
+            if params and result.get("status") != "error":
+                verified_params[ds_id] = params
 
-            if not params or result.get("status") == "error":
-                lines.append(f"Dataset {ds_id}: NO PARAMETERS AVAILABLE (skip this dataset)")
+        lines = [
+            "## DATASET REFERENCE",
+            "",
+            "Use ONLY dataset IDs from this reference for candidate_datasets.",
+            "",
+        ]
+
+        # Section 1: Browse results — grouped by mission, annotated with type
+        for entry in browse_results:
+            result = entry["result"]
+            if result.get("status") == "error":
+                continue
+            mission_id = result.get("mission_id", "?")
+            datasets = result.get("datasets", [])
+            if not datasets:
                 continue
 
-            avail = availability.get(ds_id, "unknown")
-            lines.append(f"Dataset {ds_id} (available: {avail}):")
+            lines.append(f"### {mission_id} ({len(datasets)} datasets)")
 
-            for p in params:
-                name = p.get("name", "?")
-                if name == "Time":
-                    continue
-                units = p.get("units") or ""
-                ptype = p.get("type", "")
-                size = p.get("size")
-                desc_parts = []
-                if units:
-                    desc_parts.append(units)
-                if ptype:
-                    desc_parts.append(ptype)
-                if size:
-                    desc_parts.append(f"size={size}")
-                desc = ", ".join(desc_parts) if desc_parts else ""
-                lines.append(f"  - {name}" + (f" ({desc})" if desc else ""))
+            # Group by type for readability
+            by_type = {}
+            for ds in datasets:
+                dtype = ds.get("type", "other")
+                by_type.setdefault(dtype, []).append(ds)
 
+            for dtype, ds_list in by_type.items():
+                lines.append(f"  {dtype}:")
+                for ds in ds_list:
+                    ds_id = ds["id"]
+                    start = ds.get("start_date", "?")
+                    stop = ds.get("stop_date", "?")
+                    pcnt = ds.get("parameter_count", 0)
+                    inst = ds.get("instrument", "")
+                    verified = " [VERIFIED]" if ds_id in verified_params else ""
+                    inst_tag = f" ({inst})" if inst else ""
+                    lines.append(f"    - {ds_id}{inst_tag}: {start} to {stop}, {pcnt} params{verified}")
+                lines.append("")
+
+        # Section 2: Verified parameter details (for top picks only)
+        if verified_params:
+            lines.append("### Verified Parameters")
             lines.append("")
+            for ds_id, params in verified_params.items():
+                avail = availability.get(ds_id, "unknown")
+                lines.append(f"Dataset {ds_id} (available: {avail}):")
+                for p in params:
+                    name = p.get("name", "?")
+                    if name == "Time":
+                        continue
+                    units = p.get("units") or ""
+                    size = p.get("size")
+                    desc_parts = []
+                    if units:
+                        desc_parts.append(units)
+                    if size and size != [1]:
+                        desc_parts.append(f"size={size}")
+                    lines.append(f"  - {name}" + (f" ({', '.join(desc_parts)})" if desc_parts else ""))
+                lines.append("")
+
+        # Fallback: if no browse results, still show list_parameters data
+        if not browse_results and lp_results:
+            lines.append("### Verified Parameters")
+            lines.append("")
+            for entry in lp_results:
+                ds_id = entry["args"].get("dataset_id", "unknown")
+                result = entry["result"]
+                params = result.get("parameters", [])
+                if not params or result.get("status") == "error":
+                    lines.append(f"Dataset {ds_id}: NO PARAMETERS AVAILABLE (skip this dataset)")
+                    continue
+                avail = availability.get(ds_id, "unknown")
+                lines.append(f"Dataset {ds_id} (available: {avail}):")
+                for p in params:
+                    name = p.get("name", "?")
+                    if name == "Time":
+                        continue
+                    units = p.get("units") or ""
+                    size = p.get("size")
+                    desc_parts = []
+                    if units:
+                        desc_parts.append(units)
+                    if size and size != [1]:
+                        desc_parts.append(f"size={size}")
+                    lines.append(f"  - {name}" + (f" ({', '.join(desc_parts)})" if desc_parts else ""))
+                lines.append("")
 
         return "\n".join(lines)
 

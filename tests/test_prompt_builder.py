@@ -8,7 +8,7 @@ Run with: python -m pytest tests/test_prompt_builder.py
 """
 
 import pytest
-from knowledge.catalog import SPACECRAFT
+from knowledge.catalog import SPACECRAFT, classify_instrument_type
 from knowledge.prompt_builder import (
     generate_spacecraft_overview,
     generate_dataset_quick_reference,
@@ -287,12 +287,21 @@ class TestBuildPlannerAgentPrompt:
         prompt = build_planner_agent_prompt()
         assert "{user_request}" not in prompt
 
-    def test_contains_all_datasets(self):
+    def test_no_known_dataset_ids_section(self):
+        """Dataset reference removed — datasets come from discovery results."""
         prompt = build_planner_agent_prompt()
-        for sc_id, sc in SPACECRAFT.items():
-            for inst_id, inst in sc["instruments"].items():
-                for ds in inst["datasets"]:
-                    assert ds in prompt, f"Dataset {ds} missing from planner prompt"
+        assert "Known Dataset IDs" not in prompt
+
+    def test_prompt_size_reduced(self):
+        """Planning prompt should be much smaller without the 32K dataset ref."""
+        prompt = build_planner_agent_prompt()
+        # Was ~140K chars, should now be ~12K
+        assert len(prompt) < 20000, f"Prompt still too large: {len(prompt)} chars"
+
+    def test_references_discovery_results(self):
+        """Dataset Selection section should reference Discovery Results."""
+        prompt = build_planner_agent_prompt()
+        assert "Discovery Results" in prompt
 
     def test_contains_tool_docs(self):
         prompt = build_planner_agent_prompt()
@@ -349,9 +358,15 @@ class TestBuildDiscoveryPrompt:
         prompt = build_discovery_prompt()
         assert "list_parameters" in prompt
 
-    def test_mentions_search_datasets(self):
+    def test_mentions_browse_datasets(self):
         prompt = build_discovery_prompt()
-        assert "search_datasets" in prompt
+        assert "browse_datasets" in prompt
+
+    def test_browse_first_strategy(self):
+        """Discovery prompt should guide browse-first, verify-top-picks."""
+        prompt = build_discovery_prompt()
+        assert "Browse First" in prompt or "browse_datasets" in prompt
+        assert "top" in prompt.lower() or "Top Picks" in prompt
 
     def test_mentions_output_format(self):
         prompt = build_discovery_prompt()
@@ -460,3 +475,126 @@ class TestBuildVisualizationPrompt:
         assert "set_color_table" not in prompt
         assert "save_session" not in prompt
         assert "load_session" not in prompt
+
+
+class TestClassifyInstrumentType:
+    """Test the shared instrument type classifier."""
+
+    def test_magnetic(self):
+        assert classify_instrument_type(["magnetic", "field"]) == "magnetic"
+        assert classify_instrument_type(["mag", "rtn"]) == "magnetic"
+        assert classify_instrument_type(["magnetometer"]) == "magnetic"
+
+    def test_plasma(self):
+        assert classify_instrument_type(["plasma", "density"]) == "plasma"
+        assert classify_instrument_type(["solar wind"]) == "plasma"
+        assert classify_instrument_type(["ion", "composition"]) == "plasma"
+
+    def test_particles(self):
+        assert classify_instrument_type(["energetic", "particle"]) == "particles"
+        assert classify_instrument_type(["cosmic ray"]) == "particles"
+
+    def test_indices(self):
+        assert classify_instrument_type(["geomagnetic", "index"]) == "indices"
+
+    def test_ephemeris(self):
+        assert classify_instrument_type(["orbit", "position"]) == "ephemeris"
+        assert classify_instrument_type(["ephemeris"]) == "ephemeris"
+
+    def test_other(self):
+        assert classify_instrument_type(["unknown"]) == "other"
+        assert classify_instrument_type([]) == "other"
+
+    def test_case_insensitive(self):
+        assert classify_instrument_type(["Magnetic", "FIELD"]) == "magnetic"
+        assert classify_instrument_type(["PLASMA"]) == "plasma"
+
+
+class TestBuildParameterReference:
+    """Test PlannerAgent._build_parameter_reference with browse + list_parameters."""
+
+    def test_browse_results_included(self):
+        from agent.planner import PlannerAgent
+        tool_results = {
+            "browse_datasets": [{"args": {"mission_id": "ACE"}, "result": {
+                "status": "success", "mission_id": "ACE", "datasets": [
+                    {"id": "AC_H2_MFI", "start_date": "1998", "stop_date": "2025",
+                     "parameter_count": 6, "instrument": "mag", "type": "magnetic"}
+                ]
+            }}],
+        }
+        ref = PlannerAgent._build_parameter_reference(tool_results)
+        assert "AC_H2_MFI" in ref
+        assert "ACE" in ref
+        assert "magnetic" in ref
+
+    def test_verified_tag_applied(self):
+        from agent.planner import PlannerAgent
+        tool_results = {
+            "browse_datasets": [{"args": {"mission_id": "ACE"}, "result": {
+                "status": "success", "mission_id": "ACE", "datasets": [
+                    {"id": "AC_H2_MFI", "start_date": "1998", "stop_date": "2025",
+                     "parameter_count": 6, "instrument": "mag", "type": "magnetic"},
+                    {"id": "AC_H0_MFI", "start_date": "1998", "stop_date": "2025",
+                     "parameter_count": 4, "instrument": "mag", "type": "magnetic"},
+                ]
+            }}],
+            "list_parameters": [{"args": {"dataset_id": "AC_H2_MFI"}, "result": {
+                "status": "success", "parameters": [
+                    {"name": "BGSEc", "units": "nT", "size": [3]},
+                    {"name": "Magnitude", "units": "nT"},
+                ]
+            }}],
+        }
+        ref = PlannerAgent._build_parameter_reference(tool_results)
+        assert "[VERIFIED]" in ref
+        # AC_H2_MFI should be verified, AC_H0_MFI should not
+        lines = ref.split("\n")
+        for line in lines:
+            if "AC_H2_MFI" in line and "VERIFIED" in line:
+                break
+        else:
+            pytest.fail("AC_H2_MFI should be marked [VERIFIED]")
+
+    def test_verified_parameters_section(self):
+        from agent.planner import PlannerAgent
+        tool_results = {
+            "browse_datasets": [{"args": {"mission_id": "ACE"}, "result": {
+                "status": "success", "mission_id": "ACE", "datasets": [
+                    {"id": "AC_H2_MFI", "start_date": "1998", "stop_date": "2025",
+                     "parameter_count": 6, "instrument": "mag", "type": "magnetic"}
+                ]
+            }}],
+            "list_parameters": [{"args": {"dataset_id": "AC_H2_MFI"}, "result": {
+                "status": "success", "parameters": [
+                    {"name": "Time", "units": "UTC"},
+                    {"name": "BGSEc", "units": "nT", "size": [3]},
+                    {"name": "Magnitude", "units": "nT"},
+                ]
+            }}],
+        }
+        ref = PlannerAgent._build_parameter_reference(tool_results)
+        assert "Verified Parameters" in ref
+        assert "BGSEc" in ref
+        assert "Magnitude" in ref
+        # Time should be excluded
+        assert "\n  - Time" not in ref
+
+    def test_empty_results(self):
+        from agent.planner import PlannerAgent
+        ref = PlannerAgent._build_parameter_reference({})
+        assert ref == ""
+
+    def test_list_parameters_only_fallback(self):
+        """When no browse results, list_parameters data still produces output."""
+        from agent.planner import PlannerAgent
+        tool_results = {
+            "list_parameters": [{"args": {"dataset_id": "AC_H2_MFI"}, "result": {
+                "status": "success", "parameters": [
+                    {"name": "BGSEc", "units": "nT", "size": [3]},
+                ]
+            }}],
+        }
+        ref = PlannerAgent._build_parameter_reference(tool_results)
+        assert "AC_H2_MFI" in ref
+        assert "BGSEc" in ref

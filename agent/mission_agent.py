@@ -10,7 +10,6 @@ from typing import Optional
 
 from google import genai
 
-import config
 from .base_agent import BaseSubAgent
 from .tasks import Task
 from knowledge.prompt_builder import build_mission_prompt
@@ -77,14 +76,6 @@ class MissionAgent(BaseSubAgent):
         """Task prompt — allows dataset inspection when candidates are provided."""
         has_candidates = "Candidate datasets to inspect:" in task.instruction
 
-        cdf_rule = ""
-        if config.DATA_BACKEND == "cdf":
-            cdf_rule = (
-                "- CRITICAL: When list_parameters returns `cdf_variables`, you MUST use "
-                "names from `cdf_variables` for fetch_data calls. HAPI parameter names "
-                "(from `parameters`) will NOT work with the CDF backend.\n"
-            )
-
         pitfall_section = ""
         if self._pitfalls:
             pitfall_section = (
@@ -98,7 +89,7 @@ class MissionAgent(BaseSubAgent):
                 "RULES:\n"
                 "- Inspect the candidate datasets by calling list_parameters for each.\n"
                 "- Select the best dataset and parameters for the physical quantity requested.\n"
-                + cdf_rule +
+                +
                 "- If fetch_data returns an error about high NaN percentage (>25%), or returns "
                 "an error about all-NaN data, skip that parameter and try a different candidate dataset.\n"
                 "- Call fetch_data for each selected parameter.\n"
@@ -112,7 +103,7 @@ class MissionAgent(BaseSubAgent):
                 f"Execute this task: {task.instruction}\n\n"
                 "RULES:\n"
                 "- Do ONLY what the instruction says. Do NOT add extra steps.\n"
-                + cdf_rule +
+                +
                 "- After a successful fetch_data call, STOP. Do NOT call list_fetched_data, "
                 "get_data_availability, list_parameters, describe_data, or get_dataset_docs.\n"
                 "- Return the stored label and point count as concise text."
