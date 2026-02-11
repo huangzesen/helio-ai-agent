@@ -11,6 +11,7 @@ from knowledge.cdaweb_catalog import (
     get_full_catalog,
     search_catalog,
     get_catalog_stats,
+    _substring_search,
     CATALOG_CACHE,
     CACHE_TTL_SECONDS,
 )
@@ -31,10 +32,11 @@ SAMPLE_CATALOG = [
 ]
 
 
-# ── search_catalog ──────────────────────────────────────────────────
+# ── search_catalog (substring mode) ─────────────────────────────────
 
+@patch("config.CATALOG_SEARCH_METHOD", "substring")
 class TestSearchCatalog:
-    """Test catalog search with mock data."""
+    """Test catalog search in substring mode with mock data."""
 
     @patch("knowledge.cdaweb_catalog.get_full_catalog", return_value=SAMPLE_CATALOG)
     def test_search_by_spacecraft(self, mock_catalog):
@@ -94,26 +96,71 @@ class TestSearchCatalog:
         assert results[0]["id"] == "AC_H2_MFI"
 
 
+# ── search_catalog (semantic dispatch) ───────────────────────────────
+
+class TestSemanticSearch:
+    """Test semantic search dispatch and fallback logic."""
+
+    @patch("knowledge.cdaweb_catalog.get_full_catalog", return_value=SAMPLE_CATALOG)
+    @patch("config.CATALOG_SEARCH_METHOD", "substring")
+    def test_uses_substring_when_configured(self, mock_catalog):
+        """Explicit substring config bypasses fastembed entirely."""
+        with patch("knowledge.cdaweb_catalog._ensure_fastembed") as mock_fe:
+            results = search_catalog("ace")
+            mock_fe.assert_not_called()
+        assert len(results) >= 1
+
+    @patch("knowledge.cdaweb_catalog.get_full_catalog", return_value=SAMPLE_CATALOG)
+    @patch("config.CATALOG_SEARCH_METHOD", "semantic")
+    @patch("knowledge.cdaweb_catalog._ensure_fastembed", return_value=False)
+    def test_falls_back_when_fastembed_unavailable(self, mock_fe, mock_catalog):
+        """When fastembed is not installed, falls back to substring."""
+        results = search_catalog("ace")
+        assert len(results) >= 1
+        assert all("ac" in r["id"].lower() for r in results)
+
+    @patch("knowledge.cdaweb_catalog.get_full_catalog", return_value=SAMPLE_CATALOG)
+    @patch("config.CATALOG_SEARCH_METHOD", "semantic")
+    @patch("knowledge.cdaweb_catalog._ensure_fastembed", return_value=True)
+    @patch("knowledge.cdaweb_catalog._semantic_search")
+    def test_dispatches_to_semantic_when_available(self, mock_sem, mock_fe, mock_catalog):
+        """When fastembed is available and config=semantic, uses _semantic_search."""
+        mock_sem.return_value = [{"id": "FAKE_DS", "title": "Fake"}]
+        results = search_catalog("solar wind")
+        mock_sem.assert_called_once_with("solar wind", SAMPLE_CATALOG, 20)
+        assert results == [{"id": "FAKE_DS", "title": "Fake"}]
+
+    @patch("knowledge.cdaweb_catalog.get_full_catalog", return_value=SAMPLE_CATALOG)
+    @patch("config.CATALOG_SEARCH_METHOD", "semantic")
+    def test_empty_query_returns_empty(self, mock_catalog):
+        """Empty query returns [] regardless of search method."""
+        results = search_catalog("")
+        assert results == []
+
+    @patch("knowledge.cdaweb_catalog.get_full_catalog", return_value=SAMPLE_CATALOG)
+    @patch("config.CATALOG_SEARCH_METHOD", "semantic")
+    def test_whitespace_query_returns_empty(self, mock_catalog):
+        """Whitespace-only query returns [] regardless of search method."""
+        results = search_catalog("   ")
+        assert results == []
+
+
 # ── get_full_catalog ────────────────────────────────────────────────
 
 class TestGetFullCatalog:
     """Test catalog fetching and caching."""
 
     @patch("knowledge.cdaweb_catalog.CATALOG_CACHE")
-    @patch("knowledge.cdaweb_catalog.requests")
-    def test_fetches_when_no_cache(self, mock_requests, mock_cache_path):
+    def test_fetches_when_no_cache(self, mock_cache_path):
         mock_cache_path.exists.return_value = False
         mock_cache_path.parent.mkdir = MagicMock()
 
-        mock_resp = MagicMock()
-        mock_resp.json.return_value = {"catalog": SAMPLE_CATALOG}
-        mock_resp.raise_for_status = MagicMock()
-        mock_requests.get.return_value = mock_resp
-
-        # Mock the open call for writing cache
-        mock_file = MagicMock()
-        with patch("builtins.open", return_value=mock_file):
-            result = get_full_catalog()
+        # Mock _fetch_from_cdas_rest to return sample catalog
+        with patch("knowledge.cdaweb_catalog._fetch_from_cdas_rest",
+                   return_value=SAMPLE_CATALOG):
+            mock_file = MagicMock()
+            with patch("builtins.open", return_value=mock_file):
+                result = get_full_catalog()
 
         assert len(result) == len(SAMPLE_CATALOG)
 

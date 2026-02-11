@@ -1,31 +1,49 @@
 """
-Full CDAWeb HAPI catalog fetch, cache, and search.
+Full CDAWeb catalog fetch, cache, and search.
 
-Provides access to the complete CDAWeb catalog (2000+ datasets) via a
-locally cached copy of the HAPI /catalog endpoint. The cache is refreshed
-every 24 hours.
+Provides access to the complete CDAWeb catalog (2000+ datasets) via the
+CDAS REST API. Falls back to HAPI /catalog only if CDAS fails.
+The cache is refreshed every 24 hours.
+
+Search supports two methods (controlled by config.CATALOG_SEARCH_METHOD):
+- "semantic": fastembed cosine similarity (default, much better for NL queries)
+- "substring": case-insensitive multi-word substring matching (fast fallback)
 
 Used by the `search_full_catalog` tool to let users find datasets
 across all CDAWeb missions, not just the curated ones.
 """
 
 import json
+import logging
 import time
 from pathlib import Path
+
+import numpy as np
 
 try:
     import requests
 except ImportError:
     requests = None
 
+logger = logging.getLogger("helio-agent")
+
 HAPI_CATALOG_URL = "https://cdaweb.gsfc.nasa.gov/hapi/catalog"
 CATALOG_CACHE = Path.home() / ".helio-agent" / "cdaweb_catalog.json"
+EMBEDDINGS_CACHE = Path.home() / ".helio-agent" / "cdaweb_embeddings.npy"
+TEXTS_CACHE = Path.home() / ".helio-agent" / "cdaweb_embed_texts.npy"
 CACHE_TTL_SECONDS = 24 * 60 * 60  # 24 hours
+
+# Lazy state for semantic search
+_fastembed_available = None  # None = not checked yet
+_embedding_model = None
+_catalog_embeddings = None
+_catalog_texts = None
 
 
 def get_full_catalog() -> list[dict]:
-    """Fetch and cache the full CDAWeb HAPI catalog.
+    """Fetch and cache the full CDAWeb catalog.
 
+    Uses CDAS REST API as primary source, HAPI /catalog as fallback.
     Returns a list of dicts with 'id' and 'title' keys.
     Uses a local file cache (refreshed every 24 hours).
 
@@ -43,16 +61,18 @@ def get_full_catalog() -> list[dict]:
             except (json.JSONDecodeError, KeyError):
                 pass  # Re-fetch on corrupt cache
 
-    # Fetch from HAPI server
     if requests is None:
         return []
 
-    try:
-        resp = requests.get(HAPI_CATALOG_URL, timeout=30)
-        resp.raise_for_status()
-        data = resp.json()
-    except Exception:
-        # If fetch fails and we have a stale cache, use it
+    # Primary: CDAS REST API
+    catalog = _fetch_from_cdas_rest()
+
+    # Fallback: HAPI /catalog
+    if not catalog:
+        catalog = _fetch_from_hapi()
+
+    if not catalog:
+        # If all fetches fail, use stale cache
         if CATALOG_CACHE.exists():
             try:
                 with open(CATALOG_CACHE, "r", encoding="utf-8") as f:
@@ -63,30 +83,136 @@ def get_full_catalog() -> list[dict]:
         return []
 
     # Save cache
+    data = {"catalog": catalog}
     CATALOG_CACHE.parent.mkdir(parents=True, exist_ok=True)
     with open(CATALOG_CACHE, "w", encoding="utf-8") as f:
         json.dump(data, f, ensure_ascii=False)
 
-    return data.get("catalog", [])
+    return catalog
 
 
-def search_catalog(query: str, max_results: int = 20) -> list[dict]:
-    """Search the full CDAWeb catalog by keyword.
-
-    Performs case-insensitive substring matching on dataset IDs and titles.
-    Supports multi-word queries (all words must match).
-
-    Args:
-        query: Search terms (e.g., "cluster magnetic", "voyager 2").
-        max_results: Maximum number of results to return.
-
-    Returns:
-        List of matching catalog entries with 'id' and 'title'.
-    """
-    catalog = get_full_catalog()
-    if not catalog:
+def _fetch_from_cdas_rest() -> list[dict]:
+    """Fetch catalog from CDAS REST API and convert to id/title list."""
+    try:
+        from .cdaweb_metadata import fetch_dataset_metadata
+        cdaweb_meta = fetch_dataset_metadata()
+        if not cdaweb_meta:
+            return []
+        return [
+            {"id": ds_id, "title": meta.get("label", "")}
+            for ds_id, meta in sorted(cdaweb_meta.items())
+        ]
+    except Exception:
         return []
 
+
+def _fetch_from_hapi() -> list[dict]:
+    """Fetch catalog from HAPI /catalog (last-resort fallback)."""
+    try:
+        resp = requests.get(HAPI_CATALOG_URL, timeout=30)
+        resp.raise_for_status()
+        data = resp.json()
+        return data.get("catalog", [])
+    except Exception:
+        return []
+
+
+def _ensure_fastembed() -> bool:
+    """Lazy check for fastembed availability. Caches result."""
+    global _fastembed_available
+    if _fastembed_available is not None:
+        return _fastembed_available
+    try:
+        import fastembed  # noqa: F401
+        _fastembed_available = True
+    except ImportError:
+        _fastembed_available = False
+        logger.warning("fastembed not installed — falling back to substring search")
+    return _fastembed_available
+
+
+def _build_or_load_embeddings(catalog: list[dict]):
+    """Build or load cached embeddings for catalog entries.
+
+    Returns (embeddings_matrix, texts_list, model) or (None, None, None) on failure.
+    """
+    global _embedding_model, _catalog_embeddings, _catalog_texts
+
+    # Return cached if already loaded
+    if _catalog_embeddings is not None and _catalog_texts is not None:
+        return _catalog_embeddings, _catalog_texts, _embedding_model
+
+    texts = [f"{e.get('id', '')} {e.get('title', '')}" for e in catalog]
+
+    # Try loading from disk cache
+    if EMBEDDINGS_CACHE.exists() and TEXTS_CACHE.exists():
+        try:
+            cached_texts = np.load(TEXTS_CACHE, allow_pickle=True).tolist()
+            if cached_texts == texts:
+                embeddings = np.load(EMBEDDINGS_CACHE)
+                logger.debug("Loaded cached embeddings (%d entries)", len(texts))
+                _catalog_embeddings = embeddings
+                _catalog_texts = texts
+                # Model still needed for query embedding
+                if _embedding_model is None:
+                    from fastembed import TextEmbedding
+                    _embedding_model = TextEmbedding(model_name="BAAI/bge-small-en-v1.5")
+                return _catalog_embeddings, _catalog_texts, _embedding_model
+        except Exception:
+            pass  # Rebuild on any cache issue
+
+    # Build fresh embeddings
+    try:
+        from fastembed import TextEmbedding
+
+        if _embedding_model is None:
+            _embedding_model = TextEmbedding(model_name="BAAI/bge-small-en-v1.5")
+
+        embeddings = np.array(list(_embedding_model.embed(texts, batch_size=256)))
+
+        # Save cache
+        EMBEDDINGS_CACHE.parent.mkdir(parents=True, exist_ok=True)
+        np.save(EMBEDDINGS_CACHE, embeddings)
+        np.save(TEXTS_CACHE, np.array(texts, dtype=object))
+        logger.debug("Built and cached embeddings (%d entries, shape %s)",
+                      len(texts), embeddings.shape)
+
+        _catalog_embeddings = embeddings
+        _catalog_texts = texts
+        return _catalog_embeddings, _catalog_texts, _embedding_model
+    except Exception as exc:
+        logger.warning("Failed to build embeddings: %s", exc)
+        return None, None, None
+
+
+def _semantic_search(query: str, catalog: list[dict], max_results: int) -> list[dict]:
+    """Search catalog using fastembed cosine similarity.
+
+    Falls back to _substring_search on any failure.
+    """
+    try:
+        embeddings, texts, model = _build_or_load_embeddings(catalog)
+        if embeddings is None:
+            return _substring_search(query, catalog, max_results)
+
+        query_emb = np.array(list(model.embed([query])))[0]
+        similarities = embeddings @ query_emb
+        top_indices = np.argsort(similarities)[::-1][:max_results]
+
+        return [
+            {"id": catalog[idx]["id"], "title": catalog[idx]["title"]}
+            for idx in top_indices
+        ]
+    except Exception as exc:
+        logger.warning("Semantic search failed: %s — falling back to substring", exc)
+        return _substring_search(query, catalog, max_results)
+
+
+def _substring_search(query: str, catalog: list[dict], max_results: int) -> list[dict]:
+    """Search catalog using case-insensitive substring matching.
+
+    All query words must appear in the combined id+title text.
+    """
     words = query.lower().split()
     if not words:
         return []
@@ -103,6 +229,32 @@ def search_catalog(query: str, max_results: int = 20) -> list[dict]:
                 break
 
     return matches
+
+
+def search_catalog(query: str, max_results: int = 20) -> list[dict]:
+    """Search the full CDAWeb catalog.
+
+    Uses semantic search (fastembed) by default, with automatic fallback
+    to substring matching if fastembed is unavailable or fails.
+    Controlled by config.CATALOG_SEARCH_METHOD ("semantic" or "substring").
+
+    Args:
+        query: Search terms (e.g., "solar wind proton density", "ACE magnetometer").
+        max_results: Maximum number of results to return.
+
+    Returns:
+        List of matching catalog entries with 'id' and 'title'.
+    """
+    import config
+
+    catalog = get_full_catalog()
+    if not catalog or not query.strip():
+        return []
+
+    if config.CATALOG_SEARCH_METHOD == "semantic" and _ensure_fastembed():
+        return _semantic_search(query, catalog, max_results)
+
+    return _substring_search(query, catalog, max_results)
 
 
 def get_catalog_stats() -> dict:
