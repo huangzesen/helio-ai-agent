@@ -16,14 +16,15 @@ from datetime import datetime
 from pathlib import Path
 from typing import Optional
 
+import config
 from .logging import get_logger
 
 logger = get_logger()
 
 # Maximum memories injected per type (budget: ~10k tokens total)
-MAX_PREFERENCES = 15
-MAX_SUMMARIES = 10
-MAX_PITFALLS = 20
+MAX_PREFERENCES = config.get("max_preferences", 15)
+MAX_SUMMARIES = config.get("max_summaries", 10)
+MAX_PITFALLS = config.get("max_pitfalls", 20)
 
 
 @dataclass

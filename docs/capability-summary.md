@@ -35,7 +35,7 @@ agent/core.py  OrchestratorAgent  (LLM-driven orchestrator)
   |  - Complex multi-mission requests -> planner -> sub-agents
   |  - Token usage tracking (input/output/thinking/api_calls, includes all sub-agents)
   |  - Models: Gemini 3 Pro Preview (orchestrator), Gemini 3 Flash Preview (sub-agents)
-  |  - Configurable via GEMINI_MODEL / GEMINI_SUB_AGENT_MODEL env vars
+  |  - Configurable via ~/.helio-agent/config.json (model / sub_agent_model keys)
   |  - Thinking levels: HIGH (orchestrator + planner), LOW (all sub-agents)
   |
   +---> agent/visualization_agent.py  Visualization sub-agent (visualization-only tools)
@@ -399,7 +399,7 @@ All times are UTC. Outputs `TimeRange` objects with `start`/`end` datetimes.
 - Session-level global flag — once activated, every subsequent `client.chats.create()` and `models.generate_content()` call uses the fallback model
 - The OrchestratorAgent's persistent chat is recreated with the fallback model on first 429 error
 - Sub-agents (BaseSubAgent, PlannerAgent, MemoryAgent) use `get_active_model()` at chat/call creation time, so they pick up the fallback automatically
-- Configurable via `GEMINI_FALLBACK_MODEL` env var (default: `gemini-2.5-flash`)
+- Configurable via `fallback_model` in `~/.helio-agent/config.json` (default: `gemini-2.5-flash`)
 - If the fallback model also fails, the error propagates normally (no retry chain)
 
 ### Empty Session Auto-Cleanup
@@ -421,14 +421,31 @@ All times are UTC. Outputs `TimeRange` objects with `start`/`end` datetimes.
 
 ## Configuration
 
-`.env` file at project root:
+**`.env`** at project root (secret only):
 ```
 GOOGLE_API_KEY=<gemini-api-key>
-GEMINI_MODEL=<optional, default: gemini-3-pro-preview>
-GEMINI_SUB_AGENT_MODEL=<optional, default: gemini-3-flash-preview>
-GEMINI_PLANNER_MODEL=<optional, default: GEMINI_MODEL>
-GEMINI_FALLBACK_MODEL=<optional, default: gemini-2.5-flash>
 ```
+
+**`~/.helio-agent/config.json`** (user-editable, all optional — defaults shown):
+```json
+{
+  "model": "gemini-3-pro-preview",
+  "sub_agent_model": "gemini-3-flash-preview",
+  "planner_model": null,
+  "fallback_model": "gemini-2.5-flash",
+  "data_backend": "cdf",
+  "catalog_search_method": "semantic",
+  "max_preferences": 15,
+  "max_summaries": 10,
+  "max_pitfalls": 20,
+  "memory_poll_interval_seconds": 30,
+  "memory_log_growth_threshold_kb": 10,
+  "memory_error_count_threshold": 5,
+  "memory_max_log_bytes_kb": 50
+}
+```
+
+See `config.template.json` for a copyable template. If the file doesn't exist, built-in defaults are used.
 
 ## Running
 

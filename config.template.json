@@ -1,0 +1,16 @@
+{
+  "_comment": "Copy to ~/.helio-agent/config.json and edit. All fields are optional — defaults shown.",
+  "model": "gemini-3-pro-preview",
+  "sub_agent_model": "gemini-3-flash-preview",
+  "planner_model": null,
+  "fallback_model": "gemini-2.5-flash",
+  "data_backend": "cdf",
+  "catalog_search_method": "semantic",
+  "max_preferences": 15,
+  "max_summaries": 10,
+  "max_pitfalls": 20,
+  "memory_poll_interval_seconds": 30,
+  "memory_log_growth_threshold_kb": 10,
+  "memory_error_count_threshold": 5,
+  "memory_max_log_bytes_kb": 50
+}

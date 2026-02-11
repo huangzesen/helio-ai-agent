@@ -15,6 +15,7 @@ from typing import Optional
 
 from google.genai import types
 
+import config
 from .logging import get_logger, get_current_log_path, get_log_size, LOG_DIR
 from .memory import Memory, MemoryStore
 from .model_fallback import get_active_model
@@ -22,14 +23,14 @@ from .model_fallback import get_active_model
 logger = get_logger()
 
 # Thresholds for triggering analysis
-LOG_GROWTH_THRESHOLD = 10 * 1024  # 10 KB of new log content
-ERROR_COUNT_THRESHOLD = 5
+LOG_GROWTH_THRESHOLD = config.get("memory_log_growth_threshold_kb", 10) * 1024
+ERROR_COUNT_THRESHOLD = config.get("memory_error_count_threshold", 5)
 
 # How often the background thread checks for new log content
-POLL_INTERVAL_SECONDS = 30
+POLL_INTERVAL_SECONDS = config.get("memory_poll_interval_seconds", 30)
 
 # Cap on log content sent to Gemini
-MAX_LOG_BYTES = 50 * 1024  # 50 KB
+MAX_LOG_BYTES = config.get("memory_max_log_bytes_kb", 50) * 1024
 
 # Directories
 STATE_DIR = Path.home() / ".helio-agent"

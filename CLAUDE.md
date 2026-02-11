@@ -100,8 +100,9 @@ The server uses `agent.core.create_agent()` directly (same `OrchestratorAgent` a
 
 ## Configuration
 
-Requires a `.env` file at project root with:
-- `GOOGLE_API_KEY` — Gemini API key
+- **`.env`** at project root — API key only (secret):
+  - `GOOGLE_API_KEY` — Gemini API key
+- **`~/.helio-agent/config.json`** — all other settings (user-editable, no secrets). See `config.template.json` for all available keys with defaults. If the file doesn't exist, built-in defaults are used.
 
 ## Supported Spacecraft
 
