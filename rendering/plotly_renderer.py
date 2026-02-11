@@ -93,14 +93,26 @@ _DEFAULT_LAYOUT = dict(
     font_color="#2a3f5f",
 )
 
-_LEGEND_MAX_CHARS = 30
+_LEGEND_MAX_LINE = 30  # max chars per line in legend
 
 
-def _short_display_name(name: str, max_len: int = _LEGEND_MAX_CHARS) -> str:
-    """Truncate a display name for legend readability."""
-    if len(name) <= max_len:
+def _wrap_display_name(name: str, max_line: int = _LEGEND_MAX_LINE) -> str:
+    """Wrap a long display name with <br> for multi-line Plotly legends."""
+    if len(name) <= max_line:
         return name
-    return name[:max_len - 1] + "\u2026"
+    words = name.split()
+    lines: list[str] = []
+    current = ""
+    for word in words:
+        candidate = f"{current} {word}".strip()
+        if len(candidate) > max_line and current:
+            lines.append(current)
+            current = word
+        else:
+            current = candidate
+    if current:
+        lines.append(current)
+    return "<br>".join(lines)
 
 
 class PlotlyRenderer:
@@ -222,7 +234,7 @@ class PlotlyRenderer:
                     fig.add_trace(
                         Scatter(
                             x=t_disp, y=v_disp,
-                            name=_short_display_name(label),
+                            name=_wrap_display_name(label),
                             mode="lines",
                             line=dict(color=self._next_color(label)),
                         ),
@@ -241,7 +253,7 @@ class PlotlyRenderer:
                 fig.add_trace(
                     Scatter(
                         x=t_disp, y=v_disp,
-                        name=_short_display_name(display_name),
+                        name=_wrap_display_name(display_name),
                         mode="lines",
                         line=dict(color=self._next_color(display_name)),
                     ),
@@ -503,11 +515,11 @@ class PlotlyRenderer:
             if isinstance(y_label, dict):
                 for panel_str, label_text in y_label.items():
                     panel = int(panel_str)
-                    fig.update_yaxes(title_text=label_text, row=panel, col=1)
+                    fig.update_yaxes(title_text=_wrap_display_name(str(label_text)), row=panel, col=1)
             else:
-                # Apply to all panels
+                wrapped = _wrap_display_name(str(y_label))
                 for row in range(1, self._panel_count + 1):
-                    fig.update_yaxes(title_text=y_label, row=row, col=1)
+                    fig.update_yaxes(title_text=wrapped, row=row, col=1)
 
         if trace_colors is not None:
             for trace_label, color in trace_colors.items():
