@@ -30,6 +30,7 @@ class DataExtractionAgent(BaseSubAgent):
         tool_executor,
         verbose: bool = False,
         cancel_event=None,
+        token_log_path=None,
     ):
         super().__init__(
             client=client,
@@ -41,4 +42,5 @@ class DataExtractionAgent(BaseSubAgent):
             tool_categories=EXTRACTION_CATEGORIES,
             extra_tool_names=EXTRACTION_EXTRA_TOOLS,
             cancel_event=cancel_event,
+            token_log_path=token_log_path,
         )

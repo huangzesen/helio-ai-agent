@@ -35,6 +35,7 @@ class MissionAgent(BaseSubAgent):
         verbose: bool = False,
         cancel_event=None,
         pitfalls: list[str] | None = None,
+        token_log_path=None,
     ):
         self.mission_id = mission_id
         super().__init__(
@@ -48,6 +49,7 @@ class MissionAgent(BaseSubAgent):
             extra_tool_names=MISSION_EXTRA_TOOLS,
             cancel_event=cancel_event,
             pitfalls=pitfalls,
+            token_log_path=token_log_path,
         )
 
     # ---- Hook overrides ----

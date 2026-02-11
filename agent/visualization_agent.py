@@ -51,6 +51,7 @@ class VisualizationAgent(BaseSubAgent):
         gui_mode: bool = False,
         cancel_event=None,
         pitfalls: list[str] | None = None,
+        token_log_path=None,
     ):
         self.gui_mode = gui_mode
         super().__init__(
@@ -64,6 +65,7 @@ class VisualizationAgent(BaseSubAgent):
             extra_tool_names=VIZ_EXTRA_TOOLS,
             cancel_event=cancel_event,
             pitfalls=pitfalls,
+            token_log_path=token_log_path,
         )
 
     def _get_task_prompt(self, task: Task) -> str:

@@ -138,12 +138,13 @@ class PlannerAgent:
 
     def __init__(self, client: genai.Client, model_name: str,
                  tool_executor=None, verbose: bool = False,
-                 cancel_event=None):
+                 cancel_event=None, token_log_path=None):
         self.client = client
         self.model_name = model_name
         self.tool_executor = tool_executor
         self.verbose = verbose
         self._cancel_event = cancel_event
+        self._token_log_path = token_log_path
         self._chat = None
         self._token_usage = {"input_tokens": 0, "output_tokens": 0, "thinking_tokens": 0}
         self._api_calls = 0
@@ -187,6 +188,7 @@ class PlannerAgent:
             cumulative_thinking=self._token_usage["thinking_tokens"],
             api_calls=self._api_calls,
             tool_context=self._last_tool_context,
+            token_log_path=self._token_log_path,
         )
         if self.verbose:
             from .thinking import extract_thoughts

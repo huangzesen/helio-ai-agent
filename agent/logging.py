@@ -100,6 +100,7 @@ def log_token_usage(
     cumulative_thinking: int,
     api_calls: int,
     tool_context: str = "send_message",
+    token_log_path: Optional[Path] = None,
 ) -> None:
     """Append one line to the token usage log.
 
@@ -113,8 +114,11 @@ def log_token_usage(
         cumulative_thinking: Running total of thinking tokens for this agent.
         api_calls: Running total of API calls for this agent.
         tool_context: What triggered this API call (tool name, 'initial_message', etc.).
+        token_log_path: Explicit path to the token log file. If None, falls back
+            to the module-global ``_token_log_file`` (legacy behaviour).
     """
-    if _token_log_file is None:
+    target = token_log_path or _token_log_file
+    if target is None:
         return
     # Truncate tool_context to 60 chars
     ctx = tool_context[:60] if tool_context else "unknown"
@@ -126,7 +130,7 @@ def log_token_usage(
         f"calls:{api_calls}\n"
     )
     try:
-        with open(_token_log_file, "a", encoding="utf-8") as f:
+        with open(target, "a", encoding="utf-8") as f:
             f.write(line)
     except OSError:
         pass  # Don't let token logging break the agent
@@ -307,6 +311,11 @@ def log_session_end(token_usage: dict) -> None:
         f"API calls: {token_usage.get('api_calls', 0)}"
     )
     logger.info("=" * 60)
+
+
+def get_token_log_path() -> Optional[Path]:
+    """Return the path to the current session's token log file (or None)."""
+    return _token_log_file
 
 
 def get_current_log_path() -> Path:

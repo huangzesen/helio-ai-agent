@@ -28,6 +28,7 @@ class DataOpsAgent(BaseSubAgent):
         tool_executor,
         verbose: bool = False,
         cancel_event=None,
+        token_log_path=None,
     ):
         super().__init__(
             client=client,
@@ -39,6 +40,7 @@ class DataOpsAgent(BaseSubAgent):
             tool_categories=DATAOPS_TOOL_CATEGORIES,
             extra_tool_names=DATAOPS_EXTRA_TOOLS,
             cancel_event=cancel_event,
+            token_log_path=token_log_path,
         )
 
     def _get_task_prompt(self, task: Task) -> str:

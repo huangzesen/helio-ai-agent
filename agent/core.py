@@ -31,7 +31,7 @@ from .data_extraction_agent import DataExtractionAgent
 from .logging import (
     setup_logging, get_logger, log_error, log_tool_call,
     log_tool_result, log_plan_event, log_session_end,
-    set_session_id, tagged, log_token_usage,
+    set_session_id, tagged, log_token_usage, get_token_log_path,
 )
 from .memory_agent import MemoryAgent
 from .loop_guard import LoopGuard, make_call_key
@@ -96,6 +96,7 @@ class OrchestratorAgent:
 
         # Initialize logging
         self.logger = setup_logging(verbose=verbose)
+        self._token_log_path = get_token_log_path()  # snapshot before concurrent processes overwrite
         self.logger.info("Initializing OrchestratorAgent")
 
         # Initialize Gemini client with retry for transient errors (503, 429, etc.)
@@ -229,6 +230,7 @@ class OrchestratorAgent:
             cumulative_thinking=self._total_thinking_tokens,
             api_calls=self._api_calls,
             tool_context=self._last_tool_context,
+            token_log_path=self._token_log_path,
         )
         if self.verbose:
             from .thinking import extract_thoughts
@@ -1650,6 +1652,7 @@ class OrchestratorAgent:
                 tool_executor=self._execute_tool_safe,
                 verbose=self.verbose,
                 cancel_event=self._cancel_event,
+                token_log_path=self._token_log_path,
             )
             self.logger.debug(f"[Router] Created PlannerAgent ({GEMINI_PLANNER_MODEL})")
         return self._planner_agent
@@ -2214,6 +2217,7 @@ class OrchestratorAgent:
                 verbose=self.verbose,
                 cancel_event=self._cancel_event,
                 pitfalls=pitfalls,
+                token_log_path=self._token_log_path,
             )
             self.logger.debug(f"[Router] Created {mission_id} mission agent ({SUB_AGENT_MODEL})")
         return self._mission_agents[mission_id]
@@ -2230,6 +2234,7 @@ class OrchestratorAgent:
                 gui_mode=self.gui_mode,
                 cancel_event=self._cancel_event,
                 pitfalls=pitfalls,
+                token_log_path=self._token_log_path,
             )
             self.logger.debug(f"[Router] Created Visualization agent ({SUB_AGENT_MODEL})")
         return self._viz_agent
@@ -2243,6 +2248,7 @@ class OrchestratorAgent:
                 tool_executor=self._execute_tool_safe,
                 verbose=self.verbose,
                 cancel_event=self._cancel_event,
+                token_log_path=self._token_log_path,
             )
             self.logger.debug("[Router] Created DataOps agent")
         return self._dataops_agent
@@ -2256,6 +2262,7 @@ class OrchestratorAgent:
                 tool_executor=self._execute_tool_safe,
                 verbose=self.verbose,
                 cancel_event=self._cancel_event,
+                token_log_path=self._token_log_path,
             )
             self.logger.debug("[Router] Created DataExtraction agent")
         return self._data_extraction_agent

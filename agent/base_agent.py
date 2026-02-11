@@ -40,6 +40,7 @@ class BaseSubAgent:
         extra_tool_names: list[str] | None = None,
         cancel_event: threading.Event | None = None,
         pitfalls: list[str] | None = None,
+        token_log_path=None,
     ):
         self.client = client
         self.model_name = model_name
@@ -49,6 +50,7 @@ class BaseSubAgent:
         self.system_prompt = system_prompt
         self._cancel_event = cancel_event
         self._pitfalls = pitfalls or []
+        self._token_log_path = token_log_path
         self.logger = get_logger()
 
         # Build function declarations from categories
@@ -108,6 +110,7 @@ class BaseSubAgent:
             cumulative_thinking=self._total_thinking_tokens,
             api_calls=self._api_calls,
             tool_context=self._last_tool_context,
+            token_log_path=self._token_log_path,
         )
         if self.verbose:
             from .thinking import extract_thoughts
