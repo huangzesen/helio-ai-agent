@@ -108,7 +108,7 @@ def _get_mission_choices() -> list[str]:
 
 def _on_mission_change(mission_id: str):
     """Populate dataset dropdown when a mission is selected."""
-    from knowledge.hapi_client import browse_datasets
+    from knowledge.metadata_client import browse_datasets
 
     if not mission_id:
         return (
@@ -141,7 +141,7 @@ def _on_mission_change(mission_id: str):
 
 def _on_dataset_change(dataset_id: str):
     """Populate parameter dropdown, info, and time pickers when a dataset is selected."""
-    from knowledge.hapi_client import list_parameters, get_dataset_time_range
+    from knowledge.metadata_client import list_parameters, get_dataset_time_range
 
     if not dataset_id:
         return gr.update(choices=[], value=None), "", gr.skip(), gr.skip()
@@ -1879,7 +1879,6 @@ def main():
     parser.add_argument("--refresh", action="store_true", help="Refresh dataset time ranges (fast — updates start/stop dates only)")
     parser.add_argument("--refresh-full", action="store_true", help="Full rebuild of primary mission data (re-download everything)")
     parser.add_argument("--refresh-all", action="store_true", help="Download ALL missions from CDAWeb (full rebuild)")
-    parser.add_argument("--download-hapi-cache", action="store_true", help="Pre-download detailed HAPI parameter cache for all missions")
     args = parser.parse_args()
 
     _verbose = not args.quiet
@@ -1890,7 +1889,6 @@ def main():
         refresh=args.refresh,
         refresh_full=args.refresh_full,
         refresh_all=args.refresh_all,
-        download_hapi_cache=args.download_hapi_cache,
     )
 
     # Check HAPI availability and auto-fallback to CDF if needed

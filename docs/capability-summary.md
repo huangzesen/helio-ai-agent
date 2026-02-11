@@ -15,7 +15,7 @@ User input
 main.py  (readline CLI, --verbose/--model flags, token usage on exit)
   |  - Commands: quit, reset, status, retry, cancel, errors, sessions, capabilities, help
   |  - Flags: --continue/-c (resume latest), --session/-s ID (resume specific)
-  |  - Flags: --refresh (update time ranges), --refresh-full (rebuild primary),
+  |  - Flags: --refresh (update time ranges), --refresh-full (rebuild all),
   |           --refresh-all (rebuild all missions from CDAWeb)
   |  - Single-command mode: python main.py "request"
   |  - Auto-saves session every turn; checks for incomplete plans on startup
@@ -104,7 +104,7 @@ agent/core.py  OrchestratorAgent  (LLM-driven orchestrator)
   |       cdaweb_catalog.py        Full CDAWeb catalog fetch/cache/search (CDAS REST primary, HAPI fallback)
   |       catalog.py               Thin routing layer (loads from JSON, backward-compat SPACECRAFT dict)
   |       prompt_builder.py        Slim system prompt (routing table + catalog search) + rich mission/visualization prompts
-  |       hapi_client.py           Dataset metadata (4-layer cache: memory → file → Master CDF → HAPI)
+  |       metadata_client.py       Dataset metadata (4-layer cache: memory → file → Master CDF → HAPI)
   |       master_cdf.py            Master CDF skeleton download + HAPI-compatible metadata extraction
   |       startup.py               Mission data startup: status check, interactive refresh menu, CLI flag resolution
   |       bootstrap.py             Mission JSON auto-generation from CDAS REST + Master CDF (HAPI fallback)
@@ -121,7 +121,7 @@ agent/core.py  OrchestratorAgent  (LLM-driven orchestrator)
   |
   +---> scripts/                  Tooling
           generate_mission_data.py  Auto-populate JSON from CDAS REST + Master CDF
-          fetch_hapi_cache.py       Download metadata cache (Master CDF primary, HAPI fallback)
+          fetch_metadata_cache.py   Download metadata cache (Master CDF primary, HAPI fallback)
           agent_server.py           TCP socket server for multi-turn agent testing
           run_agent_tests.py        Integration test suite (6 scenarios)
           test_dataset_loading.py   End-to-end dataset loading test across all HAPI datasets
@@ -319,11 +319,11 @@ All times are UTC. Outputs `TimeRange` objects with `start`/`end` datetimes.
 - **CDAWeb InstrumentType grouping**: `knowledge/cdaweb_metadata.py` fetches the CDAWeb REST API to get authoritative InstrumentType per dataset (18+ categories like "Magnetic Fields (space)", "Plasma and Solar Wind"). Bootstrap uses this to group datasets into meaningful instrument categories with keywords, instead of dumping everything into "General".
 - **Full catalog search**: `knowledge/cdaweb_catalog.py` provides `search_full_catalog` tool — searches all 2000+ CDAWeb datasets by keyword (CDAS REST primary, HAPI fallback), with 24-hour local cache.
 - **Master CDF metadata**: `knowledge/master_cdf.py` downloads CDF skeleton files from CDAWeb and extracts HAPI-compatible parameter metadata (names, types, units, fill values, sizes). Cached to `~/.helio-agent/master_cdfs/`. Used as primary network source for parameter metadata, replacing HAPI `/info`.
-- **4-layer metadata resolution**: `knowledge/hapi_client.py` resolves dataset metadata through: in-memory cache → local file cache → Master CDF download → HAPI `/info` (last resort). Master CDF results are persisted to the local file cache for subsequent use.
+- **4-layer metadata resolution**: `knowledge/metadata_client.py` resolves dataset metadata through: in-memory cache → local file cache → Master CDF download → HAPI `/info` (last resort). Master CDF results are persisted to the local file cache for subsequent use.
 - **Recommended datasets**: All datasets in the instrument section are shown as recommended. Additional datasets are discoverable via `browse_datasets`.
 - **Calibration exclusion lists**: Per-mission `_calibration_exclude.json` files filter out calibration, housekeeping, and ephemeris datasets from browse results. Uses glob patterns and exact IDs.
 - **Auto-generation**: `scripts/generate_mission_data.py` queries CDAS REST API for catalog + Master CDF for parameters (HAPI fallback). Use `--create-new` to create skeleton JSON files for new missions.
-- **Loader**: `knowledge/mission_loader.py` provides lazy-loading cache, routing table, and dataset access. Routing table derives capabilities from instrument keywords (magnetic field, plasma, energetic particles, electric field, radio/plasma waves, geomagnetic indices, ephemeris, composition, coronagraph, imaging).
+- **Loader**: `knowledge/mission_loader.py` provides in-memory cache, routing table, and dataset access. Routing table derives capabilities from instrument keywords (magnetic field, plasma, energetic particles, electric field, radio/plasma waves, geomagnetic indices, ephemeris, composition, coronagraph, imaging).
 
 ### Long-term Memory (`agent/memory.py`)
 - Cross-session memory that persists user preferences, session summaries, and operational pitfalls
@@ -391,8 +391,8 @@ All times are UTC. Outputs `TimeRange` objects with `start`/`end` datetimes.
 - `get_mission_status()` scans mission JSONs and reports count, datasets, last refresh date
 - `show_mission_menu()` presents interactive refresh options on startup
 - `resolve_refresh_flags()` maps CLI flags (`--refresh`, `--refresh-full`, `--refresh-all`) to actions
-- `run_mission_refresh()` invokes bootstrap to refresh time ranges, rebuild primary missions, or rebuild all missions
-- After refresh, clears mission_loader and hapi_client caches
+- `run_mission_refresh()` invokes bootstrap to refresh time ranges or rebuild all missions
+- After refresh, clears mission_loader and metadata_client caches
 
 ### Automatic Model Fallback (`agent/model_fallback.py`)
 - When any Gemini API call hits a 429 RESOURCE_EXHAUSTED (quota/rate limit), all agents automatically switch to `GEMINI_FALLBACK_MODEL` for the remainder of the session
@@ -407,10 +407,11 @@ All times are UTC. Outputs `TimeRange` objects with `start`/`end` datetimes.
 - Prevents clutter from abandoned or crashed sessions
 - Session save is skipped when there's nothing to persist
 
-### Eager Metadata Cache Download
-- When mission JSON files are loaded at startup, parameter metadata is pre-fetched for all datasets via Master CDF (HAPI fallback)
-- Shows progress in Gradio live log via tqdm integration
-- Reduces latency on first data request (cache is warm)
+### First-Run Full Download
+- On first run (no mission JSONs exist), `ensure_missions_populated()` calls `populate_missions()` which downloads the full CDAWeb catalog + Master CDF parameter metadata (~5-10 minutes, one-time)
+- Subsequent startups are instant (JSON files already exist)
+- Two refresh paths: `--refresh` (lightweight time-range update) and `--refresh-full` (destructive rebuild)
+- Shows progress via tqdm in terminal, logger-based progress in Gradio live log
 
 ### Google Search Grounding
 - `google_search` tool provides web search via Google Search grounding API
@@ -439,8 +440,8 @@ python main.py --session ID  # Resume specific session by ID
 python main.py -m MODEL      # Specify Gemini model (overrides .env)
 python main.py "request"     # Single-command mode (non-interactive, exits after response)
 python main.py --refresh     # Refresh dataset time ranges (fast — start/stop dates only)
-python main.py --refresh-full  # Full rebuild of primary mission data
-python main.py --refresh-all   # Download ALL missions from CDAWeb (full rebuild)
+python main.py --refresh-full  # Full rebuild of all mission data
+python main.py --refresh-all   # Full rebuild of all missions (same as --refresh-full)
 ```
 
 ### Gradio Web UI

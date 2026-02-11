@@ -98,7 +98,7 @@ Each entry has: id, description, start_date, stop_date, parameter_count, instrum
     {
         "category": "discovery",
         "name": "list_missions",
-        "description": """List all missions with cached HAPI metadata. Use this when:
+        "description": """List all missions with cached metadata. Use this when:
 - User asks "what missions/spacecraft are available?"
 - You need to see which missions have local data before browsing datasets
 - You want a quick overview of the data catalog
@@ -165,7 +165,7 @@ Do NOT guess - ask instead.""",
     {
         "category": "data_ops_fetch",
         "name": "fetch_data",
-        "description": """Fetch timeseries data from CDAWeb HAPI into memory for Python-side operations.
+        "description": """Fetch timeseries data from CDAWeb into memory for Python-side operations.
 Use this instead of plot_data when the user wants to compute on data (magnitude, averages, differences, etc.).
 
 The data is stored in memory with a label like 'AC_H2_MFI.BGSEc' for later reference by compute and plot tools.""",
@@ -653,7 +653,7 @@ Use action parameter to select the operation.""",
     {
         "category": "discovery",
         "name": "search_full_catalog",
-        "description": """Search the full CDAWeb HAPI catalog (2000+ datasets) by keyword. Use this when:
+        "description": """Search the full CDAWeb catalog (2000+ datasets) by keyword. Use this when:
 - User asks about a spacecraft or instrument NOT in the supported missions table
 - User wants to browse broadly across all available data (e.g., "what magnetospheric data is available?")
 - User asks about a mission you don't have a specialist agent for (Cluster, THEMIS, Voyager, GOES, etc.)

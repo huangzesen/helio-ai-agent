@@ -147,13 +147,13 @@ OrchestratorAgent
 │  ├─ search_datasets          ├─ fetch_data              │
 │  │   → catalog.search()      │   → fetch.fetch_hapi()   │
 │  ├─ browse_datasets          │   → DataStore.put()       │
-│  │   → hapi_client           ├─ custom_operation         │
+│  │   → metadata_client           ├─ custom_operation         │
 │  ├─ list_parameters          │   → AST validate          │
-│  │   → hapi_client           │   → sandbox execute       │
+│  │   → metadata_client           │   → sandbox execute       │
 │  ├─ get_data_availability    │   → DataStore.put()       │
-│  │   → hapi_client           ├─ compute_spectrogram      │
+│  │   → metadata_client           ├─ compute_spectrogram      │
 │  ├─ get_dataset_docs         ├─ describe_data            │
-│  │   → hapi_client           ├─ preview_data             │
+│  │   → metadata_client           ├─ preview_data             │
 │  └─ search_full_catalog      ├─ save_data                │
 │      → cdaweb_catalog        ├─ list_fetched_data        │
 │                              └─ store_dataframe           │
@@ -203,7 +203,7 @@ LLM produces text reply → User
 │  catalog.py                              │              │
 │  └─ search_by_keywords()                 ▼              │
 │                                  System prompts for     │
-│  hapi_client.py                  all agents (dynamic,   │
+│  metadata_client.py              all agents (dynamic,   │
 │  ├─ list_parameters()            generated from JSON)   │
 │  ├─ get_dataset_time_range()                            │
 │  ├─ get_dataset_docs()                                  │

@@ -61,7 +61,7 @@ def fetch_catalog() -> list[dict]:
     # Fallback: HAPI /catalog
     print("  CDAS REST unavailable, falling back to HAPI /catalog...")
     url = f"{HAPI_SERVER}/catalog"
-    resp = requests.get(url, timeout=30)
+    resp = requests.get(url, timeout=10)
     resp.raise_for_status()
     data = resp.json()
     catalog = data.get("catalog", [])
@@ -76,7 +76,7 @@ def fetch_dataset_info(dataset_id: str, mission_stem: str | None = None) -> dict
     """
     # Try local cache first
     if mission_stem:
-        cache_file = MISSIONS_DIR / mission_stem / "hapi" / f"{dataset_id}.json"
+        cache_file = MISSIONS_DIR / mission_stem / "metadata" / f"{dataset_id}.json"
         if cache_file.exists():
             try:
                 with open(cache_file, "r", encoding="utf-8") as f:
@@ -96,7 +96,7 @@ def fetch_dataset_info(dataset_id: str, mission_stem: str | None = None) -> dict
     # Fallback: HAPI /info
     url = f"{HAPI_SERVER}/info?id={dataset_id}"
     try:
-        resp = requests.get(url, timeout=30)
+        resp = requests.get(url, timeout=10)
         if resp.status_code != 200:
             return None
         return resp.json()
@@ -307,9 +307,9 @@ def create_new_missions(hapi_catalog: list[dict], verbose: bool = False):
             save_mission_json(stem, skeleton)
 
             # Create basic calibration exclude file
-            hapi_dir = MISSIONS_DIR / stem / "hapi"
-            hapi_dir.mkdir(parents=True, exist_ok=True)
-            exclude_file = hapi_dir / "_calibration_exclude.json"
+            metadata_dir = MISSIONS_DIR / stem / "metadata"
+            metadata_dir.mkdir(parents=True, exist_ok=True)
+            exclude_file = metadata_dir / "_calibration_exclude.json"
             if not exclude_file.exists():
                 exclude_data = {
                     "description": "Auto-generated exclusion patterns for calibration/housekeeping data",

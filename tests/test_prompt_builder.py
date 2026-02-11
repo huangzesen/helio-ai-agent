@@ -197,8 +197,8 @@ class TestBuildMissionPrompt:
 
         # Create a fake cache for PSP_FLD_L2_MAG_RTN_1MIN
         fake_missions = tmp_path / "missions"
-        psp_hapi = fake_missions / "psp" / "hapi"
-        psp_hapi.mkdir(parents=True)
+        psp_metadata = fake_missions / "psp" / "metadata"
+        psp_metadata.mkdir(parents=True)
         sample_info = {
             "parameters": [
                 {"name": "Time", "type": "isotime", "units": "UTC"},
@@ -206,12 +206,12 @@ class TestBuildMissionPrompt:
                 {"name": "psp_fld_l2_quality_flags", "type": "integer", "units": None},
             ],
         }
-        (psp_hapi / "PSP_FLD_L2_MAG_RTN_1MIN.json").write_text(
+        (psp_metadata / "PSP_FLD_L2_MAG_RTN_1MIN.json").write_text(
             json.dumps(sample_info), encoding="utf-8"
         )
 
-        with patch("knowledge.hapi_client._MISSIONS_DIR", fake_missions):
-            from knowledge.hapi_client import clear_cache
+        with patch("knowledge.metadata_client._MISSIONS_DIR", fake_missions):
+            from knowledge.metadata_client import clear_cache
             clear_cache()
             prompt = build_mission_prompt("PSP")
             assert "Parameters:" in prompt
@@ -225,8 +225,8 @@ class TestBuildMissionPrompt:
         fake_missions = tmp_path / "empty_missions"
         fake_missions.mkdir()
 
-        with patch("knowledge.hapi_client._MISSIONS_DIR", fake_missions):
-            from knowledge.hapi_client import clear_cache
+        with patch("knowledge.metadata_client._MISSIONS_DIR", fake_missions):
+            from knowledge.metadata_client import clear_cache
             clear_cache()
             prompt = build_mission_prompt("PSP")
             # Prompt should still work, just without parameter summaries

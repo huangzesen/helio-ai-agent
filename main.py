@@ -176,11 +176,6 @@ def main():
         help="Download ALL missions from CDAWeb (full rebuild)",
     )
     parser.add_argument(
-        "--download-hapi-cache",
-        action="store_true",
-        help="Pre-download detailed HAPI parameter cache for all missions",
-    )
-    parser.add_argument(
         "command",
         nargs="?",
         default=None,
@@ -198,7 +193,6 @@ def main():
             refresh=args.refresh,
             refresh_full=args.refresh_full,
             refresh_all=args.refresh_all,
-            download_hapi_cache=args.download_hapi_cache,
         )
 
     # Check HAPI availability and auto-fallback to CDF if needed

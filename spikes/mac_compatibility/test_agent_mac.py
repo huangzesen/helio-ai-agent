@@ -92,7 +92,7 @@ def test_tool_list_parameters():
     print("\n[5/9] Testing tool: list_parameters...")
 
     try:
-        from knowledge.hapi_client import list_parameters
+        from knowledge.metadata_client import list_parameters
 
         params = list_parameters("AC_H2_MFI")
 

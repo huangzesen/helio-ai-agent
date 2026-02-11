@@ -16,7 +16,7 @@ import numpy as np
 import pandas as pd
 import requests
 
-from knowledge.hapi_client import HAPI_BASE, get_dataset_info
+from knowledge.metadata_client import HAPI_BASE, get_dataset_info
 
 logger = logging.getLogger("helio-agent")
 

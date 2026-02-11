@@ -36,23 +36,17 @@ from .mission_prefixes import (
 HAPI_SERVER = "https://cdaweb.gsfc.nasa.gov/hapi"  # last-resort fallback only
 MISSIONS_DIR = Path(__file__).parent / "missions"
 DEFAULT_WORKERS = 10
-MAX_RETRIES = 3
+MAX_RETRIES = 2
 
 # Module-level flag: only check once per process
 _bootstrap_checked = False
 
-# Guard against concurrent metadata cache downloads (e.g. Gradio threads)
-_downloading: set[str] = set()
-
-
 def ensure_missions_populated():
-    """Check if any mission data exists; download lightweight catalog if missing.
+    """Check if any mission data exists; run full populate if missing.
 
-    On first run, downloads all missions from HAPI catalog + CDAWeb REST API
-    (just 2 HTTP calls, ~10-30s). Detailed per-dataset HAPI parameter cache
-    is downloaded lazily when browse_datasets is first called for a mission.
-
-    Only runs once per process.
+    On first run, downloads all missions from CDAWeb REST API + Master CDF
+    files with full parameter metadata (~5-10 minutes). Only runs once per
+    process.
     """
     global _bootstrap_checked
     if _bootstrap_checked:
@@ -64,13 +58,12 @@ def ensure_missions_populated():
     if existing_stems:
         return  # Already bootstrapped
 
-    logger.info("First run detected — downloading mission catalog "
-                "(all missions, typically 10-30 seconds). "
-                "Detailed parameter cache downloads on demand per mission. "
-                "To pre-download all caches, use: --download-metadata-cache")
+    logger.info("First run detected — downloading full mission catalog + "
+                "parameter metadata (all missions, typically 5-10 minutes). "
+                "This only happens once.")
 
     try:
-        populate_missions_lightweight()
+        populate_missions()
     except Exception as e:
         logger.warning("Auto-download failed: %s. "
                        "The agent will start with a partial catalog. "
@@ -78,185 +71,20 @@ def ensure_missions_populated():
                        "python scripts/generate_mission_data.py --force", e)
 
 
-def populate_missions_lightweight():
-    """Fast bootstrap: create mission JSONs from HAPI catalog + CDAWeb metadata.
-
-    Downloads only catalog-level metadata (2 HTTP calls, ~10-30s).
-    Skips per-dataset HAPI /info calls — those are deferred to
-    populate_mission_hapi_cache() which runs lazily on first browse.
-
-    Steps:
-      1. Fetch HAPI /catalog (all dataset IDs)
-      2. Fetch CDAWeb REST API metadata (descriptions, dates, instrument types)
-      3. Group datasets by mission via prefix matching
-      4. Create skeleton mission JSONs
-      5. Build synthetic info dicts from CDAWeb metadata (no HAPI /info)
-      6. Merge into mission JSONs using existing _merge_into_missions()
-    """
-    if requests is None:
-        raise RuntimeError(
-            "'requests' package is required for auto-download. "
-            "Install with: pip install requests"
-        )
-
-    start_time = time.time()
-
-    # Step 1+2: Fetch CDAWeb REST API metadata (single HTTP call for both catalog + metadata)
-    from .cdaweb_metadata import fetch_dataset_metadata
-    logger.info("Fetching CDAWeb dataset metadata (catalog + instrument types)...")
-    cdaweb_meta = fetch_dataset_metadata()
-    if cdaweb_meta:
-        logger.info("Got metadata for %d datasets", len(cdaweb_meta))
-    else:
-        logger.warning("CDAWeb metadata unavailable, falling back to prefix hints")
-
-    # Build catalog from CDAS REST metadata
-    catalog = _fetch_catalog(cdaweb_meta)
-
-    # Step 3: Group datasets by mission
-    mission_datasets = _group_by_mission(catalog)
-    total_datasets = sum(len(ds) for ds in mission_datasets.values())
-    logger.info("Grouped %d datasets into %d missions",
-                total_datasets, len(mission_datasets))
-
-    # Step 4: Create skeleton JSONs
-    MISSIONS_DIR.mkdir(parents=True, exist_ok=True)
-    for stem in sorted(mission_datasets.keys()):
-        filepath = MISSIONS_DIR / f"{stem}.json"
-        if not filepath.exists():
-            skeleton = create_mission_skeleton(stem)
-            _save_json(filepath, skeleton)
-
-    # Step 5: Build synthetic info dicts from CDAWeb metadata
-    # (no HAPI /info calls — just startDate/stopDate/description from CDAWeb)
-    results: dict[str, dict | None] = {}
-    for stem, datasets in mission_datasets.items():
-        for ds_id, instrument_hint in datasets:
-            cdaweb_entry = cdaweb_meta.get(ds_id)
-            if cdaweb_entry:
-                results[ds_id] = {
-                    "startDate": cdaweb_entry.get("start_date", ""),
-                    "stopDate": cdaweb_entry.get("stop_date", ""),
-                    "description": cdaweb_entry.get("label", ""),
-                }
-            else:
-                # No CDAWeb metadata — still register the dataset with empty info
-                results[ds_id] = {
-                    "startDate": "",
-                    "stopDate": "",
-                    "description": "",
-                }
-
-    # Step 6: Merge into mission JSONs (reuses all instrument-grouping logic)
-    _merge_into_missions(mission_datasets, results, cdaweb_meta)
-
-    # Skip _generate_index() and _ensure_calibration_exclude() — those need
-    # actual HAPI cache files which we haven't downloaded yet.
-
-    elapsed = time.time() - start_time
-    logger.info("Lightweight bootstrap complete in %.0fs: %d missions, %d datasets",
-                elapsed, len(mission_datasets), len(results))
-
-
-def populate_mission_hapi_cache(mission_stem: str):
-    """Download metadata cache for a single mission's datasets.
-
-    Uses Master CDF files as primary source, HAPI /info as fallback.
-    Called lazily when browse_datasets is first invoked for a mission
-    that doesn't have an _index.json yet.
-
-    Args:
-        mission_stem: Lowercase mission stem (e.g., 'ace', 'psp').
-    """
-    if requests is None:
-        raise RuntimeError("'requests' package required for metadata cache download")
-
-    # Guard against concurrent downloads of the same mission
-    if mission_stem in _downloading:
-        logger.debug("Metadata cache download already in progress for %s", mission_stem)
-        return
-    _downloading.add(mission_stem)
-
-    try:
-        mission_json = MISSIONS_DIR / f"{mission_stem}.json"
-        if not mission_json.exists():
-            logger.warning("No mission JSON for '%s', cannot download metadata cache",
-                           mission_stem)
-            return
-
-        with open(mission_json, "r", encoding="utf-8") as f:
-            mission_data = json.load(f)
-
-        # Collect all dataset IDs from instruments
-        ds_ids = []
-        for inst in mission_data.get("instruments", {}).values():
-            for ds_id in inst.get("datasets", {}):
-                ds_ids.append(ds_id)
-
-        if not ds_ids:
-            logger.warning("Mission '%s' has no datasets to cache", mission_stem)
-            return
-
-        cache_dir = MISSIONS_DIR / mission_stem / "hapi"
-        cache_dir.mkdir(parents=True, exist_ok=True)
-
-        # Fetch CDAS REST metadata for date injection
-        from .cdaweb_metadata import fetch_dataset_metadata
-        cdaweb_meta = fetch_dataset_metadata()
-
-        logger.info("Downloading metadata cache for %s (%d datasets, Master CDF primary)...",
-                     mission_stem, len(ds_ids))
-
-        items = [(ds_id, None, mission_stem, cache_dir) for ds_id in ds_ids]
-        start_time = time.time()
-        results = _fetch_all_info(items, cdaweb_meta=cdaweb_meta)
-
-        # Generate index and calibration exclude
-        _generate_index(mission_stem)
-        _ensure_calibration_exclude(mission_stem)
-
-        elapsed = time.time() - start_time
-        n_success = sum(1 for r in results.values() if r is not None)
-        logger.info("Metadata cache for %s complete in %.0fs: %d/%d datasets",
-                     mission_stem, elapsed, n_success, len(ds_ids))
-    finally:
-        _downloading.discard(mission_stem)
-
-
-def populate_all_hapi_caches(only_stems: set[str] | None = None):
-    """Download HAPI cache for all missions that are missing _index.json.
-
-    Args:
-        only_stems: If provided, only download for these mission stems.
-                    If None, download for all missions found in MISSIONS_DIR.
-    """
-    for filepath in sorted(MISSIONS_DIR.glob("*.json")):
-        stem = filepath.stem
-        if only_stems and stem not in only_stems:
-            continue
-        index_file = MISSIONS_DIR / stem / "hapi" / "_index.json"
-        if index_file.exists():
-            continue
-        try:
-            populate_mission_hapi_cache(stem)
-        except Exception as e:
-            logger.warning("Metadata cache download failed for %s: %s", stem, e)
-
-
 def populate_missions(only_stems: set[str] | None = None):
-    """Download and populate mission data from CDAWeb HAPI.
+    """Download and populate mission data from CDAWeb.
 
     Args:
         only_stems: If provided, only download these mission stems.
-                    If None, download all missions found in the HAPI catalog.
+                    If None, download all missions found in the catalog.
 
     Steps:
-      1. Fetch HAPI /catalog (all dataset IDs)
+      1. Fetch dataset catalog (CDAS REST API)
       2. Group datasets by mission via prefix matching
       3. Filter to only_stems if specified
       4. Create skeleton mission JSONs for missing ones
-      5. Parallel-fetch HAPI /info for all datasets (with retries)
-      6. Merge /info into mission JSONs
+      5. Parallel-fetch metadata for all datasets (Master CDF + HAPI fallback)
+      6. Merge metadata into mission JSONs
       7. Generate _index.json and _calibration_exclude.json per mission
     """
     if requests is None:
@@ -308,13 +136,14 @@ def populate_missions(only_stems: set[str] | None = None):
     # Step 5: Parallel-fetch HAPI /info for all datasets
     all_fetch_items = []
     for stem, datasets in mission_datasets.items():
-        cache_dir = MISSIONS_DIR / stem / "hapi"
+        cache_dir = MISSIONS_DIR / stem / "metadata"
         cache_dir.mkdir(parents=True, exist_ok=True)
         for ds_id, instrument_hint in datasets:
             all_fetch_items.append((ds_id, instrument_hint, stem, cache_dir))
 
-    logger.info("Fetching metadata for %d datasets (Master CDF + HAPI fallback)...",
-                 len(all_fetch_items))
+    logger.info("Fetching parameter metadata for %d datasets across %d missions "
+                "(Master CDF primary, HAPI fallback, timeout=10s)...",
+                 len(all_fetch_items), len(mission_datasets))
     results = _fetch_all_info(all_fetch_items, cdaweb_meta=cdaweb_meta)
 
     # Step 6: Merge results into mission JSONs
@@ -415,7 +244,7 @@ def _fetch_single_info(
     # Fallback: HAPI /info
     url = f"{HAPI_SERVER}/info"
     try:
-        resp = requests.get(url, params={"id": ds_id}, timeout=30)
+        resp = requests.get(url, params={"id": ds_id}, timeout=10)
         if resp.status_code != 200:
             return None
         return resp.json()
@@ -480,6 +309,7 @@ def _fetch_all_info(
         for h in logging.getLogger("helio-agent").handlers
     )
 
+    total_items = len(items)
     results: dict[str, dict | None] = {}
     pending = [(ds_id, cache_dir) for ds_id, _, _, cache_dir in items]
 
@@ -492,14 +322,18 @@ def _fetch_all_info(
                         attempt, MAX_RETRIES, len(pending))
 
         failed = []
+        attempt_success = 0
+        batch_start = time.time()
 
         if _use_tqdm:
+            desc = (f"Retry {attempt}/{MAX_RETRIES} ({len(pending)} left)"
+                    if attempt > 1
+                    else f"Fetching metadata ({len(pending)} datasets)")
             pbar = tqdm(
                 total=len(pending),
-                desc=f"Downloading (attempt {attempt}/{MAX_RETRIES})"
-                     if attempt > 1 else "Downloading",
+                desc=desc,
                 unit="ds",
-                ncols=80,
+                ncols=90,
             )
         else:
             counter = {"done": 0, "total": len(pending)}
@@ -519,44 +353,57 @@ def _fetch_all_info(
 
                 if info is None:
                     failed.append((ds_id, cache_dir))
+                else:
+                    attempt_success += 1
 
                 if _use_tqdm:
+                    n_ok = attempt_success
+                    n_fail = len(failed)
+                    pbar.set_postfix_str(f"{n_ok} ok, {n_fail} err", refresh=False)
                     pbar.update(1)
                 else:
                     counter["done"] += 1
                     if counter["done"] % _log_every == 0 or counter["done"] == counter["total"]:
                         pct = counter["done"] * 100 // counter["total"]
-                        logger.info("Downloading: %d/%d datasets (%d%%)",
-                                    counter["done"], counter["total"], pct)
+                        elapsed = time.time() - batch_start
+                        rate = counter["done"] / elapsed if elapsed > 0 else 0
+                        logger.info("Downloading: %d/%d (%d%%) — %.1f ds/s, %d failed",
+                                    counter["done"], counter["total"], pct,
+                                    rate, len(failed))
 
         if _use_tqdm:
             pbar.close()
 
+        batch_elapsed = time.time() - batch_start
+        logger.info("Attempt %d: %d succeeded, %d failed in %.0fs",
+                     attempt, attempt_success, len(failed), batch_elapsed)
+
         pending = failed
 
     if pending:
-        logger.warning("%d datasets failed after %d attempts",
+        logger.warning("%d datasets failed after %d attempts (these datasets "
+                       "may not exist as Master CDFs on CDAWeb)",
                        len(pending), MAX_RETRIES)
 
     return results
 
 
-def _merge_dataset_info(hapi_info: dict, cdaweb_entry: dict | None = None) -> dict:
-    """Extract dataset entry from HAPI /info + CDAWeb metadata.
+def _merge_dataset_info(metadata_info: dict, cdaweb_entry: dict | None = None) -> dict:
+    """Extract dataset entry from metadata + CDAWeb metadata.
 
     Only stores lightweight catalog info (description, dates, PI, DOI).
-    Full parameter details stay in the per-dataset HAPI cache files at
-    knowledge/missions/{mission}/hapi/{dataset_id}.json — loaded on demand
-    by hapi_client.py when the agent needs them.
+    Full parameter details stay in the per-dataset metadata cache files at
+    knowledge/missions/{mission}/metadata/{dataset_id}.json — loaded on demand
+    by metadata_client.py when the agent needs them.
 
     Args:
-        hapi_info: Response from HAPI /info endpoint.
+        metadata_info: Metadata response (from Master CDF or HAPI /info).
         cdaweb_entry: Optional metadata from CDAWeb REST API for this dataset.
     """
     entry = {
         "description": "",
-        "start_date": hapi_info.get("startDate", ""),
-        "stop_date": hapi_info.get("stopDate", ""),
+        "start_date": metadata_info.get("startDate", ""),
+        "stop_date": metadata_info.get("stopDate", ""),
     }
 
     # Enrich with CDAWeb metadata
@@ -571,9 +418,9 @@ def _merge_dataset_info(hapi_info: dict, cdaweb_entry: dict | None = None) -> di
         if cdaweb_entry.get("notes_url"):
             entry["notes_url"] = cdaweb_entry["notes_url"]
 
-    # Fall back to HAPI description if no CDAWeb label
+    # Fall back to metadata description if no CDAWeb label
     if not entry["description"]:
-        entry["description"] = hapi_info.get("description", "")
+        entry["description"] = metadata_info.get("description", "")
 
     return entry
 
@@ -583,7 +430,7 @@ def _merge_into_missions(
     results: dict[str, dict | None],
     cdaweb_meta: dict[str, dict] | None = None,
 ):
-    """Merge fetched HAPI /info results into mission JSON files.
+    """Merge fetched metadata results into mission JSON files.
 
     Uses CDAWeb InstrumentType metadata (when available) to group datasets
     into meaningful instrument categories instead of dumping into "General".
@@ -728,10 +575,10 @@ def _backfill_instrument_keywords(
                 inst["keywords"] = list(type_info["keywords"])
 
 
-def _patch_hapi_cache_dates(
+def _patch_metadata_cache_dates(
     cache_dir: Path, ds_id: str, start_date: str, stop_date: str,
 ):
-    """Patch startDate/stopDate in an individual HAPI cache file."""
+    """Patch startDate/stopDate in an individual metadata cache file."""
     cache_file = cache_dir / f"{ds_id}.json"
     if not cache_file.exists():
         return
@@ -752,8 +599,8 @@ def _patch_hapi_cache_dates(
 
 
 def _generate_index(mission_stem: str):
-    """Generate _index.json summary for a mission's HAPI cache."""
-    cache_dir = MISSIONS_DIR / mission_stem / "hapi"
+    """Generate _index.json summary for a mission's metadata cache."""
+    cache_dir = MISSIONS_DIR / mission_stem / "metadata"
     if not cache_dir.exists():
         return
 
@@ -810,9 +657,9 @@ def _generate_index(mission_stem: str):
 
 def _ensure_calibration_exclude(mission_stem: str):
     """Create a basic _calibration_exclude.json if one doesn't exist."""
-    hapi_dir = MISSIONS_DIR / mission_stem / "hapi"
-    hapi_dir.mkdir(parents=True, exist_ok=True)
-    exclude_file = hapi_dir / "_calibration_exclude.json"
+    metadata_dir = MISSIONS_DIR / mission_stem / "metadata"
+    metadata_dir.mkdir(parents=True, exist_ok=True)
+    exclude_file = metadata_dir / "_calibration_exclude.json"
     if not exclude_file.exists():
         exclude_data = {
             "description": "Auto-generated exclusion patterns for calibration/housekeeping data",
@@ -876,7 +723,7 @@ def refresh_time_ranges(only_stems: set[str] | None = None) -> dict:
         except (json.JSONDecodeError, OSError):
             continue
 
-        cache_dir = MISSIONS_DIR / stem / "hapi"
+        cache_dir = MISSIONS_DIR / stem / "metadata"
         stem_updated = 0
         for inst in mission_data.get("instruments", {}).values():
             for ds_id, ds_entry in inst.get("datasets", {}).items():
@@ -893,8 +740,8 @@ def refresh_time_ranges(only_stems: set[str] | None = None) -> dict:
                     ds_entry["stop_date"] = new_stop
                 stem_updated += 1
 
-                # Also patch the individual HAPI cache file
-                _patch_hapi_cache_dates(cache_dir, ds_id, new_start, new_stop)
+                # Also patch the individual metadata cache file
+                _patch_metadata_cache_dates(cache_dir, ds_id, new_start, new_stop)
 
         if stem_updated > 0:
             mission_data.setdefault("_meta", {})
@@ -929,7 +776,7 @@ def refresh_time_ranges(only_stems: set[str] | None = None) -> dict:
 
 
 def clean_all_missions(only_stems: set[str] | None = None):
-    """Delete mission JSONs and HAPI cache dirs for a fresh rebuild.
+    """Delete mission JSONs and metadata cache dirs for a fresh rebuild.
 
     Args:
         only_stems: If provided, only delete these mission stems.

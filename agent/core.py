@@ -40,7 +40,7 @@ from rendering.registry import get_method
 from rendering.plotly_renderer import PlotlyRenderer
 from knowledge.catalog import search_by_keywords
 from knowledge.cdaweb_catalog import search_catalog as search_full_cdaweb_catalog
-from knowledge.hapi_client import (
+from knowledge.metadata_client import (
     list_parameters as hapi_list_parameters,
     get_dataset_time_range,
     list_missions as hapi_list_missions,
@@ -687,7 +687,7 @@ class OrchestratorAgent:
             }
 
         elif tool_name == "browse_datasets":
-            from knowledge.hapi_client import browse_datasets as hapi_browse
+            from knowledge.metadata_client import browse_datasets as hapi_browse
             from knowledge.mission_loader import load_mission as _load_mission
             from knowledge.catalog import SPACECRAFT, classify_instrument_type
             mission_id = tool_args["mission_id"]
@@ -721,7 +721,7 @@ class OrchestratorAgent:
             return {"status": "success", "missions": missions, "count": len(missions)}
 
         elif tool_name == "get_dataset_docs":
-            from knowledge.hapi_client import get_dataset_docs
+            from knowledge.metadata_client import get_dataset_docs
             docs = get_dataset_docs(tool_args["dataset_id"])
             if docs.get("documentation"):
                 return {"status": "success", **docs}

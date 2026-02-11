@@ -7,10 +7,10 @@ Saves metadata JSON responses to local files for instant offline lookup.
 Also generates a lightweight _index.json summary per mission.
 
 Usage:
-    python scripts/fetch_hapi_cache.py --mission psp          # one mission
-    python scripts/fetch_hapi_cache.py --all                  # all missions
-    python scripts/fetch_hapi_cache.py --mission psp --force  # re-fetch all
-    python scripts/fetch_hapi_cache.py --all --workers 20     # faster parallel
+    python scripts/fetch_metadata_cache.py --mission psp          # one mission
+    python scripts/fetch_metadata_cache.py --all                  # all missions
+    python scripts/fetch_metadata_cache.py --mission psp --force  # re-fetch all
+    python scripts/fetch_metadata_cache.py --all --workers 20     # faster parallel
 """
 
 import argparse
@@ -57,7 +57,7 @@ def fetch_catalog() -> list[dict]:
     # Fallback: HAPI /catalog
     print("  CDAS REST unavailable, falling back to HAPI /catalog...")
     url = f"{HAPI_SERVER}/catalog"
-    resp = requests.get(url, timeout=30)
+    resp = requests.get(url, timeout=10)
     resp.raise_for_status()
     data = resp.json()
     catalog = data.get("catalog", [])
@@ -88,7 +88,7 @@ def fetch_dataset_info(dataset_id: str) -> dict | None:
     # Fallback: HAPI /info
     url = f"{HAPI_SERVER}/info"
     try:
-        resp = requests.get(url, params={"id": dataset_id}, timeout=30)
+        resp = requests.get(url, params={"id": dataset_id}, timeout=10)
         if resp.status_code != 200:
             return None
         return resp.json()
@@ -124,9 +124,9 @@ def build_index_entry(dataset_id: str, info: dict, instrument_hint: str | None) 
 
 def ensure_calibration_exclude(mission_stem: str):
     """Create a basic _calibration_exclude.json if one doesn't exist."""
-    hapi_dir = MISSIONS_DIR / mission_stem / "hapi"
-    hapi_dir.mkdir(parents=True, exist_ok=True)
-    exclude_file = hapi_dir / "_calibration_exclude.json"
+    metadata_dir = MISSIONS_DIR / mission_stem / "metadata"
+    metadata_dir.mkdir(parents=True, exist_ok=True)
+    exclude_file = metadata_dir / "_calibration_exclude.json"
     if not exclude_file.exists():
         exclude_data = {
             "description": "Auto-generated exclusion patterns for calibration/housekeeping data",
@@ -186,7 +186,7 @@ def cache_mission(
     mission_id = mission_data.get("id", mission_stem.upper())
 
     # Create cache directory and ensure calibration exclude file exists
-    cache_dir = MISSIONS_DIR / mission_stem / "hapi"
+    cache_dir = MISSIONS_DIR / mission_stem / "metadata"
     cache_dir.mkdir(parents=True, exist_ok=True)
     ensure_calibration_exclude(mission_stem)
 

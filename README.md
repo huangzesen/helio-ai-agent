@@ -137,7 +137,7 @@ knowledge/              52-mission knowledge base + prompt generation
   missions/*.json         Auto-generated mission profiles from CDAWeb
   mission_loader.py       Lazy-loading cache and routing table
   prompt_builder.py       Dynamic system prompts per agent type
-  hapi_client.py          CDAWeb HAPI client (3-tier cache)
+  metadata_client.py      CDAWeb metadata client (4-layer cache)
   bootstrap.py            Mission data auto-download and refresh
 
 data_ops/               pandas-backed data pipeline

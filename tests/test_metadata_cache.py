@@ -1,11 +1,11 @@
 """
-Tests for local HAPI metadata cache functionality.
+Tests for local metadata cache functionality.
 
-Tests the local file cache in hapi_client.py: _find_local_cache(),
+Tests the local file cache in metadata_client.py: _find_local_cache(),
 get_dataset_info() with local files, list_parameters from cache,
 and list_cached_datasets().
 
-Run with: python -m pytest tests/test_hapi_cache.py -v
+Run with: python -m pytest tests/test_metadata_cache.py -v
 """
 
 import json
@@ -13,7 +13,7 @@ import pytest
 from pathlib import Path
 from unittest.mock import patch, MagicMock
 
-from knowledge.hapi_client import (
+from knowledge.metadata_client import (
     _find_local_cache,
     get_dataset_info,
     list_parameters,
@@ -87,7 +87,7 @@ def fake_missions_dir(tmp_path):
     missions_dir = tmp_path / "missions"
 
     # Create PSP cache
-    psp_hapi = missions_dir / "psp" / "hapi"
+    psp_hapi = missions_dir / "psp" / "metadata"
     psp_hapi.mkdir(parents=True)
 
     # Write sample HAPI /info file
@@ -99,7 +99,7 @@ def fake_missions_dir(tmp_path):
     index_file.write_text(json.dumps(SAMPLE_INDEX), encoding="utf-8")
 
     # Create ACE cache (second mission for list_missions tests)
-    ace_hapi = missions_dir / "ace" / "hapi"
+    ace_hapi = missions_dir / "ace" / "metadata"
     ace_hapi.mkdir(parents=True)
     ace_index = {
         "mission_id": "ACE",
@@ -134,7 +134,7 @@ def fake_missions_dir(tmp_path):
     ace_cache.write_text(json.dumps(ace_hapi_info), encoding="utf-8")
 
     # Create a dir without _index.json (should be skipped by list_missions)
-    empty_mission = missions_dir / "empty_mission" / "hapi"
+    empty_mission = missions_dir / "empty_mission" / "metadata"
     empty_mission.mkdir(parents=True)
 
     # Also create a non-directory file (the psp.json mission file)
@@ -147,7 +147,7 @@ def fake_missions_dir(tmp_path):
 class TestFindLocalCache:
     def test_returns_path_when_exists(self, fake_missions_dir):
         """_find_local_cache returns the path when a cache file exists."""
-        with patch("knowledge.hapi_client._MISSIONS_DIR", fake_missions_dir):
+        with patch("knowledge.metadata_client._MISSIONS_DIR", fake_missions_dir):
             result = _find_local_cache("PSP_FLD_L2_MAG_RTN_1MIN")
             assert result is not None
             assert result.name == "PSP_FLD_L2_MAG_RTN_1MIN.json"
@@ -155,13 +155,13 @@ class TestFindLocalCache:
 
     def test_returns_none_when_missing(self, fake_missions_dir):
         """_find_local_cache returns None for a dataset not in cache."""
-        with patch("knowledge.hapi_client._MISSIONS_DIR", fake_missions_dir):
+        with patch("knowledge.metadata_client._MISSIONS_DIR", fake_missions_dir):
             result = _find_local_cache("NONEXISTENT_DATASET")
             assert result is None
 
     def test_skips_non_directory_entries(self, fake_missions_dir):
         """_find_local_cache skips files like psp.json (not directories)."""
-        with patch("knowledge.hapi_client._MISSIONS_DIR", fake_missions_dir):
+        with patch("knowledge.metadata_client._MISSIONS_DIR", fake_missions_dir):
             # Should not crash even though psp.json exists at missions_dir level
             result = _find_local_cache("PSP_FLD_L2_MAG_RTN_1MIN")
             assert result is not None
@@ -170,7 +170,7 @@ class TestFindLocalCache:
 class TestGetDatasetInfoLocalCache:
     def test_uses_local_cache(self, fake_missions_dir):
         """get_dataset_info loads from local file, no network needed."""
-        with patch("knowledge.hapi_client._MISSIONS_DIR", fake_missions_dir):
+        with patch("knowledge.metadata_client._MISSIONS_DIR", fake_missions_dir):
             info = get_dataset_info("PSP_FLD_L2_MAG_RTN_1MIN")
             assert info is not None
             assert info["startDate"] == "2018-10-06T00:00:00.000Z"
@@ -178,18 +178,18 @@ class TestGetDatasetInfoLocalCache:
 
     def test_local_cache_populates_memory_cache(self, fake_missions_dir):
         """Reading from local file also populates the in-memory cache."""
-        with patch("knowledge.hapi_client._MISSIONS_DIR", fake_missions_dir):
+        with patch("knowledge.metadata_client._MISSIONS_DIR", fake_missions_dir):
             info1 = get_dataset_info("PSP_FLD_L2_MAG_RTN_1MIN")
             # Delete the file to prove second call uses memory
-            cache_file = fake_missions_dir / "psp" / "hapi" / "PSP_FLD_L2_MAG_RTN_1MIN.json"
+            cache_file = fake_missions_dir / "psp" / "metadata" / "PSP_FLD_L2_MAG_RTN_1MIN.json"
             cache_file.unlink()
             info2 = get_dataset_info("PSP_FLD_L2_MAG_RTN_1MIN")
             assert info1 == info2
 
     def test_use_cache_false_skips_local(self, fake_missions_dir):
         """use_cache=False skips both memory and local file, hits network."""
-        with patch("knowledge.hapi_client._MISSIONS_DIR", fake_missions_dir), \
-             patch("knowledge.hapi_client.requests.get") as mock_get:
+        with patch("knowledge.metadata_client._MISSIONS_DIR", fake_missions_dir), \
+             patch("knowledge.metadata_client.requests.get") as mock_get:
             # Simulate network call (Master CDF + HAPI fallback both use requests.get)
             mock_get.return_value.status_code = 200
             mock_get.return_value.raise_for_status = lambda: None
@@ -204,7 +204,7 @@ class TestGetDatasetInfoLocalCache:
 class TestListParametersFromCache:
     def test_lists_parameters_from_local_cache(self, fake_missions_dir):
         """list_parameters works with locally cached HAPI /info."""
-        with patch("knowledge.hapi_client._MISSIONS_DIR", fake_missions_dir):
+        with patch("knowledge.metadata_client._MISSIONS_DIR", fake_missions_dir):
             params = list_parameters("PSP_FLD_L2_MAG_RTN_1MIN")
             assert len(params) == 2
             names = [p["name"] for p in params]
@@ -215,7 +215,7 @@ class TestListParametersFromCache:
 
     def test_parameter_structure(self, fake_missions_dir):
         """Parameters from cache have correct structure."""
-        with patch("knowledge.hapi_client._MISSIONS_DIR", fake_missions_dir):
+        with patch("knowledge.metadata_client._MISSIONS_DIR", fake_missions_dir):
             params = list_parameters("PSP_FLD_L2_MAG_RTN_1MIN")
             mag_param = next(p for p in params if p["name"] == "psp_fld_l2_mag_RTN_1min")
             assert mag_param["units"] == "nT"
@@ -227,8 +227,8 @@ class TestListParametersFromCache:
         mock_resp = MagicMock()
         mock_resp.status_code = 404
         mock_resp.raise_for_status.side_effect = Exception("404 Not Found")
-        with patch("knowledge.hapi_client._MISSIONS_DIR", fake_missions_dir), \
-             patch("knowledge.hapi_client.requests.get", return_value=mock_resp):
+        with patch("knowledge.metadata_client._MISSIONS_DIR", fake_missions_dir), \
+             patch("knowledge.metadata_client.requests.get", return_value=mock_resp):
             params = list_parameters("NONEXISTENT_DATASET_XYZ")
             assert params == []
 
@@ -236,7 +236,7 @@ class TestListParametersFromCache:
 class TestListCachedDatasets:
     def test_loads_index(self, fake_missions_dir):
         """list_cached_datasets loads the _index.json correctly."""
-        with patch("knowledge.hapi_client._MISSIONS_DIR", fake_missions_dir):
+        with patch("knowledge.metadata_client._MISSIONS_DIR", fake_missions_dir):
             index = list_cached_datasets("PSP")
             assert index is not None
             assert index["mission_id"] == "PSP"
@@ -245,20 +245,20 @@ class TestListCachedDatasets:
 
     def test_case_insensitive(self, fake_missions_dir):
         """Mission ID lookup is case-insensitive."""
-        with patch("knowledge.hapi_client._MISSIONS_DIR", fake_missions_dir):
+        with patch("knowledge.metadata_client._MISSIONS_DIR", fake_missions_dir):
             index = list_cached_datasets("psp")
             assert index is not None
             assert index["mission_id"] == "PSP"
 
     def test_returns_none_when_no_index(self, fake_missions_dir):
         """Returns None when no _index.json exists for the mission."""
-        with patch("knowledge.hapi_client._MISSIONS_DIR", fake_missions_dir):
+        with patch("knowledge.metadata_client._MISSIONS_DIR", fake_missions_dir):
             result = list_cached_datasets("NONEXISTENT")
             assert result is None
 
     def test_index_dataset_entries(self, fake_missions_dir):
         """Index entries have expected fields."""
-        with patch("knowledge.hapi_client._MISSIONS_DIR", fake_missions_dir):
+        with patch("knowledge.metadata_client._MISSIONS_DIR", fake_missions_dir):
             index = list_cached_datasets("PSP")
             ds = index["datasets"][0]
             assert "id" in ds
@@ -272,7 +272,7 @@ class TestListCachedDatasets:
 class TestBrowseDatasets:
     def test_browse_datasets_no_exclusion_file_returns_all(self, fake_missions_dir):
         """Without an exclusion file, browse_datasets returns all datasets."""
-        with patch("knowledge.hapi_client._MISSIONS_DIR", fake_missions_dir):
+        with patch("knowledge.metadata_client._MISSIONS_DIR", fake_missions_dir):
             datasets = browse_datasets("PSP")
             assert datasets is not None
             assert len(datasets) == 2  # All datasets from SAMPLE_INDEX
@@ -280,7 +280,7 @@ class TestBrowseDatasets:
     def test_browse_datasets_filters_calibration(self, fake_missions_dir):
         """browse_datasets filters out datasets matching exclusion IDs."""
         # Create exclusion file
-        exclude_path = fake_missions_dir / "psp" / "hapi" / "_calibration_exclude.json"
+        exclude_path = fake_missions_dir / "psp" / "metadata" / "_calibration_exclude.json"
         exclude_data = {
             "description": "Test exclusions",
             "patterns": [],
@@ -288,7 +288,7 @@ class TestBrowseDatasets:
         }
         exclude_path.write_text(json.dumps(exclude_data), encoding="utf-8")
 
-        with patch("knowledge.hapi_client._MISSIONS_DIR", fake_missions_dir):
+        with patch("knowledge.metadata_client._MISSIONS_DIR", fake_missions_dir):
             datasets = browse_datasets("PSP")
             assert datasets is not None
             assert len(datasets) == 1
@@ -296,7 +296,7 @@ class TestBrowseDatasets:
 
     def test_browse_datasets_pattern_matching(self, fake_missions_dir):
         """browse_datasets filters out datasets matching glob patterns."""
-        exclude_path = fake_missions_dir / "psp" / "hapi" / "_calibration_exclude.json"
+        exclude_path = fake_missions_dir / "psp" / "metadata" / "_calibration_exclude.json"
         exclude_data = {
             "description": "Test pattern exclusions",
             "patterns": ["PSP_FLD_*"],
@@ -304,7 +304,7 @@ class TestBrowseDatasets:
         }
         exclude_path.write_text(json.dumps(exclude_data), encoding="utf-8")
 
-        with patch("knowledge.hapi_client._MISSIONS_DIR", fake_missions_dir):
+        with patch("knowledge.metadata_client._MISSIONS_DIR", fake_missions_dir):
             datasets = browse_datasets("PSP")
             assert datasets is not None
             assert len(datasets) == 1
@@ -312,7 +312,7 @@ class TestBrowseDatasets:
 
     def test_browse_datasets_returns_none_for_missing_mission(self, fake_missions_dir):
         """browse_datasets returns None when no _index.json exists."""
-        with patch("knowledge.hapi_client._MISSIONS_DIR", fake_missions_dir):
+        with patch("knowledge.metadata_client._MISSIONS_DIR", fake_missions_dir):
             result = browse_datasets("NONEXISTENT")
             assert result is None
 
@@ -320,7 +320,7 @@ class TestBrowseDatasets:
 class TestListMissions:
     def test_returns_correct_structure(self, fake_missions_dir):
         """list_missions returns list of dicts with mission_id and dataset_count."""
-        with patch("knowledge.hapi_client._MISSIONS_DIR", fake_missions_dir):
+        with patch("knowledge.metadata_client._MISSIONS_DIR", fake_missions_dir):
             missions = list_missions()
             assert isinstance(missions, list)
             assert len(missions) >= 2  # PSP and ACE
@@ -330,7 +330,7 @@ class TestListMissions:
 
     def test_includes_missions_with_index(self, fake_missions_dir):
         """list_missions includes missions that have _index.json."""
-        with patch("knowledge.hapi_client._MISSIONS_DIR", fake_missions_dir):
+        with patch("knowledge.metadata_client._MISSIONS_DIR", fake_missions_dir):
             missions = list_missions()
             ids = [m["mission_id"] for m in missions]
             assert "PSP" in ids
@@ -338,14 +338,14 @@ class TestListMissions:
 
     def test_skips_dirs_without_index(self, fake_missions_dir):
         """list_missions skips mission dirs that have no _index.json."""
-        with patch("knowledge.hapi_client._MISSIONS_DIR", fake_missions_dir):
+        with patch("knowledge.metadata_client._MISSIONS_DIR", fake_missions_dir):
             missions = list_missions()
             ids = [m["mission_id"] for m in missions]
             assert "EMPTY_MISSION" not in ids
 
     def test_skips_non_directories(self, fake_missions_dir):
         """list_missions skips non-directory entries (like psp.json)."""
-        with patch("knowledge.hapi_client._MISSIONS_DIR", fake_missions_dir):
+        with patch("knowledge.metadata_client._MISSIONS_DIR", fake_missions_dir):
             # Should not crash even with psp.json file at top level
             missions = list_missions()
             assert len(missions) >= 2
@@ -354,7 +354,7 @@ class TestListMissions:
 class TestValidateDatasetId:
     def test_valid_cached_dataset(self, fake_missions_dir):
         """validate_dataset_id returns valid=True for cached dataset with mission_id."""
-        with patch("knowledge.hapi_client._MISSIONS_DIR", fake_missions_dir):
+        with patch("knowledge.metadata_client._MISSIONS_DIR", fake_missions_dir):
             result = validate_dataset_id("PSP_FLD_L2_MAG_RTN_1MIN")
             assert result["valid"] is True
             assert result["mission_id"] == "PSP"
@@ -362,14 +362,14 @@ class TestValidateDatasetId:
 
     def test_valid_ace_dataset(self, fake_missions_dir):
         """validate_dataset_id works for ACE dataset too."""
-        with patch("knowledge.hapi_client._MISSIONS_DIR", fake_missions_dir):
+        with patch("knowledge.metadata_client._MISSIONS_DIR", fake_missions_dir):
             result = validate_dataset_id("AC_H2_MFI")
             assert result["valid"] is True
             assert result["mission_id"] == "ACE"
 
     def test_invalid_dataset(self, fake_missions_dir):
         """validate_dataset_id returns valid=False for unknown dataset."""
-        with patch("knowledge.hapi_client._MISSIONS_DIR", fake_missions_dir):
+        with patch("knowledge.metadata_client._MISSIONS_DIR", fake_missions_dir):
             result = validate_dataset_id("FAKE_DATASET_XYZ")
             assert result["valid"] is False
             assert result["mission_id"] is None
@@ -380,7 +380,7 @@ class TestValidateDatasetId:
 class TestValidateParameterId:
     def test_valid_parameter(self, fake_missions_dir):
         """validate_parameter_id returns valid=True for known parameter."""
-        with patch("knowledge.hapi_client._MISSIONS_DIR", fake_missions_dir):
+        with patch("knowledge.metadata_client._MISSIONS_DIR", fake_missions_dir):
             result = validate_parameter_id("AC_H2_MFI", "BGSEc")
             assert result["valid"] is True
             assert "BGSEc" in result["available_parameters"]
@@ -388,7 +388,7 @@ class TestValidateParameterId:
 
     def test_invalid_parameter(self, fake_missions_dir):
         """validate_parameter_id returns valid=False with available parameter list."""
-        with patch("knowledge.hapi_client._MISSIONS_DIR", fake_missions_dir):
+        with patch("knowledge.metadata_client._MISSIONS_DIR", fake_missions_dir):
             result = validate_parameter_id("AC_H2_MFI", "NonexistentParam")
             assert result["valid"] is False
             assert "BGSEc" in result["available_parameters"]
@@ -398,7 +398,7 @@ class TestValidateParameterId:
 
     def test_invalid_dataset(self, fake_missions_dir):
         """validate_parameter_id returns valid=False for unknown dataset."""
-        with patch("knowledge.hapi_client._MISSIONS_DIR", fake_missions_dir):
+        with patch("knowledge.metadata_client._MISSIONS_DIR", fake_missions_dir):
             result = validate_parameter_id("FAKE_DATASET", "BGSEc")
             assert result["valid"] is False
             assert result["available_parameters"] == []
@@ -406,6 +406,6 @@ class TestValidateParameterId:
 
     def test_excludes_time_parameter(self, fake_missions_dir):
         """validate_parameter_id excludes Time from available parameters."""
-        with patch("knowledge.hapi_client._MISSIONS_DIR", fake_missions_dir):
+        with patch("knowledge.metadata_client._MISSIONS_DIR", fake_missions_dir):
             result = validate_parameter_id("AC_H2_MFI", "BGSEc")
             assert "Time" not in result["available_parameters"]

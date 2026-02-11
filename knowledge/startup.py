@@ -73,7 +73,6 @@ def show_mission_menu() -> str:
     print()
     print("  [Enter] Continue with current data")
     print("  [r]     Refresh time ranges (fast — updates start/stop dates only)")
-    print("  [h]     Download detailed metadata cache for all missions")
     print("  [f]     Full rebuild (delete and re-download everything)")
     print()
 
@@ -85,8 +84,6 @@ def show_mission_menu() -> str:
 
     if choice in ("r", "refresh"):
         return "refresh"
-    elif choice in ("h", "hapi"):
-        return "hapi_cache"
     elif choice in ("f", "full"):
         return "rebuild"
     return "continue"
@@ -97,12 +94,10 @@ def run_mission_refresh(action: str):
 
     Args:
         action: "refresh" for lightweight time-range update,
-                "rebuild" for destructive full rebuild of all missions,
-                "hapi_cache" for downloading HAPI parameter cache.
+                "rebuild" for destructive full rebuild of all missions.
     """
     from knowledge.bootstrap import (
         populate_missions, clean_all_missions, refresh_time_ranges,
-        populate_all_hapi_caches,
     )
     import knowledge.bootstrap as bootstrap_mod
 
@@ -114,14 +109,11 @@ def run_mission_refresh(action: str):
         clean_all_missions()
         bootstrap_mod._bootstrap_checked = False
         populate_missions()
-    elif action == "hapi_cache":
-        print("\nDownloading detailed metadata cache for all missions...")
-        populate_all_hapi_caches()
 
     from knowledge.mission_loader import clear_cache
-    from knowledge.hapi_client import clear_cache as clear_hapi_cache
+    from knowledge.metadata_client import clear_cache as clear_metadata_cache
     clear_cache()
-    clear_hapi_cache()
+    clear_metadata_cache()
     print()
 
 
@@ -129,7 +121,6 @@ def resolve_refresh_flags(
     refresh: bool = False,
     refresh_full: bool = False,
     refresh_all: bool = False,
-    download_hapi_cache: bool = False,
 ):
     """Map CLI flags to an action, or show interactive menu.
 
@@ -137,14 +128,11 @@ def resolve_refresh_flags(
         refresh: True if --refresh was passed (lightweight time-range update).
         refresh_full: True if --refresh-full was passed (destructive rebuild).
         refresh_all: True if --refresh-all was passed (rebuild, same as refresh_full).
-        download_hapi_cache: True if --download-hapi-cache was passed.
     """
     if refresh:
         run_mission_refresh("refresh")
     elif refresh_full or refresh_all:
         run_mission_refresh("rebuild")
-    elif download_hapi_cache:
-        run_mission_refresh("hapi_cache")
     else:
         action = show_mission_menu()
         if action != "continue":

@@ -1,5 +1,5 @@
 """
-Tests for get_dataset_docs and supporting functions in hapi_client.py.
+Tests for get_dataset_docs and supporting functions in metadata_client.py.
 
 Tests HTML-to-text conversion, section extraction, documentation lookup,
 truncation, fallback URL construction, and graceful degradation.
@@ -10,7 +10,7 @@ Run with: python -m pytest tests/test_dataset_docs.py -v
 import pytest
 from unittest.mock import patch, MagicMock
 
-from knowledge.hapi_client import (
+from knowledge.metadata_client import (
     _HTMLToText,
     _extract_dataset_section,
     _fallback_resource_url,
@@ -212,8 +212,8 @@ class TestGetDatasetDocs:
         <hr>
         """
 
-        with patch("knowledge.hapi_client.get_dataset_info", return_value=fake_info), \
-             patch("knowledge.hapi_client.requests.get") as mock_get:
+        with patch("knowledge.metadata_client.get_dataset_info", return_value=fake_info), \
+             patch("knowledge.metadata_client.requests.get") as mock_get:
             mock_resp = MagicMock()
             mock_resp.text = fake_html
             mock_resp.raise_for_status = MagicMock()
@@ -241,8 +241,8 @@ class TestGetDatasetDocs:
         <hr>
         """
 
-        with patch("knowledge.hapi_client.get_dataset_info", return_value=fake_info), \
-             patch("knowledge.hapi_client.requests.get") as mock_get:
+        with patch("knowledge.metadata_client.get_dataset_info", return_value=fake_info), \
+             patch("knowledge.metadata_client.requests.get") as mock_get:
             mock_resp = MagicMock()
             mock_resp.text = fake_html
             mock_resp.raise_for_status = MagicMock()
@@ -256,8 +256,8 @@ class TestGetDatasetDocs:
 
     def test_fallback_url_when_hapi_fails(self):
         """When HAPI /info fails, construct URL from dataset ID first letter."""
-        with patch("knowledge.hapi_client.get_dataset_info", side_effect=Exception("network error")), \
-             patch("knowledge.hapi_client.requests.get") as mock_get:
+        with patch("knowledge.metadata_client.get_dataset_info", side_effect=Exception("network error")), \
+             patch("knowledge.metadata_client.requests.get") as mock_get:
             mock_resp = MagicMock()
             mock_resp.text = '<a name="AC_H2_MFI"></a><p>Doc content</p><hr>'
             mock_resp.raise_for_status = MagicMock()
@@ -276,8 +276,8 @@ class TestGetDatasetDocs:
             "parameters": [],
         }
 
-        with patch("knowledge.hapi_client.get_dataset_info", return_value=fake_info), \
-             patch("knowledge.hapi_client.requests.get", side_effect=Exception("timeout")):
+        with patch("knowledge.metadata_client.get_dataset_info", return_value=fake_info), \
+             patch("knowledge.metadata_client.requests.get", side_effect=Exception("timeout")):
             result = get_dataset_docs("AC_H2_MFI")
 
         assert result["dataset_id"] == "AC_H2_MFI"
@@ -294,8 +294,8 @@ class TestGetDatasetDocs:
         }
         fake_html = "<html><body><p>No matching sections here.</p></body></html>"
 
-        with patch("knowledge.hapi_client.get_dataset_info", return_value=fake_info), \
-             patch("knowledge.hapi_client.requests.get") as mock_get:
+        with patch("knowledge.metadata_client.get_dataset_info", return_value=fake_info), \
+             patch("knowledge.metadata_client.requests.get") as mock_get:
             mock_resp = MagicMock()
             mock_resp.text = fake_html
             mock_resp.raise_for_status = MagicMock()
@@ -313,8 +313,8 @@ class TestGetDatasetDocs:
             "parameters": [],
         }
 
-        with patch("knowledge.hapi_client.get_dataset_info", return_value=fake_info), \
-             patch("knowledge.hapi_client.requests.get") as mock_get:
+        with patch("knowledge.metadata_client.get_dataset_info", return_value=fake_info), \
+             patch("knowledge.metadata_client.requests.get") as mock_get:
             mock_resp = MagicMock()
             mock_resp.text = '<a name="WI_H2_MFI"></a><p>Wind data</p><hr>'
             mock_resp.raise_for_status = MagicMock()
@@ -333,8 +333,8 @@ class TestGetDatasetDocs:
         }
         fake_html = '<a name="AC_H2_MFI"></a><p>Cached content</p><hr>'
 
-        with patch("knowledge.hapi_client.get_dataset_info", return_value=fake_info), \
-             patch("knowledge.hapi_client.requests.get") as mock_get:
+        with patch("knowledge.metadata_client.get_dataset_info", return_value=fake_info), \
+             patch("knowledge.metadata_client.requests.get") as mock_get:
             mock_resp = MagicMock()
             mock_resp.text = fake_html
             mock_resp.raise_for_status = MagicMock()
@@ -364,7 +364,7 @@ class TestFetchNotesSection:
         """Base URL should not include the fragment."""
         fake_html = '<a name="DS_01"></a><p>Section content</p><hr>'
 
-        with patch("knowledge.hapi_client.requests.get") as mock_get:
+        with patch("knowledge.metadata_client.requests.get") as mock_get:
             mock_resp = MagicMock()
             mock_resp.text = fake_html
             mock_resp.raise_for_status = MagicMock()
@@ -383,6 +383,6 @@ class TestFetchNotesSection:
         assert "Section content" in result
 
     def test_returns_none_on_network_error(self):
-        with patch("knowledge.hapi_client.requests.get", side_effect=Exception("err")):
+        with patch("knowledge.metadata_client.requests.get", side_effect=Exception("err")):
             result = _fetch_notes_section("https://example.com/Notes.html#X", "X")
         assert result is None

@@ -17,7 +17,7 @@ import requests
 
 import logging
 
-from knowledge.hapi_client import get_dataset_info
+from knowledge.metadata_client import get_dataset_info
 
 logger = logging.getLogger("helio-agent")
 

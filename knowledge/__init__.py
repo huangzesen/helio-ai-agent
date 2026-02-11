@@ -1,4 +1,4 @@
-"""Knowledge base for spacecraft datasets and HAPI integration."""
+"""Knowledge base for spacecraft datasets and metadata integration."""
 
 from .catalog import (
     SPACECRAFT,
@@ -9,7 +9,7 @@ from .catalog import (
     match_instrument,
     search_by_keywords,
 )
-from .hapi_client import (
+from .metadata_client import (
     get_dataset_info,
     list_parameters,
 )

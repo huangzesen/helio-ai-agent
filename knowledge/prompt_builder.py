@@ -10,7 +10,7 @@ Mission sub-agents get rich, focused prompts with full domain knowledge.
 
 from .catalog import SPACECRAFT, classify_instrument_type
 from .mission_loader import load_mission, load_all_missions, get_routing_table, get_mission_datasets
-from .hapi_client import list_parameters as _list_parameters
+from .metadata_client import list_parameters as _list_parameters
 from rendering.registry import render_method_catalog
 
 

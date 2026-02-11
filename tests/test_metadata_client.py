@@ -1,7 +1,7 @@
 """
-Tests for the HAPI client.
+Tests for the metadata client.
 
-Run with: python -m pytest tests/test_hapi.py
+Run with: python -m pytest tests/test_metadata_client.py
 
 Note: These tests require network access to CDAWeb HAPI server.
 Some tests are marked slow and can be skipped with: pytest -m "not slow"
@@ -12,7 +12,7 @@ import pytest
 import requests
 from unittest.mock import patch, MagicMock
 
-from knowledge.hapi_client import (
+from knowledge.metadata_client import (
     get_dataset_info,
     list_parameters,
     get_dataset_time_range,
@@ -64,7 +64,7 @@ class TestGetDatasetInfo:
 
     def test_invalid_dataset_raises(self):
         """Test that invalid dataset ID raises an error."""
-        with patch("knowledge.hapi_client.requests.get", side_effect=_mock_hapi_404):
+        with patch("knowledge.metadata_client.requests.get", side_effect=_mock_hapi_404):
             with pytest.raises(Exception):
                 get_dataset_info("INVALID_DATASET_XYZ_123")
 
@@ -99,7 +99,7 @@ class TestListParameters:
 
     def test_invalid_dataset_returns_empty(self):
         """Test that invalid dataset returns empty list."""
-        with patch("knowledge.hapi_client.requests.get", side_effect=_mock_hapi_404):
+        with patch("knowledge.metadata_client.requests.get", side_effect=_mock_hapi_404):
             params = list_parameters("INVALID_DATASET_XYZ")
             assert params == []
 
@@ -116,7 +116,7 @@ class TestGetDatasetTimeRange:
 
     def test_invalid_dataset_returns_none(self):
         """Test that invalid dataset returns None."""
-        with patch("knowledge.hapi_client.requests.get", side_effect=_mock_hapi_404):
+        with patch("knowledge.metadata_client.requests.get", side_effect=_mock_hapi_404):
             time_range = get_dataset_time_range("INVALID_XYZ")
             assert time_range is None
 
@@ -127,8 +127,8 @@ class TestLocalFirstCacheBehavior:
     def test_local_cache_avoids_network(self, tmp_path):
         """When local cache exists, no network request is made."""
         fake_missions = tmp_path / "missions"
-        psp_hapi = fake_missions / "psp" / "hapi"
-        psp_hapi.mkdir(parents=True)
+        psp_metadata = fake_missions / "psp" / "metadata"
+        psp_metadata.mkdir(parents=True)
 
         sample_info = {
             "startDate": "2018-10-06",
@@ -138,12 +138,12 @@ class TestLocalFirstCacheBehavior:
                 {"name": "test_param", "type": "double", "units": "nT"},
             ],
         }
-        (psp_hapi / "PSP_FLD_L2_MAG_RTN_1MIN.json").write_text(
+        (psp_metadata / "PSP_FLD_L2_MAG_RTN_1MIN.json").write_text(
             json.dumps(sample_info), encoding="utf-8"
         )
 
-        with patch("knowledge.hapi_client._MISSIONS_DIR", fake_missions), \
-             patch("knowledge.hapi_client.requests.get") as mock_get:
+        with patch("knowledge.metadata_client._MISSIONS_DIR", fake_missions), \
+             patch("knowledge.metadata_client.requests.get") as mock_get:
             info = get_dataset_info("PSP_FLD_L2_MAG_RTN_1MIN")
             assert info["startDate"] == "2018-10-06"
             # Network should NOT have been called

@@ -32,8 +32,8 @@ except ImportError:
 MASTER_CDF_BASE = "https://cdaweb.gsfc.nasa.gov/pub/software/cdawlib/0MASTERS"
 MASTER_CDF_CACHE = Path.home() / ".helio-agent" / "master_cdfs"
 
-# CDF type string -> HAPI type mapping
-_CDF_TO_HAPI_TYPE = {
+# CDF type string -> parameter type mapping
+_CDF_TYPE_MAP = {
     "CDF_REAL4": "double",
     "CDF_REAL8": "double",
     "CDF_DOUBLE": "double",
@@ -97,7 +97,7 @@ def download_master_cdf(dataset_id: str, cache_dir: Path | None = None) -> Path:
     url = get_master_cdf_url(dataset_id)
     logger.debug("Downloading Master CDF: %s", url)
 
-    resp = requests.get(url, timeout=30)
+    resp = requests.get(url, timeout=10)
     resp.raise_for_status()
 
     cache_dir.mkdir(parents=True, exist_ok=True)
@@ -145,9 +145,9 @@ def extract_metadata(cdf_path: Path) -> dict:
         if dtype_desc in _SKIP_TYPES:
             continue
 
-        # Map CDF type to HAPI type
-        hapi_type = _CDF_TO_HAPI_TYPE.get(dtype_desc)
-        if hapi_type is None:
+        # Map CDF type to parameter type
+        param_type = _CDF_TYPE_MAP.get(dtype_desc)
+        if param_type is None:
             continue
 
         # Check VAR_TYPE — skip support/metadata variables
@@ -192,7 +192,7 @@ def extract_metadata(cdf_path: Path) -> dict:
 
         param = {
             "name": var_name,
-            "type": hapi_type,
+            "type": param_type,
             "units": units,
             "description": description,
             "fill": fill,

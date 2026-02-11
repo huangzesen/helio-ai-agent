@@ -22,7 +22,7 @@
 
 ### 4. Knowledge Modules
 - [ ] `knowledge/catalog.py` - keyword search works
-- [ ] `knowledge/hapi_client.py` - HAPI API calls succeed
+- [ ] `knowledge/metadata_client.py` - metadata API calls succeed
 - [ ] Catalog returns PSP, SolO, ACE, OMNI datasets
 
 ### 5. Autoplot Bridge

@@ -75,7 +75,7 @@ def test_hapi_import():
     print("\n[3/6] Testing HAPI client import...")
 
     try:
-        from knowledge import hapi_client
+        from knowledge import metadata_client
         print(f"  ✓ HAPI client imported")
         return True
     except Exception as e:
@@ -88,7 +88,7 @@ def test_hapi_connection():
     print("\n[4/6] Testing HAPI server connection...")
 
     try:
-        from knowledge.hapi_client import get_dataset_info
+        from knowledge.metadata_client import get_dataset_info
 
         # Request info for ACE magnetic field dataset
         info = get_dataset_info("AC_H2_MFI")
@@ -113,7 +113,7 @@ def test_list_parameters():
     print("\n[5/6] Testing parameter listing...")
 
     try:
-        from knowledge.hapi_client import list_parameters
+        from knowledge.metadata_client import list_parameters
 
         # Get parameters for Parker Solar Probe magnetic field
         params = list_parameters("PSP_FLD_L2_MAG_RTN_1MIN")
@@ -137,7 +137,7 @@ def test_cache():
     print("\n[6/6] Testing HAPI cache...")
 
     try:
-        from knowledge.hapi_client import get_dataset_info, _info_cache
+        from knowledge.metadata_client import get_dataset_info, _info_cache
 
         # Clear cache
         _info_cache.clear()

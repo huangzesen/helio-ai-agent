@@ -1,17 +1,17 @@
 """
-HAPI client for CDAWeb parameter metadata discovery.
+CDAWeb parameter metadata client.
 
 Fetches parameter info dynamically and filters to 1D plottable parameters
 (scalars and small vectors with size <= 3).
 
-Uses a three-layer cache with Master CDF as primary network fallback:
+Uses a four-layer resolution strategy with Master CDF as primary network fallback:
 1. In-memory cache (fastest)
-2. Local file cache in knowledge/missions/*/hapi/ (instant, no network)
+2. Local file cache in knowledge/missions/*/metadata/ (instant, no network)
 3. Master CDF skeleton file (reliable, separate infrastructure from HAPI)
 4. HAPI /info endpoint (last-resort fallback)
 
 Supports local file cache: if a dataset's info response is saved in
-knowledge/missions/{mission}/hapi/{dataset_id}.json, it is loaded instantly
+knowledge/missions/{mission}/metadata/{dataset_id}.json, it is loaded instantly
 without a network request.
 """
 
@@ -28,20 +28,20 @@ logger = logging.getLogger("helio-agent")
 
 HAPI_BASE = "https://cdaweb.gsfc.nasa.gov/hapi"
 
-# Cache for HAPI responses to avoid repeated API calls
+# Cache for metadata responses to avoid repeated API calls
 _info_cache: dict[str, dict] = {}
 
 # Cache for CDAWeb Notes HTML pages (keyed by base URL, e.g., NotesA.html)
 _notes_cache: dict[str, str] = {}
 
-# Directory containing per-mission folders with HAPI cache files
+# Directory containing per-mission folders with metadata cache files
 _MISSIONS_DIR = Path(__file__).parent / "missions"
 
 
 def _find_local_cache(dataset_id: str) -> Optional[Path]:
-    """Scan mission subfolders for a locally cached HAPI /info file.
+    """Scan mission subfolders for a locally cached metadata file.
 
-    Checks knowledge/missions/*/hapi/{dataset_id}.json across all mission
+    Checks knowledge/missions/*/metadata/{dataset_id}.json across all mission
     directories. Only 8 dirs to scan — negligible cost.
 
     Args:
@@ -53,7 +53,7 @@ def _find_local_cache(dataset_id: str) -> Optional[Path]:
     for mission_dir in _MISSIONS_DIR.iterdir():
         if not mission_dir.is_dir():
             continue
-        cache_file = mission_dir / "hapi" / f"{dataset_id}.json"
+        cache_file = mission_dir / "metadata" / f"{dataset_id}.json"
         if cache_file.exists():
             return cache_file
     return None
@@ -64,7 +64,7 @@ def get_dataset_info(dataset_id: str, use_cache: bool = True) -> dict:
 
     Checks four sources in order:
     1. In-memory cache (fastest)
-    2. Local file cache in knowledge/missions/*/hapi/ (instant, no network)
+    2. Local file cache in knowledge/missions/*/metadata/ (instant, no network)
     3. Master CDF skeleton file (reliable, separate infrastructure)
     4. HAPI /info endpoint (last-resort fallback)
 
@@ -108,7 +108,7 @@ def get_dataset_info(dataset_id: str, use_cache: bool = True) -> dict:
     resp = requests.get(
         f"{HAPI_BASE}/info",
         params={"id": dataset_id},
-        timeout=30,
+        timeout=10,
     )
     resp.raise_for_status()
     info = resp.json()
@@ -128,11 +128,11 @@ def _save_to_local_cache(dataset_id: str, info: dict) -> None:
     for mission_dir in _MISSIONS_DIR.iterdir():
         if not mission_dir.is_dir():
             continue
-        hapi_dir = mission_dir / "hapi"
-        if hapi_dir.exists():
+        metadata_dir = mission_dir / "metadata"
+        if metadata_dir.exists():
             # Check if this mission has any datasets with matching prefix
             # by looking at existing cache files
-            existing = list(hapi_dir.glob("*.json"))
+            existing = list(metadata_dir.glob("*.json"))
             if not existing:
                 continue
             # Check prefix match (e.g., AC_ for ACE datasets)
@@ -146,13 +146,13 @@ def _save_to_local_cache(dataset_id: str, info: dict) -> None:
             ds_prefix = dataset_id.split("_")[0] if "_" in dataset_id else ""
             sample_prefix = sample_name.split("_")[0] if "_" in sample_name else ""
             if ds_prefix and ds_prefix == sample_prefix:
-                cache_file = hapi_dir / f"{dataset_id}.json"
+                cache_file = metadata_dir / f"{dataset_id}.json"
                 try:
                     cache_file.write_text(
                         json.dumps(info, indent=2, ensure_ascii=False) + "\n",
                         encoding="utf-8",
                     )
-                    logger.debug("Saved Master CDF metadata to cache: %s", cache_file)
+                    logger.debug("Saved metadata to cache: %s", cache_file)
                 except OSError:
                     pass
                 return
@@ -161,7 +161,7 @@ def _save_to_local_cache(dataset_id: str, info: dict) -> None:
 def list_parameters(dataset_id: str) -> list[dict]:
     """List plottable 1D parameters for a dataset.
 
-    Fetches metadata from HAPI and filters to parameters that are:
+    Fetches metadata and filters to parameters that are:
     - Not the Time parameter
     - Numeric type (double or integer)
     - 1D with size <= 3 (scalars and small vectors)
@@ -229,7 +229,7 @@ def get_dataset_time_range(dataset_id: str) -> Optional[dict]:
 
 
 def list_cached_datasets(mission_id: str) -> Optional[dict]:
-    """Load the _index.json summary for a mission's cached HAPI metadata.
+    """Load the _index.json summary for a mission's cached metadata.
 
     Args:
         mission_id: Mission identifier (e.g., "PSP", "psp"). Case-insensitive.
@@ -238,7 +238,7 @@ def list_cached_datasets(mission_id: str) -> Optional[dict]:
         Parsed _index.json dict with mission_id, dataset_count, datasets list,
         or None if no index file exists.
     """
-    index_path = _MISSIONS_DIR / mission_id.lower() / "hapi" / "_index.json"
+    index_path = _MISSIONS_DIR / mission_id.lower() / "metadata" / "_index.json"
     if not index_path.exists():
         return None
     return json.loads(index_path.read_text(encoding="utf-8"))
@@ -247,7 +247,7 @@ def list_cached_datasets(mission_id: str) -> Optional[dict]:
 def _load_calibration_exclusions(mission_id: str) -> tuple[list[str], list[str]]:
     """Load calibration exclusion patterns and IDs for a mission.
 
-    Reads from knowledge/missions/{mission}/hapi/_calibration_exclude.json.
+    Reads from knowledge/missions/{mission}/metadata/_calibration_exclude.json.
 
     Args:
         mission_id: Mission identifier (case-insensitive).
@@ -255,7 +255,7 @@ def _load_calibration_exclusions(mission_id: str) -> tuple[list[str], list[str]]
     Returns:
         Tuple of (patterns, ids). Returns ([], []) if no exclusion file exists.
     """
-    exclude_path = _MISSIONS_DIR / mission_id.lower() / "hapi" / "_calibration_exclude.json"
+    exclude_path = _MISSIONS_DIR / mission_id.lower() / "metadata" / "_calibration_exclude.json"
     if not exclude_path.exists():
         return [], []
     data = json.loads(exclude_path.read_text(encoding="utf-8"))
@@ -296,7 +296,7 @@ def browse_datasets(mission_id: str) -> Optional[list[dict]]:
 
 
 def list_missions() -> list[dict]:
-    """List all missions that have cached HAPI metadata on disk.
+    """List all missions that have cached metadata on disk.
 
     Scans for _index.json files across all mission directories.
     Pure filesystem lookup — no network.
@@ -308,7 +308,7 @@ def list_missions() -> list[dict]:
     for mission_dir in sorted(_MISSIONS_DIR.iterdir()):
         if not mission_dir.is_dir():
             continue
-        index_path = mission_dir / "hapi" / "_index.json"
+        index_path = mission_dir / "metadata" / "_index.json"
         if not index_path.exists():
             continue
         try:
@@ -323,7 +323,7 @@ def list_missions() -> list[dict]:
 
 
 def validate_dataset_id(dataset_id: str) -> dict:
-    """Check if a dataset ID exists in the local HAPI cache.
+    """Check if a dataset ID exists in the local metadata cache.
 
     Uses _find_local_cache() to check all mission directories.
     No network call is made.
@@ -336,7 +336,7 @@ def validate_dataset_id(dataset_id: str) -> dict:
     """
     cache_path = _find_local_cache(dataset_id)
     if cache_path is not None:
-        # Extract mission_id from the path: .../missions/{mission}/hapi/{file}.json
+        # Extract mission_id from the path: .../missions/{mission}/metadata/{file}.json
         mission_id = cache_path.parent.parent.name.upper()
         return {
             "valid": True,
@@ -347,7 +347,7 @@ def validate_dataset_id(dataset_id: str) -> dict:
         "valid": False,
         "mission_id": None,
         "message": (
-            f"Dataset '{dataset_id}' not found in local HAPI cache. "
+            f"Dataset '{dataset_id}' not found in local metadata cache. "
             f"Use browse_datasets(mission_id) to see available datasets."
         ),
     }
@@ -372,7 +372,7 @@ def validate_parameter_id(dataset_id: str, parameter_id: str) -> dict:
             "available_parameters": [],
             "message": (
                 f"Cannot validate parameter — dataset '{dataset_id}' "
-                f"not found in local HAPI cache."
+                f"not found in local metadata cache."
             ),
         }
 
@@ -598,7 +598,7 @@ def get_dataset_docs(dataset_id: str, max_chars: int = 4000) -> dict:
 
 
 def clear_cache():
-    """Clear the HAPI info cache and Notes page cache."""
+    """Clear the metadata info cache and Notes page cache."""
     global _info_cache, _notes_cache
     _info_cache = {}
     _notes_cache = {}
