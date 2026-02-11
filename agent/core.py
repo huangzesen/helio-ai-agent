@@ -623,7 +623,25 @@ class OrchestratorAgent:
             self.logger.debug(f"[HAPI] Fetching parameters for {tool_args['dataset_id']}...")
             params = hapi_list_parameters(tool_args["dataset_id"])
             self.logger.debug(f"[HAPI] Got {len(params)} parameters.")
-            return {"status": "success", "parameters": params}
+            result = {"status": "success", "parameters": params}
+
+            # When using CDF backend, also include actual CDF variable names
+            from config import DATA_BACKEND
+            if DATA_BACKEND == "cdf":
+                try:
+                    from data_ops.fetch_cdf import list_cdf_variables
+                    cdf_vars = list_cdf_variables(tool_args["dataset_id"])
+                    result["cdf_variables"] = cdf_vars
+                    result["note"] = (
+                        "Use names from cdf_variables for fetch_data calls. "
+                        "HAPI parameter names may not work with the CDF backend."
+                    )
+                except Exception as e:
+                    self.logger.debug(
+                        f"[CDF] Could not list CDF variables for "
+                        f"{tool_args['dataset_id']}: {e}"
+                    )
+            return result
 
         elif tool_name == "get_data_availability":
             dataset_id = tool_args["dataset_id"]
@@ -725,11 +743,15 @@ class OrchestratorAgent:
             if not ds_validation["valid"]:
                 return {"status": "error", "message": ds_validation["message"]}
 
-            param_validation = hapi_validate_parameter_id(
-                tool_args["dataset_id"], tool_args["parameter_id"]
-            )
-            if not param_validation["valid"]:
-                return {"status": "error", "message": param_validation["message"]}
+            # Skip HAPI parameter validation for CDF backend — CDF variable
+            # names don't always match HAPI parameter names.
+            from config import DATA_BACKEND
+            if DATA_BACKEND != "cdf":
+                param_validation = hapi_validate_parameter_id(
+                    tool_args["dataset_id"], tool_args["parameter_id"]
+                )
+                if not param_validation["valid"]:
+                    return {"status": "error", "message": param_validation["message"]}
 
             try:
                 time_range = parse_time_range(tool_args["time_range"])

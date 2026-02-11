@@ -25,6 +25,102 @@ CDAWEB_REST_BASE = "https://cdaweb.gsfc.nasa.gov/WS/cdasr/1/dataviews/sp_phys"
 CACHE_DIR = Path(__file__).resolve().parent.parent / "cdaweb_data"
 
 
+# CDF variable data types to skip (epoch/time and character/metadata types)
+_EPOCH_TYPES = {"CDF_EPOCH", "CDF_EPOCH16", "CDF_TIME_TT2000"}
+_SKIP_TYPES = _EPOCH_TYPES | {"CDF_CHAR", "CDF_UCHAR"}
+
+
+def list_cdf_variables(dataset_id: str) -> list[dict]:
+    """List data variables from a CDF file for a given dataset.
+
+    Downloads one CDF file near the end of the dataset's coverage window
+    and inspects its variables. Skips epoch/time variables, character
+    metadata, and support variables (VAR_TYPE != 'data').
+
+    Args:
+        dataset_id: CDAWeb dataset ID (e.g., "AC_H2_MFI").
+
+    Returns:
+        List of dicts with keys: name, description, units, size.
+    """
+    from datetime import datetime, timedelta
+
+    # Pick a 1-day window near the end of coverage
+    info = get_dataset_info(dataset_id)
+    stop_str = info.get("stopDate", "")
+    if stop_str:
+        stop_dt = datetime.fromisoformat(stop_str.rstrip("Z"))
+    else:
+        stop_dt = datetime.utcnow()
+    start_dt = stop_dt - timedelta(days=1)
+
+    time_min = start_dt.strftime("%Y-%m-%dT%H:%M:%SZ")
+    time_max = stop_dt.strftime("%Y-%m-%dT%H:%M:%SZ")
+
+    file_list = _get_cdf_file_list(dataset_id, time_min, time_max)
+    if not file_list:
+        raise ValueError(f"No CDF files found for {dataset_id} near {time_max}")
+
+    local_path = _download_cdf_file(file_list[0]["url"], CACHE_DIR)
+    cdf = cdflib.CDF(str(local_path))
+    cdf_info = cdf.cdf_info()
+
+    all_vars = cdf_info.zVariables + cdf_info.rVariables
+    result = []
+
+    for var_name in all_vars:
+        try:
+            var_inq = cdf.varinq(var_name)
+        except Exception:
+            continue
+
+        # Skip epoch/time and character types
+        dtype_desc = var_inq.Data_Type_Description
+        if dtype_desc in _SKIP_TYPES:
+            continue
+
+        # Skip support variables (VAR_TYPE != "data")
+        try:
+            attrs = cdf.varattsget(var_name)
+            var_type = attrs.get("VAR_TYPE", "")
+            if isinstance(var_type, np.ndarray):
+                var_type = str(var_type)
+            if var_type and var_type.lower() != "data":
+                continue
+        except Exception:
+            pass  # If no attributes, include the variable
+
+        # Extract metadata
+        try:
+            attrs = cdf.varattsget(var_name)
+        except Exception:
+            attrs = {}
+
+        desc = attrs.get("CATDESC", "") or attrs.get("FIELDNAM", "")
+        if isinstance(desc, np.ndarray):
+            desc = str(desc)
+        units = attrs.get("UNITS", "")
+        if isinstance(units, np.ndarray):
+            units = str(units)
+
+        # Determine size from DimSizes
+        dim_sizes = var_inq.Dim_Sizes
+        if isinstance(dim_sizes, (list, np.ndarray)) and len(dim_sizes) > 0:
+            size = [int(d) for d in dim_sizes]
+        else:
+            size = [1]
+
+        result.append({
+            "name": var_name,
+            "description": desc,
+            "units": units,
+            "size": size,
+        })
+
+    logger.debug(f"[CDF] Listed {len(result)} data variables for {dataset_id}")
+    return result
+
+
 def fetch_cdf_data(
     dataset_id: str,
     parameter_id: str,
@@ -48,16 +144,21 @@ def fetch_cdf_data(
         ValueError: If no data is available.
         requests.HTTPError: If a download fails.
     """
-    # Get metadata from local HAPI cache
+    # Get metadata from local HAPI cache if available
+    cdf_native = False
     info = get_dataset_info(dataset_id)
-    param_meta = _find_parameter_meta(info, parameter_id)
-
-    units = param_meta.get("units", "")
-    description = param_meta.get("description", "")
-    fill_value = param_meta.get("fill", None)
-    param_size = param_meta.get("size", [1])
-    if isinstance(param_size, list):
-        param_size = param_size[0] if param_size else 1
+    try:
+        param_meta = _find_parameter_meta(info, parameter_id)
+        units = param_meta.get("units", "")
+        description = param_meta.get("description", "")
+        fill_value = param_meta.get("fill", None)
+    except ValueError:
+        # Parameter not in HAPI cache — it's a CDF-native variable name.
+        # We'll extract metadata from the first CDF file below.
+        cdf_native = True
+        units = ""
+        description = ""
+        fill_value = None
 
     # Discover CDF files covering the time range
     file_list = _get_cdf_file_list(dataset_id, time_min, time_max)
@@ -68,7 +169,28 @@ def fetch_cdf_data(
     frames = []
     for file_info in file_list:
         local_path = _download_cdf_file(file_info["url"], CACHE_DIR)
-        df = _read_cdf_parameter(local_path, parameter_id, param_size)
+        df = _read_cdf_parameter(local_path, parameter_id)
+        # Extract metadata from the first CDF file for CDF-native params
+        if cdf_native and not frames:
+            try:
+                cdf = cdflib.CDF(str(local_path))
+                attrs = cdf.varattsget(parameter_id)
+                units = attrs.get("UNITS", "") or ""
+                if isinstance(units, np.ndarray):
+                    units = str(units)
+                description = (attrs.get("CATDESC", "")
+                               or attrs.get("FIELDNAM", "") or "")
+                if isinstance(description, np.ndarray):
+                    description = str(description)
+                fv = attrs.get("FILLVAL", None)
+                if fv is not None:
+                    # Store as Python float to ensure df.replace works
+                    try:
+                        fill_value = float(fv)
+                    except (ValueError, TypeError):
+                        fill_value = fv
+            except Exception:
+                pass
         frames.append(df)
 
     if not frames:
@@ -245,14 +367,13 @@ def _download_cdf_file(url: str, cache_base: Path) -> Path:
 
 
 def _read_cdf_parameter(
-    cdf_path: Path, parameter_id: str, param_size: int
+    cdf_path: Path, parameter_id: str
 ) -> pd.DataFrame:
     """Extract one parameter from a CDF file.
 
     Args:
         cdf_path: Path to local CDF file.
         parameter_id: CDF variable name to read.
-        param_size: Expected number of components (1 for scalar, 3 for vector).
 
     Returns:
         DataFrame with DatetimeIndex named 'time' and integer column names

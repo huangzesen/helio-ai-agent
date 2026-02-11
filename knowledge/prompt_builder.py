@@ -314,6 +314,23 @@ def build_mission_prompt(mission_id: str) -> str:
     lines.append("   Also accepts 'last week', 'January 2024', etc.")
     lines.append("6. **Labels**: fetch_data stores data with label `DATASET.PARAM`.")
     lines.append("")
+
+    # --- CDF Backend Instructions ---
+    import config
+    if config.DATA_BACKEND == "cdf":
+        lines.append("## CDF Backend Active")
+        lines.append("")
+        lines.append("The data backend uses direct CDF file downloads (not HAPI).")
+        lines.append("When you call `list_parameters`, the result includes:")
+        lines.append("- `parameters`: HAPI parameter names with descriptions/units (for reference only)")
+        lines.append("- `cdf_variables`: Actual CDF variable names that work with `fetch_data`")
+        lines.append("")
+        lines.append("IMPORTANT: Use variable names from `cdf_variables` in fetch_data calls.")
+        lines.append("HAPI parameter names may NOT work. Match the physical quantity from the")
+        lines.append("orchestrator's request to the best CDF variable using its description,")
+        lines.append("units, and shape.")
+        lines.append("")
+
     lines.append("## Reporting Results")
     lines.append("")
     lines.append("After completing data operations, report back with:")
@@ -929,10 +946,12 @@ Tag each task with the "mission" field:
 
 ## Dataset Selection
 
-For fetch tasks, include the `candidate_datasets` field with a list of 1-3 dataset IDs
-that could satisfy the physics requirement. The mission agent will inspect these candidates
-(checking parameters, availability, data quality) and choose the best one.
-Only use dataset IDs from the Known Dataset IDs list or Discovery Results.
+For fetch tasks, include the `candidate_datasets` field with a list of 2-3 dataset IDs
+that could satisfy the physics requirement. Always include at least 2 candidates when
+multiple datasets are available — this gives the mission agent a fallback if the primary
+dataset has no data or all-NaN values in the requested time range. The mission agent will
+inspect these candidates (checking parameters, availability, data quality) and choose the
+best one. Only use dataset IDs from the Known Dataset IDs list or Discovery Results.
 
 Do NOT specify parameter names in task instructions — the mission agent selects parameters.
 Describe the physical quantity needed instead (e.g., "magnetic field vector", "proton density").
