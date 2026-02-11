@@ -914,9 +914,13 @@ Do NOT use this for requests that can be satisfied with 1-2 direct delegations."
                 "reasoning": {
                     "type": "string",
                     "description": "Brief explanation of why this request needs multi-step planning"
+                },
+                "time_range": {
+                    "type": "string",
+                    "description": "The resolved time range in 'YYYY-MM-DD to YYYY-MM-DD' format (e.g. '2012-05-01 to 2013-01-31'). Extract from the user's request, converting natural language dates to ISO dates. For sub-day precision use 'YYYY-MM-DDTHH:MM:SS to YYYY-MM-DDTHH:MM:SS'."
                 }
             },
-            "required": ["request", "reasoning"]
+            "required": ["request", "reasoning", "time_range"]
         }
     },
 ]

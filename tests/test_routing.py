@@ -377,11 +377,12 @@ class TestRequestPlanningTool:
         tool = next(t for t in get_tool_schemas() if t["name"] == "request_planning")
         assert tool["category"] == "routing"
 
-    def test_tool_requires_request_and_reasoning(self):
+    def test_tool_requires_request_reasoning_and_time_range(self):
         tool = next(t for t in get_tool_schemas() if t["name"] == "request_planning")
         assert "request" in tool["parameters"]["properties"]
         assert "reasoning" in tool["parameters"]["properties"]
-        assert tool["parameters"]["required"] == ["request", "reasoning"]
+        assert "time_range" in tool["parameters"]["properties"]
+        assert tool["parameters"]["required"] == ["request", "reasoning", "time_range"]
 
     def test_tool_in_orchestrator_tools(self):
         orch_tools = get_tool_schemas(categories=ORCHESTRATOR_CATEGORIES, extra_names=ORCHESTRATOR_EXTRA_TOOLS)

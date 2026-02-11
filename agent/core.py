@@ -1425,8 +1425,11 @@ class OrchestratorAgent:
         elif tool_name == "request_planning":
             request = tool_args["request"]
             reasoning = tool_args.get("reasoning", "")
+            structured_time_range = tool_args.get("time_range", "")
             self.logger.debug(f"[Planner] Planning requested: {reasoning}")
-            summary = self._handle_planning_request(request)
+            summary = self._handle_planning_request(
+                request, structured_time_range=structured_time_range
+            )
             return {"status": "success", "result": summary, "planning_used": True}
 
         else:
@@ -1855,21 +1858,41 @@ class OrchestratorAgent:
 
         return None
 
-    def _handle_planning_request(self, user_message: str) -> str:
+    def _handle_planning_request(
+        self, user_message: str, *, structured_time_range: str = ""
+    ) -> str:
         """Process a complex multi-step request using the plan-execute-replan loop."""
         self.logger.debug("[PlannerAgent] Starting planner for complex request...")
 
-        # Strip memory context before extracting time range — memory contains
-        # date references from past sessions that confuse the regex (P0-1, P1-3).
-        import re as _re
-        clean_msg = _re.sub(
-            r'\[CONTEXT FROM LONG-TERM MEMORY\].*?\[END MEMORY CONTEXT\]\s*',
-            '', user_message, flags=_re.DOTALL
-        )
-        # Resolve and store the canonical time range for this plan
-        self._plan_time_range = self._extract_time_range(clean_msg)
-        if self._plan_time_range:
-            self.logger.debug(f"[PlannerAgent] Resolved time range: {self._plan_time_range.to_time_range_string()}")
+        # Prefer the structured time_range from the tool call (Gemini-resolved).
+        # Fall back to regex extraction only when the structured param is empty.
+        self._plan_time_range = None
+        if structured_time_range:
+            try:
+                self._plan_time_range = parse_time_range(structured_time_range)
+                self.logger.debug(
+                    f"[PlannerAgent] Resolved time range (structured): "
+                    f"{self._plan_time_range.to_time_range_string()}"
+                )
+            except (TimeRangeError, ValueError) as e:
+                self.logger.debug(
+                    f"[PlannerAgent] Structured time_range parse failed: {e}"
+                )
+
+        if not self._plan_time_range:
+            # Strip memory context before extracting time range — memory contains
+            # date references from past sessions that confuse the regex.
+            import re as _re
+            clean_msg = _re.sub(
+                r'\[CONTEXT FROM LONG-TERM MEMORY\].*?\[END MEMORY CONTEXT\]\s*',
+                '', user_message, flags=_re.DOTALL
+            )
+            self._plan_time_range = self._extract_time_range(clean_msg)
+            if self._plan_time_range:
+                self.logger.debug(
+                    f"[PlannerAgent] Resolved time range (regex fallback): "
+                    f"{self._plan_time_range.to_time_range_string()}"
+                )
 
         planner = self._get_or_create_planner_agent()
 
