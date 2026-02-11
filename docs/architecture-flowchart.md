@@ -390,6 +390,48 @@ VisualizationAgent
 
 ---
 
+## Logging & Observability
+
+```
+                    agent/logging.py
+                    ├─ GRADIO_VISIBLE_TAGS (frozenset)
+                    ├─ tagged(tag) → {"log_tag": tag}
+                    └─ _SessionFilter: injects session_id + log_tag default
+
+  Log call with tag                    Log call without tag
+  logger.debug("...",                  logger.debug("...")
+    extra=tagged("delegation"))
+         │                                    │
+         ▼                                    ▼
+  record.log_tag = "delegation"        record.log_tag = ""
+         │                                    │
+         ├──────────────┬─────────────────────┤
+         ▼              ▼                     ▼
+   ┌──────────┐  ┌────────────┐        ┌──────────┐
+   │  Gradio  │  │  Terminal   │        │   File   │
+   │_ListHdlr │  │  console    │        │ handler  │
+   │          │  │  handler    │        │          │
+   │ tag in   │  │ DEBUG if    │        │ always   │
+   │ VISIBLE? │  │ --verbose   │        │ DEBUG    │
+   │ YES→show │  │ else WARN+  │        │          │
+   │ NO →skip │  │             │        │          │
+   │          │  │ shows ALL   │        │ shows    │
+   │ (all lvl │  │ log records │        │ ALL log  │
+   │  by tag) │  │             │        │ records  │
+   └──────────┘  └────────────┘        └──────────┘
+
+  Visible tags:
+    delegation       → [Router] Delegating to X specialist
+    delegation_done  → [Router] X specialist finished
+    plan_event       → Plan created / completed / failed
+    plan_task        → [Plan] task description + plan summary
+    data_fetched     → [DataOps] Stored 'label' (N points)
+    thinking         → [Thinking] ... (first 500 chars)
+    error            → log_error() real errors with stack traces
+```
+
+---
+
 ## Gradio Web UI Architecture
 
 ```

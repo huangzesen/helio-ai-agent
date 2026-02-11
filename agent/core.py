@@ -218,8 +218,8 @@ class OrchestratorAgent:
                 # Full text to terminal/file (untagged)
                 self.logger.debug(f"[Thinking] {thought}")
                 # Truncated preview to Gradio (tagged)
-                preview = thought[:1000]
-                if len(thought) > 1000:
+                preview = thought[:500]
+                if len(thought) > 500:
                     preview += "..."
                 self.logger.debug(f"[Thinking] {preview}", extra=tagged("thinking"))
 
@@ -1798,7 +1798,7 @@ class OrchestratorAgent:
                 f"(status={response['status']})",
                 extra=tagged("plan_task"),
             )
-            self.logger.debug(format_plan_for_display(plan))
+            self.logger.debug(format_plan_for_display(plan), extra=tagged("plan_task"))
 
             # Execute batch — snapshot store labels before to detect new data
             round_results = []
@@ -2469,7 +2469,7 @@ Example: ["Compare this with solar wind speed", "Zoom in to January 10-15", "Exp
         store = get_task_store()
 
         self.logger.debug(f"[Resume] Resuming plan: {plan.user_request[:50]}...")
-        self.logger.debug(format_plan_for_display(plan))
+        self.logger.debug(format_plan_for_display(plan), extra=tagged("plan_task"))
 
         pending = plan.get_pending_tasks()
         if not pending:

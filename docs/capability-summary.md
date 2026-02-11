@@ -308,7 +308,7 @@ All times are UTC. Outputs `TimeRange` objects with `start`/`end` datetimes.
 - **HIGH**: Orchestrator (`agent/core.py`) and PlannerAgent (`agent/planner.py`) — deep reasoning for routing decisions and plan decomposition
 - **LOW**: MissionAgent, VisualizationAgent, DataOpsAgent, DataExtractionAgent — fast execution with minimal thinking overhead
 - Thinking tokens tracked separately in `get_token_usage()` across all agents
-- Verbose mode logs thought previews (first 200 chars) via `agent/thinking.py` utilities
+- Verbose mode logs full thoughts to terminal/file, plus 500-char tagged previews for Gradio via `agent/thinking.py` utilities
 - Task plans persist to `~/.helio-agent/tasks/` with round tracking for multi-round plans
 
 ### Per-Mission JSON Knowledge (`knowledge/missions/*.json`)
@@ -371,9 +371,16 @@ All times are UTC. Outputs `TimeRange` objects with `start`/`end` datetimes.
 - Prevents Gradio dark theme CSS from making plots appear black
 - Applied in `_ensure_figure()` and `_grow_panels()`
 
+### Figure Sizing
+- Renderer sets explicit defaults: `autosize=False`, 300px per panel height, 1100px width
+- Prevents Plotly.js from recalculating dimensions on toolbar interactions (zoom, pan, reset)
+- `plot_data` review metadata includes `figure_size` (current) and `sizing_recommendation` (suggested)
+- Viz agent inspects the recommendation and calls `style_plot(canvas_size=...)` when sizing should differ from defaults (4+ panels use compact 250px/panel, spectrograms use ≥400px height and 1200px width)
+
 ### Gradio Streaming
-- `gradio_app.py` streams live progress (tool calls, downloads, thinking) by default; use `--quiet` to disable
-- Agent output unified through Python logging (commit 413eada)
+- `gradio_app.py` streams live progress by default; use `--quiet` to disable
+- Agent output unified through Python logging
+- `_ListHandler` in `gradio_app.py` uses tag-based filtering via `GRADIO_VISIBLE_TAGS` — only agent lifecycle, plan events, data fetched, thinking previews, and errors are shown. See the Logging section for the full tag table and how to add new categories.
 
 ### Mission Data Startup (`knowledge/startup.py`)
 - Shared startup logic used by both `main.py` and `gradio_app.py`
@@ -469,12 +476,36 @@ Features:
 | `help` | Show welcome message and help |
 
 ### Logging (`agent/logging.py`)
-- Log files stored in `~/.helio-agent/logs/agent_YYYYMMDD.log`
-- Daily rotation, detailed error logging with stack traces
+- Log files stored in `~/.helio-agent/logs/agent_YYYYMMDD_HHMMSS.log` (one per session)
+- Detailed error logging with stack traces
 - `log_error()`: Captures context and full stack traces for debugging
 - `log_tool_call()` / `log_tool_result()`: Tracks all tool invocations
-- `log_plan_event()`: Records plan lifecycle events
+- `log_plan_event()`: Records plan lifecycle events (tagged for Gradio)
 - `print_recent_errors()`: CLI command to review recent errors
+
+#### Tag-Based Log Filtering (Gradio vs Terminal)
+All log calls can be tagged with `extra=tagged("category")`. The Gradio live log handler only shows records whose `log_tag` is in `GRADIO_VISIBLE_TAGS` (plus all WARNING/ERROR). Terminal and file handlers show everything.
+
+**`GRADIO_VISIBLE_TAGS`** (defined in `agent/logging.py`):
+| Tag | Example message | Source |
+|-----|-----------------|--------|
+| `"delegation"` | `[Router] Delegating to PSP specialist` | `agent/core.py` |
+| `"delegation_done"` | `[Router] PSP specialist finished` | `agent/core.py` |
+| `"plan_event"` | `Plan created: a1b2c3d4...` | `agent/logging.py:log_plan_event()` |
+| `"plan_task"` | `[Plan] [PSP]: Fetch magnetic field data` | `agent/core.py` |
+| `"data_fetched"` | `[DataOps] Stored 'AC_H2_MFI.BGSEc' (10080 points)` | `agent/core.py` |
+| `"thinking"` | `[Thinking] The user wants...` (first 500 chars) | `core.py`, `base_agent.py`, `planner.py` |
+| `"error"` | Real errors with context/stack traces | `agent/logging.py:log_error()` |
+
+**What is NOT shown in Gradio** (terminal/file only): `[HAPI]`, `[CDF]`, `[Gemini]`, `[Tool:]` calls, full thinking text, internal tool-result warnings/errors, DataOps plumbing. Only `log_error()` errors appear in Gradio (tagged `"error"`); per-tool `logger.warning("Tool error: ...")` lines are untagged and filtered out.
+
+**To add a new category to Gradio:**
+1. Tag the log call: `logger.debug("...", extra=tagged("my_tag"))`
+2. Add `"my_tag"` to `GRADIO_VISIBLE_TAGS` in `agent/logging.py`
+
+No filter logic changes needed. The `tagged()` helper returns `{"log_tag": tag}` for use as the `extra` kwarg.
+
+**Thinking log records**: Each thought emits two records — the full untagged text (goes to terminal/file only) and a 500-char truncated preview tagged `"thinking"` (shown in Gradio). This happens in `_track_usage()` in `core.py`, `base_agent.py`, and `planner.py`.
 
 ## Tests
 

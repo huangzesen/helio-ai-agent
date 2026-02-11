@@ -98,8 +98,8 @@ class BaseSubAgent:
                 # Full text to terminal/file (untagged)
                 self.logger.debug(f"[Thinking] {thought}")
                 # Truncated preview to Gradio (tagged)
-                preview = thought[:1000]
-                if len(thought) > 1000:
+                preview = thought[:500]
+                if len(thought) > 500:
                     preview += "..."
                 self.logger.debug(f"[Thinking] {preview}", extra=tagged("thinking"))
 

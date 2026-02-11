@@ -28,6 +28,7 @@ GRADIO_VISIBLE_TAGS = frozenset({
     "plan_task",        # Plan task executing / round progress
     "data_fetched",     # "[DataOps] Stored 'label' (N points)"
     "thinking",         # "[Thinking] ..." (truncated preview)
+    "error",            # log_error() — real errors with context/stack traces
 })
 
 
@@ -176,7 +177,7 @@ def log_error(
         lines.append(traceback.format_exc())
 
     full_message = "\n".join(lines)
-    logger.error(full_message)
+    logger.error(full_message, extra=tagged("error"))
 
 
 def log_tool_call(tool_name: str, tool_args: dict) -> None:

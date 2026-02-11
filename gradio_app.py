@@ -674,8 +674,8 @@ def _get_autocomplete_candidates() -> list[str]:
 class _ListHandler(logging.Handler):
     """Logging handler that filters log lines for Gradio display.
 
-    Uses tag-based filtering: only records whose ``log_tag`` attribute
-    is in ``GRADIO_VISIBLE_TAGS`` (plus all WARNING/ERROR) are shown.
+    Uses tag-based filtering exclusively: only records whose ``log_tag``
+    is in ``GRADIO_VISIBLE_TAGS`` are shown — regardless of log level.
     To add a new category, tag the logger call with
     ``extra=tagged("my_tag")`` and add the tag to ``GRADIO_VISIBLE_TAGS``
     in ``agent/logging.py``.
@@ -690,11 +690,6 @@ class _ListHandler(logging.Handler):
         msg = self.format(record)
         if not msg.strip():
             return
-        # Always include warnings/errors
-        if record.levelno >= logging.WARNING:
-            self._target.append(msg)
-            return
-        # Show only tagged records whose tag is in the visible set
         tag = getattr(record, "log_tag", "")
         if tag in GRADIO_VISIBLE_TAGS:
             self._target.append(msg)
@@ -974,6 +969,9 @@ EXAMPLES = [
     {"text": "How did scientists prove Voyager 1 left the solar system? Show me the data."},
     {"text": "When did Parker Solar Probe first enter the solar corona? Show me what happened."},
     {"text": "Show me a powerful coronal mass ejection hitting Earth. What did it look like in the data?"},
+    {"text": "Compare solar wind speed and density from ACE and Wind for the last month. Show them on separate panels and compute a 1-hour running average for each."},
+    {"text": "Fetch PSP magnetic field data from its closest perihelion in 2024. Compute the field magnitude, take the derivative, and plot both on separate panels with a log scale on the magnitude."},
+    {"text": "Find a geomagnetic storm from 2024 using OMNI Dst index, then show ACE solar wind speed, density, and IMF Bz during that storm on a multi-panel plot."},
 ]
 
 
@@ -1719,7 +1717,7 @@ def create_app() -> gr.Blocks:
             examples=EXAMPLES,
             inputs=msg_input,
             label="Try these",
-            examples_per_page=3,
+            examples_per_page=6,
             elem_id="example-pills",
         )
 
