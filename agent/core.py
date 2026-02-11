@@ -472,6 +472,42 @@ class OrchestratorAgent:
 
         return None  # fully valid
 
+    @staticmethod
+    def _resolve_entry(store, label: str):
+        """Resolve a label to a DataEntry, supporting column sub-selection.
+
+        Handles labels like 'PSP_B_DERIVATIVE_FINAL.B_mag' where
+        'PSP_B_DERIVATIVE_FINAL' is the store key and 'B_mag' is a column.
+
+        Returns (DataEntry, resolved_label) or (None, None) if not found.
+        """
+        from data_ops.store import DataEntry
+
+        # Exact match first
+        entry = store.get(label)
+        if entry is not None:
+            return entry, label
+
+        # Try column sub-selection: split from the right and check
+        # progressively longer prefixes as parent labels.
+        # E.g. "A.B.C" tries "A.B" with col "C", then "A" with col "B.C"
+        parts = label.split(".")
+        for i in range(len(parts) - 1, 0, -1):
+            parent_label = ".".join(parts[:i])
+            col_name = ".".join(parts[i:])
+            parent = store.get(parent_label)
+            if parent is not None and col_name in parent.data.columns:
+                sub_entry = DataEntry(
+                    label=label,
+                    data=parent.data[[col_name]],
+                    units=parent.units,
+                    description=f"{parent.description} [{col_name}]" if parent.description else col_name,
+                    source=parent.source,
+                    metadata=parent.metadata,
+                )
+                return sub_entry, label
+        return None, None
+
     def _handle_plot_data(self, tool_args: dict) -> dict:
         """Handle the plot_data tool call."""
         store = get_store()
@@ -486,7 +522,7 @@ class OrchestratorAgent:
         labels = [l.strip() for l in labels_str.split(",")]
         entries = []
         for label in labels:
-            entry = store.get(label)
+            entry, _ = self._resolve_entry(store, label)
             if entry is None:
                 return {"status": "error", "message": f"Label '{label}' not found in memory"}
             entries.append(entry)

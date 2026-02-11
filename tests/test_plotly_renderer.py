@@ -139,6 +139,29 @@ class TestPlotData:
         assert result["status"] == "error"
         assert "MISSING" in result["message"]
 
+    def test_panel_column_sublabel(self, renderer):
+        """Column sub-label like 'PARENT.col' should select a single column."""
+        rng = pd.date_range("2024-01-01", periods=50, freq="min")
+        df = pd.DataFrame({"B_mag": np.random.randn(50), "dB_dt": np.random.randn(50)}, index=rng)
+        entry = DataEntry(label="PSP_B_DERIVATIVE", data=df, units="nT", description="B derivatives")
+        # Pass parent entry, but reference columns in panels
+        result = renderer.plot_data(
+            [entry],
+            panels=[["PSP_B_DERIVATIVE.B_mag"], ["PSP_B_DERIVATIVE.dB_dt"]],
+        )
+        assert result["status"] == "success"
+        assert result["panels"] == 2
+        assert len(result["traces"]) == 2  # one scalar trace per panel
+
+    def test_panel_column_sublabel_not_found(self, renderer):
+        """Column sub-label with non-existent column should fail."""
+        rng = pd.date_range("2024-01-01", periods=10, freq="min")
+        df = pd.DataFrame({"B_mag": np.random.randn(10)}, index=rng)
+        entry = DataEntry(label="PARENT", data=df, units="nT")
+        result = renderer.plot_data([entry], panels=[["PARENT.NOPE"]])
+        assert result["status"] == "error"
+        assert "PARENT.NOPE" in result["message"]
+
 
 # ---------------------------------------------------------------------------
 # style

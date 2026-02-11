@@ -20,9 +20,10 @@ import numpy as np
 import plotly.graph_objects as go
 from plotly.subplots import make_subplots
 
+from data_ops.store import DataEntry
+
 if TYPE_CHECKING:
     from agent.time_utils import TimeRange
-    from data_ops.store import DataEntry
 
 # Threshold: above this many points per trace, use Scattergl (WebGL)
 _GL_THRESHOLD = 100_000
@@ -204,6 +205,35 @@ class PlotlyRenderer:
     def _scatter_cls(self, n_points: int):
         """Return go.Scattergl for large datasets, go.Scatter otherwise."""
         return go.Scattergl if n_points > _GL_THRESHOLD else go.Scatter
+
+    @staticmethod
+    def _resolve_column_sublabel(
+        label: str, entry_map: dict[str, "DataEntry"]
+    ) -> "DataEntry | None":
+        """Try to resolve 'PARENT.column' by selecting a column from a parent entry.
+
+        Splits the label progressively (right to left) to find a parent entry
+        whose DataFrame contains the trailing part as a column name.
+        Returns a new DataEntry with just that column, or None.
+        """
+        parts = label.split(".")
+        for i in range(len(parts) - 1, 0, -1):
+            parent_label = ".".join(parts[:i])
+            col_name = ".".join(parts[i:])
+            parent = entry_map.get(parent_label)
+            if parent is not None and col_name in parent.data.columns:
+                return DataEntry(
+                    label=label,
+                    data=parent.data[[col_name]],
+                    units=parent.units,
+                    description=(
+                        f"{parent.description} [{col_name}]"
+                        if parent.description else col_name
+                    ),
+                    source=parent.source,
+                    metadata=parent.metadata,
+                )
+        return None
 
     # ------------------------------------------------------------------
     # Internal helpers (used by plot_data)
@@ -406,6 +436,9 @@ class PlotlyRenderer:
                 panel_entries = []
                 for lbl in panel_labels:
                     e = entry_map.get(lbl)
+                    if e is None:
+                        # Try column sub-selection: "PARENT.column"
+                        e = self._resolve_column_sublabel(lbl, entry_map)
                     if e is None:
                         return {"status": "error",
                                 "message": f"Label '{lbl}' not found in provided entries"}
