@@ -596,13 +596,23 @@ class PlotlyRenderer:
             fig.update_layout(template=theme)
 
         if vlines is not None:
+            # Detect background color to avoid invisible vlines
+            bg = (fig.layout.plot_bgcolor or "white").lower().strip()
+            bg_is_light = bg in (
+                "white", "#fff", "#ffffff", "#e5ecf6", "rgb(255,255,255)",
+            )
             for vl in vlines:
                 x_val = vl.get("x")
                 if x_val is None:
                     continue
-                color = vl.get("color", "white")
+                color = vl.get("color", "red")
+                # Override white/near-white colors on light backgrounds
+                if bg_is_light and color.lower().strip() in (
+                    "white", "#fff", "#ffffff", "rgb(255,255,255)",
+                ):
+                    color = "red"
                 width = vl.get("width", 1.5)
-                dash = vl.get("dash", "dash")
+                dash = vl.get("dash", "solid")
                 label = vl.get("label")
                 # Draw line across all panels
                 for row in range(1, self._panel_count + 1):
@@ -613,7 +623,7 @@ class PlotlyRenderer:
                 # Add text annotation at top panel if label provided
                 if label:
                     fig.add_annotation(
-                        x=x_val, y=1.02, yref="paper",
+                        x=x_val, y=1.02, xref="x", yref="paper",
                         text=label, showarrow=False,
                         font=dict(size=11, color=color),
                     )

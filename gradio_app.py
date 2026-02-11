@@ -678,6 +678,7 @@ class _ListHandler(logging.Handler):
 
     _KEY_PREFIXES = (
         "[Thinking]", "[Plan]", "[DataOps]", "[Search]",
+        "[Delegation Failed]",
         "Plan completed:", "Plan failed:",
     )
     _KEY_SUBSTRINGS = (

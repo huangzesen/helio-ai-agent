@@ -215,8 +215,7 @@ class OrchestratorAgent:
         if self.verbose:
             from .thinking import extract_thoughts
             for thought in extract_thoughts(response):
-                preview = thought[:200] + "..." if len(thought) > 200 else thought
-                self.logger.debug(f"[Thinking] {preview}")
+                self.logger.debug(f"[Thinking] {thought}")
 
     def _send_message(self, message):
         """Send a message on self.chat with automatic model fallback on 429."""
@@ -827,16 +826,6 @@ class OrchestratorAgent:
             # Check NaN percentage before storing
             nan_total = numeric_cols.isna().sum().sum()
             nan_pct = round(100 * nan_total / numeric_cols.size, 1) if numeric_cols.size > 0 else 0.0
-            if nan_pct >= 25:
-                return {
-                    "status": "error",
-                    "message": (
-                        f"Parameter '{tool_args['parameter_id']}' in dataset "
-                        f"'{tool_args['dataset_id']}' has {nan_pct}% NaN/fill values — "
-                        f"not suitable for the requested time range. "
-                        f"Try a different parameter or dataset."
-                    ),
-                }
 
             from config import DATA_BACKEND
             entry = DataEntry(
@@ -855,6 +844,12 @@ class OrchestratorAgent:
             # Report NaN percentage for transparency
             if nan_pct > 0:
                 response["nan_percentage"] = nan_pct
+                if nan_pct >= 25:
+                    response["quality_warning"] = (
+                        f"High NaN/fill ratio ({nan_pct}%). Data was stored but "
+                        f"quality is degraded. Consider trying a different "
+                        f"parameter or dataset if one with better coverage exists."
+                    )
 
             return response
 
@@ -1905,6 +1900,9 @@ class OrchestratorAgent:
                 # Track delegation failures (sub-agent stopped due to errors)
                 if tool_name.startswith("delegate_to_") and result.get("status") == "error":
                     has_delegation_error = True
+                    sub_text = result.get("result", "")
+                    if sub_text:
+                        self.logger.debug(f"[Delegation Failed] {tool_name} sub-agent response: {sub_text}")
 
                 # Handle clarification specially - return immediately
                 if result.get("status") == "clarification_needed":

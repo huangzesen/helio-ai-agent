@@ -94,8 +94,7 @@ class BaseSubAgent:
         if self.verbose:
             from .thinking import extract_thoughts
             for thought in extract_thoughts(response):
-                preview = thought[:200] + "..." if len(thought) > 200 else thought
-                self.logger.debug(f"[Thinking] {preview}")
+                self.logger.debug(f"[Thinking] {thought}")
 
     def get_token_usage(self) -> dict:
         """Return cumulative token usage for this agent."""

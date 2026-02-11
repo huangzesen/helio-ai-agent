@@ -167,28 +167,44 @@ def fetch_cdf_data(
 
     # Download and read each file
     frames = []
+    validmin = None
+    validmax = None
     for file_info in file_list:
         local_path = _download_cdf_file(file_info["url"], CACHE_DIR)
         df = _read_cdf_parameter(local_path, parameter_id)
-        # Extract metadata from the first CDF file for CDF-native params
-        if cdf_native and not frames:
+        # Extract metadata from the first CDF file.
+        # Always read FILLVAL/VALIDMIN/VALIDMAX from CDF (ground truth)
+        # since HAPI fill values may have different precision (float32 vs float64).
+        if not frames:
             try:
                 cdf = cdflib.CDF(str(local_path))
                 attrs = cdf.varattsget(parameter_id)
-                units = attrs.get("UNITS", "") or ""
-                if isinstance(units, np.ndarray):
-                    units = str(units)
-                description = (attrs.get("CATDESC", "")
-                               or attrs.get("FIELDNAM", "") or "")
-                if isinstance(description, np.ndarray):
-                    description = str(description)
+                if cdf_native:
+                    units = attrs.get("UNITS", "") or ""
+                    if isinstance(units, np.ndarray):
+                        units = str(units)
+                    description = (attrs.get("CATDESC", "")
+                                   or attrs.get("FIELDNAM", "") or "")
+                    if isinstance(description, np.ndarray):
+                        description = str(description)
                 fv = attrs.get("FILLVAL", None)
                 if fv is not None:
-                    # Store as Python float to ensure df.replace works
                     try:
                         fill_value = float(fv)
                     except (ValueError, TypeError):
-                        fill_value = fv
+                        pass
+                vmin = attrs.get("VALIDMIN", None)
+                vmax = attrs.get("VALIDMAX", None)
+                if vmin is not None:
+                    try:
+                        validmin = float(vmin)
+                    except (ValueError, TypeError):
+                        pass
+                if vmax is not None:
+                    try:
+                        validmax = float(vmax)
+                    except (ValueError, TypeError):
+                        pass
             except Exception:
                 pass
         frames.append(df)
@@ -223,21 +239,27 @@ def fetch_cdf_data(
 
     # Replace fill values with NaN.
     # CDF files store fill values as float32 but data is promoted to float64,
-    # so exact equality with HAPI's float64 fill value can fail. Use np.isclose
-    # for extreme fill values (|fill| > 1e20) to handle precision mismatch.
+    # so exact equality can fail (e.g., HAPI says 999.99 but CDF float32
+    # becomes 999.989990234375 in float64). Always use np.isclose.
     if fill_value is not None:
         try:
             fill_f = float(fill_value)
-            if abs(fill_f) > 1e20:
-                # Large sentinel value — use approximate matching
-                for col in df.columns:
-                    mask = np.isclose(df[col].values, fill_f, rtol=1e-6,
-                                      equal_nan=False)
-                    df.loc[mask, col] = np.nan
-            else:
-                df.replace(fill_f, np.nan, inplace=True)
+            for col in df.columns:
+                mask = np.isclose(df[col].values, fill_f, rtol=1e-6,
+                                  equal_nan=False)
+                df.loc[mask, col] = np.nan
         except (ValueError, TypeError):
             pass
+
+    # Replace out-of-range values with NaN using CDF VALIDMIN/VALIDMAX.
+    # Many datasets (e.g., OMNI) use sentinel values like 9999.99 or 99999.9
+    # that exceed VALIDMAX but aren't marked as FILLVAL.
+    if validmin is not None or validmax is not None:
+        for col in df.columns:
+            if validmin is not None:
+                df.loc[df[col] < validmin, col] = np.nan
+            if validmax is not None:
+                df.loc[df[col] > validmax, col] = np.nan
 
     logger.debug(f"[CDF] {dataset_id}/{parameter_id}: {len(df)} rows, "
                  f"{len(df.columns)} columns")
