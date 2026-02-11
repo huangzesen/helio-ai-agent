@@ -10,8 +10,9 @@ venv/
 venv_*/
 .venv/
 
-# Environment variables
+# Environment variables / user config
 .env
+config.json
 
 # IDE
 .idea/
