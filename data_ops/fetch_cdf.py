@@ -221,11 +221,21 @@ def fetch_cdf_data(
     for col in df.columns:
         df[col] = pd.to_numeric(df[col], errors="coerce").astype(np.float64)
 
-    # Replace fill values with NaN
+    # Replace fill values with NaN.
+    # CDF files store fill values as float32 but data is promoted to float64,
+    # so exact equality with HAPI's float64 fill value can fail. Use np.isclose
+    # for extreme fill values (|fill| > 1e20) to handle precision mismatch.
     if fill_value is not None:
         try:
             fill_f = float(fill_value)
-            df.replace(fill_f, np.nan, inplace=True)
+            if abs(fill_f) > 1e20:
+                # Large sentinel value — use approximate matching
+                for col in df.columns:
+                    mask = np.isclose(df[col].values, fill_f, rtol=1e-6,
+                                      equal_nan=False)
+                    df.loc[mask, col] = np.nan
+            else:
+                df.replace(fill_f, np.nan, inplace=True)
         except (ValueError, TypeError):
             pass
 
