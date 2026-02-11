@@ -1,17 +1,31 @@
 {
   "_comment": "Copy to ~/.helio-agent/config.json and edit. All fields are optional — defaults shown.",
+
+  "_comment_models": "Any Gemini model string accepted by the API. Common options: gemini-3-pro-preview, gemini-3-flash-preview, gemini-2.5-pro, gemini-2.5-flash. Gradio --model flag overrides 'model' at runtime.",
   "model": "gemini-3-pro-preview",
   "sub_agent_model": "gemini-3-flash-preview",
+  "_comment_planner_model": "null = inherit from 'model'. Set explicitly to use a different model for multi-step planning.",
   "planner_model": null,
+  "_comment_fallback_model": "All agents switch to this model for the rest of the session when any model hits quota/rate limits (HTTP 429).",
   "fallback_model": "gemini-2.5-flash",
+
+  "_comment_data_backend": "Options: 'cdf' (CDAWeb REST + cdflib, default) or 'hapi' (HAPI CSV endpoint). Always falls back to the other on failure.",
   "data_backend": "cdf",
+
+  "_comment_catalog_search_method": "Options: 'semantic' (fastembed cosine similarity, default) or 'substring' (case-insensitive multi-word match). Falls back to substring if fastembed is not installed.",
   "catalog_search_method": "semantic",
+
+  "_comment_memory_limits": "Control how many memory entries are injected into agent prompts. Higher = more context but more tokens.",
   "max_preferences": 15,
   "max_summaries": 10,
   "max_pitfalls": 20,
+
+  "_comment_memory_agent": "Background memory agent tuning. poll_interval: seconds between log checks. log_growth_threshold: KB of new log content before triggering analysis. error_count_threshold: number of ERROR/WARNING lines before triggering analysis. max_log_bytes: max KB of log content sent to the LLM per analysis.",
   "memory_poll_interval_seconds": 30,
   "memory_log_growth_threshold_kb": 10,
   "memory_error_count_threshold": 5,
   "memory_max_log_bytes_kb": 50,
+
+  "_comment_console_format": "Options: 'full' (timestamp + level + name + session_id + message, default) or 'simple' (bare messages for DEBUG/INFO, [LEVEL] prefix for WARNING+).",
   "console_format": "full"
 }
