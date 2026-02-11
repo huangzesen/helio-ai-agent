@@ -471,7 +471,7 @@ class PlotlyRenderer:
         y_label: str | dict | None = None,
         trace_colors: dict | None = None,
         line_styles: dict | None = None,
-        log_scale: str | None = None,
+        log_scale: str | dict | None = None,
         x_range: list | dict | None = None,
         y_range: list | dict | None = None,
         legend: bool | None = None,
@@ -553,12 +553,21 @@ class PlotlyRenderer:
                             trace.mode = style_dict["mode"]
 
         if log_scale is not None:
-            if log_scale == "y":
+            if isinstance(log_scale, dict):
+                for panel_str, scale_type in log_scale.items():
+                    axis_type = "log" if scale_type in ("log", "y") else "linear"
+                    fig.update_yaxes(type=axis_type, row=int(panel_str), col=1)
+            elif log_scale == "y":
                 for row in range(1, self._panel_count + 1):
                     fig.update_yaxes(type="log", row=row, col=1)
             elif log_scale == "linear":
                 for row in range(1, self._panel_count + 1):
                     fig.update_yaxes(type="linear", row=row, col=1)
+            else:
+                warnings.append(
+                    f"Unrecognized log_scale value '{log_scale}'. "
+                    "Use 'y', 'linear', or a dict like {{'4': 'log', '5': 'log'}}."
+                )
 
         if x_range is not None:
             if isinstance(x_range, dict):
@@ -570,10 +579,17 @@ class PlotlyRenderer:
         if y_range is not None:
             if isinstance(y_range, dict):
                 for panel_str, rng in y_range.items():
-                    fig.update_yaxes(range=rng, row=int(panel_str), col=1)
-            else:
+                    if isinstance(rng, list) and len(rng) == 2:
+                        fig.update_yaxes(range=rng, row=int(panel_str), col=1)
+                    elif rng:
+                        warnings.append(f"y_range for panel {panel_str} must be [min, max], got {rng}")
+            elif isinstance(y_range, list) and len(y_range) == 2:
                 for row in range(1, self._panel_count + 1):
                     fig.update_yaxes(range=y_range, row=row, col=1)
+            elif isinstance(y_range, list) and len(y_range) == 0:
+                pass  # empty list — skip silently
+            else:
+                warnings.append(f"y_range must be [min, max], got {y_range}")
 
         if legend is not None:
             fig.update_layout(showlegend=legend)
@@ -968,13 +984,16 @@ class PlotlyRenderer:
             rec_width = current_width
             reason = f"{self._panel_count} panel(s), {total_traces} trace(s) — default sizing"
 
-        return {
+        result_dict = {
             "trace_summary": trace_summary,
             "warnings": warnings,
             "hint": hint,
             "figure_size": {"width": current_width, "height": current_height},
             "sizing_recommendation": {"width": rec_width, "height": rec_height, "reason": reason},
         }
+        if self._current_time_range:
+            result_dict["current_time_range"] = self._current_time_range.to_time_range_string()
+        return result_dict
 
     # ------------------------------------------------------------------
     # Accessor for Gradio / external use

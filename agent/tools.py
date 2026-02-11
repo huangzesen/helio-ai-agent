@@ -8,7 +8,8 @@ Categories:
 - "discovery": dataset search and parameter listing
 - "data_ops": shared data tools (list_fetched_data)
 - "data_ops_fetch": mission-specific data fetching (fetch_data)
-- "data_ops_compute": data transformation, statistics (custom_operation, describe_data, save_data)
+- "data_ops_compute": data transformation, statistics (custom_operation, describe_data)
+- "data_export": save_data (CSV export — orchestrator only, not given to sub-agents)
 - "data_extraction": unstructured-to-structured data conversion (store_dataframe)
 - "visualization": plot_data, style_plot, manage_plot (declarative visualization tools)
 - "conversation": ask_clarification
@@ -432,7 +433,7 @@ Returns timestamps and values for the requested rows. Use describe_data for stat
         }
     },
     {
-        "category": "data_ops_compute",
+        "category": "data_export",
         "name": "save_data",
         "description": """Export an in-memory timeseries to a CSV file.
 
@@ -538,9 +539,7 @@ Use this for titles, axis labels, log scale, colors, line styles, canvas size, a
                     "description": "Map trace label -> {width, dash, mode}"
                 },
                 "log_scale": {
-                    "type": "string",
-                    "enum": ["y", "linear"],
-                    "description": "Set y-axis to log scale ('y') or reset to linear ('linear')"
+                    "description": "Set y-axis to log scale. String 'y' (all panels log) or 'linear' (all panels linear), or an object mapping panel numbers to 'log'/'linear' for per-panel control, e.g. {'4': 'log', '5': 'log'}"
                 },
                 "x_range": {
                     "type": "array",

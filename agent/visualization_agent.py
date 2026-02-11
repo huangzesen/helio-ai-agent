@@ -86,16 +86,24 @@ class VisualizationAgent(BaseSubAgent):
                 + "".join(f"- {p}\n" for p in self._pitfalls)
             )
 
-        return (
+        no_labels = not labels
+
+        task_prompt = (
             f"Execute this task: {task.instruction}\n\n"
             f"Your FIRST call must be: "
             f"plot_data(labels=\"{labels_str}\")\n\n"
             "RULES:\n"
-            "- Do NOT call manage_plot(action='reset'), manage_plot(action='get_state'), manage_plot(action='export'), or list_fetched_data.\n"
+            "- Do NOT call manage_plot(action='reset'), manage_plot(action='get_state'), or manage_plot(action='export').\n"
             "- Call plot_data with the labels shown above.\n"
             "- After plotting, inspect review.sizing_recommendation and call\n"
             "  style_plot(canvas_size=...) if it differs from review.figure_size.\n"
             "- After plotting, you may call style_plot to adjust titles/labels/axes.\n"
+            "- Do NOT call manage_plot(action='set_time_range') unless the review shows a wrong time range.\n"
             "- Do NOT export the plot — exporting is handled by the orchestrator."
             + pitfall_section
         )
+
+        if no_labels:
+            task_prompt += "\n\nNote: Labels were not pre-extracted. Call list_fetched_data first to discover available labels.\n"
+
+        return task_prompt
