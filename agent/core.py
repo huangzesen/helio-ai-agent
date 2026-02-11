@@ -558,6 +558,8 @@ class OrchestratorAgent:
                 log_z=tool_args.get("log_z", False),
                 z_min=tool_args.get("z_min"),
                 z_max=tool_args.get("z_max"),
+                columns=tool_args.get("columns", 1),
+                column_titles=tool_args.get("column_titles"),
             )
         except Exception as e:
             return {"status": "error", "message": str(e)}

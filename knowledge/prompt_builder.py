@@ -526,6 +526,21 @@ def build_visualization_prompt(gui_mode: bool = False) -> str:
         "- Multi-panel: `plot_data(labels=\"Bmag,Density\", panels=[[\"Bmag\"], [\"Density\"]])`",
         "- Spectrogram: `plot_data(labels=\"ACE_Bmag_spectrogram\", plot_type=\"spectrogram\")`",
         "",
+        "## Grid Layout (Side-by-Side Comparison)",
+        "",
+        "Use `columns=2` for side-by-side epoch comparisons (different time ranges).",
+        "Each row's labels are distributed left-to-right across columns.",
+        "Each column gets independent x-axes.",
+        "",
+        "Example — comparing two months:",
+        "  plot_data(labels=\"Vsw_Jan,Bmag_Jan,Vsw_Oct,Bmag_Oct\",",
+        "            panels=[[\"Vsw_Jan\",\"Vsw_Oct\"], [\"Bmag_Jan\",\"Bmag_Oct\"]],",
+        "            columns=2, column_titles=[\"January 2020\", \"October 2024\"])",
+        "",
+        "When to use columns>1:",
+        "- \"compare side by side\", \"before vs after\", \"minimum vs maximum\"",
+        "- Different time periods of the same quantities",
+        "",
         "## Using style_plot",
         "",
         "Pass only the parameters you want to change. All are optional.",
@@ -909,6 +924,9 @@ Tag each task with the "mission" field:
 - NEVER put quantities with different units/dimensions on the same panel
   (e.g., density in cm^-3 and speed in km/s need separate panels).
 - Each panel should share a single y-axis unit.
+- For side-by-side epoch comparisons (different time periods of the same quantities),
+  instruct the visualization task to use columns=2 in the plot_data call.
+  Example: "Use plot_data to plot Vsw_Jan,Bmag_Jan,Vsw_Oct,Bmag_Oct with columns=2"
 
 ## Planning Guidelines
 

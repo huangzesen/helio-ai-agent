@@ -505,6 +505,15 @@ For spectrograms, set plot_type="spectrogram".""",
                 "z_max": {
                     "type": "number",
                     "description": "Max value for spectrogram color scale"
+                },
+                "columns": {
+                    "type": "integer",
+                    "description": "Number of columns for grid layout (default 1). Use 2 for side-by-side epoch comparison."
+                },
+                "column_titles": {
+                    "type": "array",
+                    "items": {"type": "string"},
+                    "description": "Column header labels (e.g. ['Jan 2020', 'Oct 2024']). Length must match columns."
                 }
             },
             "required": ["labels"]

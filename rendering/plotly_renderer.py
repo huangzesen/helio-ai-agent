@@ -128,12 +128,13 @@ class PlotlyRenderer:
         self.gui_mode = gui_mode
         self._figure: Optional[go.Figure] = None
         self._panel_count: int = 0
+        self._column_count: int = 1
         self._current_time_range: Optional[TimeRange] = None
         self._label_colors: dict[str, str] = {}
         self._color_index: int = 0
         # Trace tracking: parallel to fig.data
         self._trace_labels: list[str] = []
-        self._trace_panels: list[int] = []  # 1-based row per trace
+        self._trace_panels: list[tuple[int, int]] = []  # (row, col) per trace
 
     # ------------------------------------------------------------------
     # Helpers
@@ -153,53 +154,85 @@ class PlotlyRenderer:
         self._label_colors[label] = color
         return color
 
-    def _ensure_figure(self, rows: int = 1) -> go.Figure:
-        """Guarantee a figure exists with at least *rows* subplot rows.
+    def _panel_to_rowcol(self, panel: int) -> tuple[int, int]:
+        """Convert a flat 1-based panel number to (row, col) using row-major indexing.
+
+        For a grid with C columns: panel 1→(1,1), 2→(1,2), 3→(2,1), 4→(2,2).
+        When columns=1, panel N → (N, 1) — backward compatible.
+        """
+        cols = max(self._column_count, 1)
+        row = (panel - 1) // cols + 1
+        col = (panel - 1) % cols + 1
+        return (row, col)
+
+    def _ensure_figure(self, rows: int = 1, cols: int = 1,
+                        column_titles: list[str] | None = None) -> go.Figure:
+        """Guarantee a figure exists with at least *rows* subplot rows and *cols* columns.
 
         Always uses make_subplots so that row/col args work on add_trace.
         """
-        if self._figure is None or rows > self._panel_count:
-            self._figure = make_subplots(
-                rows=max(rows, 1), cols=1, shared_xaxes=True,
+        cols = max(cols, 1)
+        if self._figure is None or rows > self._panel_count or cols > self._column_count:
+            subplot_kwargs: dict = dict(
+                rows=max(rows, 1), cols=cols, shared_xaxes=True,
                 vertical_spacing=0.06,
             )
+            if cols > 1:
+                subplot_kwargs["horizontal_spacing"] = 0.08
+            if column_titles and len(column_titles) == cols:
+                subplot_kwargs["column_titles"] = column_titles
+            self._figure = make_subplots(**subplot_kwargs)
             self._panel_count = max(rows, 1)
+            self._column_count = cols
+            width = _DEFAULT_WIDTH if cols == 1 else int(_DEFAULT_WIDTH * cols * 0.55)
             self._figure.update_layout(
                 **_DEFAULT_LAYOUT,
-                width=_DEFAULT_WIDTH,
+                width=width,
                 height=_PANEL_HEIGHT * self._panel_count,
                 legend=dict(font=dict(size=11), tracegroupgap=2),
             )
         return self._figure
 
-    def _grow_panels(self, needed: int) -> go.Figure:
+    def _grow_panels(self, needed_rows: int, needed_cols: int | None = None) -> go.Figure:
         """Rebuild with more rows if needed, copying existing traces."""
-        if needed <= self._panel_count:
+        if needed_cols is None:
+            needed_cols = self._column_count
+        if needed_rows <= self._panel_count and needed_cols <= self._column_count:
             return self._ensure_figure()
 
         old_fig = self._figure
-        new_fig = make_subplots(
-            rows=needed, cols=1, shared_xaxes=True,
+        cols = max(needed_cols, self._column_count)
+        subplot_kwargs: dict = dict(
+            rows=needed_rows, cols=cols, shared_xaxes=True,
             vertical_spacing=0.06,
         )
+        if cols > 1:
+            subplot_kwargs["horizontal_spacing"] = 0.08
+        new_fig = make_subplots(**subplot_kwargs)
+        width = _DEFAULT_WIDTH if cols == 1 else int(_DEFAULT_WIDTH * cols * 0.55)
         new_fig.update_layout(
             **_DEFAULT_LAYOUT,
-            width=_DEFAULT_WIDTH,
-            height=_PANEL_HEIGHT * needed,
+            width=width,
+            height=_PANEL_HEIGHT * needed_rows,
             legend=dict(font=dict(size=11), tracegroupgap=2),
         )
 
-        # Copy traces from old figure, preserving row assignment
+        # Copy traces from old figure, preserving (row, col) assignment
         if old_fig is not None:
             for i, trace in enumerate(old_fig.data):
-                row = self._trace_panels[i] if i < len(self._trace_panels) else _row_of_trace(trace)
-                new_fig.add_trace(trace, row=row, col=1)
+                if i < len(self._trace_panels):
+                    row, col = self._trace_panels[i]
+                else:
+                    row = _row_of_trace(trace)
+                    col = 1
+                new_fig.add_trace(trace, row=row, col=col)
             # Copy layout properties we care about (title, axis labels)
             if old_fig.layout.title and old_fig.layout.title.text:
                 new_fig.update_layout(title_text=old_fig.layout.title.text)
 
         self._figure = new_fig
-        self._panel_count = needed
+        self._panel_count = needed_rows
+        self._column_count = cols
         return self._figure
 
     def _scatter_cls(self, n_points: int):
@@ -244,8 +277,9 @@ class PlotlyRenderer:
         entries: list[DataEntry],
         row: int,
         fig: go.Figure,
+        col: int = 1,
     ) -> list[str]:
-        """Add line traces for entries to a specific panel row.
+        """Add line traces for entries to a specific panel cell.
 
         Returns the list of trace labels added.
         """
@@ -260,10 +294,10 @@ class PlotlyRenderer:
             # Decompose vectors into scalar components
             if entry.values.ndim == 2 and entry.values.shape[1] > 1:
                 comp_names = ["x", "y", "z"]
-                for col in range(entry.values.shape[1]):
-                    comp = comp_names[col] if col < 3 else str(col)
+                for comp_col in range(entry.values.shape[1]):
+                    comp = comp_names[comp_col] if comp_col < 3 else str(comp_col)
                     label = f"{display_name} ({comp})"
-                    val_arr = entry.values[:, col]
+                    val_arr = entry.values[:, comp_col]
                     t_disp, v_disp = _downsample_minmax(
                         time_list, val_arr, _MAX_DISPLAY_POINTS,
                     )
@@ -276,10 +310,10 @@ class PlotlyRenderer:
                             mode="lines",
                             line=dict(color=self._next_color(label)),
                         ),
-                        row=row, col=1,
+                        row=row, col=col,
                     )
                     self._trace_labels.append(label)
-                    self._trace_panels.append(row)
+                    self._trace_panels.append((row, col))
                     added_labels.append(label)
             else:
                 vals = entry.values.ravel() if entry.values.ndim > 1 else entry.values
@@ -295,10 +329,10 @@ class PlotlyRenderer:
                         mode="lines",
                         line=dict(color=self._next_color(display_name)),
                     ),
-                    row=row, col=1,
+                    row=row, col=col,
                 )
                 self._trace_labels.append(display_name)
-                self._trace_panels.append(row)
+                self._trace_panels.append((row, col))
                 added_labels.append(display_name)
 
         return added_labels
@@ -308,13 +342,14 @@ class PlotlyRenderer:
         entry: DataEntry,
         row: int,
         fig: go.Figure,
+        col: int = 1,
         colorscale: str = "Viridis",
         log_y: bool = False,
         log_z: bool = False,
         z_min: float | None = None,
         z_max: float | None = None,
     ) -> str:
-        """Add a spectrogram heatmap trace to a specific panel row.
+        """Add a spectrogram heatmap trace to a specific panel cell.
 
         Returns the trace label.
         """
@@ -354,18 +389,18 @@ class PlotlyRenderer:
             name=label,
         )
 
-        fig.add_trace(heatmap, row=row, col=1)
+        fig.add_trace(heatmap, row=row, col=col)
         self._trace_labels.append(label)
-        self._trace_panels.append(row)
+        self._trace_panels.append((row, col))
 
-        fig.update_xaxes(type="date", row=row, col=1)
+        fig.update_xaxes(type="date", row=row, col=col)
 
         y_axis_title = meta.get("bin_label", "")
         if y_axis_title:
-            fig.update_yaxes(title_text=y_axis_title, row=row, col=1)
+            fig.update_yaxes(title_text=y_axis_title, row=row, col=col)
 
         if log_y:
-            fig.update_yaxes(type="log", row=row, col=1)
+            fig.update_yaxes(type="log", row=row, col=col)
 
         self._log(f"Spectrogram '{entry.label}': {len(times)} time steps x {len(bin_list)} bins")
 
@@ -386,6 +421,8 @@ class PlotlyRenderer:
         log_z: bool = False,
         z_min: float | None = None,
         z_max: float | None = None,
+        columns: int = 1,
+        column_titles: list[str] | None = None,
     ) -> dict:
         """Create a fresh plot from DataEntry objects.
 
@@ -400,9 +437,12 @@ class PlotlyRenderer:
             log_z: Log scale on z-axis (spectrogram).
             z_min: Min value for spectrogram color scale.
             z_max: Max value for spectrogram color scale.
+            columns: Number of columns for grid layout (default 1).
+                     Use 2 for side-by-side epoch comparison.
+            column_titles: Column header labels (e.g. ['Jan 2020', 'Oct 2024']).
 
         Returns:
-            Result dict with status, panels, traces, display.
+            Result dict with status, panels, traces, display, columns.
         """
         if not entries:
             return {"status": "error", "message": "No entries to plot"}
@@ -412,6 +452,8 @@ class PlotlyRenderer:
                 return {"status": "error",
                         "message": f"Entry '{entry.label}' has no data points"}
 
+        columns = max(columns, 1)
+
         # Build label -> entry lookup
         entry_map: dict[str, DataEntry] = {}
         for entry in entries:
@@ -420,6 +462,7 @@ class PlotlyRenderer:
         # Reset figure for fresh plot
         self._figure = None
         self._panel_count = 0
+        self._column_count = 1
         self._trace_labels = []
         self._trace_panels = []
         # Keep label_colors for stable coloring across plot_data calls
@@ -429,53 +472,101 @@ class PlotlyRenderer:
         if panels is not None:
             # Multi-panel mode
             n_panels = len(panels)
-            fig = self._ensure_figure(rows=n_panels)
+            fig = self._ensure_figure(rows=n_panels, cols=columns,
+                                      column_titles=column_titles)
 
             for panel_idx, panel_labels in enumerate(panels):
                 row = panel_idx + 1  # 1-based
+                # Resolve entries for this row
                 panel_entries = []
                 for lbl in panel_labels:
                     e = entry_map.get(lbl)
                     if e is None:
-                        # Try column sub-selection: "PARENT.column"
                         e = self._resolve_column_sublabel(lbl, entry_map)
                     if e is None:
                         return {"status": "error",
                                 "message": f"Label '{lbl}' not found in provided entries"}
                     panel_entries.append(e)
 
+                if columns > 1:
+                    # Distribute this row's entries across columns
+                    n_entries = len(panel_entries)
+                    per_col = max(1, (n_entries + columns - 1) // columns)
+                    for col_idx in range(columns):
+                        start = col_idx * per_col
+                        end = min(start + per_col, n_entries)
+                        col_entries = panel_entries[start:end]
+                        if not col_entries:
+                            continue
+                        c = col_idx + 1  # 1-based
+                        if plot_type == "spectrogram":
+                            for e in col_entries:
+                                label = self._add_spectrogram_trace(
+                                    e, row, fig, col=c,
+                                    colorscale=colorscale, log_y=log_y, log_z=log_z,
+                                    z_min=z_min, z_max=z_max,
+                                )
+                                all_trace_labels.append(label)
+                        else:
+                            added = self._add_line_traces(col_entries, row, fig, col=c)
+                            all_trace_labels.extend(added)
+                else:
+                    if plot_type == "spectrogram":
+                        for e in panel_entries:
+                            label = self._add_spectrogram_trace(
+                                e, row, fig,
+                                colorscale=colorscale, log_y=log_y, log_z=log_z,
+                                z_min=z_min, z_max=z_max,
+                            )
+                            all_trace_labels.append(label)
+                    else:
+                        added = self._add_line_traces(panel_entries, row, fig)
+                        all_trace_labels.extend(added)
+        else:
+            # Overlay mode — all in row 1
+            fig = self._ensure_figure(rows=1, cols=columns,
+                                      column_titles=column_titles)
+
+            if columns > 1:
+                # Distribute entries across columns
+                n_entries = len(entries)
+                per_col = max(1, (n_entries + columns - 1) // columns)
+                for col_idx in range(columns):
+                    start = col_idx * per_col
+                    end = min(start + per_col, n_entries)
+                    col_entries = entries[start:end]
+                    if not col_entries:
+                        continue
+                    c = col_idx + 1
+                    if plot_type == "spectrogram":
+                        for e in col_entries:
+                            label = self._add_spectrogram_trace(
+                                e, 1, fig, col=c,
+                                colorscale=colorscale, log_y=log_y, log_z=log_z,
+                                z_min=z_min, z_max=z_max,
+                            )
+                            all_trace_labels.append(label)
+                    else:
+                        added = self._add_line_traces(col_entries, 1, fig, col=c)
+                        all_trace_labels.extend(added)
+            else:
                 if plot_type == "spectrogram":
-                    for e in panel_entries:
+                    for e in entries:
                         label = self._add_spectrogram_trace(
-                            e, row, fig,
+                            e, 1, fig,
                             colorscale=colorscale, log_y=log_y, log_z=log_z,
                             z_min=z_min, z_max=z_max,
                         )
                         all_trace_labels.append(label)
                 else:
-                    added = self._add_line_traces(panel_entries, row, fig)
+                    added = self._add_line_traces(entries, 1, fig)
                     all_trace_labels.extend(added)
-        else:
-            # Overlay mode — all in row 1
-            fig = self._ensure_figure(rows=1)
-
-            if plot_type == "spectrogram":
-                for e in entries:
-                    label = self._add_spectrogram_trace(
-                        e, 1, fig,
-                        colorscale=colorscale, log_y=log_y, log_z=log_z,
-                        z_min=z_min, z_max=z_max,
-                    )
-                    all_trace_labels.append(label)
-            else:
-                added = self._add_line_traces(entries, 1, fig)
-                all_trace_labels.extend(added)
 
         # Ensure the x-axis is rendered as formatted dates
         fig.update_xaxes(type="date")
 
-        # Apply stored time range to the new figure
-        if self._current_time_range:
+        # Apply stored time range to the new figure (only for single-column)
+        if self._current_time_range and columns == 1:
             fig.update_xaxes(range=[
                 self._current_time_range.start.isoformat(),
                 self._current_time_range.end.isoformat(),
@@ -487,6 +578,7 @@ class PlotlyRenderer:
         result = {
             "status": "success",
             "panels": self._panel_count,
+            "columns": self._column_count,
             "traces": all_trace_labels,
             "display": "plotly",
         }
@@ -550,18 +642,20 @@ class PlotlyRenderer:
             fig.update_layout(title_text=title)
 
         if x_label is not None:
-            # Apply to the bottom-most x-axis
-            fig.update_xaxes(title_text=x_label, row=self._panel_count, col=1)
+            # Apply to the bottom row, all columns
+            for c in range(1, self._column_count + 1):
+                fig.update_xaxes(title_text=x_label, row=self._panel_count, col=c)
 
         if y_label is not None:
             if isinstance(y_label, dict):
                 for panel_str, label_text in y_label.items():
-                    panel = int(panel_str)
-                    fig.update_yaxes(title_text=_wrap_display_name(str(label_text)), row=panel, col=1)
+                    row, col = self._panel_to_rowcol(int(panel_str))
+                    fig.update_yaxes(title_text=_wrap_display_name(str(label_text)), row=row, col=col)
             else:
                 wrapped = _wrap_display_name(str(y_label))
                 for row in range(1, self._panel_count + 1):
-                    fig.update_yaxes(title_text=wrapped, row=row, col=1)
+                    for c in range(1, self._column_count + 1):
+                        fig.update_yaxes(title_text=wrapped, row=row, col=c)
 
         if trace_colors is not None:
             for trace_label, color in trace_colors.items():
@@ -589,13 +683,16 @@ class PlotlyRenderer:
             if isinstance(log_scale, dict):
                 for panel_str, scale_type in log_scale.items():
                     axis_type = "log" if scale_type in ("log", "y") else "linear"
-                    fig.update_yaxes(type=axis_type, row=int(panel_str), col=1)
+                    row, col = self._panel_to_rowcol(int(panel_str))
+                    fig.update_yaxes(type=axis_type, row=row, col=col)
             elif log_scale == "y":
                 for row in range(1, self._panel_count + 1):
-                    fig.update_yaxes(type="log", row=row, col=1)
+                    for c in range(1, self._column_count + 1):
+                        fig.update_yaxes(type="log", row=row, col=c)
             elif log_scale == "linear":
                 for row in range(1, self._panel_count + 1):
-                    fig.update_yaxes(type="linear", row=row, col=1)
+                    for c in range(1, self._column_count + 1):
+                        fig.update_yaxes(type="linear", row=row, col=c)
             else:
                 warnings.append(
                     f"Unrecognized log_scale value '{log_scale}'. "
@@ -605,7 +702,8 @@ class PlotlyRenderer:
         if x_range is not None:
             if isinstance(x_range, dict):
                 for panel_str, rng in x_range.items():
-                    fig.update_xaxes(range=rng, row=int(panel_str), col=1)
+                    row, col = self._panel_to_rowcol(int(panel_str))
+                    fig.update_xaxes(range=rng, row=row, col=col)
             else:
                 fig.update_xaxes(range=x_range)
 
@@ -613,12 +711,14 @@ class PlotlyRenderer:
             if isinstance(y_range, dict):
                 for panel_str, rng in y_range.items():
                     if isinstance(rng, list) and len(rng) == 2:
-                        fig.update_yaxes(range=rng, row=int(panel_str), col=1)
+                        row, col = self._panel_to_rowcol(int(panel_str))
+                        fig.update_yaxes(range=rng, row=row, col=col)
                     elif rng:
                         warnings.append(f"y_range for panel {panel_str} must be [min, max], got {rng}")
             elif isinstance(y_range, list) and len(y_range) == 2:
                 for row in range(1, self._panel_count + 1):
-                    fig.update_yaxes(range=y_range, row=row, col=1)
+                    for c in range(1, self._column_count + 1):
+                        fig.update_yaxes(range=y_range, row=row, col=c)
             elif isinstance(y_range, list) and len(y_range) == 0:
                 pass  # empty list — skip silently
             else:
@@ -676,12 +776,13 @@ class PlotlyRenderer:
                 width = vl.get("width", 1.5)
                 dash = vl.get("dash", "solid")
                 label = vl.get("label")
-                # Draw line across all panels
+                # Draw line across all panels and columns
                 for row in range(1, self._panel_count + 1):
-                    fig.add_vline(
-                        x=x_val, row=row, col=1,
-                        line_width=width, line_dash=dash, line_color=color,
-                    )
+                    for c in range(1, self._column_count + 1):
+                        fig.add_vline(
+                            x=x_val, row=row, col=c,
+                            line_width=width, line_dash=dash, line_color=color,
+                        )
                 # Add text annotation at top panel if label provided
                 if label:
                     fig.add_annotation(
@@ -792,8 +893,9 @@ class PlotlyRenderer:
             return {"status": "error",
                     "message": f"Entry '{entry.label}' has no data points"}
 
-        fig = self._grow_panels(panel)
-        added = self._add_line_traces([entry], panel, fig)
+        row, col = self._panel_to_rowcol(panel)
+        fig = self._grow_panels(row)
+        added = self._add_line_traces([entry], row, fig, col=col)
         fig.update_xaxes(type="date")
 
         return {"status": "success",
@@ -864,6 +966,7 @@ class PlotlyRenderer:
         self._log("Resetting canvas...")
         self._figure = None
         self._panel_count = 0
+        self._column_count = 1
         self._current_time_range = None
         self._label_colors.clear()
         self._color_index = 0
@@ -903,12 +1006,12 @@ class PlotlyRenderer:
             return {}
 
         trace_summary = []
-        # Group traces by panel for warning checks
-        panel_traces: dict[int, list[dict]] = {}
+        # Group traces by (row, col) for warning checks
+        panel_traces: dict[tuple[int, int], list[dict]] = {}
 
         for i, trace in enumerate(fig.data):
             name = self._trace_labels[i] if i < len(self._trace_labels) else (trace.name or f"trace_{i}")
-            panel = self._trace_panels[i] if i < len(self._trace_panels) else 1
+            rc = self._trace_panels[i] if i < len(self._trace_panels) else (1, 1)
 
             is_heatmap = isinstance(trace, go.Heatmap)
 
@@ -921,7 +1024,9 @@ class PlotlyRenderer:
                     points_desc = "0"
                 info = {
                     "name": name,
-                    "panel": panel,
+                    "row": rc[0],
+                    "col": rc[1],
+                    "panel": rc[0] if self._column_count == 1 else None,
                     "points": points_desc,
                     "y_range": None,
                     "has_gaps": False,
@@ -943,25 +1048,28 @@ class PlotlyRenderer:
                     has_gaps = False
                 info = {
                     "name": name,
-                    "panel": panel,
+                    "row": rc[0],
+                    "col": rc[1],
+                    "panel": rc[0] if self._column_count == 1 else None,
                     "points": n_points,
                     "y_range": y_range,
                     "has_gaps": has_gaps,
                 }
 
             trace_summary.append(info)
-            panel_traces.setdefault(panel, []).append(info)
+            panel_traces.setdefault(rc, []).append(info)
 
         # --- Warnings ---
         warnings = []
 
-        for p, traces_in_panel in sorted(panel_traces.items()):
+        for rc, traces_in_panel in sorted(panel_traces.items()):
             n = len(traces_in_panel)
+            panel_label = f"Panel ({rc[0]},{rc[1]})" if self._column_count > 1 else f"Panel {rc[0]}"
 
             # Cluttered panel
             if n > 6:
                 warnings.append(
-                    f"Panel {p} has {n} traces — may be hard to read (consider splitting into separate panels)"
+                    f"{panel_label} has {n} traces — may be hard to read (consider splitting into separate panels)"
                 )
 
             # Resolution mismatch (only for numeric point counts)
@@ -973,13 +1081,13 @@ class PlotlyRenderer:
                     lo_name = next(n for n, c in numeric_traces if c == min_c)
                     hi_name = next(n for n, c in numeric_traces if c == max_c)
                     warnings.append(
-                        f"Resolution mismatch in panel {p}: '{lo_name}' has {min_c} points vs "
+                        f"Resolution mismatch in {panel_label}: '{lo_name}' has {min_c} points vs "
                         f"'{hi_name}' has {max_c} points — consider resampling"
                     )
 
             # Empty panel
             if n == 0:
-                warnings.append(f"Panel {p} has no traces")
+                warnings.append(f"{panel_label} has no traces")
 
         # Suspicious y-range (possible fill values)
         for info in trace_summary:
@@ -992,26 +1100,35 @@ class PlotlyRenderer:
         # --- Hint ---
         total_traces = len(trace_summary)
         panel_descs = []
-        for p in sorted(panel_traces.keys()):
-            names = [t["name"] for t in panel_traces[p]]
-            panel_descs.append(f"Panel {p}: {', '.join(names)}")
+        for rc in sorted(panel_traces.keys()):
+            names = [t["name"] for t in panel_traces[rc]]
+            if self._column_count > 1:
+                panel_descs.append(f"Panel ({rc[0]},{rc[1]}): {', '.join(names)}")
+            else:
+                panel_descs.append(f"Panel {rc[0]}: {', '.join(names)}")
         hint = f"Plot has {self._panel_count} panel(s), {total_traces} trace(s). {'. '.join(panel_descs)}."
+        if self._column_count > 1:
+            hint = f"Plot has {self._panel_count} row(s) x {self._column_count} column(s), {total_traces} trace(s). {'. '.join(panel_descs)}."
         if warnings:
             hint += " Potential issues found — consider addressing before responding to user."
 
         # --- Figure sizing ---
-        current_width = _DEFAULT_WIDTH
+        current_width = _DEFAULT_WIDTH if self._column_count == 1 else int(_DEFAULT_WIDTH * self._column_count * 0.55)
         current_height = _PANEL_HEIGHT * self._panel_count
 
         has_spectrogram = any(isinstance(t, go.Heatmap) for t in fig.data)
         if has_spectrogram:
             rec_height = max(400, _PANEL_HEIGHT * self._panel_count)
-            rec_width = 1200
+            rec_width = 1200 if self._column_count == 1 else int(1200 * self._column_count * 0.55)
             reason = f"{self._panel_count} panel(s) with spectrogram"
         elif self._panel_count >= 4:
             rec_height = 250 * self._panel_count
             rec_width = current_width
             reason = f"{self._panel_count} panels — compact spacing"
+        elif self._column_count > 1:
+            rec_height = current_height
+            rec_width = current_width
+            reason = f"{self._panel_count} row(s) x {self._column_count} column(s) grid"
         else:
             rec_height = current_height
             rec_width = current_width
@@ -1051,11 +1168,12 @@ class PlotlyRenderer:
         return {
             "figure_json": self._figure.to_json(),
             "panel_count": self._panel_count,
+            "column_count": self._column_count,
             "time_range": tr.to_time_range_string() if tr else None,
             "label_colors": dict(self._label_colors),
             "color_index": self._color_index,
             "trace_labels": list(self._trace_labels),
-            "trace_panels": list(self._trace_panels),
+            "trace_panels": [{"row": r, "col": c} for r, c in self._trace_panels],
         }
 
     def restore_state(self, state: dict) -> None:
@@ -1068,10 +1186,23 @@ class PlotlyRenderer:
 
         self._figure = pio.from_json(fig_json)
         self._panel_count = state.get("panel_count", 0)
+        self._column_count = state.get("column_count", 1)
         self._label_colors = state.get("label_colors", {})
         self._color_index = state.get("color_index", 0)
         self._trace_labels = state.get("trace_labels", [])
-        self._trace_panels = state.get("trace_panels", [])
+
+        # Deserialize trace_panels: new format is [{"row": r, "col": c}, ...],
+        # legacy format is [int, ...] (flat row numbers).
+        raw_panels = state.get("trace_panels", [])
+        panels: list[tuple[int, int]] = []
+        for item in raw_panels:
+            if isinstance(item, dict):
+                panels.append((item["row"], item["col"]))
+            elif isinstance(item, int):
+                panels.append((item, 1))
+            else:
+                panels.append((1, 1))
+        self._trace_panels = panels
 
         tr_str = state.get("time_range")
         if tr_str:

@@ -36,6 +36,10 @@ TOOLS = [
              "description": "Min value for spectrogram color scale"},
             {"name": "z_max", "type": "number", "required": False,
              "description": "Max value for spectrogram color scale"},
+            {"name": "columns", "type": "integer", "required": False, "default": 1,
+             "description": "Number of columns for grid layout. Use 2 for side-by-side comparison of different time periods."},
+            {"name": "column_titles", "type": "array", "required": False,
+             "description": "Column header labels, e.g. ['Jan 2020', 'Oct 2024']. Length must match columns."},
         ],
     },
     {
@@ -178,6 +182,7 @@ def render_method_catalog() -> str:
         "- Plot stored data: `plot_data(labels=\"ACE_Bmag,PSP_Bmag\", title=\"Comparison\")`",
         "- Multi-panel plot: `plot_data(labels=\"Bmag,Density\", panels=[[\"Bmag\"], [\"Density\"]])`",
         "- Spectrogram: `plot_data(labels=\"ACE_Bmag_spectrogram\", plot_type=\"spectrogram\")`",
+        "- Side-by-side: `plot_data(labels=\"A,B,C,D\", panels=[[\"A\",\"B\"],[\"C\",\"D\"]], columns=2, column_titles=[\"Period 1\",\"Period 2\"])`",
         "- Set title: `style_plot(title=\"Solar Wind Speed\")`",
         "- Y-axis label: `style_plot(y_label=\"B (nT)\")`",
         "- Log scale: `style_plot(log_scale=\"y\")`",

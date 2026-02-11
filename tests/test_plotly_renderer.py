@@ -124,7 +124,7 @@ class TestPlotData:
         e2 = _make_entry("B", n=10, desc="Beta")
         renderer.plot_data([e1, e2])
         assert renderer._trace_labels == ["Alpha", "Beta"]
-        assert renderer._trace_panels == [1, 1]
+        assert renderer._trace_panels == [(1, 1), (1, 1)]
 
     def test_with_title(self, renderer):
         entry = _make_entry("mag", n=10)
@@ -161,6 +161,77 @@ class TestPlotData:
         result = renderer.plot_data([entry], panels=[["PARENT.NOPE"]])
         assert result["status"] == "error"
         assert "PARENT.NOPE" in result["message"]
+
+
+# ---------------------------------------------------------------------------
+# Grid layout (columns > 1)
+# ---------------------------------------------------------------------------
+
+class TestGridLayout:
+    def test_grid_2x2(self, renderer):
+        """4 entries in a 2x2 grid: trace positions are (1,1),(1,2),(2,1),(2,2)."""
+        entries = [_make_entry(l, n=10, desc=l) for l in ["A", "B", "C", "D"]]
+        result = renderer.plot_data(
+            entries,
+            panels=[["A", "B"], ["C", "D"]],
+            columns=2,
+        )
+        assert result["status"] == "success"
+        assert result["panels"] == 2
+        assert result["columns"] == 2
+        assert renderer._trace_panels == [(1, 1), (1, 2), (2, 1), (2, 2)]
+
+    def test_grid_backward_compat(self, renderer):
+        """columns=1 produces (row, 1) tuples — same as single-column behavior."""
+        e1 = _make_entry("A", n=10, desc="Alpha")
+        e2 = _make_entry("B", n=10, desc="Beta")
+        result = renderer.plot_data([e1, e2], panels=[["A"], ["B"]], columns=1)
+        assert result["status"] == "success"
+        assert renderer._trace_panels == [(1, 1), (2, 1)]
+
+    def test_grid_with_column_titles(self, renderer):
+        """column_titles create subplot title annotations."""
+        entries = [_make_entry(l, n=10, desc=l) for l in ["A", "B"]]
+        result = renderer.plot_data(
+            entries,
+            panels=[["A", "B"]],
+            columns=2,
+            column_titles=["Period 1", "Period 2"],
+        )
+        assert result["status"] == "success"
+        fig = renderer.get_figure()
+        # Plotly adds column_titles as annotations
+        ann_texts = [a.text for a in fig.layout.annotations]
+        assert "Period 1" in ann_texts
+        assert "Period 2" in ann_texts
+
+    def test_grid_overlay_in_cell(self, renderer):
+        """4 labels in 1 row with columns=2: A,B in col 1, C,D in col 2."""
+        entries = [_make_entry(l, n=10, desc=l) for l in ["A", "B", "C", "D"]]
+        result = renderer.plot_data(
+            entries,
+            panels=[["A", "B", "C", "D"]],
+            columns=2,
+        )
+        assert result["status"] == "success"
+        # 4 labels, 2 cols → 2 per column: A,B in col 1, C,D in col 2
+        assert renderer._trace_panels == [(1, 1), (1, 1), (1, 2), (1, 2)]
+
+    def test_grid_width_scales(self, renderer):
+        """Multi-column grid should have wider figure than single-column."""
+        entries = [_make_entry(l, n=10, desc=l) for l in ["A", "B"]]
+        renderer.plot_data(entries, panels=[["A", "B"]], columns=2)
+        fig = renderer.get_figure()
+        # 2 columns: width = 1100 * 2 * 0.55 = 1210
+        assert fig.layout.width > 1100
+
+    def test_grid_reset_clears_column_count(self, renderer):
+        """reset() should set _column_count back to 1."""
+        entries = [_make_entry(l, n=10, desc=l) for l in ["A", "B"]]
+        renderer.plot_data(entries, panels=[["A", "B"]], columns=2)
+        assert renderer._column_count == 2
+        renderer.reset()
+        assert renderer._column_count == 1
 
 
 # ---------------------------------------------------------------------------
@@ -238,6 +309,18 @@ class TestStyle:
         renderer.plot_data([_make_entry("x")])
         result = renderer.style(theme="plotly_dark")
         assert result["status"] == "success"
+
+    def test_style_y_label_grid(self, renderer):
+        """Dict panel numbers map to correct (row, col) cells in a 2-col grid."""
+        entries = [_make_entry(l, n=10, desc=l) for l in ["A", "B", "C", "D"]]
+        renderer.plot_data(entries, panels=[["A", "B"], ["C", "D"]], columns=2)
+        # Panel 1 = (1,1), Panel 2 = (1,2), Panel 3 = (2,1), Panel 4 = (2,2)
+        result = renderer.style(y_label={"1": "Top Left", "2": "Top Right"})
+        assert result["status"] == "success"
+        fig = renderer.get_figure()
+        # yaxis = (1,1), yaxis2 = (1,2), yaxis3 = (2,1), yaxis4 = (2,2)
+        assert fig.layout.yaxis.title.text == "Top Left"
+        assert fig.layout.yaxis2.title.text == "Top Right"
 
 
 # ---------------------------------------------------------------------------
@@ -455,3 +538,57 @@ class TestReviewMetadata:
         review = result["review"]
         assert len(review["trace_summary"]) == 1
         assert review["trace_summary"][0]["has_gaps"] is True
+
+    def test_review_grid_positions(self, renderer):
+        """Grid layout: trace_summary has row/col fields."""
+        entries = [_make_entry(l, n=10, desc=l) for l in ["A", "B", "C", "D"]]
+        result = renderer.plot_data(entries, panels=[["A", "B"], ["C", "D"]], columns=2)
+        review = result["review"]
+        ts = review["trace_summary"]
+        assert len(ts) == 4
+        assert (ts[0]["row"], ts[0]["col"]) == (1, 1)
+        assert (ts[1]["row"], ts[1]["col"]) == (1, 2)
+        assert (ts[2]["row"], ts[2]["col"]) == (2, 1)
+        assert (ts[3]["row"], ts[3]["col"]) == (2, 2)
+        # Hint should mention grid dimensions
+        assert "2 row(s) x 2 column(s)" in review["hint"]
+
+
+# ---------------------------------------------------------------------------
+# Serialization (grid-aware)
+# ---------------------------------------------------------------------------
+
+class TestSerializationGrid:
+    def test_save_restore_grid(self, renderer):
+        """Round-trip preserves column_count and (row, col) tuples."""
+        entries = [_make_entry(l, n=10, desc=l) for l in ["A", "B", "C", "D"]]
+        renderer.plot_data(entries, panels=[["A", "B"], ["C", "D"]], columns=2)
+        state = renderer.save_state()
+        assert state is not None
+        assert state["column_count"] == 2
+        assert state["trace_panels"] == [
+            {"row": 1, "col": 1}, {"row": 1, "col": 2},
+            {"row": 2, "col": 1}, {"row": 2, "col": 2},
+        ]
+
+        # Restore into a fresh renderer
+        r2 = PlotlyRenderer(verbose=False)
+        r2.restore_state(state)
+        assert r2._column_count == 2
+        assert r2._trace_panels == [(1, 1), (1, 2), (2, 1), (2, 2)]
+        assert r2._panel_count == 2
+
+    def test_restore_legacy_format(self, renderer):
+        """Legacy flat int list restores as (row, 1) tuples."""
+        entries = [_make_entry(l, n=10, desc=l) for l in ["A", "B"]]
+        renderer.plot_data(entries, panels=[["A"], ["B"]])
+        state = renderer.save_state()
+        # Simulate legacy format: flat int list, no column_count key
+        state["trace_panels"] = [1, 2]
+        if "column_count" in state:
+            del state["column_count"]
+
+        r2 = PlotlyRenderer(verbose=False)
+        r2.restore_state(state)
+        assert r2._column_count == 1
+        assert r2._trace_panels == [(1, 1), (2, 1)]
