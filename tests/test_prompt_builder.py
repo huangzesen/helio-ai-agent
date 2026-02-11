@@ -116,9 +116,9 @@ class TestBuildMissionPrompt:
         prompt = build_mission_prompt("PSP")
         assert "list_parameters" in prompt
 
-    def test_mission_prompt_has_data_ops_docs(self):
+    def test_mission_prompt_has_dataset_selection_workflow(self):
         prompt = build_mission_prompt("PSP")
-        assert "## Data Operations Workflow" in prompt
+        assert "## Dataset Selection Workflow" in prompt
         assert "fetch_data" in prompt
         # Computation patterns moved to DataOps agent
         assert "custom_operation" not in prompt
@@ -163,7 +163,7 @@ class TestBuildMissionPrompt:
     def test_mission_prompt_workflow_excludes_plot_computed_data(self):
         prompt = build_mission_prompt("PSP")
         # plot_computed_data should not appear in the workflow steps
-        workflow_start = prompt.index("## Data Operations Workflow")
+        workflow_start = prompt.index("## Dataset Selection Workflow")
         workflow_end = prompt.index("## Reporting Results")
         workflow_section = prompt[workflow_start:workflow_end]
         assert "plot_computed_data" not in workflow_section
@@ -399,7 +399,6 @@ class TestBuildDataOpsPrompt:
         assert "list_fetched_data" in prompt
         assert "custom_operation" in prompt
         assert "describe_data" in prompt
-        assert "save_data" in prompt
 
     def test_forbids_fetching(self):
         prompt = build_data_ops_prompt()
@@ -417,17 +416,18 @@ class TestBuildDataOpsPrompt:
 class TestBuildVisualizationPrompt:
     """Test the visualization agent's system prompt builder."""
 
-    def test_contains_method_catalog(self):
+    def test_contains_tool_catalog(self):
         prompt = build_visualization_prompt()
-        assert "## Available Methods" in prompt
-        assert "plot_stored_data" in prompt
-        assert "export" in prompt
+        assert "## Visualization Tools" in prompt
+        assert "plot_data" in prompt
+        assert "style_plot" in prompt
+        assert "manage_plot" in prompt
 
-    def test_contains_custom_visualization_guidance(self):
+    def test_contains_tool_usage_sections(self):
         prompt = build_visualization_prompt()
-        assert "custom_visualization" in prompt
-        assert "Plotly Cookbook" in prompt
-        assert "fig.update_layout" in prompt
+        assert "## Using plot_data" in prompt
+        assert "## Using style_plot" in prompt
+        assert "## Using manage_plot" in prompt
 
     def test_contains_workflow(self):
         prompt = build_visualization_prompt()
@@ -452,20 +452,21 @@ class TestBuildVisualizationPrompt:
 
     def test_has_plot_method_in_workflow(self):
         prompt = build_visualization_prompt()
-        assert "plot_stored_data" in prompt
+        assert "plot_data" in prompt
 
-    def test_has_panel_index_example(self):
+    def test_has_panel_example(self):
         prompt = build_visualization_prompt()
-        assert '"index": 1' in prompt or '"index": 1' in prompt
+        assert "panels" in prompt
 
     def test_has_fetch_data_note(self):
         prompt = build_visualization_prompt()
         assert "fetch_data first" in prompt
 
-    def test_describes_three_tools(self):
+    def test_describes_four_tools(self):
         prompt = build_visualization_prompt()
-        assert "execute_visualization" in prompt
-        assert "custom_visualization" in prompt
+        assert "plot_data" in prompt
+        assert "style_plot" in prompt
+        assert "manage_plot" in prompt
         assert "list_fetched_data" in prompt
 
     def test_no_deleted_method_references(self):

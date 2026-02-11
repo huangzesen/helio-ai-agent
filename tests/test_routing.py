@@ -21,7 +21,7 @@ class TestToolCategoryFiltering:
 
     def test_no_filter_returns_all_tools(self):
         all_tools = get_tool_schemas()
-        assert len(all_tools) == 24  # 3 viz tools replace 2 old ones (net +1)
+        assert len(all_tools) == 27
         names = {t["name"] for t in all_tools}
         assert "plot_data" in names
         assert "style_plot" in names
@@ -100,13 +100,14 @@ class TestToolCategoryFiltering:
         # Should include compute tools
         assert "custom_operation" in names
         assert "describe_data" in names
-        assert "save_data" in names
         # Should include list_fetched_data (extra)
         assert "list_fetched_data" in names
         # Should include conversation
         assert "ask_clarification" in names
         # Should NOT include fetch (mission-specific)
         assert "fetch_data" not in names
+        # Should NOT include save_data (data_export category, orchestrator only)
+        assert "save_data" not in names
         # Should NOT include store_dataframe (moved to data_extraction)
         assert "store_dataframe" not in names
         # Should NOT include routing or visualization

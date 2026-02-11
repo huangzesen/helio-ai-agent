@@ -189,15 +189,14 @@ class TestGetDatasetInfoLocalCache:
     def test_use_cache_false_skips_local(self, fake_missions_dir):
         """use_cache=False skips both memory and local file, hits network."""
         with patch("knowledge.metadata_client._MISSIONS_DIR", fake_missions_dir), \
+             patch("knowledge.master_cdf.fetch_dataset_metadata_from_master", return_value=None), \
              patch("knowledge.metadata_client.requests.get") as mock_get:
-            # Simulate network call (Master CDF + HAPI fallback both use requests.get)
+            # Master CDF is mocked to return None, so HAPI fallback is used
             mock_get.return_value.status_code = 200
             mock_get.return_value.raise_for_status = lambda: None
             mock_get.return_value.json.return_value = {"parameters": []}
-            mock_get.return_value.content = b""  # For Master CDF download
             get_dataset_info("PSP_FLD_L2_MAG_RTN_1MIN", use_cache=False)
-            # Network SHOULD have been called because use_cache=False
-            # (may be called multiple times: Master CDF attempt + HAPI fallback)
+            # HAPI network call SHOULD have been made because use_cache=False
             assert mock_get.call_count >= 1
 
 

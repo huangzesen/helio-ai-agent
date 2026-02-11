@@ -524,7 +524,7 @@ class TestBuildParameterReference:
             ],
         }
         ref = PlannerAgent._build_parameter_reference(tool_results)
-        assert "VERIFIED PARAMETER REFERENCE" in ref
+        assert "## DATASET REFERENCE" in ref
         assert "AC_H2_MFI" in ref
         assert "BGSEc" in ref
         assert "Magnitude" in ref
@@ -606,8 +606,8 @@ class TestBuildParameterReference:
         assert "DS_B" in ref
         assert "ParamB" in ref
 
-    def test_critical_instruction_present(self):
-        """The reference includes the CRITICAL instruction to use exact names."""
+    def test_only_instruction_present(self):
+        """The reference includes the instruction to use only listed dataset IDs."""
         tool_results = {
             "list_parameters": [
                 {
@@ -620,5 +620,5 @@ class TestBuildParameterReference:
             ],
         }
         ref = PlannerAgent._build_parameter_reference(tool_results)
-        assert "CRITICAL" in ref
-        assert "exact" in ref.lower()
+        assert "Use ONLY" in ref
+        assert "candidate_datasets" in ref

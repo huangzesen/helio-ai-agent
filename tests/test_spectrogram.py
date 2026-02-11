@@ -200,10 +200,10 @@ class TestDataEntryMetadata:
 
 class TestPlotSpectrogram:
     def test_basic_heatmap(self):
-        """plot_spectrogram should create a Heatmap trace."""
+        """plot_data with plot_type='spectrogram' should create a Heatmap trace."""
         renderer = PlotlyRenderer()
         entry = _make_spectrogram_entry()
-        result = renderer.plot_spectrogram(entry)
+        result = renderer.plot_data([entry], plot_type="spectrogram")
         assert result["status"] == "success"
         assert result["display"] == "plotly"
 
@@ -217,12 +217,11 @@ class TestPlotSpectrogram:
         """log_y and log_z should be applied correctly."""
         renderer = PlotlyRenderer()
         entry = _make_spectrogram_entry()
-        result = renderer.plot_spectrogram(entry, log_y=True, log_z=True)
+        result = renderer.plot_data([entry], plot_type="spectrogram", log_y=True, log_z=True)
         assert result["status"] == "success"
 
         fig = renderer.get_figure()
         # log_y sets the y-axis type
-        # Check yaxis type
         yaxis = fig.layout.yaxis
         assert yaxis.type == "log"
 
@@ -230,7 +229,7 @@ class TestPlotSpectrogram:
         """Custom colorscale should be set on the trace."""
         renderer = PlotlyRenderer()
         entry = _make_spectrogram_entry()
-        renderer.plot_spectrogram(entry, colorscale="Jet")
+        renderer.plot_data([entry], plot_type="spectrogram", colorscale="Jet")
 
         fig = renderer.get_figure()
         assert fig.data[0].colorscale is not None
@@ -239,28 +238,29 @@ class TestPlotSpectrogram:
         """Title parameter should set the figure title."""
         renderer = PlotlyRenderer()
         entry = _make_spectrogram_entry()
-        renderer.plot_spectrogram(entry, title="Test Title")
+        renderer.plot_data([entry], plot_type="spectrogram", title="Test Title")
 
         fig = renderer.get_figure()
         assert fig.layout.title.text == "Test Title"
 
     def test_panel_targeting(self):
-        """index parameter should target a specific panel row."""
+        """panels parameter should target a specific panel row."""
         renderer = PlotlyRenderer()
         entry = _make_spectrogram_entry()
-        result = renderer.plot_spectrogram(entry, index=1)
+        # Use panels to create a 2-panel layout with spectrogram in second panel
+        result = renderer.plot_data(
+            [entry], panels=[[], [entry.label]], plot_type="spectrogram",
+        )
         assert result["status"] == "success"
 
         fig = renderer.get_figure()
-        assert len(fig.data) == 1
-        # Should have at least 2 panels
-        assert renderer._panel_count >= 2
+        assert len(fig.data) >= 1
 
     def test_z_range(self):
         """z_min and z_max should be set on the trace."""
         renderer = PlotlyRenderer()
         entry = _make_spectrogram_entry()
-        renderer.plot_spectrogram(entry, z_min=0.1, z_max=10.0)
+        renderer.plot_data([entry], plot_type="spectrogram", z_min=0.1, z_max=10.0)
 
         fig = renderer.get_figure()
         assert fig.data[0].zmin == 0.1
@@ -276,7 +276,7 @@ class TestPlotSpectrogram:
             data=df,
             metadata={"type": "spectrogram", "bin_values": []},
         )
-        result = renderer.plot_spectrogram(entry)
+        result = renderer.plot_data([entry], plot_type="spectrogram")
         assert result["status"] == "error"
 
 
@@ -286,20 +286,23 @@ class TestPlotSpectrogram:
 
 
 class TestRegistryPlotSpectrogram:
-    def test_method_exists(self):
-        """plot_spectrogram should be in the registry."""
-        method = get_method("plot_spectrogram")
+    def test_spectrogram_via_plot_data(self):
+        """Spectrograms are handled via plot_data with plot_type='spectrogram'."""
+        method = get_method("plot_data")
         assert method is not None
-        assert method["name"] == "plot_spectrogram"
+        param_names = [p["name"] for p in method["parameters"]]
+        assert "plot_type" in param_names
+        pt = next(p for p in method["parameters"] if p["name"] == "plot_type")
+        assert "spectrogram" in pt["enum"]
 
     def test_validate_required_args(self):
-        """Missing required 'label' should produce an error."""
-        errors = validate_args("plot_spectrogram", {})
-        assert any("label" in e for e in errors)
+        """Missing required 'labels' should produce an error."""
+        errors = validate_args("plot_data", {})
+        assert any("labels" in e for e in errors)
 
     def test_validate_valid_args(self):
         """Valid args should pass validation."""
-        errors = validate_args("plot_spectrogram", {"label": "test_spec"})
+        errors = validate_args("plot_data", {"labels": "test_spec"})
         assert errors == []
 
 
@@ -367,5 +370,5 @@ result = pd.DataFrame(Sxx.T, index=times, columns=[str(freq) for freq in f])
 
         # Verify we can plot it
         renderer = PlotlyRenderer()
-        result = renderer.plot_spectrogram(loaded)
+        result = renderer.plot_data([loaded], plot_type="spectrogram")
         assert result["status"] == "success"

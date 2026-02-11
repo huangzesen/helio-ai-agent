@@ -277,33 +277,27 @@ class TestValidateTimeRange:
             )
             assert result is None
 
-    def test_request_after_stop_shifts_window(self, agent):
-        """'Last week' when dataset ends months ago → shifts to last available week."""
+    def test_request_after_stop_returns_error(self, agent):
+        """'Last week' when dataset ends months ago → error (no overlap)."""
         with patch("agent.core.get_dataset_time_range") as mock:
             mock.return_value = {"start": "2020-01-01", "stop": "2025-06-15"}
             result = agent._validate_time_range(
                 "TEST", self._dt("2026-01-01"), self._dt("2026-01-08")
             )
             assert result is not None
-            assert result["end"] == self._dt("2025-06-15")
-            # Duration preserved (7 days)
-            assert result["start"] == self._dt("2025-06-08")
-            assert "after" in result["note"]
-            assert "Auto-adjusted" in result["note"]
+            assert result["error"] is True
+            assert "No data available" in result["note"]
 
-    def test_request_before_start_shifts_window(self, agent):
-        """Request for 1990 when dataset starts in 2018 → shifts to first available period."""
+    def test_request_before_start_returns_error(self, agent):
+        """Request for 1990 when dataset starts in 2018 → error (no overlap)."""
         with patch("agent.core.get_dataset_time_range") as mock:
             mock.return_value = {"start": "2018-08-12", "stop": "2025-06-15"}
             result = agent._validate_time_range(
                 "TEST", self._dt("1990-01-01"), self._dt("1990-02-01")
             )
             assert result is not None
-            assert result["start"] == self._dt("2018-08-12")
-            # Duration preserved (31 days)
-            expected_end = self._dt("2018-08-12") + timedelta(days=31)
-            assert result["end"] == expected_end
-            assert "before" in result["note"]
+            assert result["error"] is True
+            assert "No data available" in result["note"]
 
     def test_partial_overlap_clamps_start(self, agent):
         """Request starts before available → clamps start."""
@@ -329,8 +323,8 @@ class TestValidateTimeRange:
             assert result["end"] == self._dt("2025-06-15")
             assert "Clamped" in result["note"]
 
-    def test_shift_preserves_duration_capped_at_available(self, agent):
-        """If requested duration exceeds available range, cap to full available range."""
+    def test_request_after_stop_with_long_duration_returns_error(self, agent):
+        """If requested range is entirely after available data, return error."""
         with patch("agent.core.get_dataset_time_range") as mock:
             # Dataset covers only 6 months, but requesting 2 years after stop
             mock.return_value = {"start": "2025-01-01", "stop": "2025-06-15"}
@@ -338,9 +332,8 @@ class TestValidateTimeRange:
                 "TEST", self._dt("2026-01-01"), self._dt("2028-01-01")
             )
             assert result is not None
-            # Should cap start at avail_start
-            assert result["start"] == self._dt("2025-01-01")
-            assert result["end"] == self._dt("2025-06-15")
+            assert result["error"] is True
+            assert "No data available" in result["note"]
 
 
 class TestSanitizeForJson:
@@ -415,30 +408,3 @@ class TestSanitizeForJson:
         assert result["statistics"]["col1"]["mean"] == 5.0
 
 
-class TestDispatchVizMethodErrorMessage:
-    """Tests for improved error messages in _dispatch_viz_method."""
-
-    @pytest.fixture
-    def agent(self):
-        from agent.core import OrchestratorAgent
-        with patch("agent.core.genai"):
-            a = OrchestratorAgent.__new__(OrchestratorAgent)
-            a.verbose = False
-            a._renderer = MagicMock()
-            return a
-
-    def test_unknown_method_basic_error(self, agent):
-        result = agent._dispatch_viz_method("nonexistent_method", {})
-        assert result["status"] == "error"
-        assert "Unknown method" in result["message"]
-
-    def test_tool_name_as_method_gives_helpful_error(self, agent):
-        result = agent._dispatch_viz_method("list_fetched_data", {})
-        assert result["status"] == "error"
-        assert "tool" in result["message"].lower()
-        assert "directly" in result["message"].lower()
-
-    def test_custom_visualization_as_method_gives_helpful_error(self, agent):
-        result = agent._dispatch_viz_method("custom_visualization", {})
-        assert result["status"] == "error"
-        assert "tool" in result["message"].lower()

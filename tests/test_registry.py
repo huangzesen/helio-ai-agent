@@ -133,11 +133,12 @@ class TestValidateArgs:
         errors = validate_args("style_plot", {})
         assert errors == []
 
-    def test_style_plot_log_scale_enum(self):
+    def test_style_plot_log_scale_accepts_strings(self):
+        # log_scale is "string or object" — no enum validation (accepts dicts too)
         errors = validate_args("style_plot", {"log_scale": "y"})
         assert errors == []
-        errors = validate_args("style_plot", {"log_scale": "invalid"})
-        assert any("Invalid value" in e for e in errors)
+        errors = validate_args("style_plot", {"log_scale": "linear"})
+        assert errors == []
 
 
 class TestRenderMethodCatalog:
