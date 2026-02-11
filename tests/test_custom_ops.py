@@ -12,6 +12,9 @@ from data_ops.custom_ops import (
     validate_pandas_code,
     execute_custom_operation,
     run_custom_operation,
+    execute_multi_source_operation,
+    run_multi_source_operation,
+    validate_result,
     execute_dataframe_creation,
     run_dataframe_creation,
 )
@@ -391,3 +394,127 @@ class TestRunDataframeCreation:
     def test_missing_datetime_index_propagates(self):
         with pytest.raises(ValueError, match="DatetimeIndex"):
             run_dataframe_creation("result = pd.DataFrame({'a': [1]})")
+
+
+# ── Multi-Source Operation Tests ──────────────────────────────────────────────
+
+
+class TestExecuteMultiSourceOperation:
+    def test_magnitude_from_three_sources(self):
+        """Merge 3 scalar dfs, compute magnitude with skipna=False."""
+        idx = _make_time(5)
+        sources = {
+            "df_BR": _make_df(np.array([3.0, 0.0, 1.0, 0.0, 0.0]), idx),
+            "df_BT": _make_df(np.array([4.0, 0.0, 2.0, 0.0, 0.0]), idx),
+            "df_BN": _make_df(np.array([0.0, 5.0, 2.0, 0.0, 0.0]), idx),
+        }
+        code = (
+            "merged = pd.concat([df_BR, df_BT, df_BN], axis=1)\n"
+            "result = merged.pow(2).sum(axis=1, skipna=False).pow(0.5).to_frame('magnitude')"
+        )
+        result = execute_multi_source_operation(sources, code)
+        np.testing.assert_allclose(result.values.squeeze(), [5.0, 5.0, 3.0, 0.0, 0.0])
+
+    def test_nan_preserved_with_skipna_false(self):
+        """NaN in a source + skipna=False → NaN in result."""
+        idx = _make_time(4)
+        sources = {
+            "df_BR": _make_df(np.array([3.0, np.nan, 1.0, 0.0]), idx),
+            "df_BT": _make_df(np.array([4.0, 5.0, np.nan, 0.0]), idx),
+        }
+        code = (
+            "merged = pd.concat([df_BR, df_BT], axis=1)\n"
+            "result = merged.pow(2).sum(axis=1, skipna=False).pow(0.5).to_frame('magnitude')"
+        )
+        result = execute_multi_source_operation(sources, code)
+        assert result.iloc[0, 0] == pytest.approx(5.0)
+        assert np.isnan(result.iloc[1, 0])  # NaN from df_BR propagates
+        assert np.isnan(result.iloc[2, 0])  # NaN from df_BT propagates
+        assert result.iloc[3, 0] == pytest.approx(0.0)
+
+    def test_backward_compat_single_source(self):
+        """Single source, code uses `df` — should work."""
+        idx = _make_time(3)
+        sources = {"df_val": _make_df(np.array([1.0, 4.0, 9.0]), idx)}
+        result = execute_multi_source_operation(sources, "result = df * 2")
+        np.testing.assert_allclose(result.values.squeeze(), [2.0, 8.0, 18.0])
+
+    def test_cross_cadence_resample(self):
+        """Different cadences, code resamples before merging."""
+        idx_fast = pd.date_range("2024-01-01", periods=6, freq="1min")
+        idx_slow = pd.date_range("2024-01-01", periods=3, freq="2min")
+        sources = {
+            "df_fast": _make_df(np.arange(6, dtype=float), idx_fast),
+            "df_slow": _make_df(np.array([10.0, 20.0, 30.0]), idx_slow),
+        }
+        code = (
+            "slow_resampled = df_slow.reindex(df_fast.index).interpolate()\n"
+            "merged = pd.concat([df_fast, slow_resampled], axis=1)\n"
+            "result = merged.dropna()"
+        )
+        result = execute_multi_source_operation(sources, code)
+        assert isinstance(result.index, pd.DatetimeIndex)
+        assert len(result) > 0
+
+
+class TestRunMultiSourceOperation:
+    def test_validates_and_executes(self):
+        idx = _make_time(3)
+        sources = {"df_A": _make_df(np.array([1.0, 2.0, 3.0]), idx)}
+        result_df, warnings = run_multi_source_operation(sources, "result = df * 3")
+        np.testing.assert_allclose(result_df.values.squeeze(), [3.0, 6.0, 9.0])
+        assert isinstance(warnings, list)
+
+    def test_rejects_invalid_code(self):
+        idx = _make_time(3)
+        sources = {"df_A": _make_df(np.ones(3), idx)}
+        with pytest.raises(ValueError, match="validation failed"):
+            run_multi_source_operation(sources, "import os\nresult = df")
+
+
+class TestValidateResult:
+    def test_nan_to_zero_warning(self):
+        """NaN in source + skipna=True → zeros in result → warning."""
+        idx = _make_time(5)
+        src = _make_df(np.array([1.0, np.nan, 3.0, np.nan, 5.0]), idx)
+        # Simulate skipna=True: sum treats NaN as 0
+        result_df = pd.DataFrame(
+            {"mag": [1.0, 0.0, 3.0, 0.0, 5.0]}, index=idx
+        )
+        warnings = validate_result(result_df, {"df_A": src})
+        assert len(warnings) >= 1
+        assert any("skipna" in w for w in warnings)
+
+    def test_no_warning_when_clean(self):
+        """No NaN, no issues → no warnings."""
+        idx = _make_time(5)
+        src = _make_df(np.array([1.0, 2.0, 3.0, 4.0, 5.0]), idx)
+        result_df = pd.DataFrame({"out": [2.0, 4.0, 6.0, 8.0, 10.0]}, index=idx)
+        warnings = validate_result(result_df, {"df_A": src})
+        assert warnings == []
+
+    def test_constant_output_warning(self):
+        """Constant result from non-constant source → warning."""
+        idx = _make_time(5)
+        src = _make_df(np.array([1.0, 2.0, 3.0, 4.0, 5.0]), idx)
+        result_df = pd.DataFrame({"out": [7.0, 7.0, 7.0, 7.0, 7.0]}, index=idx)
+        warnings = validate_result(result_df, {"df_A": src})
+        assert any("constant" in w for w in warnings)
+
+    def test_row_count_warning(self):
+        """Result has significantly more rows than source → warning."""
+        idx_small = _make_time(10)
+        src = _make_df(np.ones(10), idx_small)
+        idx_big = _make_time(20)
+        result_df = pd.DataFrame({"out": np.ones(20)}, index=idx_big)
+        warnings = validate_result(result_df, {"df_A": src})
+        assert any("unexpected expansion" in w for w in warnings)
+
+    def test_no_row_count_warning_for_small_expansion(self):
+        """Result only slightly larger than source → no warning."""
+        idx = _make_time(100)
+        src = _make_df(np.ones(100), idx)
+        idx_big = _make_time(105)
+        result_df = pd.DataFrame({"out": np.ones(105)}, index=idx_big)
+        warnings = validate_result(result_df, {"df_A": src})
+        assert not any("unexpected expansion" in w for w in warnings)

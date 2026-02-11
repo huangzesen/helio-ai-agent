@@ -91,7 +91,11 @@ _DEFAULT_LAYOUT = dict(
     paper_bgcolor="white",
     plot_bgcolor="white",
     font_color="#2a3f5f",
+    autosize=False,
 )
+
+_PANEL_HEIGHT = 300  # px per subplot panel
+_DEFAULT_WIDTH = 1100  # px figure width
 
 _LEGEND_MAX_LINE = 30  # max chars per line in legend
 
@@ -158,11 +162,13 @@ class PlotlyRenderer:
                 rows=max(rows, 1), cols=1, shared_xaxes=True,
                 vertical_spacing=0.06,
             )
+            self._panel_count = max(rows, 1)
             self._figure.update_layout(
                 **_DEFAULT_LAYOUT,
+                width=_DEFAULT_WIDTH,
+                height=_PANEL_HEIGHT * self._panel_count,
                 legend=dict(font=dict(size=11), tracegroupgap=2),
             )
-            self._panel_count = max(rows, 1)
         return self._figure
 
     def _grow_panels(self, needed: int) -> go.Figure:
@@ -177,6 +183,8 @@ class PlotlyRenderer:
         )
         new_fig.update_layout(
             **_DEFAULT_LAYOUT,
+            width=_DEFAULT_WIDTH,
+            height=_PANEL_HEIGHT * needed,
             legend=dict(font=dict(size=11), tracegroupgap=2),
         )
 
@@ -503,6 +511,7 @@ class PlotlyRenderer:
                     "message": "No plot to style. Use plot_data first."}
 
         fig = self._figure
+        warnings = []
 
         if title is not None:
             fig.update_layout(title_text=title)
@@ -601,10 +610,14 @@ class PlotlyRenderer:
             bg_is_light = bg in (
                 "white", "#fff", "#ffffff", "#e5ecf6", "rgb(255,255,255)",
             )
+            skipped = 0
+            drawn = 0
             for vl in vlines:
                 x_val = vl.get("x")
                 if x_val is None:
+                    skipped += 1
                     continue
+                drawn += 1
                 color = vl.get("color", "red")
                 # Override white/near-white colors on light backgrounds
                 if bg_is_light and color.lower().strip() in (
@@ -627,8 +640,18 @@ class PlotlyRenderer:
                         text=label, showarrow=False,
                         font=dict(size=11, color=color),
                     )
+            if skipped > 0:
+                total = skipped + drawn
+                warnings.append(
+                    f"{skipped} of {total} vlines skipped — each vline requires "
+                    f"an 'x' field with a timestamp string, e.g. "
+                    f'vlines=[{{"x": "2024-01-15T12:00:00"}}]'
+                )
 
-        return {"status": "success", "message": "Style applied.", "display": "plotly"}
+        result = {"status": "success", "message": "Style applied.", "display": "plotly"}
+        if warnings:
+            result["warnings"] = warnings
+        return result
 
     # ------------------------------------------------------------------
     # Public API: manage
@@ -927,10 +950,30 @@ class PlotlyRenderer:
         if warnings:
             hint += " Potential issues found — consider addressing before responding to user."
 
+        # --- Figure sizing ---
+        current_width = _DEFAULT_WIDTH
+        current_height = _PANEL_HEIGHT * self._panel_count
+
+        has_spectrogram = any(isinstance(t, go.Heatmap) for t in fig.data)
+        if has_spectrogram:
+            rec_height = max(400, _PANEL_HEIGHT * self._panel_count)
+            rec_width = 1200
+            reason = f"{self._panel_count} panel(s) with spectrogram"
+        elif self._panel_count >= 4:
+            rec_height = 250 * self._panel_count
+            rec_width = current_width
+            reason = f"{self._panel_count} panels — compact spacing"
+        else:
+            rec_height = current_height
+            rec_width = current_width
+            reason = f"{self._panel_count} panel(s), {total_traces} trace(s) — default sizing"
+
         return {
             "trace_summary": trace_summary,
             "warnings": warnings,
             "hint": hint,
+            "figure_size": {"width": current_width, "height": current_height},
+            "sizing_recommendation": {"width": rec_width, "height": rec_height, "reason": reason},
         }
 
     # ------------------------------------------------------------------

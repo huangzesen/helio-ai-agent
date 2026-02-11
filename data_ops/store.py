@@ -194,3 +194,85 @@ def reset_store() -> None:
     """Reset the global DataStore (mainly for testing)."""
     global _store
     _store = None
+
+
+def build_source_map(
+    store: DataStore, labels: list[str]
+) -> tuple[dict[str, pd.DataFrame] | None, str | None]:
+    """Build a mapping of sandbox variable names to DataFrames from store labels.
+
+    Each label becomes ``df_<SUFFIX>`` where SUFFIX is the part after the last
+    '.' in the label.  If the label has no '.', the full label is used as suffix.
+
+    Args:
+        store: DataStore to look up entries.
+        labels: List of store labels.
+
+    Returns:
+        Tuple of (source_map, error_string).  On success error_string is None.
+        On failure source_map is None.
+    """
+    source_map: dict[str, pd.DataFrame] = {}
+    for label in labels:
+        entry = store.get(label)
+        if entry is None:
+            return None, f"Label '{label}' not found in store"
+        suffix = label.rsplit(".", 1)[-1]
+        var_name = f"df_{suffix}"
+        if var_name in source_map:
+            return None, (
+                f"Duplicate sandbox variable '{var_name}' — labels "
+                f"'{label}' and another share suffix '{suffix}'. "
+                f"Use labels with distinct suffixes."
+            )
+        source_map[var_name] = entry.data
+    return source_map, None
+
+
+def describe_sources(store: DataStore, labels: list[str]) -> dict:
+    """Return lightweight summaries for a list of store labels.
+
+    For each label, computes: columns, point count, cadence, NaN%, and time range.
+    Cheaper than full ``describe_data`` — just what the LLM needs for correct code.
+
+    Args:
+        store: DataStore to look up entries.
+        labels: List of store labels.
+
+    Returns:
+        Dict keyed by sandbox variable name (``df_SUFFIX``), each containing
+        label, columns, points, cadence, nan_pct, and time_range.
+    """
+    result = {}
+    for label in labels:
+        entry = store.get(label)
+        if entry is None:
+            continue
+        df = entry.data
+        suffix = label.rsplit(".", 1)[-1]
+        var_name = f"df_{suffix}"
+
+        # Cadence: median time delta
+        cadence_str = ""
+        if len(df) > 1:
+            dt = pd.Series(df.index).diff().dropna().median()
+            cadence_str = str(dt)
+
+        # NaN percentage
+        total_cells = df.size
+        nan_pct = round(df.isna().sum().sum() / total_cells * 100, 1) if total_cells > 0 else 0.0
+
+        # Time range
+        time_range = []
+        if len(df) > 0:
+            time_range = [str(df.index[0].date()), str(df.index[-1].date())]
+
+        result[var_name] = {
+            "label": label,
+            "columns": list(df.columns),
+            "points": len(df),
+            "cadence": cadence_str,
+            "nan_pct": nan_pct,
+            "time_range": time_range,
+        }
+    return result

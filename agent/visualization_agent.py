@@ -93,6 +93,8 @@ class VisualizationAgent(BaseSubAgent):
             "RULES:\n"
             "- Do NOT call manage_plot(action='reset'), manage_plot(action='get_state'), manage_plot(action='export'), or list_fetched_data.\n"
             "- Call plot_data with the labels shown above.\n"
+            "- After plotting, inspect review.sizing_recommendation and call\n"
+            "  style_plot(canvas_size=...) if it differs from review.figure_size.\n"
             "- After plotting, you may call style_plot to adjust titles/labels/axes.\n"
             "- Do NOT export the plot — exporting is handled by the orchestrator."
             + pitfall_section

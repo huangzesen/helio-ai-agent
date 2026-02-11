@@ -47,9 +47,9 @@ from knowledge.hapi_client import (
     validate_dataset_id as hapi_validate_dataset_id,
     validate_parameter_id as hapi_validate_parameter_id,
 )
-from data_ops.store import get_store, DataEntry
+from data_ops.store import get_store, DataEntry, build_source_map, describe_sources
 from data_ops.fetch import fetch_data
-from data_ops.custom_ops import run_custom_operation, run_dataframe_creation, run_spectrogram_computation
+from data_ops.custom_ops import run_custom_operation, run_multi_source_operation, run_dataframe_creation, run_spectrogram_computation
 
 # Orchestrator sees discovery, web search, conversation, and routing tools
 # (NOT data fetching or data_ops — handled by sub-agents)
@@ -880,22 +880,28 @@ class OrchestratorAgent:
 
         elif tool_name == "custom_operation":
             store = get_store()
-            source = store.get(tool_args["source_label"])
-            if source is None:
-                return {"status": "error", "message": f"Label '{tool_args['source_label']}' not found"}
+            labels = tool_args.get("source_labels", [])
+            if not labels:
+                return {"status": "error", "message": "source_labels is required"}
+
+            sources, err = build_source_map(store, labels)
+            if err:
+                return {"status": "error", "message": err}
+
             try:
-                result_df = run_custom_operation(source.data, tool_args["pandas_code"])
+                result_df, warnings = run_multi_source_operation(sources, tool_args["pandas_code"])
             except (ValueError, RuntimeError) as e:
-                prefix = "Validation error" if isinstance(e, ValueError) else "Execution error"
+                prefix = "Validation" if isinstance(e, ValueError) else "Execution"
                 return {
                     "status": "error",
-                    "message": f"{prefix}: {e}",
-                    "source_columns": list(source.data.columns),
-                    "source_shape": list(source.data.shape),
-                    "source_dtypes": {str(c): str(source.data[c].dtype) for c in source.data.columns},
+                    "message": f"{prefix} error: {e}",
+                    "available_variables": list(sources.keys()) + ["df"],
+                    "source_info": describe_sources(store, labels),
                 }
-            desc = tool_args.get("description", f"Custom operation on {source.label}")
-            units = tool_args.get("units", source.units)
+
+            first_entry = store.get(labels[0])
+            units = tool_args.get("units", first_entry.units if first_entry else "")
+            desc = tool_args.get("description", f"Custom operation on {', '.join(labels)}")
             entry = DataEntry(
                 label=tool_args["output_label"],
                 data=result_df,
@@ -904,8 +910,15 @@ class OrchestratorAgent:
                 source="computed",
             )
             store.put(entry)
+
+            for w in warnings:
+                self.logger.debug(f"[DataOpsValidation] {w}")
+
             self.logger.debug(f"[DataOps] Custom operation -> '{tool_args['output_label']}' ({len(result_df)} points)")
-            return {"status": "success", **entry.summary()}
+            result = {"status": "success", **entry.summary(), "source_info": describe_sources(store, labels)}
+            if warnings:
+                result["warnings"] = warnings
+            return result
 
         elif tool_name == "store_dataframe":
             try:

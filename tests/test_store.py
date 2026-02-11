@@ -8,7 +8,7 @@ import numpy as np
 import pandas as pd
 import pytest
 
-from data_ops.store import DataEntry, DataStore, get_store, reset_store
+from data_ops.store import DataEntry, DataStore, get_store, reset_store, build_source_map, describe_sources
 
 
 @pytest.fixture(autouse=True)
@@ -147,3 +147,68 @@ class TestGetStore:
         s2 = get_store()
         assert s2 is not s1
         assert len(s2) == 0
+
+
+class TestBuildSourceMap:
+    def test_single_label(self):
+        store = DataStore()
+        store.put(_make_entry("DATASET.BR", n=10))
+        sources, err = build_source_map(store, ["DATASET.BR"])
+        assert err is None
+        assert "df_BR" in sources
+        assert len(sources["df_BR"]) == 10
+
+    def test_three_scalars(self):
+        store = DataStore()
+        store.put(_make_entry("DATASET.BR", n=10))
+        store.put(_make_entry("DATASET.BT", n=10))
+        store.put(_make_entry("DATASET.BN", n=10))
+        sources, err = build_source_map(store, ["DATASET.BR", "DATASET.BT", "DATASET.BN"])
+        assert err is None
+        assert set(sources.keys()) == {"df_BR", "df_BT", "df_BN"}
+
+    def test_missing_label(self):
+        store = DataStore()
+        store.put(_make_entry("DATASET.BR", n=10))
+        sources, err = build_source_map(store, ["DATASET.BR", "DATASET.MISSING"])
+        assert sources is None
+        assert "DATASET.MISSING" in err
+
+    def test_duplicate_suffix(self):
+        store = DataStore()
+        store.put(_make_entry("A.val", n=10))
+        store.put(_make_entry("B.val", n=10))
+        sources, err = build_source_map(store, ["A.val", "B.val"])
+        assert sources is None
+        assert "Duplicate" in err
+
+    def test_no_dot_label(self):
+        store = DataStore()
+        store.put(_make_entry("Bmag", n=10))
+        sources, err = build_source_map(store, ["Bmag"])
+        assert err is None
+        assert "df_Bmag" in sources
+
+
+class TestDescribeSources:
+    def test_basic_summary(self):
+        store = DataStore()
+        idx = pd.date_range("2024-01-01", periods=100, freq="1min")
+        data = pd.DataFrame({"BR": np.random.randn(100)}, index=idx)
+        data.iloc[50:60] = np.nan  # 10% NaN
+        store.put(DataEntry(label="DATASET.BR", data=data, units="nT"))
+
+        info = describe_sources(store, ["DATASET.BR"])
+        assert "df_BR" in info
+        summary = info["df_BR"]
+        assert summary["label"] == "DATASET.BR"
+        assert summary["points"] == 100
+        assert len(summary["columns"]) == 1
+        assert summary["nan_pct"] == 10.0
+        assert len(summary["time_range"]) == 2
+        assert summary["cadence"] != ""
+
+    def test_missing_label_skipped(self):
+        store = DataStore()
+        info = describe_sources(store, ["NONEXISTENT"])
+        assert info == {}

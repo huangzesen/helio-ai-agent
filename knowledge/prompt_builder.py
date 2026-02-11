@@ -415,12 +415,29 @@ def build_data_ops_prompt() -> str:
         "- Set bin_label (e.g., 'Frequency (Hz)') and value_label (e.g., 'PSD (nT²/Hz)')",
         "- Choose nperseg based on data cadence and desired frequency resolution",
         "",
+        "## Multi-Source Operations",
+        "",
+        "`source_labels` is an array. Each label becomes a sandbox variable `df_<SUFFIX>` where",
+        "SUFFIX is the part after the last '.' in the label. The first source is also aliased as `df`.",
+        "",
+        "- **Same-cadence magnitude** (3 separate scalar labels):",
+        "  source_labels=['DATASET.BR', 'DATASET.BT', 'DATASET.BN']",
+        "  Code: `merged = pd.concat([df_BR, df_BT, df_BN], axis=1); result = merged.pow(2).sum(axis=1, skipna=False).pow(0.5).to_frame('magnitude')`",
+        "",
+        "- **Cross-cadence merge** (different cadences):",
+        "  source_labels=['DATASET_HOURLY.Bmag', 'DATASET_DAILY.density']",
+        "  Code: `density_hr = df_density.resample('1h').interpolate(); merged = pd.concat([df_Bmag, density_hr], axis=1); result = merged.dropna()`",
+        "",
+        "- ALWAYS use `skipna=False` in `.sum()` for magnitude/sum-of-squares — `skipna=True` silently converts NaN to 0.0",
+        "- Check `source_info` in the result to verify cadences and NaN percentages",
+        "- If you see warnings about NaN-to-zero, rewrite your code with `skipna=False`",
+        "",
         "## Code Guidelines",
         "",
         "- Always assign to `result` — must be DataFrame/Series with DatetimeIndex",
-        "- Use `df` (source DataFrame), `pd` (pandas), `np` (numpy) only — no imports, no file I/O",
+        "- Use sandbox variables (`df`, `df_SUFFIX`), `pd` (pandas), `np` (numpy) only — no imports, no file I/O",
         "- For spectrograms: also `signal` (scipy.signal) is available",
-        "- Handle NaN with `skipna=True`, `.dropna()`, or `.fillna()`",
+        "- Handle NaN carefully: use `skipna=False` for aggregations that should preserve gaps (magnitude, sum-of-squares); use `.dropna()` or `.fillna()` only when you explicitly want to remove or replace missing values",
         "- Use descriptive output_label names (e.g., 'ACE_Bmag', 'velocity_smooth')",
         "",
         "## Reporting Results",
@@ -620,6 +637,22 @@ def build_visualization_prompt(gui_mode: bool = False) -> str:
         "- Suspicious y-range: check for fill values that need filtering",
         "",
         "If no warnings, respond normally describing what was plotted.",
+        "",
+        "## Figure Sizing",
+        "",
+        "After plot_data succeeds, the `review` field includes:",
+        "- `review.figure_size`: current figure dimensions {width, height} in pixels",
+        "- `review.sizing_recommendation`: suggested dimensions with reasoning",
+        "",
+        "Call `style_plot(canvas_size={...})` after plot_data when the recommendation",
+        "differs from the current size. Skip it when the defaults are appropriate",
+        "(1-3 line-plot panels).",
+        "",
+        "Sizing guidelines:",
+        "- 1-3 panels (line): defaults are fine (~300px/panel, 1100px wide)",
+        "- 4+ panels: ~250px per panel to keep figure compact",
+        "- Spectrograms: ≥400px height, 1200px width",
+        "- Adopt the recommendation unless the user requests a specific size",
         "",
         "## Styling Rules",
         "",
@@ -879,7 +912,7 @@ Each task has:
 - browse_datasets(mission_id): Browse all available science datasets for a mission
 - list_parameters(dataset_id): Get available parameters for a dataset
 - fetch_data(dataset_id, parameter_id, time_range): Pull data into memory (label: "DATASET.PARAM")
-- custom_operation(source_label, pandas_code, output_label, description): pandas/numpy transformation
+- custom_operation(source_labels, pandas_code, output_label, description): pandas/numpy transformation (source_labels is an array)
 - store_dataframe(pandas_code, output_label, description): Create DataFrame from scratch
 - describe_data(label): Statistical summary of in-memory data
 - plot_data(labels): Plot data from memory (comma-separated labels)
@@ -966,7 +999,7 @@ Describe the physical quantity needed instead (e.g., "magnetic field vector", "p
 
 Every fetch instruction MUST describe the physical quantity needed and time range.
 Do NOT include specific parameter names — the mission agent selects parameters.
-Every custom_operation instruction MUST include the exact source_label.
+Every custom_operation instruction MUST include the exact source_labels (array of label strings).
 Every visualization instruction MUST start with "Use plot_data to plot ...".
 
 Example instructions:

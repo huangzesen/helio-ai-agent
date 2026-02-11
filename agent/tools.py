@@ -203,13 +203,16 @@ The data is stored in memory with a label like 'AC_H2_MFI.BGSEc' for later refer
         "description": """Apply a pandas/numpy operation to an in-memory timeseries. This is the universal compute tool — use it for ALL data transformations after fetching data with fetch_data.
 
 The pandas_code must:
-- Operate on `df` (a pandas DataFrame with DatetimeIndex)
 - Assign the result to `result` (must be a DataFrame or Series with DatetimeIndex)
-- Use only `df`, `pd` (pandas), and `np` (numpy) — no imports, no file I/O
+- Use only sandbox variables, `pd` (pandas), and `np` (numpy) — no imports, no file I/O
 
-Common operations:
+Each source label becomes a named variable in the sandbox:
+- Variable name: `df_<SUFFIX>` where SUFFIX is the part after the last '.' (e.g., 'DATASET.BR' → df_BR)
+- If label has no '.', the full label is used as suffix (e.g., 'Bmag' → df_Bmag)
+- The first source is also aliased as `df` for backward compatibility
+
+Single-source operations (one-element array):
 - Magnitude: `result = df.pow(2).sum(axis=1, skipna=False).pow(0.5).to_frame('magnitude')`
-- Arithmetic: `result = df * 2` or `result = df_a + df_b` (use pd.DataFrame constructor for second operand)
 - Running average: `result = df.rolling(60, center=True, min_periods=1).mean()`
 - Resample: `result = df.resample('60s').mean().dropna(how='all')`
 - Difference: `result = df.diff().iloc[1:]`
@@ -224,13 +227,22 @@ Common operations:
 - Cumulative sum: `result = df.cumsum()`
 - Z-score filter: `z = (df - df.mean()) / df.std(); result = df[z.abs() < 3].reindex(df.index)`
 
+Multi-source operations (multiple labels):
+- Magnitude from separate components:
+  source_labels=['DATASET.BR', 'DATASET.BT', 'DATASET.BN']
+  Code: `merged = pd.concat([df_BR, df_BT, df_BN], axis=1); result = merged.pow(2).sum(axis=1, skipna=False).pow(0.5).to_frame('magnitude')`
+- Cross-cadence merge:
+  source_labels=['DATASET_HOURLY.Bmag', 'DATASET_DAILY.density']
+  Code: `density_hr = df_density.resample('1h').interpolate(); merged = pd.concat([df_Bmag, density_hr], axis=1); result = merged.dropna()`
+
 Do NOT call this tool when the request cannot be expressed as a pandas/numpy operation (e.g., "email me the data", "upload to server"). Instead, explain to the user what is and isn't possible.""",
         "parameters": {
             "type": "object",
             "properties": {
-                "source_label": {
-                    "type": "string",
-                    "description": "Label of the source timeseries in memory"
+                "source_labels": {
+                    "type": "array",
+                    "items": {"type": "string"},
+                    "description": "Labels of source timeseries in memory. Each becomes a sandbox variable: df_<SUFFIX> where SUFFIX is the part after the last '.' (e.g., 'DATASET.BR' → df_BR). First label also available as 'df'. For single-source ops, pass one-element array."
                 },
                 "pandas_code": {
                     "type": "string",
@@ -249,7 +261,7 @@ Do NOT call this tool when the request cannot be expressed as a pandas/numpy ope
                     "description": "Physical units of the result (e.g., 'nT', 'km/s', 'nT/s', 'cm^-3'). If omitted, inherits from source. Set explicitly when the operation changes dimensions (e.g., derivative adds '/s', multiply changes units, normalize produces dimensionless '')."
                 }
             },
-            "required": ["source_label", "pandas_code", "output_label", "description"]
+            "required": ["source_labels", "pandas_code", "output_label", "description"]
         }
     },
 
@@ -567,7 +579,32 @@ Use this for titles, axis labels, log scale, colors, line styles, canvas size, a
                 },
                 "vlines": {
                     "type": "array",
-                    "items": {"type": "object"},
+                    "items": {
+                        "type": "object",
+                        "properties": {
+                            "x": {
+                                "type": "string",
+                                "description": "Timestamp string for the vertical line position (required)"
+                            },
+                            "label": {
+                                "type": "string",
+                                "description": "Text label displayed at the top of the line"
+                            },
+                            "color": {
+                                "type": "string",
+                                "description": "Line color (default: 'red')"
+                            },
+                            "dash": {
+                                "type": "string",
+                                "description": "Line dash style: 'solid', 'dash', 'dot', 'dashdot'"
+                            },
+                            "width": {
+                                "type": "number",
+                                "description": "Line width in pixels (default: 1.5)"
+                            }
+                        },
+                        "required": ["x"]
+                    },
                     "description": "Vertical lines: [{x, label, color, dash, width}, ...]. x is a timestamp string."
                 }
             },

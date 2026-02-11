@@ -155,6 +155,129 @@ def _validate_dataframe_result(result: object, datetime_index_hint: str = "") ->
     return result
 
 
+def execute_multi_source_operation(sources: dict[str, pd.DataFrame], code: str) -> pd.DataFrame:
+    """Execute validated pandas code with multiple source DataFrames.
+
+    Each source is available in the sandbox by its key (e.g., 'df_BR').
+    The first source is also aliased as 'df' for backward compatibility.
+
+    Args:
+        sources: Mapping of variable names to DataFrames (e.g., {'df_BR': df1, 'df_BT': df2}).
+        code: Validated Python code that assigns to 'result'.
+
+    Returns:
+        Result DataFrame with DatetimeIndex.
+
+    Raises:
+        RuntimeError: If code execution fails.
+        ValueError: If result is not a DataFrame/Series or loses DatetimeIndex.
+    """
+    namespace = {"pd": pd, "np": np, "result": None}
+    first_key = None
+    for key, df in sources.items():
+        df = df.copy()
+        if not isinstance(df.index, pd.DatetimeIndex):
+            df.index = pd.to_datetime(df.index)
+        namespace[key] = df
+        if first_key is None:
+            first_key = key
+            namespace["df"] = df
+
+    result = _execute_in_sandbox(code, namespace)
+    return _validate_dataframe_result(result)
+
+
+def validate_result(result_df: pd.DataFrame, sources: dict[str, pd.DataFrame]) -> list[str]:
+    """Validate a computation result against its sources for common pitfalls.
+
+    Checks:
+    1. NaN-to-zero: result has zeros where sources have NaN (skipna issue)
+    2. Row count anomaly: result has significantly more rows than largest source
+    3. Constant output: result is constant when sources are not
+
+    Args:
+        result_df: The computation result.
+        sources: The source DataFrames used (keyed by sandbox variable name).
+
+    Returns:
+        List of warning strings. Empty list means no issues detected.
+    """
+    warnings = []
+
+    # Check 1: NaN-to-zero — zeros in result coinciding with NaN in sources
+    result_zeros = (result_df == 0.0)
+    for var_name, src_df in sources.items():
+        src_nan_times = src_df.index[src_df.isna().any(axis=1)]
+        if len(src_nan_times) == 0:
+            continue
+        overlap = result_df.index.intersection(src_nan_times)
+        if len(overlap) == 0:
+            continue
+        zero_at_nan = result_zeros.loc[overlap].any(axis=1).sum()
+        if zero_at_nan > 0:
+            warnings.append(
+                f"Result has {zero_at_nan} zeros coinciding with NaN in "
+                f"source '{var_name}' — possible skipna issue"
+            )
+
+    # Check 2: Row count anomaly
+    if sources:
+        max_source_rows = max(len(df) for df in sources.values())
+        if max_source_rows > 0 and len(result_df) > max_source_rows * 1.1:
+            warnings.append(
+                f"Result has {len(result_df)} rows vs largest source "
+                f"{max_source_rows} — unexpected expansion"
+            )
+
+    # Check 3: Constant output from non-constant sources
+    for col in result_df.columns:
+        col_data = result_df[col].dropna()
+        if len(col_data) < 2:
+            continue
+        if col_data.std() == 0:
+            # Check if any source is non-constant
+            any_source_varies = any(
+                src_df.std().max() > 0 for src_df in sources.values()
+            )
+            if any_source_varies:
+                warnings.append(
+                    f"Result column '{col}' is constant "
+                    f"(value={col_data.iloc[0]}) — possible fill value "
+                    f"or collapsed computation"
+                )
+
+    return warnings
+
+
+def run_multi_source_operation(
+    sources: dict[str, pd.DataFrame], code: str
+) -> tuple[pd.DataFrame, list[str]]:
+    """Validate code, execute with multiple sources, then validate result.
+
+    Convenience function combining code validation, multi-source execution,
+    and result validation.
+
+    Args:
+        sources: Mapping of variable names to source DataFrames.
+        code: Python code that operates on named DataFrames and assigns to 'result'.
+
+    Returns:
+        Tuple of (result DataFrame, list of warning strings).
+
+    Raises:
+        ValueError: If code validation fails or result is invalid.
+        RuntimeError: If execution fails.
+    """
+    violations = validate_pandas_code(code)
+    if violations:
+        raise ValueError(
+            "Code validation failed:\n" + "\n".join(f"  - {v}" for v in violations)
+        )
+    result_df = execute_multi_source_operation(sources, code)
+    warnings = validate_result(result_df, sources)
+    return result_df, warnings
+
+
 def execute_custom_operation(df: pd.DataFrame, code: str) -> pd.DataFrame:
     """Execute validated pandas code in a restricted namespace.
 
