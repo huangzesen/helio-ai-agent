@@ -515,17 +515,23 @@ class OrchestratorAgent:
     def _handle_plot_data(self, tool_args: dict) -> dict:
         """Handle the plot_data tool call."""
         store = get_store()
-        # Derive labels from panels if labels not explicitly provided
-        labels_str = tool_args.get("labels", "")
-        if not labels_str and tool_args.get("panels"):
-            labels_str = ",".join(
-                label for panel in tool_args["panels"] for label in panel
-            )
-        if not labels_str:
-            return {"status": "error", "message": "Missing 'labels' parameter"}
-        labels = [l.strip() for l in labels_str.split(",")]
+        panels = tool_args.get("panels")
+
+        # When panels are provided, use them as the authoritative label source
+        # (the LLM often dumps ALL store labels into 'labels', including
+        # 0-point entries that aren't actually being plotted).
+        if panels:
+            panel_labels = list(dict.fromkeys(          # dedupe, preserve order
+                label for panel in panels for label in panel
+            ))
+        else:
+            labels_str = tool_args.get("labels", "")
+            if not labels_str:
+                return {"status": "error", "message": "Missing 'labels' parameter"}
+            panel_labels = [l.strip() for l in labels_str.split(",")]
+
         entries = []
-        for label in labels:
+        for label in panel_labels:
             entry, _ = self._resolve_entry(store, label)
             if entry is None:
                 return {"status": "error", "message": f"Label '{label}' not found in memory"}

@@ -685,6 +685,10 @@ class PlotlyRenderer:
                     axis_type = "log" if scale_type in ("log", "y") else "linear"
                     row, col = self._panel_to_rowcol(int(panel_str))
                     fig.update_yaxes(type=axis_type, row=row, col=col)
+            elif isinstance(log_scale, int):
+                # Integer = panel number to apply log scale to
+                row, col = self._panel_to_rowcol(log_scale)
+                fig.update_yaxes(type="log", row=row, col=col)
             elif log_scale == "y":
                 for row in range(1, self._panel_count + 1):
                     for c in range(1, self._column_count + 1):

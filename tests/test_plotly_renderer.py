@@ -81,6 +81,23 @@ class TestPlotData:
         assert result["status"] == "error"
         assert "no data points" in result["message"]
 
+    def test_empty_entry_among_valid_still_errors(self, renderer):
+        """A 0-point entry passed in entries list should still error.
+
+        The fix for issue 1 is in _handle_plot_data (core.py) which now
+        only passes panel-referenced entries to the renderer.  But if a
+        0-point entry *does* slip through, the renderer must still catch it.
+        """
+        good = _make_entry("A", n=10)
+        empty = DataEntry(
+            label="empty",
+            data=pd.DataFrame({"v": pd.Series(dtype=float)},
+                              index=pd.DatetimeIndex([], name="time")),
+        )
+        result = renderer.plot_data([good, empty], panels=[["A"], ["empty"]])
+        assert result["status"] == "error"
+        assert "no data points" in result["message"]
+
     def test_multi_panel(self, renderer):
         e1 = _make_entry("A", n=10, desc="Alpha")
         e2 = _make_entry("B", n=10, desc="Beta")
@@ -273,6 +290,18 @@ class TestStyle:
         result = renderer.style(log_scale="y")
         assert result["status"] == "success"
         assert renderer.get_figure().layout.yaxis.type == "log"
+
+    def test_style_log_scale_int_panel(self, renderer):
+        """Integer log_scale should apply log to that panel number."""
+        e1 = _make_entry("A", n=10)
+        e2 = _make_entry("B", n=10)
+        renderer.plot_data([e1, e2], panels=[["A"], ["B"]])
+        result = renderer.style(log_scale=1)
+        assert result["status"] == "success"
+        fig = renderer.get_figure()
+        # Panel 1 (row 1) should be log, panel 2 (row 2) should remain linear
+        assert fig.layout.yaxis.type == "log"
+        assert fig.layout.yaxis2.type != "log"
 
     def test_style_canvas_size(self, renderer):
         renderer.plot_data([_make_entry("x")])
