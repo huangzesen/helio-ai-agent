@@ -93,8 +93,15 @@ class BaseSubAgent:
         self._api_calls += 1
         if self.verbose:
             from .thinking import extract_thoughts
+            from .logging import tagged
             for thought in extract_thoughts(response):
+                # Full text to terminal/file (untagged)
                 self.logger.debug(f"[Thinking] {thought}")
+                # Truncated preview to Gradio (tagged)
+                preview = thought[:1000]
+                if len(thought) > 1000:
+                    preview += "..."
+                self.logger.debug(f"[Thinking] {preview}", extra=tagged("thinking"))
 
     def get_token_usage(self) -> dict:
         """Return cumulative token usage for this agent."""

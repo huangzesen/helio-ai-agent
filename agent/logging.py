@@ -18,6 +18,24 @@ from typing import Optional
 # Log directory
 LOG_DIR = Path.home() / ".helio-agent" / "logs"
 
+# Tags that the Gradio live-log handler will display.
+# To show a new category in Gradio, tag the log call with
+# ``extra=tagged("my_tag")`` and add ``"my_tag"`` here.
+GRADIO_VISIBLE_TAGS = frozenset({
+    "delegation",       # "[Router] Delegating to X specialist"
+    "delegation_done",  # "[Router] X specialist finished"
+    "plan_event",       # Plan created / completed / failed
+    "plan_task",        # Plan task executing / round progress
+    "data_fetched",     # "[DataOps] Stored 'label' (N points)"
+    "thinking",         # "[Thinking] ..." (truncated preview)
+})
+
+
+def tagged(tag: str) -> dict:
+    """Return ``extra`` dict for logger calls: ``logger.debug("...", extra=tagged("x"))``."""
+    return {"log_tag": tag}
+
+
 # Module-level state (shared across re-inits)
 _session_filter: Optional["_SessionFilter"] = None
 _current_log_file: Optional[Path] = None
@@ -32,6 +50,8 @@ class _SessionFilter(logging.Filter):
 
     def filter(self, record: logging.LogRecord) -> bool:
         record.session_id = self.session_id or "-"
+        if not hasattr(record, "log_tag"):
+            record.log_tag = ""
         return True
 
 
@@ -202,7 +222,7 @@ def log_plan_event(event: str, plan_id: str, details: Optional[str] = None) -> N
     msg = f"Plan {event}: {plan_id[:8]}..."
     if details:
         msg += f" - {details}"
-    logger.info(msg)
+    logger.info(msg, extra=tagged("plan_event"))
 
 
 def log_session_end(token_usage: dict) -> None:

@@ -170,9 +170,15 @@ class PlannerAgent:
             self._token_usage["thinking_tokens"] += getattr(meta, "thoughts_token_count", 0) or 0
         if self.verbose:
             from .thinking import extract_thoughts
+            from .logging import tagged
             for thought in extract_thoughts(response):
-                preview = thought[:200] + "..." if len(thought) > 200 else thought
-                logger.debug(f"[Thinking] {preview}")
+                # Full text to terminal/file (untagged)
+                logger.debug(f"[Thinking] {thought}")
+                # Truncated preview to Gradio (tagged)
+                preview = thought[:1000]
+                if len(thought) > 1000:
+                    preview += "..."
+                logger.debug(f"[Thinking] {preview}", extra=tagged("thinking"))
 
     def _parse_response(self, response) -> Optional[dict]:
         """Parse JSON response from Gemini, normalizing mission fields.

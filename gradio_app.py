@@ -24,6 +24,8 @@ from pathlib import Path
 import gradio as gr
 import pandas as pd
 
+from agent.logging import GRADIO_VISIBLE_TAGS
+
 
 # ---------------------------------------------------------------------------
 # Globals (initialized in main())
@@ -672,18 +674,12 @@ def _get_autocomplete_candidates() -> list[str]:
 class _ListHandler(logging.Handler):
     """Logging handler that filters log lines for Gradio display.
 
-    Shows thinking/reasoning, plan steps, data operations, and errors.
-    Tool calls and internal plumbing go to the terminal only.
+    Uses tag-based filtering: only records whose ``log_tag`` attribute
+    is in ``GRADIO_VISIBLE_TAGS`` (plus all WARNING/ERROR) are shown.
+    To add a new category, tag the logger call with
+    ``extra=tagged("my_tag")`` and add the tag to ``GRADIO_VISIBLE_TAGS``
+    in ``agent/logging.py``.
     """
-
-    _KEY_PREFIXES = (
-        "[Thinking]", "[Plan]", "[DataOps]", "[Search]",
-        "[Delegation Failed]",
-        "Plan completed:", "Plan failed:",
-    )
-    _KEY_SUBSTRINGS = (
-        "Executing:", "Completed:", "Progress:", "Round ",
-    )
 
     def __init__(self, target_list: list):
         super().__init__(level=logging.DEBUG)
@@ -692,17 +688,15 @@ class _ListHandler(logging.Handler):
 
     def emit(self, record: logging.LogRecord) -> None:
         msg = self.format(record)
-        stripped = msg.strip()
-        if not stripped:
+        if not msg.strip():
             return
         # Always include warnings/errors
         if record.levelno >= logging.WARNING:
             self._target.append(msg)
             return
-        # Filter to thinking, plan events, data ops, progress
-        if any(stripped.startswith(p) for p in self._KEY_PREFIXES):
-            self._target.append(msg)
-        elif any(s in stripped for s in self._KEY_SUBSTRINGS):
+        # Show only tagged records whose tag is in the visible set
+        tag = getattr(record, "log_tag", "")
+        if tag in GRADIO_VISIBLE_TAGS:
             self._target.append(msg)
 
 

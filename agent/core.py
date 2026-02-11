@@ -31,7 +31,7 @@ from .data_extraction_agent import DataExtractionAgent
 from .logging import (
     setup_logging, get_logger, log_error, log_tool_call,
     log_tool_result, log_plan_event, log_session_end,
-    set_session_id,
+    set_session_id, tagged,
 )
 from .memory_agent import MemoryAgent
 from .loop_guard import LoopGuard, make_call_key
@@ -215,7 +215,13 @@ class OrchestratorAgent:
         if self.verbose:
             from .thinking import extract_thoughts
             for thought in extract_thoughts(response):
+                # Full text to terminal/file (untagged)
                 self.logger.debug(f"[Thinking] {thought}")
+                # Truncated preview to Gradio (tagged)
+                preview = thought[:1000]
+                if len(thought) > 1000:
+                    preview += "..."
+                self.logger.debug(f"[Thinking] {preview}", extra=tagged("thinking"))
 
     def _send_message(self, message):
         """Send a message on self.chat with automatic model fallback on 429."""
@@ -523,6 +529,10 @@ class OrchestratorAgent:
             result = self._renderer.style(**tool_args)
         except Exception as e:
             return {"status": "error", "message": str(e)}
+
+        for w in result.get("warnings", []):
+            self.logger.debug(f"[StyleWarning] {w}")
+
         return result
 
     def _handle_manage_plot(self, tool_args: dict) -> dict:
@@ -836,8 +846,18 @@ class OrchestratorAgent:
                 source=DATA_BACKEND,
             )
             store.put(entry)
-            self.logger.debug(f"[DataOps] Stored '{label}' ({len(entry.time)} points)")
+            self.logger.debug(f"[DataOps] Stored '{label}' ({len(entry.time)} points)", extra=tagged("data_fetched"))
             response = {"status": "success", **entry.summary()}
+
+            # Warn about very large datasets that may cause slow operations
+            n_points = len(df)
+            if n_points > 500_000:
+                response["size_warning"] = (
+                    f"Very large dataset ({n_points:,} points). "
+                    f"Consider using a shorter time range or a lower-cadence dataset "
+                    f"to avoid slow downstream operations."
+                )
+
             if adjustment_note:
                 response["time_range_note"] = adjustment_note
 
@@ -1182,7 +1202,7 @@ class OrchestratorAgent:
         elif tool_name == "delegate_to_mission":
             mission_id = tool_args["mission_id"]
             request = tool_args["request"]
-            self.logger.debug(f"[Router] Delegating to {mission_id} specialist")
+            self.logger.debug(f"[Router] Delegating to {mission_id} specialist", extra=tagged("delegation"))
             try:
                 agent = self._get_or_create_mission_agent(mission_id)
                 # Inject current data store contents so mission agent knows what's loaded
@@ -1201,6 +1221,7 @@ class OrchestratorAgent:
                 sub_result = agent.process_request(request)
                 result = self._wrap_delegation_result(sub_result)
                 result["mission"] = mission_id
+                self.logger.debug(f"[Router] {mission_id} specialist finished", extra=tagged("delegation_done"))
                 return result
             except (KeyError, FileNotFoundError):
                 return {
@@ -1211,7 +1232,7 @@ class OrchestratorAgent:
         elif tool_name == "delegate_to_visualization":
             request = tool_args["request"]
             context = tool_args.get("context", "")
-            self.logger.debug("[Router] Delegating to Visualization specialist")
+            self.logger.debug("[Router] Delegating to Visualization specialist", extra=tagged("delegation"))
 
             # Intercept export requests — handle directly, no LLM needed
             req_lower = request.lower()
@@ -1238,24 +1259,27 @@ class OrchestratorAgent:
             agent = self._get_or_create_viz_agent()
             full_request = f"{request}\n\nContext: {context}" if context else request
             sub_result = agent.process_request(full_request)
+            self.logger.debug("[Router] Visualization specialist finished", extra=tagged("delegation_done"))
             return self._wrap_delegation_result(sub_result)
 
         elif tool_name == "delegate_to_data_ops":
             request = tool_args["request"]
             context = tool_args.get("context", "")
-            self.logger.debug("[Router] Delegating to DataOps specialist")
+            self.logger.debug("[Router] Delegating to DataOps specialist", extra=tagged("delegation"))
             agent = self._get_or_create_dataops_agent()
             full_request = f"{request}\n\nContext: {context}" if context else request
             sub_result = agent.process_request(full_request)
+            self.logger.debug("[Router] DataOps specialist finished", extra=tagged("delegation_done"))
             return self._wrap_delegation_result(sub_result)
 
         elif tool_name == "delegate_to_data_extraction":
             request = tool_args["request"]
             context = tool_args.get("context", "")
-            self.logger.debug("[Router] Delegating to DataExtraction specialist")
+            self.logger.debug("[Router] Delegating to DataExtraction specialist", extra=tagged("delegation"))
             agent = self._get_or_create_data_extraction_agent()
             full_request = f"{request}\n\nContext: {context}" if context else request
             sub_result = agent.process_request(full_request)
+            self.logger.debug("[Router] DataExtraction specialist finished", extra=tagged("delegation_done"))
             return self._wrap_delegation_result(sub_result)
 
         elif tool_name == "recall_memories":
@@ -1563,7 +1587,7 @@ class OrchestratorAgent:
             plan: The parent plan (for logging context)
         """
         mission_tag = f" [{task.mission}]" if task.mission else ""
-        self.logger.debug(f"[Plan]{mission_tag}: {task.description}")
+        self.logger.debug(f"[Plan]{mission_tag}: {task.description}", extra=tagged("plan_task"))
 
         # Inject canonical time range so all tasks use the same dates
         if self._plan_time_range:
@@ -1771,7 +1795,8 @@ class OrchestratorAgent:
 
             self.logger.debug(
                 f"[PlannerAgent] Round {round_num}: {len(new_tasks)} tasks "
-                f"(status={response['status']})"
+                f"(status={response['status']})",
+                extra=tagged("plan_task"),
             )
             self.logger.debug(format_plan_for_display(plan))
 
@@ -2459,7 +2484,7 @@ Example: ["Compare this with solar wind speed", "Zoom in to January 10-15", "Exp
             plan.current_task_index = i
             store.save(plan)
 
-            self.logger.debug(f"[Plan] Resuming step {i+1}/{len(plan.tasks)}: {task.description}")
+            self.logger.debug(f"[Plan] Resuming step {i+1}/{len(plan.tasks)}: {task.description}", extra=tagged("plan_task"))
 
             self._execute_task(task)
             store.save(plan)
