@@ -437,15 +437,28 @@ class PlannerAgent:
                     line += f" | Error: {r['error']}"
                 lines.append(line)
 
-            # Include current data-store state so planner avoids redundant tasks
-            data_labels = None
+            # Include current data-store state so planner can make informed decisions
+            data_details = None
             for r in round_results:
                 if r.get("data_in_memory"):
-                    data_labels = r["data_in_memory"]
+                    data_details = r["data_in_memory"]
                     break
-            if data_labels:
-                lines.append(f"\nData currently in memory: {', '.join(data_labels)}")
-                logger.debug(f"[DataOps] Data currently in memory: {', '.join(data_labels)}")
+            if data_details:
+                lines.append("\nData currently in memory:")
+                for d in data_details:
+                    if isinstance(d, dict):
+                        cols = d.get("columns", [])
+                        cols_str = f", columns={cols}" if cols else ""
+                        lines.append(
+                            f"  - {d['label']} ({d.get('shape', '?')}, "
+                            f"{d.get('num_points', '?')} pts, "
+                            f"units={d.get('units', '?')}{cols_str})"
+                        )
+                    else:
+                        # Backward compat: flat label string
+                        lines.append(f"  - {d}")
+                label_names = [d["label"] if isinstance(d, dict) else d for d in data_details]
+                logger.debug(f"[Planner] Data in memory: {', '.join(label_names)}")
 
             # Collect ALL failed task descriptions (current + previous rounds)
             failed_descs = []

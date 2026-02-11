@@ -292,13 +292,46 @@ class BaseSubAgent:
             self.logger.warning(f"[{self.agent_name}] Failed: {e}")
             return {"text": f"Error processing request: {e}", "failed": True, "errors": [str(e)]}
 
+    @staticmethod
+    def _summarize_tool_outcome(tool_name: str, result: dict) -> dict:
+        """Extract key fields from a tool result for structured tracking."""
+        outcome = {"tool": tool_name, "status": result.get("status", "unknown")}
+        # Capture the most informative fields from common tools
+        for key in ("label", "num_points", "columns", "shape", "units",
+                     "message", "nan_percentage", "quality_warning",
+                     "time_range_note", "count"):
+            if key in result:
+                outcome[key] = result[key]
+        return outcome
+
+    @staticmethod
+    def _build_outcome_summary(tool_outcomes: list[dict]) -> str:
+        """Build a concise text summary from structured tool outcomes."""
+        parts = []
+        for o in tool_outcomes:
+            s = f"{o['tool']}={o['status']}"
+            if o.get("label"):
+                s += f"(label={o['label']}"
+                if o.get("num_points"):
+                    s += f", {o['num_points']} pts"
+                if o.get("units"):
+                    s += f", {o['units']}"
+                s += ")"
+            elif o.get("message") and o["status"] == "error":
+                msg = str(o["message"])[:100]
+                s += f"({msg})"
+            parts.append(s)
+        return "Outcomes: " + "; ".join(parts)
+
     def execute_task(self, task: Task) -> str:
         """Execute a single task with forced function calling.
 
         Creates a fresh chat session for each task to avoid context pollution.
+        Collects structured tool results in task.tool_results for downstream use.
         """
         task.status = TaskStatus.IN_PROGRESS
         task.tool_calls = []
+        task.tool_results = []
 
         self.logger.debug(f"[{self.agent_name}] Executing: {task.description}")
 
@@ -362,6 +395,9 @@ class BaseSubAgent:
                     task.tool_calls.append(tool_name)
                     result = self.tool_executor(tool_name, tool_args)
 
+                    # Collect structured outcome for downstream use
+                    task.tool_results.append(self._summarize_tool_outcome(tool_name, result))
+
                     if result.get("status") == "success":
                         had_successful_tool = True
                     elif result.get("status") == "error":
@@ -396,7 +432,14 @@ class BaseSubAgent:
                     if hasattr(part, "text") and part.text:
                         text_parts.append(part.text)
 
-            result_text = "\n".join(text_parts) if text_parts else "Done."
+            result_text = "\n".join(text_parts) if text_parts else ""
+
+            # If LLM produced no text, build a structured summary from tool outcomes
+            if not result_text and task.tool_results:
+                result_text = self._build_outcome_summary(task.tool_results)
+
+            if not result_text:
+                result_text = "Done."
 
             if last_stop_reason:
                 if last_stop_reason == "cancelled by user":

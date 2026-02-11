@@ -50,6 +50,7 @@ class Task:
     result: Optional[str] = None
     error: Optional[str] = None
     tool_calls: list[str] = field(default_factory=list)
+    tool_results: list[dict] = field(default_factory=list)
     round: int = 0
     candidate_datasets: Optional[list[str]] = None
 
@@ -65,6 +66,7 @@ class Task:
             "result": self.result,
             "error": self.error,
             "tool_calls": self.tool_calls,
+            "tool_results": self.tool_results,
             "round": self.round,
             "candidate_datasets": self.candidate_datasets,
         }
@@ -82,6 +84,7 @@ class Task:
             result=data.get("result"),
             error=data.get("error"),
             tool_calls=data.get("tool_calls", []),
+            tool_results=data.get("tool_results", []),
             round=data.get("round", 0),
             candidate_datasets=data.get("candidate_datasets") or (
                 [data["dataset_id"]] if data.get("dataset_id") else None

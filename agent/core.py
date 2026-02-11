@@ -885,10 +885,15 @@ class OrchestratorAgent:
                 return {"status": "error", "message": f"Label '{tool_args['source_label']}' not found"}
             try:
                 result_df = run_custom_operation(source.data, tool_args["pandas_code"])
-            except ValueError as e:
-                return {"status": "error", "message": f"Validation error: {e}"}
-            except RuntimeError as e:
-                return {"status": "error", "message": f"Execution error: {e}"}
+            except (ValueError, RuntimeError) as e:
+                prefix = "Validation error" if isinstance(e, ValueError) else "Execution error"
+                return {
+                    "status": "error",
+                    "message": f"{prefix}: {e}",
+                    "source_columns": list(source.data.columns),
+                    "source_shape": list(source.data.shape),
+                    "source_dtypes": {str(c): str(source.data[c].dtype) for c in source.data.columns},
+                }
             desc = tool_args.get("description", f"Custom operation on {source.label}")
             units = tool_args.get("units", source.units)
             entry = DataEntry(
@@ -928,10 +933,15 @@ class OrchestratorAgent:
                 return {"status": "error", "message": f"Label '{tool_args['source_label']}' not found"}
             try:
                 result_df = run_spectrogram_computation(source.data, tool_args["python_code"])
-            except ValueError as e:
-                return {"status": "error", "message": f"Validation error: {e}"}
-            except RuntimeError as e:
-                return {"status": "error", "message": f"Execution error: {e}"}
+            except (ValueError, RuntimeError) as e:
+                prefix = "Validation error" if isinstance(e, ValueError) else "Execution error"
+                return {
+                    "status": "error",
+                    "message": f"{prefix}: {e}",
+                    "source_columns": list(source.data.columns),
+                    "source_shape": list(source.data.shape),
+                    "source_dtypes": {str(c): str(source.data[c].dtype) for c in source.data.columns},
+                }
 
             metadata = {
                 "type": "spectrogram",
@@ -1219,7 +1229,8 @@ class OrchestratorAgent:
                         + "\nDo NOT re-fetch data that is already in memory with a matching label and time range."
                     )
                 sub_result = agent.process_request(request)
-                result = self._wrap_delegation_result(sub_result)
+                snapshot = get_store().list_entries()
+                result = self._wrap_delegation_result(sub_result, store_snapshot=snapshot)
                 result["mission"] = mission_id
                 self.logger.debug(f"[Router] {mission_id} specialist finished", extra=tagged("delegation_done"))
                 return result
@@ -1260,7 +1271,7 @@ class OrchestratorAgent:
             full_request = f"{request}\n\nContext: {context}" if context else request
             sub_result = agent.process_request(full_request)
             self.logger.debug("[Router] Visualization specialist finished", extra=tagged("delegation_done"))
-            return self._wrap_delegation_result(sub_result)
+            return self._wrap_delegation_result(sub_result, store_snapshot=get_store().list_entries())
 
         elif tool_name == "delegate_to_data_ops":
             request = tool_args["request"]
@@ -1270,7 +1281,7 @@ class OrchestratorAgent:
             full_request = f"{request}\n\nContext: {context}" if context else request
             sub_result = agent.process_request(full_request)
             self.logger.debug("[Router] DataOps specialist finished", extra=tagged("delegation_done"))
-            return self._wrap_delegation_result(sub_result)
+            return self._wrap_delegation_result(sub_result, store_snapshot=get_store().list_entries())
 
         elif tool_name == "delegate_to_data_extraction":
             request = tool_args["request"]
@@ -1280,7 +1291,7 @@ class OrchestratorAgent:
             full_request = f"{request}\n\nContext: {context}" if context else request
             sub_result = agent.process_request(full_request)
             self.logger.debug("[Router] DataExtraction specialist finished", extra=tagged("delegation_done"))
-            return self._wrap_delegation_result(sub_result)
+            return self._wrap_delegation_result(sub_result, store_snapshot=get_store().list_entries())
 
         elif tool_name == "recall_memories":
             query = tool_args.get("query", "")
@@ -1824,9 +1835,35 @@ class OrchestratorAgent:
                 # Append concrete outcome signals
                 new_labels = labels_after - labels_before
                 if new_labels:
-                    result_text += f" | New data labels: {', '.join(sorted(new_labels))}"
+                    # Include structured details for new labels
+                    new_label_parts = []
+                    for lbl in sorted(new_labels):
+                        entry_info = next(
+                            (e for e in get_store().list_entries() if e["label"] == lbl),
+                            None,
+                        )
+                        if entry_info:
+                            new_label_parts.append(
+                                f"{lbl} ({entry_info.get('shape', '?')}, "
+                                f"{entry_info.get('num_points', '?')} pts, "
+                                f"units={entry_info.get('units', '?')}, "
+                                f"columns={entry_info.get('columns', [])})"
+                            )
+                        else:
+                            new_label_parts.append(lbl)
+                    result_text += f" | New data: {'; '.join(new_label_parts)}"
                 elif task.status == TaskStatus.FAILED:
                     result_text += " | No new data added."
+
+                # Surface quality warnings from tool results
+                warnings = []
+                for tr in getattr(task, "tool_results", []):
+                    if tr.get("quality_warning"):
+                        warnings.append(f"{tr.get('label', '?')}: {tr['quality_warning']}")
+                    if tr.get("time_range_note"):
+                        warnings.append(tr["time_range_note"])
+                if warnings:
+                    result_text += f" | Warnings: {'; '.join(warnings)}"
 
                 round_results.append({
                     "description": task.description,
@@ -1841,10 +1878,16 @@ class OrchestratorAgent:
                 break
 
             # Append current store state so planner knows what data exists
-            store_labels = [e['label'] for e in get_store().list_entries()]
-            if store_labels:
+            store_entries = get_store().list_entries()
+            if store_entries:
+                store_details = [
+                    {"label": e["label"], "columns": e.get("columns", []),
+                     "shape": e.get("shape", ""), "units": e.get("units", ""),
+                     "num_points": e.get("num_points", 0)}
+                    for e in store_entries
+                ]
                 for r in round_results:
-                    r["data_in_memory"] = store_labels
+                    r["data_in_memory"] = store_details
 
             if response.get("status") == "done":
                 break
@@ -1986,11 +2029,16 @@ class OrchestratorAgent:
         return text
 
     @staticmethod
-    def _wrap_delegation_result(sub_result) -> dict:
+    def _wrap_delegation_result(sub_result, store_snapshot=None) -> dict:
         """Convert a sub-agent process_request result into a tool result dict.
 
         If the sub-agent reported failure (stopped due to errors/loops),
         return status='error' so the orchestrator knows not to retry.
+
+        Args:
+            sub_result: Dict from sub-agent's process_request ({text, failed, errors}).
+            store_snapshot: Optional list of store entry summaries to include,
+                so the orchestrator LLM sees concrete data state after delegation.
         """
         if isinstance(sub_result, dict):
             text = sub_result.get("text", "")
@@ -2004,12 +2052,22 @@ class OrchestratorAgent:
 
         if failed and errors:
             error_summary = "; ".join(errors[-3:])  # last 3 errors
-            return {
+            result = {
                 "status": "error",
                 "message": f"Sub-agent failed. Errors: {error_summary}",
                 "result": text,
             }
-        return {"status": "success", "result": text}
+        else:
+            result = {"status": "success", "result": text}
+
+        if store_snapshot is not None:
+            result["data_in_memory"] = [
+                {"label": e["label"], "columns": e.get("columns", []),
+                 "shape": e.get("shape", ""), "units": e.get("units", ""),
+                 "num_points": e.get("num_points", 0)}
+                for e in store_snapshot
+            ]
+        return result
 
     def _get_or_create_mission_agent(self, mission_id: str) -> MissionAgent:
         """Get a cached mission agent or create a new one."""
