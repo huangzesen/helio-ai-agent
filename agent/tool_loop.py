@@ -147,6 +147,12 @@ def run_tool_loop(
 
         # Feed results back to the model
         logger.debug(f"[{agent_name}] Sending {len(function_responses)} tool result(s) back...")
+        # Set tool context on the agent (if track_usage is a bound method)
+        if track_usage:
+            agent_obj = getattr(track_usage, "__self__", None)
+            if agent_obj and hasattr(agent_obj, "_last_tool_context"):
+                tool_names = [fc.name for fc in function_calls]
+                agent_obj._last_tool_context = "+".join(tool_names)
         response = chat.send_message(message=function_responses)
         if track_usage:
             track_usage(response)

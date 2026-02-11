@@ -31,7 +31,7 @@ from .data_extraction_agent import DataExtractionAgent
 from .logging import (
     setup_logging, get_logger, log_error, log_tool_call,
     log_tool_result, log_plan_event, log_session_end,
-    set_session_id, tagged,
+    set_session_id, tagged, log_token_usage,
 )
 from .memory_agent import MemoryAgent
 from .loop_guard import LoopGuard, make_call_key
@@ -53,7 +53,7 @@ from data_ops.custom_ops import run_custom_operation, run_multi_source_operation
 
 # Orchestrator sees discovery, web search, conversation, and routing tools
 # (NOT data fetching or data_ops — handled by sub-agents)
-ORCHESTRATOR_CATEGORIES = ["discovery", "web_search", "conversation", "routing", "document", "memory"]
+ORCHESTRATOR_CATEGORIES = ["discovery", "web_search", "conversation", "routing", "document", "memory", "data_export"]
 ORCHESTRATOR_EXTRA_TOOLS = ["list_fetched_data", "preview_data"]
 
 DEFAULT_MODEL = GEMINI_MODEL
@@ -147,6 +147,7 @@ class OrchestratorAgent:
         self._total_output_tokens = 0
         self._total_thinking_tokens = 0
         self._api_calls = 0
+        self._last_tool_context = "send_message"
 
         # Current plan being executed (if any)
         self._current_plan: Optional[TaskPlan] = None
@@ -207,11 +208,28 @@ class OrchestratorAgent:
     def _track_usage(self, response):
         """Accumulate token usage from a Gemini response."""
         meta = getattr(response, "usage_metadata", None)
+        call_input = 0
+        call_output = 0
+        call_thinking = 0
         if meta:
-            self._total_input_tokens += getattr(meta, "prompt_token_count", 0) or 0
-            self._total_output_tokens += getattr(meta, "candidates_token_count", 0) or 0
-            self._total_thinking_tokens += getattr(meta, "thoughts_token_count", 0) or 0
+            call_input = getattr(meta, "prompt_token_count", 0) or 0
+            call_output = getattr(meta, "candidates_token_count", 0) or 0
+            call_thinking = getattr(meta, "thoughts_token_count", 0) or 0
+            self._total_input_tokens += call_input
+            self._total_output_tokens += call_output
+            self._total_thinking_tokens += call_thinking
         self._api_calls += 1
+        log_token_usage(
+            agent_name="OrchestratorAgent",
+            input_tokens=call_input,
+            output_tokens=call_output,
+            thinking_tokens=call_thinking,
+            cumulative_input=self._total_input_tokens,
+            cumulative_output=self._total_output_tokens,
+            cumulative_thinking=self._total_thinking_tokens,
+            api_calls=self._api_calls,
+            tool_context=self._last_tool_context,
+        )
         if self.verbose:
             from .thinking import extract_thoughts
             for thought in extract_thoughts(response):
@@ -283,6 +301,7 @@ class OrchestratorAgent:
                 contents=query,
                 config=search_config,
             )
+            self._last_tool_context = "google_search"
             self._track_usage(response)
 
             # Extract text
@@ -515,14 +534,23 @@ class OrchestratorAgent:
 
     def _handle_style_plot(self, tool_args: dict) -> dict:
         """Handle the style_plot tool call."""
+        import ast
         # Parse y_label dict string: "{1: 'B (nT)', 2: '...'}" -> dict
         y_label = tool_args.get("y_label")
         if isinstance(y_label, str) and y_label.strip().startswith("{"):
             try:
-                import ast
                 parsed = ast.literal_eval(y_label)
                 if isinstance(parsed, dict):
                     tool_args = {**tool_args, "y_label": parsed}
+            except (ValueError, SyntaxError):
+                pass
+        # Parse log_scale dict string: "{'4': 'log', '5': 'log'}" -> dict
+        log_scale = tool_args.get("log_scale")
+        if isinstance(log_scale, str) and log_scale.strip().startswith("{"):
+            try:
+                parsed = ast.literal_eval(log_scale)
+                if isinstance(parsed, dict):
+                    tool_args = {**tool_args, "log_scale": parsed}
             except (ValueError, SyntaxError):
                 pass
         try:
@@ -914,8 +942,21 @@ class OrchestratorAgent:
             for w in warnings:
                 self.logger.debug(f"[DataOpsValidation] {w}")
 
+            # Warn on empty or all-NaN results (P0-1 symptom)
+            if len(result_df) == 0:
+                warnings.append("Result has 0 data points — possible time range mismatch or all-NaN input")
+                self.logger.warning(f"[DataOps] custom_operation produced 0 points for '{tool_args['output_label']}'")
+            elif result_df.isna().all(axis=None):
+                warnings.append("Result is entirely NaN — check source data overlap and computation logic")
+                self.logger.warning(f"[DataOps] custom_operation produced all-NaN for '{tool_args['output_label']}'")
+
             self.logger.debug(f"[DataOps] Custom operation -> '{tool_args['output_label']}' ({len(result_df)} points)")
-            result = {"status": "success", **entry.summary(), "source_info": describe_sources(store, labels)}
+            result = {
+                "status": "success",
+                **entry.summary(),
+                "source_info": describe_sources(store, labels),
+                "available_variables": list(sources.keys()) + ["df"],
+            }
             if warnings:
                 result["warnings"] = warnings
             return result
@@ -1175,6 +1216,7 @@ class OrchestratorAgent:
                     model=get_active_model(self.model_name),
                     contents=[doc_part, extraction_prompt],
                 )
+                self._last_tool_context = "extract_document"
                 self._track_usage(response)
 
                 full_text = response.text or ""
@@ -1426,6 +1468,7 @@ class OrchestratorAgent:
                 "- Do NOT delegate to other agents unless the instruction explicitly asks for it.\n"
                 "- Return results as concise text, not as tool calls."
             )
+            self._last_tool_context = "task:" + task.description[:50]
             response = task_chat.send_message(task_prompt)
             self._track_usage(response)
 
@@ -1492,6 +1535,8 @@ class OrchestratorAgent:
                 guard.record_calls(call_keys)
 
                 self.logger.debug(f"[Gemini] Sending {len(function_responses)} tool result(s) back...")
+                tool_names = [fc.name for fc in function_calls]
+                self._last_tool_context = "+".join(tool_names)
                 response = task_chat.send_message(message=function_responses)
                 self._track_usage(response)
 
@@ -1565,6 +1610,7 @@ class OrchestratorAgent:
         self.logger.debug("[Gemini] Generating execution summary...")
 
         try:
+            self._last_tool_context = "plan_summary"
             response = self._send_message(prompt)
             self._track_usage(response)
 
@@ -1755,8 +1801,15 @@ class OrchestratorAgent:
         """Process a complex multi-step request using the plan-execute-replan loop."""
         self.logger.debug("[PlannerAgent] Starting planner for complex request...")
 
+        # Strip memory context before extracting time range — memory contains
+        # date references from past sessions that confuse the regex (P0-1, P1-3).
+        import re as _re
+        clean_msg = _re.sub(
+            r'\[CONTEXT FROM LONG-TERM MEMORY\].*?\[END MEMORY CONTEXT\]\s*',
+            '', user_message, flags=_re.DOTALL
+        )
         # Resolve and store the canonical time range for this plan
-        self._plan_time_range = self._extract_time_range(user_message)
+        self._plan_time_range = self._extract_time_range(clean_msg)
         if self._plan_time_range:
             self.logger.debug(f"[PlannerAgent] Resolved time range: {self._plan_time_range.to_time_range_string()}")
 
@@ -1937,6 +1990,7 @@ class OrchestratorAgent:
     def _process_single_message(self, user_message: str) -> str:
         """Process a single (non-complex) user message."""
         self.logger.debug("[Gemini] Sending message to model...")
+        self._last_tool_context = "initial_message"
         response = self._send_message(user_message)
         self._track_usage(response)
         self.logger.debug("[Gemini] Response received.")
@@ -2008,6 +2062,9 @@ class OrchestratorAgent:
                 consecutive_delegation_errors += 1
             else:
                 consecutive_delegation_errors = 0
+
+            tool_names = [fc.name for fc in function_calls]
+            self._last_tool_context = "+".join(tool_names)
 
             if consecutive_delegation_errors >= 2:
                 self.logger.debug(f"[Orchestrator] {consecutive_delegation_errors} consecutive delegation failures, stopping retries")
@@ -2243,6 +2300,7 @@ Example: ["Compare this with solar wind speed", "Zoom in to January 10-15", "Exp
                     temperature=0.7,
                 ),
             )
+            self._last_tool_context = "follow_up_suggestions"
             self._track_usage(response)
 
             text = (response.text or "").strip()

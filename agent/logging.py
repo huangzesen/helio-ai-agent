@@ -40,6 +40,7 @@ def tagged(tag: str) -> dict:
 # Module-level state (shared across re-inits)
 _session_filter: Optional["_SessionFilter"] = None
 _current_log_file: Optional[Path] = None
+_token_log_file: Optional[Path] = None
 
 
 class _SessionFilter(logging.Filter):
@@ -69,6 +70,68 @@ class _ConsoleFormatter(logging.Formatter):
         return f"  {record.getMessage()}"
 
 
+def setup_token_log(session_timestamp: str) -> Path:
+    """Create the per-API-call token usage log file.
+
+    Args:
+        session_timestamp: Timestamp string (e.g. '20260210_211534') shared
+            with the main agent log for easy correlation.
+
+    Returns:
+        Path to the token log file.
+    """
+    global _token_log_file
+    LOG_DIR.mkdir(parents=True, exist_ok=True)
+    path = LOG_DIR / f"token_{session_timestamp}.log"
+    _token_log_file = path
+    # Write header line
+    with open(path, "w", encoding="utf-8") as f:
+        f.write("# timestamp | agent | tool_context | in out think | cum_in cum_out cum_think | calls\n")
+    return path
+
+
+def log_token_usage(
+    agent_name: str,
+    input_tokens: int,
+    output_tokens: int,
+    thinking_tokens: int,
+    cumulative_input: int,
+    cumulative_output: int,
+    cumulative_thinking: int,
+    api_calls: int,
+    tool_context: str = "send_message",
+) -> None:
+    """Append one line to the token usage log.
+
+    Args:
+        agent_name: Name of the agent (e.g. 'OrchestratorAgent').
+        input_tokens: Tokens consumed in this API call (prompt).
+        output_tokens: Tokens produced in this API call (candidates).
+        thinking_tokens: Thinking tokens in this API call.
+        cumulative_input: Running total of input tokens for this agent.
+        cumulative_output: Running total of output tokens for this agent.
+        cumulative_thinking: Running total of thinking tokens for this agent.
+        api_calls: Running total of API calls for this agent.
+        tool_context: What triggered this API call (tool name, 'initial_message', etc.).
+    """
+    if _token_log_file is None:
+        return
+    # Truncate tool_context to 60 chars
+    ctx = tool_context[:60] if tool_context else "unknown"
+    ts = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+    line = (
+        f"{ts} | {agent_name} | {ctx} | "
+        f"in:{input_tokens} out:{output_tokens} think:{thinking_tokens} | "
+        f"cum_in:{cumulative_input} cum_out:{cumulative_output} cum_think:{cumulative_thinking} | "
+        f"calls:{api_calls}\n"
+    )
+    try:
+        with open(_token_log_file, "a", encoding="utf-8") as f:
+            f.write(line)
+    except OSError:
+        pass  # Don't let token logging break the agent
+
+
 def setup_logging(verbose: bool = False) -> logging.Logger:
     """Configure logging for the agent.
 
@@ -94,7 +157,8 @@ def setup_logging(verbose: bool = False) -> logging.Logger:
     logger.addFilter(_session_filter)
 
     # File handler - one log file per session
-    log_file = LOG_DIR / f"agent_{datetime.now().strftime('%Y%m%d_%H%M%S')}.log"
+    session_timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
+    log_file = LOG_DIR / f"agent_{session_timestamp}.log"
     _current_log_file = log_file
     file_handler = logging.FileHandler(log_file, encoding="utf-8")
     file_handler.setLevel(logging.DEBUG)
@@ -110,6 +174,9 @@ def setup_logging(verbose: bool = False) -> logging.Logger:
     console_handler.setLevel(logging.DEBUG if verbose else logging.WARNING)
     console_handler.setFormatter(_ConsoleFormatter())
     logger.addHandler(console_handler)
+
+    # Token usage log (shares the same timestamp suffix)
+    setup_token_log(session_timestamp)
 
     logger.info("=" * 60)
     logger.info(f"Session started at {datetime.now().isoformat()}")

@@ -17,7 +17,7 @@ from google.genai import types
 
 from .tools import get_tool_schemas
 from .tasks import Task, TaskStatus
-from .logging import get_logger, log_error
+from .logging import get_logger, log_error, log_token_usage
 from .loop_guard import LoopGuard, make_call_key
 from .model_fallback import get_active_model
 
@@ -80,17 +80,35 @@ class BaseSubAgent:
         self._total_output_tokens = 0
         self._total_thinking_tokens = 0
         self._api_calls = 0
+        self._last_tool_context = "send_message"
 
     # ---- Token tracking ----
 
     def _track_usage(self, response):
         """Accumulate token usage from a Gemini response."""
         meta = getattr(response, "usage_metadata", None)
+        call_input = 0
+        call_output = 0
+        call_thinking = 0
         if meta:
-            self._total_input_tokens += getattr(meta, "prompt_token_count", 0) or 0
-            self._total_output_tokens += getattr(meta, "candidates_token_count", 0) or 0
-            self._total_thinking_tokens += getattr(meta, "thoughts_token_count", 0) or 0
+            call_input = getattr(meta, "prompt_token_count", 0) or 0
+            call_output = getattr(meta, "candidates_token_count", 0) or 0
+            call_thinking = getattr(meta, "thoughts_token_count", 0) or 0
+            self._total_input_tokens += call_input
+            self._total_output_tokens += call_output
+            self._total_thinking_tokens += call_thinking
         self._api_calls += 1
+        log_token_usage(
+            agent_name=self.agent_name,
+            input_tokens=call_input,
+            output_tokens=call_output,
+            thinking_tokens=call_thinking,
+            cumulative_input=self._total_input_tokens,
+            cumulative_output=self._total_output_tokens,
+            cumulative_thinking=self._total_thinking_tokens,
+            api_calls=self._api_calls,
+            tool_context=self._last_tool_context,
+        )
         if self.verbose:
             from .thinking import extract_thoughts
             from .logging import tagged
@@ -175,12 +193,14 @@ class BaseSubAgent:
                 model=get_active_model(self.model_name),
                 config=conv_config,
             )
+            self._last_tool_context = "initial_message"
             response = chat.send_message(user_message)
             self._track_usage(response)
 
             guard = LoopGuard(max_total_calls=20, max_iterations=8)
             consecutive_errors = 0
             collected_errors: list[str] = []
+            had_successful_tool = False
             stop_reason = None
 
             while True:
@@ -236,6 +256,7 @@ class BaseSubAgent:
 
                     if result.get("status") != "error":
                         all_errors_this_round = False
+                        had_successful_tool = True
 
                     if result.get("status") == "error":
                         err_msg = result.get("message", "")
@@ -263,6 +284,8 @@ class BaseSubAgent:
                     break
 
                 self.logger.debug(f"[{self.agent_name}] Sending {len(function_responses)} tool result(s) back...")
+                tool_names = [fc.name for fc in function_calls]
+                self._last_tool_context = "+".join(tool_names)
                 response = chat.send_message(message=function_responses)
                 self._track_usage(response)
 
@@ -279,7 +302,7 @@ class BaseSubAgent:
                         text_parts.append(part.text)
 
             text = "\n".join(text_parts) if text_parts else "Done."
-            failed = stop_reason is not None and len(collected_errors) > 0
+            failed = stop_reason is not None and not had_successful_tool
             return {"text": text, "failed": failed, "errors": collected_errors}
 
         except Exception as e:
@@ -341,6 +364,7 @@ class BaseSubAgent:
                 config=self.config,
             )
             task_prompt = self._get_task_prompt(task)
+            self._last_tool_context = "task:" + task.description[:50]
             response = chat.send_message(task_prompt)
             self._track_usage(response)
 
@@ -413,6 +437,8 @@ class BaseSubAgent:
                 guard.record_calls(call_keys)
 
                 self.logger.debug(f"[{self.agent_name}] Sending {len(function_responses)} tool result(s) back...")
+                tool_names = [fc.name for fc in function_calls]
+                self._last_tool_context = "+".join(tool_names)
                 response = chat.send_message(message=function_responses)
                 self._track_usage(response)
 

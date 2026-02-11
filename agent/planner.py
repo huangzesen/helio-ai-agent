@@ -14,7 +14,7 @@ from typing import Optional
 from google import genai
 from google.genai import types
 
-from .logging import get_logger
+from .logging import get_logger, log_token_usage
 from .model_fallback import get_active_model
 from .tasks import Task, TaskPlan, create_task, create_plan
 from .tools import get_tool_schemas
@@ -146,6 +146,8 @@ class PlannerAgent:
         self._cancel_event = cancel_event
         self._chat = None
         self._token_usage = {"input_tokens": 0, "output_tokens": 0, "thinking_tokens": 0}
+        self._api_calls = 0
+        self._last_tool_context = "send_message"
 
         # Build function declarations when tools are available
         self._function_declarations = []
@@ -164,10 +166,28 @@ class PlannerAgent:
     def _track_usage(self, response):
         """Accumulate token usage from a Gemini response."""
         meta = getattr(response, "usage_metadata", None)
+        call_input = 0
+        call_output = 0
+        call_thinking = 0
         if meta:
-            self._token_usage["input_tokens"] += getattr(meta, "prompt_token_count", 0) or 0
-            self._token_usage["output_tokens"] += getattr(meta, "candidates_token_count", 0) or 0
-            self._token_usage["thinking_tokens"] += getattr(meta, "thoughts_token_count", 0) or 0
+            call_input = getattr(meta, "prompt_token_count", 0) or 0
+            call_output = getattr(meta, "candidates_token_count", 0) or 0
+            call_thinking = getattr(meta, "thoughts_token_count", 0) or 0
+            self._token_usage["input_tokens"] += call_input
+            self._token_usage["output_tokens"] += call_output
+            self._token_usage["thinking_tokens"] += call_thinking
+        self._api_calls += 1
+        log_token_usage(
+            agent_name="PlannerAgent",
+            input_tokens=call_input,
+            output_tokens=call_output,
+            thinking_tokens=call_thinking,
+            cumulative_input=self._token_usage["input_tokens"],
+            cumulative_output=self._token_usage["output_tokens"],
+            cumulative_thinking=self._token_usage["thinking_tokens"],
+            api_calls=self._api_calls,
+            tool_context=self._last_tool_context,
+        )
         if self.verbose:
             from .thinking import extract_thoughts
             from .logging import tagged
@@ -237,6 +257,7 @@ class PlannerAgent:
         if self.verbose:
             logger.debug(f"[PlannerAgent] Discovery phase for: {user_request[:80]}...")
 
+        self._last_tool_context = "discovery_initial"
         response = chat.send_message(user_request)
         self._track_usage(response)
 
@@ -391,6 +412,7 @@ class PlannerAgent:
             if self.verbose:
                 logger.debug(f"[PlannerAgent] Starting planning for: {user_request[:80]}...")
 
+            self._last_tool_context = "planning_initial"
             response = self._chat.send_message(planning_message)
             self._track_usage(response)
 
@@ -485,6 +507,7 @@ class PlannerAgent:
             if self.verbose:
                 logger.debug(f"[PlannerAgent] Sending results:\n{message}")
 
+            self._last_tool_context = f"continue_planning_round{round_num}"
             response = self._chat.send_message(message)
             self._track_usage(response)
 
