@@ -9,8 +9,11 @@ Tier 1 — File + Console (identical by default):
   - Console: DEBUG if --verbose, WARNING+ otherwise
   - Filter: both drop records with extra={'skip_file': True}
   - Format: "timestamp | level | name | session_id | message"
-  - Config: set console_format="simple" for bare messages
-    (DEBUG/INFO print bare, WARNING+ get [LEVEL] prefix)
+  - Config console_format options:
+    - "full"   — (default) same structured format as the file handler
+    - "simple" — bare messages for DEBUG/INFO, [LEVEL] prefix for WARNING+
+    - "gui"    — curated tagged records only (mirrors Gradio live-log sidebar)
+    - "clean"  — no console output at all (file logging still active)
 
 Tier 2 — Gradio live log (curated):
   - Only records tagged with a key in GRADIO_VISIBLE_TAGS
@@ -93,6 +96,18 @@ class _ConsoleFormatter(logging.Formatter):
         if record.levelno >= logging.WARNING:
             return f"  [{record.levelname}] {record.getMessage()}"
         return f"  {record.getMessage()}"
+
+
+class _GradioStyleFilter(logging.Filter):
+    """Pass only records tagged with a key in GRADIO_VISIBLE_TAGS.
+
+    Mirrors the curated output shown in the Gradio live-log sidebar,
+    but routed to the console instead.
+    """
+
+    def filter(self, record: logging.LogRecord) -> bool:
+        tag = getattr(record, "log_tag", "")
+        return tag in GRADIO_VISIBLE_TAGS
 
 
 def setup_token_log(session_timestamp: str) -> Path:
@@ -200,17 +215,28 @@ def setup_logging(verbose: bool = False) -> logging.Logger:
     logger.addHandler(file_handler)
 
     # Console handler - less verbose unless --verbose flag
-    console_handler = logging.StreamHandler(sys.stderr)
-    console_handler.setLevel(logging.DEBUG if verbose else logging.WARNING)
-    console_handler.addFilter(_SkipDuplicateFilter())
-
     import config as _config
-    if _config.get("console_format", "full") == "simple":
-        console_handler.setFormatter(_ConsoleFormatter())
-    else:
-        console_handler.setFormatter(file_format)  # identical to file handler
+    console_format = _config.get("console_format", "full")
 
-    logger.addHandler(console_handler)
+    if console_format != "clean":
+        console_handler = logging.StreamHandler(sys.stderr)
+        console_handler.addFilter(_SkipDuplicateFilter())
+
+        if console_format == "gui":
+            # Curated output: same tagged records as the Gradio live-log sidebar
+            console_handler.setLevel(logging.DEBUG)
+            console_handler.addFilter(_GradioStyleFilter())
+            console_handler.setFormatter(_ConsoleFormatter())
+        elif console_format == "simple":
+            console_handler.setLevel(logging.DEBUG if verbose else logging.WARNING)
+            console_handler.setFormatter(_ConsoleFormatter())
+        else:
+            # "full" (default)
+            console_handler.setLevel(logging.DEBUG if verbose else logging.WARNING)
+            console_handler.setFormatter(file_format)  # identical to file handler
+
+        logger.addHandler(console_handler)
+    # "clean" — no console handler at all (file logging still active)
 
     # Token usage log (shares the same timestamp suffix)
     setup_token_log(session_timestamp)

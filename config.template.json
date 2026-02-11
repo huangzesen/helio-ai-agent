@@ -26,6 +26,6 @@
   "memory_error_count_threshold": 5,
   "memory_max_log_bytes_kb": 50,
 
-  "_comment_console_format": "Options: 'full' (timestamp + level + name + session_id + message, default) or 'simple' (bare messages for DEBUG/INFO, [LEVEL] prefix for WARNING+).",
+  "_comment_console_format": "Options: 'full' (timestamp + level + name + session_id + message, default), 'simple' (bare messages for DEBUG/INFO, [LEVEL] prefix for WARNING+), 'gui' (curated tagged records only — mirrors Gradio live-log sidebar), 'clean' (no console output at all, file logging still active).",
   "console_format": "full"
 }
