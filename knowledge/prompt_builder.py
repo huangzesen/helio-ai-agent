@@ -925,6 +925,12 @@ Tag each task with the "mission" field:
 - Set status="done" as soon as you have enough data for a useful result,
   even if not all originally requested data was found.
 
+## Visualization Guidelines
+
+- NEVER put quantities with different units/dimensions on the same panel
+  (e.g., density in cm^-3 and speed in km/s need separate panels).
+- Each panel should share a single y-axis unit.
+
 ## Planning Guidelines
 
 1. Each task should be a single, atomic operation

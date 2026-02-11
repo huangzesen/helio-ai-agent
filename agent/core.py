@@ -633,8 +633,8 @@ class OrchestratorAgent:
                     cdf_vars = list_cdf_variables(tool_args["dataset_id"])
                     result["cdf_variables"] = cdf_vars
                     result["note"] = (
-                        "Use names from cdf_variables for fetch_data calls. "
-                        "HAPI parameter names may not work with the CDF backend."
+                        "IMPORTANT: Use names from cdf_variables (not parameters) for "
+                        "fetch_data calls. HAPI parameter names will NOT work."
                     )
                 except Exception as e:
                     self.logger.debug(
