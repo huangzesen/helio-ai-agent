@@ -35,6 +35,7 @@ class MissionAgent(BaseSubAgent):
         tool_executor,
         verbose: bool = False,
         cancel_event=None,
+        pitfalls: list[str] | None = None,
     ):
         self.mission_id = mission_id
         super().__init__(
@@ -47,6 +48,7 @@ class MissionAgent(BaseSubAgent):
             tool_categories=MISSION_TOOL_CATEGORIES,
             extra_tool_names=MISSION_EXTRA_TOOLS,
             cancel_event=cancel_event,
+            pitfalls=pitfalls,
         )
 
     # ---- Hook overrides ----
@@ -83,6 +85,13 @@ class MissionAgent(BaseSubAgent):
                 "(from `parameters`) will NOT work with the CDF backend.\n"
             )
 
+        pitfall_section = ""
+        if self._pitfalls:
+            pitfall_section = (
+                "\n\nOperational knowledge for this mission:\n"
+                + "".join(f"- {p}\n" for p in self._pitfalls)
+            )
+
         if has_candidates:
             return (
                 f"Execute this task: {task.instruction}\n\n"
@@ -96,6 +105,7 @@ class MissionAgent(BaseSubAgent):
                 "- After ALL fetch_data calls succeed, STOP IMMEDIATELY. Do NOT call "
                 "list_fetched_data, get_data_availability, get_dataset_docs, or describe_data.\n"
                 "- Return the stored label(s) and point count as concise text."
+                + pitfall_section
             )
         else:
             return (
@@ -106,6 +116,7 @@ class MissionAgent(BaseSubAgent):
                 "- After a successful fetch_data call, STOP. Do NOT call list_fetched_data, "
                 "get_data_availability, list_parameters, describe_data, or get_dataset_docs.\n"
                 "- Return the stored label and point count as concise text."
+                + pitfall_section
             )
 
     def _get_error_context(self, **kwargs) -> dict:

@@ -1204,11 +1204,9 @@ class OrchestratorAgent:
                         + "\nDo NOT re-fetch data that is already in memory with a matching label and time range."
                     )
                 sub_result = agent.process_request(request)
-                return {
-                    "status": "success",
-                    "mission": mission_id,
-                    "result": sub_result,
-                }
+                result = self._wrap_delegation_result(sub_result)
+                result["mission"] = mission_id
+                return result
             except (KeyError, FileNotFoundError):
                 return {
                     "status": "error",
@@ -1245,10 +1243,7 @@ class OrchestratorAgent:
             agent = self._get_or_create_viz_agent()
             full_request = f"{request}\n\nContext: {context}" if context else request
             sub_result = agent.process_request(full_request)
-            return {
-                "status": "success",
-                "result": sub_result,
-            }
+            return self._wrap_delegation_result(sub_result)
 
         elif tool_name == "delegate_to_data_ops":
             request = tool_args["request"]
@@ -1257,10 +1252,7 @@ class OrchestratorAgent:
             agent = self._get_or_create_dataops_agent()
             full_request = f"{request}\n\nContext: {context}" if context else request
             sub_result = agent.process_request(full_request)
-            return {
-                "status": "success",
-                "result": sub_result,
-            }
+            return self._wrap_delegation_result(sub_result)
 
         elif tool_name == "delegate_to_data_extraction":
             request = tool_args["request"]
@@ -1269,10 +1261,7 @@ class OrchestratorAgent:
             agent = self._get_or_create_data_extraction_agent()
             full_request = f"{request}\n\nContext: {context}" if context else request
             sub_result = agent.process_request(full_request)
-            return {
-                "status": "success",
-                "result": sub_result,
-            }
+            return self._wrap_delegation_result(sub_result)
 
         elif tool_name == "recall_memories":
             query = tool_args.get("query", "")
@@ -1913,15 +1902,9 @@ class OrchestratorAgent:
                 if result.get("status") == "error":
                     self.logger.warning(f"[Tool Result: ERROR] {result.get('message', '')}")
 
-                # Track delegation failures (mission agent couldn't fulfill request)
-                if tool_name.startswith("delegate_to_") and result.get("status") == "success":
-                    sub_result = result.get("result", "")
-                    if isinstance(sub_result, str) and (
-                        "No data available" in sub_result
-                        or "outside the available data period" in sub_result
-                        or "Error processing request" in sub_result
-                    ):
-                        has_delegation_error = True
+                # Track delegation failures (sub-agent stopped due to errors)
+                if tool_name.startswith("delegate_to_") and result.get("status") == "error":
+                    has_delegation_error = True
 
                 # Handle clarification specially - return immediately
                 if result.get("status") == "clarification_needed":
@@ -1979,9 +1962,36 @@ class OrchestratorAgent:
         text += self._extract_grounding_sources(response)
         return text
 
+    @staticmethod
+    def _wrap_delegation_result(sub_result) -> dict:
+        """Convert a sub-agent process_request result into a tool result dict.
+
+        If the sub-agent reported failure (stopped due to errors/loops),
+        return status='error' so the orchestrator knows not to retry.
+        """
+        if isinstance(sub_result, dict):
+            text = sub_result.get("text", "")
+            failed = sub_result.get("failed", False)
+            errors = sub_result.get("errors", [])
+        else:
+            # Legacy: plain string (shouldn't happen, but be safe)
+            text = str(sub_result)
+            failed = False
+            errors = []
+
+        if failed and errors:
+            error_summary = "; ".join(errors[-3:])  # last 3 errors
+            return {
+                "status": "error",
+                "message": f"Sub-agent failed. Errors: {error_summary}",
+                "result": text,
+            }
+        return {"status": "success", "result": text}
+
     def _get_or_create_mission_agent(self, mission_id: str) -> MissionAgent:
         """Get a cached mission agent or create a new one."""
         if mission_id not in self._mission_agents:
+            pitfalls = self._memory_store.get_scoped_pitfall_texts(f"mission:{mission_id}")
             self._mission_agents[mission_id] = MissionAgent(
                 mission_id=mission_id,
                 client=self.client,
@@ -1989,6 +1999,7 @@ class OrchestratorAgent:
                 tool_executor=self._execute_tool_safe,
                 verbose=self.verbose,
                 cancel_event=self._cancel_event,
+                pitfalls=pitfalls,
             )
             self.logger.debug(f"[Router] Created {mission_id} mission agent ({SUB_AGENT_MODEL})")
         return self._mission_agents[mission_id]
@@ -1996,6 +2007,7 @@ class OrchestratorAgent:
     def _get_or_create_viz_agent(self) -> VisualizationAgent:
         """Get the cached visualization agent or create a new one."""
         if self._viz_agent is None:
+            pitfalls = self._memory_store.get_scoped_pitfall_texts("visualization")
             self._viz_agent = VisualizationAgent(
                 client=self.client,
                 model_name=SUB_AGENT_MODEL,
@@ -2003,6 +2015,7 @@ class OrchestratorAgent:
                 verbose=self.verbose,
                 gui_mode=self.gui_mode,
                 cancel_event=self._cancel_event,
+                pitfalls=pitfalls,
             )
             self.logger.debug(f"[Router] Created Visualization agent ({SUB_AGENT_MODEL})")
         return self._viz_agent

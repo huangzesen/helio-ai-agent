@@ -31,7 +31,8 @@ class Memory:
     """A single memory entry."""
 
     id: str = field(default_factory=lambda: uuid.uuid4().hex[:12])
-    type: str = "preference"  # "preference" or "summary"
+    type: str = "preference"  # "preference", "summary", or "pitfall"
+    scope: str = "generic"  # "generic", "mission:<ID>", or "visualization"
     content: str = ""
     created_at: str = field(default_factory=lambda: datetime.now().isoformat())
     source_session: str = ""
@@ -181,6 +182,17 @@ class MemoryStore:
         """Return only enabled memories."""
         return [m for m in self._memories if m.enabled]
 
+    def get_pitfalls_by_scope(self, scope: str) -> list[Memory]:
+        """Return enabled pitfalls matching the given scope."""
+        return [
+            m for m in self._memories
+            if m.enabled and m.type == "pitfall" and m.scope == scope
+        ]
+
+    def get_scoped_pitfall_texts(self, scope: str) -> list[str]:
+        """Return content strings for enabled pitfalls matching scope, capped at MAX_PITFALLS."""
+        return [m.content for m in self.get_pitfalls_by_scope(scope)][:MAX_PITFALLS]
+
     # ---- Prompt building ----
 
     def build_prompt_section(self) -> str:
@@ -198,7 +210,7 @@ class MemoryStore:
 
         preferences = [m for m in enabled if m.type == "preference"][:MAX_PREFERENCES]
         summaries = [m for m in enabled if m.type == "summary"][:MAX_SUMMARIES]
-        pitfalls = [m for m in enabled if m.type == "pitfall"][:MAX_PITFALLS]
+        pitfalls = [m for m in enabled if m.type == "pitfall" and m.scope == "generic"][:MAX_PITFALLS]
 
         if not preferences and not summaries and not pitfalls:
             return ""

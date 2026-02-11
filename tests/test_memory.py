@@ -397,6 +397,103 @@ class TestMemoryDefaults:
         m = Memory()
         assert m.enabled is True
 
+    def test_default_scope(self):
+        m = Memory()
+        assert m.scope == "generic"
+
     def test_created_at_set(self):
         m = Memory()
         assert m.created_at  # non-empty ISO string
+
+
+# ---- Scoped pitfalls ----
+
+class TestScopedPitfalls:
+    def test_scope_default_generic(self, store):
+        """Pitfalls without explicit scope default to 'generic'."""
+        m = Memory(type="pitfall", content="Some lesson")
+        store.add(m)
+        assert store.get_all()[0].scope == "generic"
+
+    def test_get_pitfalls_by_scope(self, store):
+        """get_pitfalls_by_scope returns only matching enabled pitfalls."""
+        store.add(Memory(type="pitfall", content="PSP fill values", scope="mission:PSP"))
+        store.add(Memory(type="pitfall", content="ACE data gaps", scope="mission:ACE"))
+        store.add(Memory(type="pitfall", content="Generic lesson", scope="generic"))
+        store.add(Memory(type="pitfall", content="Plotly y_range", scope="visualization"))
+        store.add(Memory(
+            id="dis", type="pitfall", content="Disabled PSP",
+            scope="mission:PSP", enabled=False,
+        ))
+
+        psp = store.get_pitfalls_by_scope("mission:PSP")
+        assert len(psp) == 1
+        assert psp[0].content == "PSP fill values"
+
+        ace = store.get_pitfalls_by_scope("mission:ACE")
+        assert len(ace) == 1
+        assert ace[0].content == "ACE data gaps"
+
+        viz = store.get_pitfalls_by_scope("visualization")
+        assert len(viz) == 1
+        assert viz[0].content == "Plotly y_range"
+
+        generic = store.get_pitfalls_by_scope("generic")
+        assert len(generic) == 1
+
+    def test_build_prompt_only_generic(self, store):
+        """build_prompt_section only includes generic-scoped pitfalls."""
+        store.add(Memory(type="pitfall", content="Generic operational advice", scope="generic"))
+        store.add(Memory(type="pitfall", content="PSP SPC fill values", scope="mission:PSP"))
+        store.add(Memory(type="pitfall", content="Plotly rendering tip", scope="visualization"))
+
+        section = store.build_prompt_section()
+        assert "Generic operational advice" in section
+        assert "PSP SPC fill values" not in section
+        assert "Plotly rendering tip" not in section
+
+    def test_get_scoped_pitfall_texts(self, store):
+        """get_scoped_pitfall_texts returns content strings capped at MAX_PITFALLS."""
+        store.add(Memory(type="pitfall", content="PSP lesson 1", scope="mission:PSP"))
+        store.add(Memory(type="pitfall", content="PSP lesson 2", scope="mission:PSP"))
+        store.add(Memory(type="pitfall", content="ACE lesson", scope="mission:ACE"))
+
+        texts = store.get_scoped_pitfall_texts("mission:PSP")
+        assert texts == ["PSP lesson 1", "PSP lesson 2"]
+
+        texts = store.get_scoped_pitfall_texts("mission:ACE")
+        assert texts == ["ACE lesson"]
+
+        texts = store.get_scoped_pitfall_texts("mission:WIND")
+        assert texts == []
+
+    def test_get_scoped_pitfall_texts_capped(self, store):
+        """Texts are capped at MAX_PITFALLS."""
+        for i in range(MAX_PITFALLS + 5):
+            store.add(Memory(
+                type="pitfall", content=f"Viz lesson {i}", scope="visualization",
+            ))
+        texts = store.get_scoped_pitfall_texts("visualization")
+        assert len(texts) == MAX_PITFALLS
+
+    def test_backward_compat_no_scope(self, tmp_path_file):
+        """Old JSON without scope field loads with scope='generic'."""
+        tmp_path_file.parent.mkdir(parents=True, exist_ok=True)
+        data = {
+            "global_enabled": True,
+            "memories": [
+                {
+                    "id": "old1",
+                    "type": "pitfall",
+                    "content": "Old pitfall without scope",
+                    "created_at": "2026-01-01T00:00:00",
+                    "source_session": "",
+                    "enabled": True,
+                }
+            ],
+        }
+        tmp_path_file.write_text(json.dumps(data))
+        store = MemoryStore(path=tmp_path_file)
+        assert len(store.get_all()) == 1
+        assert store.get_all()[0].scope == "generic"
+        assert store.get_all()[0].content == "Old pitfall without scope"

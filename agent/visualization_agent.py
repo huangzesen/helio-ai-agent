@@ -50,6 +50,7 @@ class VisualizationAgent(BaseSubAgent):
         verbose: bool = False,
         gui_mode: bool = False,
         cancel_event=None,
+        pitfalls: list[str] | None = None,
     ):
         self.gui_mode = gui_mode
         super().__init__(
@@ -62,6 +63,7 @@ class VisualizationAgent(BaseSubAgent):
             tool_categories=VIZ_TOOL_CATEGORIES,
             extra_tool_names=VIZ_EXTRA_TOOLS,
             cancel_event=cancel_event,
+            pitfalls=pitfalls,
         )
 
     def _get_task_prompt(self, task: Task) -> str:
@@ -77,6 +79,13 @@ class VisualizationAgent(BaseSubAgent):
         labels = _extract_labels_from_instruction(task.instruction)
         labels_str = ",".join(labels) if labels else "LABEL1,LABEL2"
 
+        pitfall_section = ""
+        if self._pitfalls:
+            pitfall_section = (
+                "\n\nVisualization operational knowledge:\n"
+                + "".join(f"- {p}\n" for p in self._pitfalls)
+            )
+
         return (
             f"Execute this task: {task.instruction}\n\n"
             f"Your FIRST call must be: "
@@ -86,4 +95,5 @@ class VisualizationAgent(BaseSubAgent):
             "- Call plot_data with the labels shown above.\n"
             "- After plotting, you may call style_plot to adjust titles/labels/axes.\n"
             "- Do NOT export the plot — exporting is handled by the orchestrator."
+            + pitfall_section
         )

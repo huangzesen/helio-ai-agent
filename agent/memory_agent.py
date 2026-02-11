@@ -42,7 +42,7 @@ class AnalysisResult:
     """Result from a MemoryAgent analysis."""
     preferences: list[str] = field(default_factory=list)
     summary: str = ""
-    pitfalls: list[str] = field(default_factory=list)
+    pitfalls: list = field(default_factory=list)  # list of str or dict with content/scope
     error_patterns: list[dict] = field(default_factory=list)
     report_path: Optional[str] = None
 
@@ -324,7 +324,7 @@ class MemoryAgent:
         memory_lines = []
         for m in enabled:
             memory_lines.append(
-                f'  {{"id": "{m.id}", "type": "{m.type}", '
+                f'  {{"id": "{m.id}", "type": "{m.type}", "scope": "{m.scope}", '
                 f'"content": "{m.content}", "created_at": "{m.created_at}"}}'
             )
         memories_json = "[\n" + ",\n".join(memory_lines) + "\n]"
@@ -334,14 +334,15 @@ Below are all current memories. Consolidate them to at most {max_total} entries.
 
 Rules:
 - Merge duplicates/overlapping entries into one concise entry
+- Only merge entries with the same scope — do NOT merge across scopes
 - Keep the most actionable and generalizable entries
 - Prefer recent entries over old ones for summaries
 - Keep at most 10-15 preferences, 5-10 summaries, 10-15 pitfalls
-- For kept-as-is entries, preserve the original id
-- For merged entries, use a new id (any short string)
+- For kept-as-is entries, preserve the original id and scope
+- For merged entries, use a new id (any short string) and preserve the scope
 - Return JSON array only, no markdown fencing
 
-Each entry must have: {{"id": "...", "type": "preference|summary|pitfall", "content": "..."}}
+Each entry must have: {{"id": "...", "type": "preference|summary|pitfall", "scope": "generic|visualization|mission:<ID>", "content": "..."}}
 
 Current memories:
 {memories_json}"""
@@ -375,19 +376,26 @@ Current memories:
             return 0
 
         # Build new Memory objects
+        import re
+        valid_scope_re = re.compile(r"^(generic|visualization|mission:\w+)$")
+
         new_memories = []
         for entry in entries[:max_total]:
             if not isinstance(entry, dict):
                 continue
             content = entry.get("content", "").strip()
             mem_type = entry.get("type", "preference")
+            scope = entry.get("scope", "generic")
             if not content:
                 continue
             if mem_type not in ("preference", "summary", "pitfall"):
                 mem_type = "preference"
+            if not valid_scope_re.match(scope):
+                scope = "generic"
             new_memories.append(Memory(
                 id=str(entry.get("id", ""))[:12] or None,
                 type=mem_type,
+                scope=scope,
                 content=content,
                 created_at=datetime.now().isoformat(),
             ))
@@ -439,7 +447,11 @@ Respond with JSON only (no markdown fencing):
 {{
   "preferences": ["list of user preferences, habits, or styles observed (empty list if none)"],
   "summary": "one-sentence summary of what was analyzed in this session (empty string if nothing notable)",
-  "pitfalls": ["generalizable operational lessons learned, e.g. 'OMNI data for recent dates may have empty CSV strings — treat as NaN' (empty list if none)"],
+  "pitfalls": [
+    {{"content": "lesson text", "scope": "generic"}},
+    {{"content": "PSP SPC fill values need special handling", "scope": "mission:PSP"}},
+    {{"content": "y_range must be set after plot_data", "scope": "visualization"}}
+  ],
   "error_patterns": [
     {{
       "component": "file or module where error occurred",
@@ -454,6 +466,10 @@ Rules:
 - Preferences: plot style choices, spacecraft of interest, workflow habits, display preferences
 - Summary: what data was fetched, what analysis was done, key findings
 - Pitfalls: generalizable lessons from errors or unexpected behavior (NOT user preferences). Frame as actionable advice for the agent. Only include if there's real evidence in the log.
+  - Each pitfall is an object with "content" (the lesson) and "scope":
+    - "generic" — general operational advice not specific to a mission or visualization
+    - "mission:<ID>" — lessons specific to a spacecraft (e.g. "mission:PSP", "mission:ACE", "mission:WIND"). Use the uppercase mission ID.
+    - "visualization" — lessons about plotting, styling, Plotly rendering, or visual output
 - Error patterns: recurring errors from the log with component, count, description, and fix suggestion. Only include if there are actual ERROR or WARNING entries.
 - Do NOT repeat existing memories listed above
 - Keep each entry concise (one sentence max)
@@ -514,19 +530,39 @@ Rules:
         session_id: str,
         existing_pitfalls: list[str],
     ) -> int:
-        """Add pitfall memories with substring dedup. Returns count added."""
+        """Add pitfall memories with substring dedup. Returns count added.
+
+        Accepts both old format (list of strings) and new format
+        (list of dicts with 'content' and 'scope' keys).
+        """
+        import re
+        valid_scope_re = re.compile(r"^(generic|visualization|mission:\w+)$")
+
         count = 0
         for pitfall in pitfalls:
-            if not pitfall or not isinstance(pitfall, str):
+            # Handle both str and dict formats
+            if isinstance(pitfall, dict):
+                content = pitfall.get("content", "")
+                scope = pitfall.get("scope", "generic")
+                if not content or not isinstance(content, str):
+                    continue
+                if not valid_scope_re.match(scope):
+                    scope = "generic"
+            elif isinstance(pitfall, str):
+                content = pitfall
+                scope = "generic"
+            else:
                 continue
+
             # Skip if substring of existing pitfall or vice versa
-            if any(pitfall.lower() in ep.lower() or ep.lower() in pitfall.lower()
+            if any(content.lower() in ep.lower() or ep.lower() in content.lower()
                    for ep in existing_pitfalls):
                 continue
             self.memory_store.add(Memory(
-                type="pitfall", content=pitfall, source_session=session_id,
+                type="pitfall", scope=scope,
+                content=content, source_session=session_id,
             ))
-            existing_pitfalls.append(pitfall)  # track within batch
+            existing_pitfalls.append(content)  # track within batch
             count += 1
         return count
 
@@ -570,7 +606,10 @@ Rules:
             lines.append("")
             lines.append("## Pitfalls Extracted")
             for p in result.pitfalls:
-                lines.append(f"- {p}")
+                if isinstance(p, dict):
+                    lines.append(f"- [{p.get('scope', 'generic')}] {p.get('content', '')}")
+                else:
+                    lines.append(f"- {p}")
 
         if result.preferences or result.summary:
             lines.append("")

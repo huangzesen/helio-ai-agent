@@ -39,6 +39,7 @@ class BaseSubAgent:
         tool_categories: list[str] | None = None,
         extra_tool_names: list[str] | None = None,
         cancel_event: threading.Event | None = None,
+        pitfalls: list[str] | None = None,
     ):
         self.client = client
         self.model_name = model_name
@@ -47,6 +48,7 @@ class BaseSubAgent:
         self.agent_name = agent_name
         self.system_prompt = system_prompt
         self._cancel_event = cancel_event
+        self._pitfalls = pitfalls or []
         self.logger = get_logger()
 
         # Build function declarations from categories
@@ -141,10 +143,15 @@ class BaseSubAgent:
 
     # ---- Shared loops ----
 
-    def process_request(self, user_message: str) -> str:
+    def process_request(self, user_message: str) -> dict:
         """Process a user request conversationally (no forced function calling).
 
         Creates a fresh chat per request to avoid cross-request context pollution.
+
+        Returns a dict with:
+            text (str): The agent's text response.
+            failed (bool): True if the agent stopped due to errors/loops.
+            errors (list[str]): Error messages from failed tool calls.
         """
         self.logger.debug(f"[{self.agent_name}] Processing: {user_message[:80]}...")
 
@@ -167,6 +174,8 @@ class BaseSubAgent:
 
             guard = LoopGuard(max_total_calls=20, max_iterations=8)
             consecutive_errors = 0
+            collected_errors: list[str] = []
+            stop_reason = None
 
             while True:
                 stop_reason = guard.check_iteration()
@@ -176,7 +185,7 @@ class BaseSubAgent:
 
                 if self._cancel_event and self._cancel_event.is_set():
                     self.logger.info(f"[{self.agent_name}] Interrupted by user")
-                    return "Interrupted by user."
+                    return {"text": "Interrupted by user.", "failed": True, "errors": ["Interrupted by user."]}
 
                 parts = (
                     response.candidates[0].content.parts
@@ -223,7 +232,9 @@ class BaseSubAgent:
                         all_errors_this_round = False
 
                     if result.get("status") == "error":
-                        self.logger.warning(f"[{self.agent_name}] Tool error: {result.get('message', '')}")
+                        err_msg = result.get("message", "")
+                        self.logger.warning(f"[{self.agent_name}] Tool error: {err_msg}")
+                        collected_errors.append(f"{tool_name}: {err_msg}")
 
                     function_responses.append(
                         types.Part.from_function_response(
@@ -242,6 +253,7 @@ class BaseSubAgent:
 
                 if consecutive_errors >= 2:
                     self.logger.warning(f"[{self.agent_name}] {consecutive_errors} consecutive error rounds, stopping")
+                    stop_reason = "consecutive errors"
                     break
 
                 self.logger.debug(f"[{self.agent_name}] Sending {len(function_responses)} tool result(s) back...")
@@ -260,7 +272,9 @@ class BaseSubAgent:
                     if hasattr(part, "text") and part.text:
                         text_parts.append(part.text)
 
-            return "\n".join(text_parts) if text_parts else "Done."
+            text = "\n".join(text_parts) if text_parts else "Done."
+            failed = stop_reason is not None and len(collected_errors) > 0
+            return {"text": text, "failed": failed, "errors": collected_errors}
 
         except Exception as e:
             ctx = self._get_error_context(request=user_message[:200])
@@ -270,7 +284,7 @@ class BaseSubAgent:
                 context=ctx,
             )
             self.logger.warning(f"[{self.agent_name}] Failed: {e}")
-            return f"Error processing request: {e}"
+            return {"text": f"Error processing request: {e}", "failed": True, "errors": [str(e)]}
 
     def execute_task(self, task: Task) -> str:
         """Execute a single task with forced function calling.

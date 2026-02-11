@@ -325,9 +325,13 @@ All times are UTC. Outputs `TimeRange` objects with `start`/`end` datetimes.
 - Cross-session memory that persists user preferences, session summaries, and operational pitfalls
 - Storage: `~/.helio-agent/memory.json` — global, not per-session
 - Three memory types: `"preference"` (plot styles, spacecraft of interest, workflow habits), `"summary"` (what was analyzed in each session), and `"pitfall"` (operational lessons learned)
+- Pitfalls have a `scope` field: `"generic"` (default), `"mission:<ID>"` (e.g., `"mission:PSP"`), or `"visualization"`
+  - Generic pitfalls injected into orchestrator prompt as "Operational Knowledge"
+  - Mission-scoped pitfalls injected into the corresponding MissionAgent's task prompt
+  - Visualization-scoped pitfalls injected into the VisualizationAgent's task prompt
+  - MemoryAgent auto-detects scope during extraction; migration script available at `scripts/migrate_pitfall_scopes.py`
 - Automatic extraction at session boundaries via lightweight Gemini Flash call (no tools, no thinking)
 - Injection: prepends memory context to user messages in `process_message()` (avoids chat recreation)
-- Pitfalls injected as "Operational Knowledge" section — framed as system knowledge, not user preferences
 - Deduplication: skips new memories that are substrings of existing ones
 - Capped at 15 preferences + 15 summaries + 20 pitfalls per injection to keep prompt size reasonable
 - Global enable/disable toggle + per-memory enable/disable
