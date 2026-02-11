@@ -8,19 +8,24 @@ load_dotenv()
 # Secret — stays in .env
 GOOGLE_API_KEY = os.getenv("GOOGLE_API_KEY")
 
-# User config — loaded from ~/.helio-agent/config.json
+# User config — loaded from ~/.helio-agent/config.json (primary)
+# or project-root config.json (fallback).
 CONFIG_PATH = Path.home() / ".helio-agent" / "config.json"
+_LOCAL_CONFIG_PATH = Path(__file__).resolve().parent / "config.json"
 _user_config: dict = {}
 
 
 def _load_config() -> dict:
-    if CONFIG_PATH.exists():
-        try:
-            with open(CONFIG_PATH, "r", encoding="utf-8") as f:
-                return json.load(f)
-        except (json.JSONDecodeError, OSError):
-            pass
-    return {}
+    # Project-local config.json as base, user home config overlaid on top
+    merged: dict = {}
+    for path in (_LOCAL_CONFIG_PATH, CONFIG_PATH):
+        if path is not None and path.exists():
+            try:
+                with open(path, "r", encoding="utf-8") as f:
+                    merged.update(json.load(f))
+            except (json.JSONDecodeError, OSError):
+                pass
+    return merged
 
 
 def get(key: str, default=None):
