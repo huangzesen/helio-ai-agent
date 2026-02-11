@@ -97,7 +97,7 @@ def download_master_cdf(dataset_id: str, cache_dir: Path | None = None) -> Path:
     url = get_master_cdf_url(dataset_id)
     logger.debug("Downloading Master CDF: %s", url)
 
-    resp = requests.get(url, timeout=10)
+    resp = requests.get(url, timeout=5)
     resp.raise_for_status()
 
     cache_dir.mkdir(parents=True, exist_ok=True)

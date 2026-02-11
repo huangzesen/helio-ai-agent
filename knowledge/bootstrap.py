@@ -11,6 +11,7 @@ when no *.json files are found in knowledge/missions/.
 
 import json
 import logging
+import random
 import time
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from datetime import datetime, timezone
@@ -141,8 +142,11 @@ def populate_missions(only_stems: set[str] | None = None):
         for ds_id, instrument_hint in datasets:
             all_fetch_items.append((ds_id, instrument_hint, stem, cache_dir))
 
+    # Shuffle so slow/failing missions don't cluster together in the progress bar
+    random.shuffle(all_fetch_items)
+
     logger.info("Fetching parameter metadata for %d datasets across %d missions "
-                "(Master CDF primary, HAPI fallback, timeout=10s)...",
+                "(Master CDF primary, HAPI fallback, timeout=5s)...",
                  len(all_fetch_items), len(mission_datasets))
     results = _fetch_all_info(all_fetch_items, cdaweb_meta=cdaweb_meta)
 
@@ -244,7 +248,7 @@ def _fetch_single_info(
     # Fallback: HAPI /info
     url = f"{HAPI_SERVER}/info"
     try:
-        resp = requests.get(url, params={"id": ds_id}, timeout=10)
+        resp = requests.get(url, params={"id": ds_id}, timeout=5)
         if resp.status_code != 200:
             return None
         return resp.json()
@@ -333,7 +337,6 @@ def _fetch_all_info(
                 total=len(pending),
                 desc=desc,
                 unit="ds",
-                ncols=90,
             )
         else:
             counter = {"done": 0, "total": len(pending)}

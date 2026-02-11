@@ -108,7 +108,7 @@ def get_dataset_info(dataset_id: str, use_cache: bool = True) -> dict:
     resp = requests.get(
         f"{HAPI_BASE}/info",
         params={"id": dataset_id},
-        timeout=10,
+        timeout=5,
     )
     resp.raise_for_status()
     info = resp.json()

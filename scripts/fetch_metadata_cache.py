@@ -57,7 +57,7 @@ def fetch_catalog() -> list[dict]:
     # Fallback: HAPI /catalog
     print("  CDAS REST unavailable, falling back to HAPI /catalog...")
     url = f"{HAPI_SERVER}/catalog"
-    resp = requests.get(url, timeout=10)
+    resp = requests.get(url, timeout=5)
     resp.raise_for_status()
     data = resp.json()
     catalog = data.get("catalog", [])
@@ -88,7 +88,7 @@ def fetch_dataset_info(dataset_id: str) -> dict | None:
     # Fallback: HAPI /info
     url = f"{HAPI_SERVER}/info"
     try:
-        resp = requests.get(url, params={"id": dataset_id}, timeout=10)
+        resp = requests.get(url, params={"id": dataset_id}, timeout=5)
         if resp.status_code != 200:
             return None
         return resp.json()
