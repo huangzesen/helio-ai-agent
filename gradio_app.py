@@ -969,9 +969,9 @@ EXAMPLES = [
     {"text": "How did scientists prove Voyager 1 left the solar system? Show me the data."},
     {"text": "When did Parker Solar Probe first enter the solar corona? Show me what happened."},
     {"text": "Show me a powerful coronal mass ejection hitting Earth. What did it look like in the data?"},
-    {"text": "Compare solar wind speed and density from ACE and Wind for the last month. Show them on separate panels and compute a 1-hour running average for each."},
-    {"text": "Fetch PSP magnetic field data from its closest perihelion in 2024. Compute the field magnitude, take the derivative, and plot both on separate panels with a log scale on the magnitude."},
-    {"text": "Find a geomagnetic storm from 2024 using OMNI Dst index, then show ACE solar wind speed, density, and IMF Bz during that storm on a multi-panel plot."},
+    {"text": "The May 10-11 2024 G5 geomagnetic storm was the strongest in 20 years, with Dst dropping to -412 nT. Fetch OMNI Dst index, ACE solar wind speed, proton density, and IMF Bz from May 9 to May 13 2024. Compute a 30-minute running average of the Bz component, plot all five quantities on separate panels sharing the same time axis, and explain what signatures in the data reveal the CME shock arrival and main phase of the storm."},
+    {"text": "On December 24 2024, Parker Solar Probe made its closest-ever approach to the Sun at 6.1 million km, becoming the fastest human-made object at 690,000 km/h. Fetch PSP magnetic field and solar wind speed data from December 23-26 2024. Compute the field magnitude, resample everything to 1-minute cadence, take the derivative of the magnitude, and plot all four quantities on separate panels with log scale on the magnitude. How does the magnetic field change as PSP dives into the corona?"},
+    {"text": "Solar Cycle 25 peaked in October 2024 with a smoothed sunspot number of 161, far exceeding predictions. Compare how the solar wind at Earth changed between solar minimum (January 2020) and solar maximum (October 2024) by fetching OMNI solar wind speed and magnetic field magnitude for both months. Compute monthly running averages, plot minimum vs maximum side by side on separate panels, and calculate basic statistics to quantify the difference."},
 ]
 
 
