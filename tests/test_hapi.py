@@ -9,7 +9,8 @@ Some tests are marked slow and can be skipped with: pytest -m "not slow"
 
 import json
 import pytest
-from unittest.mock import patch
+import requests
+from unittest.mock import patch, MagicMock
 
 from knowledge.hapi_client import (
     get_dataset_info,
@@ -17,6 +18,16 @@ from knowledge.hapi_client import (
     get_dataset_time_range,
     clear_cache,
 )
+
+
+def _mock_hapi_404(*args, **kwargs):
+    """Return a 404 response to simulate HAPI server rejecting invalid dataset."""
+    resp = MagicMock()
+    resp.status_code = 404
+    resp.raise_for_status.side_effect = requests.HTTPError(
+        "404 Not Found", response=resp
+    )
+    return resp
 
 
 @pytest.fixture(autouse=True)
@@ -53,8 +64,9 @@ class TestGetDatasetInfo:
 
     def test_invalid_dataset_raises(self):
         """Test that invalid dataset ID raises an error."""
-        with pytest.raises(Exception):
-            get_dataset_info("INVALID_DATASET_XYZ_123")
+        with patch("knowledge.hapi_client.requests.get", side_effect=_mock_hapi_404):
+            with pytest.raises(Exception):
+                get_dataset_info("INVALID_DATASET_XYZ_123")
 
 
 class TestListParameters:
@@ -87,8 +99,9 @@ class TestListParameters:
 
     def test_invalid_dataset_returns_empty(self):
         """Test that invalid dataset returns empty list."""
-        params = list_parameters("INVALID_DATASET_XYZ")
-        assert params == []
+        with patch("knowledge.hapi_client.requests.get", side_effect=_mock_hapi_404):
+            params = list_parameters("INVALID_DATASET_XYZ")
+            assert params == []
 
 
 class TestGetDatasetTimeRange:
@@ -103,8 +116,9 @@ class TestGetDatasetTimeRange:
 
     def test_invalid_dataset_returns_none(self):
         """Test that invalid dataset returns None."""
-        time_range = get_dataset_time_range("INVALID_XYZ")
-        assert time_range is None
+        with patch("knowledge.hapi_client.requests.get", side_effect=_mock_hapi_404):
+            time_range = get_dataset_time_range("INVALID_XYZ")
+            assert time_range is None
 
 
 class TestLocalFirstCacheBehavior:

@@ -31,11 +31,11 @@ _SKIP_TYPES = _EPOCH_TYPES | {"CDF_CHAR", "CDF_UCHAR"}
 
 
 def list_cdf_variables(dataset_id: str) -> list[dict]:
-    """List data variables from a CDF file for a given dataset.
+    """List data variables from a Master CDF skeleton file.
 
-    Downloads one CDF file near the end of the dataset's coverage window
-    and inspects its variables. Skips epoch/time variables, character
-    metadata, and support variables (VAR_TYPE != 'data').
+    Downloads the lightweight Master CDF file (~10-100 KB) and extracts
+    variable metadata. No data download needed — Master CDFs contain
+    variable definitions and attributes only.
 
     Args:
         dataset_id: CDAWeb dataset ID (e.g., "AC_H2_MFI").
@@ -43,77 +43,20 @@ def list_cdf_variables(dataset_id: str) -> list[dict]:
     Returns:
         List of dicts with keys: name, description, units, size.
     """
-    from datetime import datetime, timedelta
+    from knowledge.master_cdf import download_master_cdf, extract_metadata
 
-    # Pick a 1-day window near the end of coverage
-    info = get_dataset_info(dataset_id)
-    stop_str = info.get("stopDate", "")
-    if stop_str:
-        stop_dt = datetime.fromisoformat(stop_str.rstrip("Z"))
-    else:
-        stop_dt = datetime.utcnow()
-    start_dt = stop_dt - timedelta(days=1)
+    cdf_path = download_master_cdf(dataset_id)
+    info = extract_metadata(cdf_path)
 
-    time_min = start_dt.strftime("%Y-%m-%dT%H:%M:%SZ")
-    time_max = stop_dt.strftime("%Y-%m-%dT%H:%M:%SZ")
-
-    file_list = _get_cdf_file_list(dataset_id, time_min, time_max)
-    if not file_list:
-        raise ValueError(f"No CDF files found for {dataset_id} near {time_max}")
-
-    local_path = _download_cdf_file(file_list[0]["url"], CACHE_DIR)
-    cdf = cdflib.CDF(str(local_path))
-    cdf_info = cdf.cdf_info()
-
-    all_vars = cdf_info.zVariables + cdf_info.rVariables
     result = []
-
-    for var_name in all_vars:
-        try:
-            var_inq = cdf.varinq(var_name)
-        except Exception:
+    for param in info.get("parameters", []):
+        if param.get("name", "").lower() == "time":
             continue
-
-        # Skip epoch/time and character types
-        dtype_desc = var_inq.Data_Type_Description
-        if dtype_desc in _SKIP_TYPES:
-            continue
-
-        # Skip support variables (VAR_TYPE != "data")
-        try:
-            attrs = cdf.varattsget(var_name)
-            var_type = attrs.get("VAR_TYPE", "")
-            if isinstance(var_type, np.ndarray):
-                var_type = str(var_type)
-            if var_type and var_type.lower() != "data":
-                continue
-        except Exception:
-            pass  # If no attributes, include the variable
-
-        # Extract metadata
-        try:
-            attrs = cdf.varattsget(var_name)
-        except Exception:
-            attrs = {}
-
-        desc = attrs.get("CATDESC", "") or attrs.get("FIELDNAM", "")
-        if isinstance(desc, np.ndarray):
-            desc = str(desc)
-        units = attrs.get("UNITS", "")
-        if isinstance(units, np.ndarray):
-            units = str(units)
-
-        # Determine size from DimSizes
-        dim_sizes = var_inq.Dim_Sizes
-        if isinstance(dim_sizes, (list, np.ndarray)) and len(dim_sizes) > 0:
-            size = [int(d) for d in dim_sizes]
-        else:
-            size = [1]
-
+        size = param.get("size", [1])
         result.append({
-            "name": var_name,
-            "description": desc,
-            "units": units,
+            "name": param["name"],
+            "description": param.get("description", ""),
+            "units": param.get("units", ""),
             "size": size,
         })
 

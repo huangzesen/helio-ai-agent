@@ -11,7 +11,7 @@ Run with: python -m pytest tests/test_hapi_cache.py -v
 import json
 import pytest
 from pathlib import Path
-from unittest.mock import patch
+from unittest.mock import patch, MagicMock
 
 from knowledge.hapi_client import (
     _find_local_cache,
@@ -190,13 +190,15 @@ class TestGetDatasetInfoLocalCache:
         """use_cache=False skips both memory and local file, hits network."""
         with patch("knowledge.hapi_client._MISSIONS_DIR", fake_missions_dir), \
              patch("knowledge.hapi_client.requests.get") as mock_get:
-            # Simulate network call
+            # Simulate network call (Master CDF + HAPI fallback both use requests.get)
             mock_get.return_value.status_code = 200
             mock_get.return_value.raise_for_status = lambda: None
             mock_get.return_value.json.return_value = {"parameters": []}
+            mock_get.return_value.content = b""  # For Master CDF download
             get_dataset_info("PSP_FLD_L2_MAG_RTN_1MIN", use_cache=False)
             # Network SHOULD have been called because use_cache=False
-            mock_get.assert_called_once()
+            # (may be called multiple times: Master CDF attempt + HAPI fallback)
+            assert mock_get.call_count >= 1
 
 
 class TestListParametersFromCache:
@@ -222,7 +224,11 @@ class TestListParametersFromCache:
 
     def test_returns_empty_for_uncached_invalid_dataset(self, fake_missions_dir):
         """list_parameters returns empty list for dataset not in cache or network."""
-        with patch("knowledge.hapi_client._MISSIONS_DIR", fake_missions_dir):
+        mock_resp = MagicMock()
+        mock_resp.status_code = 404
+        mock_resp.raise_for_status.side_effect = Exception("404 Not Found")
+        with patch("knowledge.hapi_client._MISSIONS_DIR", fake_missions_dir), \
+             patch("knowledge.hapi_client.requests.get", return_value=mock_resp):
             params = list_parameters("NONEXISTENT_DATASET_XYZ")
             assert params == []
 

@@ -2,21 +2,23 @@
 Data fetcher — pulls timeseries from CDAWeb into pandas DataFrames.
 
 Supports two backends:
-  - HAPI CSV (default) via CDAWeb's /hapi/data endpoint
-  - CDF file download via CDAWeb's REST API + cdflib
+  - CDF file download (default) via CDAWeb's REST API + cdflib
+  - HAPI CSV via CDAWeb's /hapi/data endpoint (fallback)
 
-The active backend is controlled by config.DATA_BACKEND ("hapi" or "cdf").
-On startup, check_hapi_status() can probe HAPI availability and trigger
-automatic fallback to the CDF backend.
+The active backend is controlled by config.DATA_BACKEND ("cdf" or "hapi").
+When using CDF backend, automatically falls back to HAPI on failure.
 """
 
 import io
+import logging
 
 import numpy as np
 import pandas as pd
 import requests
 
 from knowledge.hapi_client import HAPI_BASE, get_dataset_info
+
+logger = logging.getLogger("helio-agent")
 
 
 def fetch_hapi_data(
@@ -150,16 +152,29 @@ def fetch_data(
     time_min: str,
     time_max: str,
 ) -> dict:
-    """Route data fetching to the configured backend (HAPI or CDF).
+    """Route data fetching to the configured backend, with fallback.
 
-    Reads DATA_BACKEND from config to decide which path to use.
+    CDF backend (default): tries CDF first, falls back to HAPI on failure.
+    HAPI backend: tries HAPI first, falls back to CDF on failure.
     Same return format regardless of backend.
     """
     import config
     if config.DATA_BACKEND == "cdf":
         from data_ops.fetch_cdf import fetch_cdf_data
-        return fetch_cdf_data(dataset_id, parameter_id, time_min, time_max)
-    return fetch_hapi_data(dataset_id, parameter_id, time_min, time_max)
+        try:
+            return fetch_cdf_data(dataset_id, parameter_id, time_min, time_max)
+        except Exception as e:
+            logger.warning("CDF fetch failed for %s/%s, trying HAPI: %s",
+                           dataset_id, parameter_id, e)
+            return fetch_hapi_data(dataset_id, parameter_id, time_min, time_max)
+    else:
+        try:
+            return fetch_hapi_data(dataset_id, parameter_id, time_min, time_max)
+        except Exception as e:
+            logger.warning("HAPI fetch failed for %s/%s, trying CDF: %s",
+                           dataset_id, parameter_id, e)
+            from data_ops.fetch_cdf import fetch_cdf_data
+            return fetch_cdf_data(dataset_id, parameter_id, time_min, time_max)
 
 
 def _find_parameter_meta(info: dict, parameter_id: str) -> dict:

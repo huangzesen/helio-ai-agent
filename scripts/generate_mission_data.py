@@ -1,9 +1,9 @@
 #!/usr/bin/env python3
 """
-Auto-generate/update per-mission JSON files from CDAWeb HAPI metadata.
+Auto-generate/update per-mission JSON files from CDAWeb metadata.
 
-Queries the HAPI /catalog and /info endpoints to populate datasets and
-parameters in knowledge/missions/*.json files.
+Uses CDAS REST API for catalog + Master CDF files for parameter metadata.
+HAPI is only used as a last-resort fallback.
 
 Hand-curated fields (profile, keywords) are preserved on merge.
 
@@ -40,31 +40,41 @@ from knowledge.mission_prefixes import (
 )
 
 
-# HAPI server base URL
+# HAPI server base URL (last-resort fallback)
 HAPI_SERVER = "https://cdaweb.gsfc.nasa.gov/hapi"
 
 # Missions directory
 MISSIONS_DIR = Path(__file__).parent.parent / "knowledge" / "missions"
 
 
-def fetch_hapi_catalog() -> list[dict]:
-    """Fetch the full HAPI catalog from CDAWeb."""
+def fetch_catalog() -> list[dict]:
+    """Fetch the dataset catalog from CDAS REST API (HAPI fallback)."""
+    from knowledge.cdaweb_metadata import fetch_dataset_metadata
+
+    print("Fetching dataset catalog from CDAS REST API...")
+    cdaweb_meta = fetch_dataset_metadata()
+    if cdaweb_meta:
+        catalog = [{"id": ds_id} for ds_id in cdaweb_meta]
+        print(f"  Found {len(catalog)} datasets in CDAS REST catalog")
+        return catalog
+
+    # Fallback: HAPI /catalog
+    print("  CDAS REST unavailable, falling back to HAPI /catalog...")
     url = f"{HAPI_SERVER}/catalog"
-    print(f"Fetching HAPI catalog from {url}...")
     resp = requests.get(url, timeout=30)
     resp.raise_for_status()
     data = resp.json()
     catalog = data.get("catalog", [])
-    print(f"  Found {len(catalog)} datasets in catalog")
+    print(f"  Found {len(catalog)} datasets in HAPI catalog")
     return catalog
 
 
-def fetch_hapi_info(dataset_id: str, mission_stem: str | None = None) -> dict | None:
-    """Get HAPI /info for a dataset — local cache first, then network.
+def fetch_dataset_info(dataset_id: str, mission_stem: str | None = None) -> dict | None:
+    """Get metadata for a dataset — cache, Master CDF, then HAPI fallback.
 
     Returns parsed JSON or None on error.
     """
-    # Try local cache first (populated by fetch_hapi_cache.py)
+    # Try local cache first
     if mission_stem:
         cache_file = MISSIONS_DIR / mission_stem / "hapi" / f"{dataset_id}.json"
         if cache_file.exists():
@@ -72,8 +82,18 @@ def fetch_hapi_info(dataset_id: str, mission_stem: str | None = None) -> dict | 
                 with open(cache_file, "r", encoding="utf-8") as f:
                     return json.load(f)
             except (json.JSONDecodeError, OSError):
-                pass  # Fall through to network
+                pass  # Fall through to Master CDF
 
+    # Try Master CDF
+    try:
+        from knowledge.master_cdf import fetch_dataset_metadata_from_master
+        info = fetch_dataset_metadata_from_master(dataset_id)
+        if info is not None:
+            return info
+    except Exception:
+        pass
+
+    # Fallback: HAPI /info
     url = f"{HAPI_SERVER}/info?id={dataset_id}"
     try:
         resp = requests.get(url, timeout=30)
@@ -203,7 +223,7 @@ def update_mission(mission_stem: str, hapi_catalog: list[dict], verbose: bool = 
         # Get HAPI /info (local cache first, then network)
         if verbose:
             print(f"    Loading info for {ds_id}...")
-        hapi_info = fetch_hapi_info(ds_id, mission_stem=mission_stem)
+        hapi_info = fetch_dataset_info(ds_id, mission_stem=mission_stem)
         if hapi_info is None:
             if verbose:
                 print(f"    Warning: No info available for {ds_id}")
@@ -229,7 +249,7 @@ def update_mission(mission_stem: str, hapi_catalog: list[dict], verbose: bool = 
     # Update _meta
     mission_data["_meta"] = {
         "generated_at": datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ"),
-        "hapi_server": HAPI_SERVER,
+        "source": "CDAS REST + Master CDF",
     }
 
     save_mission_json(mission_stem, mission_data)
@@ -378,7 +398,7 @@ def main():
         return
 
     # Fetch HAPI catalog
-    hapi_catalog = fetch_hapi_catalog()
+    hapi_catalog = fetch_catalog()
 
     if args.discover:
         discover_unmatched(hapi_catalog)

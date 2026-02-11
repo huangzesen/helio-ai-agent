@@ -75,10 +75,10 @@ def _ensure_hapi_cache(mission_stem: str) -> None:
 
     try:
         from .bootstrap import populate_mission_hapi_cache
-        logger.info("[Bootstrap] Downloading HAPI cache for %s...", mission_stem)
+        logger.info("[Bootstrap] Downloading metadata cache for %s...", mission_stem)
         populate_mission_hapi_cache(mission_stem)
     except Exception as e:
-        logger.warning("HAPI cache download failed for %s: %s", mission_stem, e)
+        logger.warning("Metadata cache download failed for %s: %s", mission_stem, e)
 
 
 def load_all_missions() -> dict[str, dict]:

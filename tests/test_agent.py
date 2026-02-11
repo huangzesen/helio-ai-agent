@@ -217,7 +217,9 @@ class TestAgentToolExecution:
                 agent.verbose = False
                 agent._renderer = None
 
-                result = agent._execute_tool("list_parameters", {"dataset_id": "AC_H2_MFI"})
+                # Force HAPI backend for this test (default is now CDF)
+                with patch("config.DATA_BACKEND", "hapi"):
+                    result = agent._execute_tool("list_parameters", {"dataset_id": "AC_H2_MFI"})
 
                 mock_list.assert_called_once_with("AC_H2_MFI")
                 assert len(result["parameters"]) == 1

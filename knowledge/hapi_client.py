@@ -1,21 +1,30 @@
 """
 HAPI client for CDAWeb parameter metadata discovery.
 
-Fetches parameter info dynamically from the CDAWeb HAPI server and filters
-to 1D plottable parameters (scalars and small vectors with size <= 3).
+Fetches parameter info dynamically and filters to 1D plottable parameters
+(scalars and small vectors with size <= 3).
 
-Supports local file cache: if a dataset's HAPI /info response is saved in
+Uses a three-layer cache with Master CDF as primary network fallback:
+1. In-memory cache (fastest)
+2. Local file cache in knowledge/missions/*/hapi/ (instant, no network)
+3. Master CDF skeleton file (reliable, separate infrastructure from HAPI)
+4. HAPI /info endpoint (last-resort fallback)
+
+Supports local file cache: if a dataset's info response is saved in
 knowledge/missions/{mission}/hapi/{dataset_id}.json, it is loaded instantly
 without a network request.
 """
 
 import fnmatch
 import json
+import logging
 import re
 import requests
 from html.parser import HTMLParser
 from pathlib import Path
 from typing import Optional
+
+logger = logging.getLogger("helio-agent")
 
 HAPI_BASE = "https://cdaweb.gsfc.nasa.gov/hapi"
 
@@ -51,22 +60,23 @@ def _find_local_cache(dataset_id: str) -> Optional[Path]:
 
 
 def get_dataset_info(dataset_id: str, use_cache: bool = True) -> dict:
-    """Fetch parameter metadata from HAPI /info endpoint.
+    """Fetch parameter metadata for a dataset.
 
-    Checks three sources in order:
+    Checks four sources in order:
     1. In-memory cache (fastest)
     2. Local file cache in knowledge/missions/*/hapi/ (instant, no network)
-    3. Network request to CDAWeb HAPI server (fallback)
+    3. Master CDF skeleton file (reliable, separate infrastructure)
+    4. HAPI /info endpoint (last-resort fallback)
 
     Args:
         dataset_id: CDAWeb dataset ID (e.g., "PSP_FLD_L2_MAG_RTN_1MIN")
         use_cache: Whether to use cached results (in-memory and local file)
 
     Returns:
-        HAPI info response with startDate, stopDate, parameters, etc.
+        HAPI-compatible info dict with startDate, stopDate, parameters, etc.
 
     Raises:
-        requests.HTTPError: If the HAPI request fails and no cache is available.
+        Exception: If all sources fail and no cache is available.
     """
     # 1. In-memory cache
     if use_cache and dataset_id in _info_cache:
@@ -80,7 +90,21 @@ def get_dataset_info(dataset_id: str, use_cache: bool = True) -> dict:
             _info_cache[dataset_id] = info
             return info
 
-    # 3. Network fallback
+    # 3. Master CDF (primary network fallback)
+    try:
+        from .master_cdf import fetch_dataset_metadata_from_master
+        info = fetch_dataset_metadata_from_master(dataset_id)
+        if info is not None:
+            logger.debug("Got metadata from Master CDF for %s", dataset_id)
+            if use_cache:
+                _info_cache[dataset_id] = info
+                _save_to_local_cache(dataset_id, info)
+            return info
+    except Exception as e:
+        logger.debug("Master CDF fallback failed for %s: %s", dataset_id, e)
+
+    # 4. HAPI /info (last resort)
+    logger.debug("Falling back to HAPI /info for %s", dataset_id)
     resp = requests.get(
         f"{HAPI_BASE}/info",
         params={"id": dataset_id},
@@ -93,6 +117,45 @@ def get_dataset_info(dataset_id: str, use_cache: bool = True) -> dict:
         _info_cache[dataset_id] = info
 
     return info
+
+
+def _save_to_local_cache(dataset_id: str, info: dict) -> None:
+    """Persist metadata to the local file cache.
+
+    Finds the appropriate mission directory by scanning existing dirs.
+    If no matching mission dir is found, skips silently.
+    """
+    for mission_dir in _MISSIONS_DIR.iterdir():
+        if not mission_dir.is_dir():
+            continue
+        hapi_dir = mission_dir / "hapi"
+        if hapi_dir.exists():
+            # Check if this mission has any datasets with matching prefix
+            # by looking at existing cache files
+            existing = list(hapi_dir.glob("*.json"))
+            if not existing:
+                continue
+            # Check prefix match (e.g., AC_ for ACE datasets)
+            sample_name = existing[0].stem
+            if sample_name.startswith("_"):
+                if len(existing) > 1:
+                    sample_name = existing[1].stem
+                else:
+                    continue
+            # Simple heuristic: same mission prefix
+            ds_prefix = dataset_id.split("_")[0] if "_" in dataset_id else ""
+            sample_prefix = sample_name.split("_")[0] if "_" in sample_name else ""
+            if ds_prefix and ds_prefix == sample_prefix:
+                cache_file = hapi_dir / f"{dataset_id}.json"
+                try:
+                    cache_file.write_text(
+                        json.dumps(info, indent=2, ensure_ascii=False) + "\n",
+                        encoding="utf-8",
+                    )
+                    logger.debug("Saved Master CDF metadata to cache: %s", cache_file)
+                except OSError:
+                    pass
+                return
 
 
 def list_parameters(dataset_id: str) -> list[dict]:
@@ -112,8 +175,8 @@ def list_parameters(dataset_id: str) -> list[dict]:
     """
     try:
         info = get_dataset_info(dataset_id)
-    except requests.RequestException as e:
-        print(f"Warning: Could not fetch HAPI info for {dataset_id}: {e}")
+    except (requests.RequestException, Exception) as e:
+        logger.warning("Could not fetch info for %s: %s", dataset_id, e)
         return []
 
     params = []
@@ -495,13 +558,29 @@ def get_dataset_docs(dataset_id: str, max_chars: int = 4000) -> dict:
     """
     result = {"dataset_id": dataset_id, "contact": None, "resource_url": None, "documentation": None}
 
-    # Try to get contact and resource URL from HAPI /info
+    # Try to get contact and resource URL from local cache or CDAWeb metadata
     try:
         info = get_dataset_info(dataset_id)
         result["contact"] = info.get("contact")
         result["resource_url"] = info.get("resourceURL")
     except Exception:
         pass
+
+    # Enrich with CDAWeb REST API metadata (PI info, notes URL)
+    if not result["contact"] or not result["resource_url"]:
+        try:
+            from .cdaweb_metadata import fetch_dataset_metadata
+            cdaweb_meta = fetch_dataset_metadata()
+            entry = cdaweb_meta.get(dataset_id)
+            if entry:
+                if not result["contact"] and entry.get("pi_name"):
+                    result["contact"] = entry["pi_name"]
+                    if entry.get("pi_affiliation"):
+                        result["contact"] += f" @ {entry['pi_affiliation']}"
+                if not result["resource_url"] and entry.get("notes_url"):
+                    result["resource_url"] = entry["notes_url"]
+        except Exception:
+            pass
 
     # Determine the resource URL to fetch
     resource_url = result["resource_url"]

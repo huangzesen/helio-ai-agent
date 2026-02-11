@@ -73,7 +73,7 @@ def show_mission_menu() -> str:
     print()
     print("  [Enter] Continue with current data")
     print("  [r]     Refresh time ranges (fast — updates start/stop dates only)")
-    print("  [h]     Download detailed HAPI cache for all missions")
+    print("  [h]     Download detailed metadata cache for all missions")
     print("  [f]     Full rebuild (delete and re-download everything)")
     print()
 
@@ -115,7 +115,7 @@ def run_mission_refresh(action: str):
         bootstrap_mod._bootstrap_checked = False
         populate_missions()
     elif action == "hapi_cache":
-        print("\nDownloading detailed HAPI cache for all missions...")
+        print("\nDownloading detailed metadata cache for all missions...")
         populate_all_hapi_caches()
 
     from knowledge.mission_loader import clear_cache

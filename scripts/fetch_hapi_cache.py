@@ -1,8 +1,9 @@
 #!/usr/bin/env python3
 """
-Fetch and cache HAPI /info metadata for all datasets matching a mission.
+Fetch and cache dataset parameter metadata for all datasets matching a mission.
 
-Saves raw HAPI /info JSON responses to local files for instant offline lookup.
+Uses Master CDF skeleton files as primary source, HAPI /info as fallback.
+Saves metadata JSON responses to local files for instant offline lookup.
 Also generates a lightweight _index.json summary per mission.
 
 Usage:
@@ -33,25 +34,58 @@ from knowledge.mission_prefixes import match_dataset_to_mission
 
 
 # Constants
-HAPI_SERVER = "https://cdaweb.gsfc.nasa.gov/hapi"
+HAPI_SERVER = "https://cdaweb.gsfc.nasa.gov/hapi"  # last-resort fallback
 MISSIONS_DIR = Path(__file__).parent.parent / "knowledge" / "missions"
 DEFAULT_WORKERS = 10
 
+# CDAS REST metadata (fetched once, shared across threads)
+_cdaweb_meta: dict | None = None
 
-def fetch_hapi_catalog() -> list[dict]:
-    """Fetch the full HAPI catalog from CDAWeb."""
+
+def fetch_catalog() -> list[dict]:
+    """Fetch dataset catalog from CDAS REST API (HAPI fallback)."""
+    global _cdaweb_meta
+    from knowledge.cdaweb_metadata import fetch_dataset_metadata
+
+    print("Fetching dataset catalog from CDAS REST API...")
+    _cdaweb_meta = fetch_dataset_metadata()
+    if _cdaweb_meta:
+        catalog = [{"id": ds_id} for ds_id in _cdaweb_meta]
+        print(f"  Found {len(catalog)} datasets in CDAS REST catalog")
+        return catalog
+
+    # Fallback: HAPI /catalog
+    print("  CDAS REST unavailable, falling back to HAPI /catalog...")
     url = f"{HAPI_SERVER}/catalog"
-    print(f"Fetching HAPI catalog from {url}...")
     resp = requests.get(url, timeout=30)
     resp.raise_for_status()
     data = resp.json()
     catalog = data.get("catalog", [])
-    print(f"  Found {len(catalog)} datasets in catalog")
+    print(f"  Found {len(catalog)} datasets in HAPI catalog")
     return catalog
 
 
-def fetch_hapi_info(dataset_id: str) -> dict | None:
-    """Fetch HAPI /info for a single dataset. Returns parsed JSON or None."""
+def fetch_dataset_info(dataset_id: str) -> dict | None:
+    """Fetch metadata for a dataset. Master CDF first, HAPI fallback."""
+    from knowledge.master_cdf import fetch_dataset_metadata_from_master
+
+    # Get dates from CDAS REST metadata if available
+    start_date = ""
+    stop_date = ""
+    if _cdaweb_meta:
+        entry = _cdaweb_meta.get(dataset_id)
+        if entry:
+            start_date = entry.get("start_date", "")
+            stop_date = entry.get("stop_date", "")
+
+    # Try Master CDF first
+    info = fetch_dataset_metadata_from_master(
+        dataset_id, start_date=start_date, stop_date=stop_date
+    )
+    if info is not None:
+        return info
+
+    # Fallback: HAPI /info
     url = f"{HAPI_SERVER}/info"
     try:
         resp = requests.get(url, params={"id": dataset_id}, timeout=30)
@@ -105,13 +139,13 @@ def ensure_calibration_exclude(mission_stem: str):
 
 
 def _fetch_and_save(ds_id: str, instrument_hint: str | None, cache_dir: Path) -> tuple[str, str, dict | None]:
-    """Fetch a single dataset's HAPI info and save to cache. Thread-safe.
+    """Fetch a single dataset's metadata and save to cache. Thread-safe.
 
     Returns:
         (dataset_id, status, index_entry_or_None)
         status is one of: "fetched", "failed"
     """
-    info = fetch_hapi_info(ds_id)
+    info = fetch_dataset_info(ds_id)
     if info is None:
         return ds_id, "failed", None
 
@@ -263,8 +297,8 @@ def main():
 
     start_time = time.time()
 
-    # Fetch HAPI catalog once
-    hapi_catalog = fetch_hapi_catalog()
+    # Fetch catalog once (CDAS REST primary, HAPI fallback)
+    hapi_catalog = fetch_catalog()
 
     if args.mission:
         mission_stem = args.mission.lower()
