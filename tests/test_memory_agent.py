@@ -17,7 +17,6 @@ from agent.memory_agent import (
     AnalysisResult,
     LOG_GROWTH_THRESHOLD,
     ERROR_COUNT_THRESHOLD,
-    TURN_COUNT_THRESHOLD,
     STATE_FILE,
     REPORTS_DIR,
 )
@@ -48,29 +47,12 @@ def agent(memory_store):
     )
 
 
-# ---- should_analyze() ----
+# ---- _should_analyze() ----
 
 class TestShouldAnalyze:
-    def test_triggers_on_turn_count(self, agent, tmp_dir):
-        """Should trigger when turn_count exceeds threshold."""
-        state = {"last_turn_count": 0}
-        with patch.object(agent, "_load_state", return_value=state):
-            with patch("agent.memory_agent.get_current_log_path", return_value=tmp_dir / "fake.log"):
-                with patch("agent.memory_agent.get_log_size", return_value=0):
-                    assert agent.should_analyze(TURN_COUNT_THRESHOLD)
-
-    def test_no_trigger_below_turn_threshold(self, agent, tmp_dir):
-        """Should NOT trigger when turn_count is below threshold."""
-        state = {"last_turn_count": 0}
-        with patch.object(agent, "_load_state", return_value=state):
-            with patch("agent.memory_agent.get_current_log_path", return_value=tmp_dir / "fake.log"):
-                with patch("agent.memory_agent.get_log_size", return_value=0):
-                    assert not agent.should_analyze(TURN_COUNT_THRESHOLD - 1)
-
     def test_triggers_on_log_growth(self, agent, tmp_dir):
         """Should trigger when log grows by threshold bytes."""
         state = {
-            "last_turn_count": 100,
             "last_log_file": "agent_20260209.log",
             "last_log_byte_offset": 1000,
         }
@@ -78,12 +60,11 @@ class TestShouldAnalyze:
             log_path = tmp_dir / "agent_20260209.log"
             with patch("agent.memory_agent.get_current_log_path", return_value=log_path):
                 with patch("agent.memory_agent.get_log_size", return_value=1000 + LOG_GROWTH_THRESHOLD):
-                    assert agent.should_analyze(100)  # same turn count
+                    assert agent._should_analyze()
 
     def test_no_trigger_below_log_growth(self, agent, tmp_dir):
         """Should NOT trigger when log growth is below threshold."""
         state = {
-            "last_turn_count": 100,
             "last_log_file": "agent_20260209.log",
             "last_log_byte_offset": 1000,
         }
@@ -91,12 +72,12 @@ class TestShouldAnalyze:
             log_path = tmp_dir / "agent_20260209.log"
             with patch("agent.memory_agent.get_current_log_path", return_value=log_path):
                 with patch("agent.memory_agent.get_log_size", return_value=1000 + LOG_GROWTH_THRESHOLD - 1):
-                    assert not agent.should_analyze(100)
+                    with patch.object(agent, "_count_new_errors", return_value=0):
+                        assert not agent._should_analyze()
 
     def test_triggers_on_log_rotation(self, agent, tmp_dir):
         """Should trigger when log file name changes (new day) and size exceeds threshold."""
         state = {
-            "last_turn_count": 100,
             "last_log_file": "agent_20260208.log",
             "last_log_byte_offset": 50000,
         }
@@ -104,23 +85,26 @@ class TestShouldAnalyze:
             log_path = tmp_dir / "agent_20260209.log"
             with patch("agent.memory_agent.get_current_log_path", return_value=log_path):
                 with patch("agent.memory_agent.get_log_size", return_value=LOG_GROWTH_THRESHOLD):
-                    assert agent.should_analyze(100)
+                    assert agent._should_analyze()
 
     def test_triggers_on_error_count(self, agent, tmp_dir):
         """Should trigger when error count meets threshold."""
-        state = {"last_turn_count": 100}
+        state = {"last_log_file": "agent_20260209.log", "last_log_byte_offset": 1000}
         with patch.object(agent, "_load_state", return_value=state):
-            with patch("agent.memory_agent.get_current_log_path", return_value=tmp_dir / "fake.log"):
-                with patch("agent.memory_agent.get_log_size", return_value=0):
+            log_path = tmp_dir / "agent_20260209.log"
+            with patch("agent.memory_agent.get_current_log_path", return_value=log_path):
+                with patch("agent.memory_agent.get_log_size", return_value=1000):
                     with patch.object(agent, "_count_new_errors", return_value=ERROR_COUNT_THRESHOLD):
-                        assert agent.should_analyze(100)
+                        assert agent._should_analyze()
 
-    def test_empty_state_no_trigger_low_turns(self, agent, tmp_dir):
-        """Empty state file with low turn count should not trigger."""
+    def test_no_trigger_small_log_no_errors(self, agent, tmp_dir):
+        """Should NOT trigger with small log and no errors."""
         with patch.object(agent, "_load_state", return_value={}):
-            with patch("agent.memory_agent.get_current_log_path", return_value=tmp_dir / "fake.log"):
+            log_path = tmp_dir / "fake.log"
+            with patch("agent.memory_agent.get_current_log_path", return_value=log_path):
                 with patch("agent.memory_agent.get_log_size", return_value=0):
-                    assert not agent.should_analyze(TURN_COUNT_THRESHOLD - 1)
+                    with patch.object(agent, "_count_new_errors", return_value=0):
+                        assert not agent._should_analyze()
 
 
 # ---- State persistence ----
@@ -132,7 +116,6 @@ class TestStatePersistence:
             "last_log_file": "agent_20260209.log",
             "last_log_byte_offset": 12345,
             "last_analysis_timestamp": "2026-02-09T14:30:00",
-            "last_turn_count": 25,
         }
         state_file = tmp_dir / "state.json"
         with patch("agent.memory_agent.STATE_FILE", state_file):
@@ -228,7 +211,7 @@ class TestReportGeneration:
         with patch("agent.memory_agent.REPORTS_DIR", tmp_dir / "reports"):
             path = agent._save_report(
                 result, "session_123", "agent_20260209.log",
-                0, 50000, 15,
+                0, 50000,
             )
         assert Path(path).exists()
         content = Path(path).read_text()
@@ -243,7 +226,7 @@ class TestReportGeneration:
             pitfalls=["Check for NaN values"],
         )
         with patch("agent.memory_agent.REPORTS_DIR", tmp_dir / "reports"):
-            path = agent._save_report(result, "", "log.log", 0, 100, 5)
+            path = agent._save_report(result, "", "log.log", 0, 100)
         content = Path(path).read_text()
         assert "## Error Patterns" not in content
         assert "Check for NaN values" in content
@@ -297,19 +280,16 @@ class TestPitfallDedup:
 # ---- Prompt building ----
 
 class TestBuildAnalysisPrompt:
-    def test_includes_conversation_and_log(self, agent):
+    def test_includes_log_content(self, agent):
         prompt = agent._build_analysis_prompt(
-            "User: Show ACE data\nAgent: Here is the data",
             "2026-02-09 | ERROR | fetch failed",
             [], [], [],
         )
-        assert "Show ACE data" in prompt
         assert "fetch failed" in prompt
         assert "error_patterns" in prompt
 
     def test_includes_existing_memories(self, agent):
         prompt = agent._build_analysis_prompt(
-            "User: Hello",
             "",
             ["Prefers dark theme"],
             ["OMNI may fail"],
