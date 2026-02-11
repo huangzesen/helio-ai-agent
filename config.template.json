@@ -12,5 +12,6 @@
   "memory_poll_interval_seconds": 30,
   "memory_log_growth_threshold_kb": 10,
   "memory_error_count_threshold": 5,
-  "memory_max_log_bytes_kb": 50
+  "memory_max_log_bytes_kb": 50,
+  "console_format": "full"
 }

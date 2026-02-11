@@ -196,11 +196,9 @@ class PlannerAgent:
             for thought in extract_thoughts(response):
                 # Full text to terminal/file (untagged)
                 logger.debug(f"[Thinking] {thought}")
-                # Truncated preview to Gradio (tagged)
-                preview = thought[:500]
-                if len(thought) > 500:
-                    preview += "..."
-                logger.debug(f"[Thinking] {preview}", extra=tagged("thinking"))
+                # Preview for Gradio (tagged) — Gradio handler shows these inline
+                preview = thought[:500] + ("..." if len(thought) > 500 else "")
+                logger.debug(f"[Thinking] {preview}", extra={**tagged("thinking"), "skip_file": True})
 
     def _parse_response(self, response) -> Optional[dict]:
         """Parse JSON response from Gemini, normalizing mission fields.
@@ -257,7 +255,7 @@ class PlannerAgent:
         )
 
         if self.verbose:
-            logger.debug(f"[PlannerAgent] Discovery phase for: {user_request[:80]}...")
+            logger.debug(f"[PlannerAgent] Discovery phase for: {user_request}")
 
         self._last_tool_context = "discovery_initial"
         response = chat.send_message(user_request)
@@ -279,8 +277,7 @@ class PlannerAgent:
 
         text = extract_text_from_response(response)
         if self.verbose and text:
-            preview = text[:200] + "..." if len(text) > 200 else text
-            logger.debug(f"[PlannerAgent] Discovery result: {preview}")
+            logger.debug(f"[PlannerAgent] Discovery result: {text}")
 
         # Build a structured parameter reference from raw list_parameters results
         param_ref = self._build_parameter_reference(tool_results)
@@ -469,7 +466,7 @@ class PlannerAgent:
                 planning_message = user_request
 
             if self.verbose:
-                logger.debug(f"[PlannerAgent] Starting planning for: {user_request[:80]}...")
+                logger.debug(f"[PlannerAgent] Starting planning for: {user_request}")
 
             self._last_tool_context = "planning_initial"
             response = self._chat.send_message(planning_message)

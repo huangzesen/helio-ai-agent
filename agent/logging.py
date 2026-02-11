@@ -1,8 +1,22 @@
 """
 Logging configuration for helio-ai-agent.
 
-Provides structured logging to both console and file, with detailed
-error information including stack traces for debugging.
+Three logging destinations, two tiers:
+
+Tier 1 — File + Console (identical by default):
+  - Full detail, no truncation
+  - File: always DEBUG level
+  - Console: DEBUG if --verbose, WARNING+ otherwise
+  - Filter: both drop records with extra={'skip_file': True}
+  - Format: "timestamp | level | name | session_id | message"
+  - Config: set console_format="simple" for bare messages
+    (DEBUG/INFO print bare, WARNING+ get [LEVEL] prefix)
+
+Tier 2 — Gradio live log (curated):
+  - Only records tagged with a key in GRADIO_VISIBLE_TAGS
+  - Handler lives in gradio_app.py (_ListHandler)
+  - Preview snippets use extra={**tagged("x"), "skip_file": True}
+    so they reach Gradio but not file/console
 
 Log files are stored in ~/.helio-agent/logs/ with one file per session.
 """
@@ -55,6 +69,17 @@ class _SessionFilter(logging.Filter):
         if not hasattr(record, "log_tag"):
             record.log_tag = ""
         return True
+
+
+class _SkipDuplicateFilter(logging.Filter):
+    """Drops records marked with ``extra={'skip_file': True}``.
+
+    Applied to both file and console handlers so that Gradio-only preview
+    snippets (tagged + skip_file) don't appear in either persistent destination.
+    """
+
+    def filter(self, record: logging.LogRecord) -> bool:
+        return not getattr(record, "skip_file", False)
 
 
 class _ConsoleFormatter(logging.Formatter):
@@ -166,6 +191,7 @@ def setup_logging(verbose: bool = False) -> logging.Logger:
     _current_log_file = log_file
     file_handler = logging.FileHandler(log_file, encoding="utf-8")
     file_handler.setLevel(logging.DEBUG)
+    file_handler.addFilter(_SkipDuplicateFilter())
     file_format = logging.Formatter(
         "%(asctime)s | %(levelname)-8s | %(name)s | %(session_id)s | %(message)s",
         datefmt="%Y-%m-%d %H:%M:%S"
@@ -176,7 +202,14 @@ def setup_logging(verbose: bool = False) -> logging.Logger:
     # Console handler - less verbose unless --verbose flag
     console_handler = logging.StreamHandler(sys.stderr)
     console_handler.setLevel(logging.DEBUG if verbose else logging.WARNING)
-    console_handler.setFormatter(_ConsoleFormatter())
+    console_handler.addFilter(_SkipDuplicateFilter())
+
+    import config as _config
+    if _config.get("console_format", "full") == "simple":
+        console_handler.setFormatter(_ConsoleFormatter())
+    else:
+        console_handler.setFormatter(file_format)  # identical to file handler
+
     logger.addHandler(console_handler)
 
     # Token usage log (shares the same timestamp suffix)
@@ -235,11 +268,7 @@ def log_error(
     if context:
         lines.append("Context:")
         for key, value in context.items():
-            # Truncate long values
-            str_value = str(value)
-            if len(str_value) > 500:
-                str_value = str_value[:500] + "..."
-            lines.append(f"  {key}: {str_value}")
+            lines.append(f"  {key}: {value}")
 
     if exc:
         lines.append(f"Exception type: {type(exc).__name__}")
@@ -259,10 +288,7 @@ def log_tool_call(tool_name: str, tool_args: dict) -> None:
         tool_args: Arguments passed to the tool
     """
     logger = get_logger()
-    # Truncate large args
     args_str = str(tool_args)
-    if len(args_str) > 200:
-        args_str = args_str[:200] + "..."
     logger.debug(f"Tool call: {tool_name}({args_str})")
 
 

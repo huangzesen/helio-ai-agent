@@ -118,11 +118,9 @@ class BaseSubAgent:
             for thought in extract_thoughts(response):
                 # Full text to terminal/file (untagged)
                 self.logger.debug(f"[Thinking] {thought}")
-                # Truncated preview to Gradio (tagged)
-                preview = thought[:500]
-                if len(thought) > 500:
-                    preview += "..."
-                self.logger.debug(f"[Thinking] {preview}", extra=tagged("thinking"))
+                # Preview for Gradio (tagged) — Gradio handler shows these inline
+                preview = thought[:500] + ("..." if len(thought) > 500 else "")
+                self.logger.debug(f"[Thinking] {preview}", extra={**tagged("thinking"), "skip_file": True})
 
     def get_token_usage(self) -> dict:
         """Return cumulative token usage for this agent."""
@@ -180,7 +178,7 @@ class BaseSubAgent:
             failed (bool): True if the agent stopped due to errors/loops.
             errors (list[str]): Error messages from failed tool calls.
         """
-        self.logger.debug(f"[{self.agent_name}] Processing: {user_message[:80]}...")
+        self.logger.debug(f"[{self.agent_name}] Processing: {user_message}")
 
         try:
             # Conversational config: no forced function calling

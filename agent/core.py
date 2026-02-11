@@ -235,7 +235,11 @@ class OrchestratorAgent:
         if self.verbose:
             from .thinking import extract_thoughts
             for thought in extract_thoughts(response):
-                self.logger.debug(f"[Thinking] {thought}", extra=tagged("thinking"))
+                # Full text to file/console (untagged)
+                self.logger.debug(f"[Thinking] {thought}")
+                # Preview for Gradio (tagged) — Gradio handler shows these inline
+                preview = thought[:500] + ("..." if len(thought) > 500 else "")
+                self.logger.debug(f"[Thinking] {preview}", extra={**tagged("thinking"), "skip_file": True})
 
     def _send_message(self, message):
         """Send a message on self.chat with automatic model fallback on 429."""
