@@ -76,6 +76,8 @@ TOOLS = [
              "description": "Plotly template name (e.g., 'plotly_dark', 'plotly_white')"},
             {"name": "vlines", "type": "array", "required": False,
              "description": "Vertical lines: [{x, label, color, dash, width}, ...]. x is a timestamp string. color defaults to 'red'. dash defaults to 'solid'; use 'dash' or 'dot' when helpful to distinguish from data traces."},
+            {"name": "vrects", "type": "array", "required": False,
+             "description": "Highlighted time ranges (like axvspan): [{x0, x1, label, color, opacity}, ...]. x0/x1 are timestamp strings. color defaults to semi-transparent light blue. opacity defaults to 0.3."},
         ],
     },
     {

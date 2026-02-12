@@ -614,6 +614,36 @@ Use this for titles, axis labels, log scale, colors, line styles, canvas size, a
                         "required": ["x"]
                     },
                     "description": "Vertical lines: [{x, label, color, dash, width}, ...]. x is a timestamp string."
+                },
+                "vrects": {
+                    "type": "array",
+                    "items": {
+                        "type": "object",
+                        "properties": {
+                            "x0": {
+                                "type": "string",
+                                "description": "Start timestamp (required)"
+                            },
+                            "x1": {
+                                "type": "string",
+                                "description": "End timestamp (required)"
+                            },
+                            "label": {
+                                "type": "string",
+                                "description": "Text label centered above the highlighted region"
+                            },
+                            "color": {
+                                "type": "string",
+                                "description": "Fill color (default: semi-transparent light blue)"
+                            },
+                            "opacity": {
+                                "type": "number",
+                                "description": "Fill opacity 0-1 (default: 0.3)"
+                            }
+                        },
+                        "required": ["x0", "x1"]
+                    },
+                    "description": "Highlighted time ranges: [{x0, x1, label, color, opacity}, ...]. x0/x1 are timestamp strings."
                 }
             },
             "required": []
