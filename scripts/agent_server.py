@@ -132,9 +132,11 @@ def cmd_serve(args):
                         "message": request.get("message", ""),
                         "response": response.get("response", ""),
                         "tool_calls": response.get("tool_calls", []),
+                        "follow_ups": response.get("follow_ups", []),
                         "elapsed": response.get("elapsed", 0),
                         "tokens": response.get("tokens", {}),
                         "error": response.get("error"),
+                        "has_figure": response.get("figure_json") is not None,
                     }
                     with open(session_file, "a", encoding="utf-8") as f:
                         f.write(json.dumps(log_entry, default=str) + "\n")
@@ -180,6 +182,8 @@ def _handle_action(agent, action: str, request: dict, verbose: bool) -> dict:
     elif action == "reset":
         agent.reset()
         return {"response": "Conversation reset.", "error": None}
+    elif action == "new_session":
+        return _handle_new_session(agent)
     elif action == "status":
         tokens = agent.get_token_usage()
         plan_status = agent.get_plan_status()
@@ -192,6 +196,17 @@ def _handle_action(agent, action: str, request: dict, verbose: bool) -> dict:
         return {"response": "Server stopping.", "error": None}
     else:
         return {"error": f"Unknown action: {action}", "response": ""}
+
+
+def _handle_new_session(agent) -> dict:
+    """Reset agent state AND clear the DataStore for a fresh session."""
+    agent.reset()
+    try:
+        from data_ops.store import get_store
+        get_store().clear()
+    except Exception:
+        pass
+    return {"response": "New session started (agent + data store cleared).", "error": None}
 
 
 def _handle_send(agent, message: str, verbose: bool) -> dict:
@@ -233,12 +248,33 @@ def _handle_send(agent, message: str, verbose: bool) -> dict:
         elapsed = round(time.time() - start, 2)
         tokens = agent.get_token_usage()
 
+        # Generate follow-up suggestions
+        follow_ups = []
+        try:
+            follow_ups = agent.generate_follow_ups()
+        except Exception:
+            pass
+
+        # Snapshot current figure (None if no plot)
+        # Skip if figure JSON would be too large (>50MB = likely high-cadence data)
+        figure_json = None
+        try:
+            fig = agent.get_figure()
+            if fig is not None:
+                raw = fig.to_json()
+                if len(raw) < 50_000_000:  # 50MB limit
+                    figure_json = raw
+        except Exception:
+            pass
+
         return {
             "response": response_text,
             "tool_calls": tool_log,
+            "follow_ups": follow_ups,
             "elapsed": elapsed,
             "tokens": tokens,
             "verbose_log": verbose_log,
+            "figure_json": figure_json,
             "error": None,
         }
 
@@ -246,9 +282,11 @@ def _handle_send(agent, message: str, verbose: bool) -> dict:
         return {
             "response": "",
             "tool_calls": tool_log,
+            "follow_ups": [],
             "elapsed": round(time.time() - start, 2),
             "tokens": agent.get_token_usage(),
             "verbose_log": "",
+            "figure_json": None,
             "error": str(e),
         }
     finally:
