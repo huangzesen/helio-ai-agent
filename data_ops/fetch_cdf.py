@@ -117,8 +117,8 @@ def fetch_cdf_data(
     validmax = None
 
     if use_parallel:
-        logger.debug(f"[CDF] Downloading {len(file_list)} files in parallel "
-                     f"(max_workers={max_workers})")
+        logger.info(f"[CDF] Downloading {len(file_list)} files in parallel "
+                    f"(max_workers={max_workers})")
         with ThreadPoolExecutor(max_workers=max_workers) as pool:
             futures = {
                 pool.submit(_download_and_read, fi["url"], parameter_id, CACHE_DIR): idx

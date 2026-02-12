@@ -147,3 +147,4 @@ Time ranges use `YYYY-MM-DD to YYYY-MM-DD` format. The agent accepts flexible in
 - Plotting always goes through the Plotly renderer (`rendering/plotly_renderer.py`), not matplotlib.
 - Session data is saved to `~/.helio-agent/sessions/` (conversation history, figure JSON, metadata).
 - Debug logs are at `~/.helio-agent/logs/` (one file per session, always captures DEBUG level).
+- **Yuliang's logs** (external tester): `/Users/huangzesen/Library/CloudStorage/GoogleDrive-huangzs1997@gmail.com/.shortcut-targets-by-id/1M_sIQefKoh6mOBrdfwsZA2GEYJgEiJEi/helio-agent/logs/` — synced via Google Drive. Same log format as local logs. Use these to identify issues from Yuliang's testing sessions.

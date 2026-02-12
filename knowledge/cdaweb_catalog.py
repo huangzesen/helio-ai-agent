@@ -120,7 +120,7 @@ def _fetch_from_hapi() -> list[dict]:
 
 
 def _ensure_fastembed() -> bool:
-    """Lazy check for fastembed availability. Caches result."""
+    """Lazy check for fastembed availability. Auto-installs if missing."""
     global _fastembed_available
     if _fastembed_available is not None:
         return _fastembed_available
@@ -128,8 +128,21 @@ def _ensure_fastembed() -> bool:
         import fastembed  # noqa: F401
         _fastembed_available = True
     except ImportError:
-        _fastembed_available = False
-        logger.warning("fastembed not installed — falling back to substring search")
+        logger.warning("fastembed not installed — attempting auto-install...")
+        try:
+            import subprocess
+            import sys
+            subprocess.check_call(
+                [sys.executable, "-m", "pip", "install", "fastembed"],
+                stdout=subprocess.DEVNULL,
+                stderr=subprocess.DEVNULL,
+            )
+            import fastembed  # noqa: F401
+            _fastembed_available = True
+            logger.info("fastembed installed successfully")
+        except Exception as exc:
+            _fastembed_available = False
+            logger.warning("Failed to install fastembed: %s — falling back to substring search", exc)
     return _fastembed_available
 
 
