@@ -16,9 +16,18 @@ from typing import Any
 
 @dataclass
 class ToolCall:
-    """A single function/tool invocation extracted from the LLM response."""
+    """A single function/tool invocation extracted from the LLM response.
+
+    Attributes:
+        name: Tool/function name.
+        args: Parsed arguments dict.
+        id: Provider-assigned call ID (e.g. ``call_xxxxx`` for OpenAI,
+            ``toolu_xxxxx`` for Anthropic).  None for Gemini which doesn't
+            use explicit tool-call IDs.
+    """
     name: str
     args: dict
+    id: str | None = None
 
 
 @dataclass
@@ -131,11 +140,19 @@ class LLMAdapter(ABC):
         """
 
     @abstractmethod
-    def make_tool_result_message(self, tool_name: str, result: dict) -> Any:
+    def make_tool_result_message(
+        self, tool_name: str, result: dict, *, tool_call_id: str | None = None
+    ) -> Any:
         """Build a provider-specific tool result object.
 
         Returned value is passed into ``ChatSession.send()`` as part of a list
         of tool results.
+
+        Args:
+            tool_name: The name of the tool that was called.
+            result: The result dict returned by the tool executor.
+            tool_call_id: Provider-assigned tool-call ID from ``ToolCall.id``.
+                Required by OpenAI/Anthropic; ignored by Gemini.
         """
 
     @abstractmethod

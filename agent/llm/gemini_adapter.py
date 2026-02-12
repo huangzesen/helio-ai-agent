@@ -200,7 +200,10 @@ class GeminiAdapter(LLMAdapter):
         )
         return _parse_response(raw)
 
-    def make_tool_result_message(self, tool_name: str, result: dict) -> Any:
+    def make_tool_result_message(
+        self, tool_name: str, result: dict, *, tool_call_id: str | None = None
+    ) -> Any:
+        # Gemini doesn't use tool_call_id — it matches by name.
         return types.Part.from_function_response(
             name=tool_name,
             response={"result": result},

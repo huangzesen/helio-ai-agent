@@ -217,28 +217,32 @@ class BaseSubAgent:
 
     def _execute_tools_batch(
         self, function_calls: list
-    ) -> list[tuple[str, dict, dict]]:
+    ) -> list[tuple[str | None, str, dict, dict]]:
         """Execute tool calls, parallelizing when all are fetch_data.
 
-        Returns list of (tool_name, tool_args, result) in original order.
+        Returns list of (tool_call_id, tool_name, tool_args, result) in original order.
         """
         from config import PARALLEL_FETCH, PARALLEL_MAX_WORKERS
 
         parsed = [
-            (fc.name, fc.args if isinstance(fc.args, dict) else (dict(fc.args) if fc.args else {}))
+            (
+                getattr(fc, "id", None),
+                fc.name,
+                fc.args if isinstance(fc.args, dict) else (dict(fc.args) if fc.args else {}),
+            )
             for fc in function_calls
         ]
 
         all_safe = (
             PARALLEL_FETCH
             and len(parsed) > 1
-            and all(name in self._PARALLEL_SAFE_TOOLS for name, _ in parsed)
+            and all(name in self._PARALLEL_SAFE_TOOLS for _, name, _ in parsed)
         )
 
         if not all_safe:
             return [
-                (name, args, self.tool_executor(name, args))
-                for name, args in parsed
+                (tc_id, name, args, self.tool_executor(name, args))
+                for tc_id, name, args in parsed
             ]
 
         self.logger.debug(
@@ -250,7 +254,7 @@ class BaseSubAgent:
         with ThreadPoolExecutor(max_workers=max_workers) as pool:
             futures = {
                 pool.submit(self.tool_executor, name, args): idx
-                for idx, (name, args) in enumerate(parsed)
+                for idx, (_, name, args) in enumerate(parsed)
             }
             for future in as_completed(futures):
                 idx = futures[future]
@@ -263,7 +267,7 @@ class BaseSubAgent:
                     }
 
         return [
-            (parsed[i][0], parsed[i][1], results_by_idx[i])
+            (parsed[i][0], parsed[i][1], parsed[i][2], results_by_idx[i])
             for i in range(len(parsed))
         ]
 
@@ -326,7 +330,7 @@ class BaseSubAgent:
 
                 function_responses = []
                 all_errors_this_round = True
-                for tool_name, tool_args, result in tool_results:
+                for tc_id, tool_name, tool_args, result in tool_results:
                     self.logger.debug(f"[{self.agent_name}] Tool: {tool_name}({tool_args})")
 
                     # Hook: let subclass intercept results (e.g., clarification)
@@ -344,7 +348,9 @@ class BaseSubAgent:
                         collected_errors.append(f"{tool_name}: {err_msg}")
 
                     function_responses.append(
-                        self.adapter.make_tool_result_message(tool_name, result)
+                        self.adapter.make_tool_result_message(
+                            tool_name, result, tool_call_id=tc_id
+                        )
                     )
 
                 guard.record_calls(call_keys)
@@ -479,7 +485,7 @@ class BaseSubAgent:
                 tool_results = self._execute_tools_batch(response.tool_calls)
 
                 function_responses = []
-                for tool_name, tool_args, result in tool_results:
+                for tc_id, tool_name, tool_args, result in tool_results:
                     task.tool_calls.append(tool_name)
 
                     # Collect structured outcome for downstream use
@@ -491,7 +497,9 @@ class BaseSubAgent:
                         self.logger.warning(f"[{self.agent_name}] Tool error: {result.get('message', '')}")
 
                     function_responses.append(
-                        self.adapter.make_tool_result_message(tool_name, result)
+                        self.adapter.make_tool_result_message(
+                            tool_name, result, tool_call_id=tc_id
+                        )
                     )
 
                 guard.record_calls(call_keys)

@@ -159,7 +159,11 @@ def run_tool_loop(
                 logger.warning(f"[{agent_name}] Tool error: {result.get('message', '')}")
 
             if adapter is not None:
-                function_responses.append(adapter.make_tool_result_message(tool_name, result))
+                function_responses.append(
+                    adapter.make_tool_result_message(
+                        tool_name, result, tool_call_id=getattr(fc, "id", None)
+                    )
+                )
             else:
                 # Fallback: raw Gemini types (should not happen after full migration)
                 from google.genai import types

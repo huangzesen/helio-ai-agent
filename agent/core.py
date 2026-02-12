@@ -193,16 +193,19 @@ class OrchestratorAgent:
 
     def _execute_tools_parallel(
         self, function_calls: list
-    ) -> list[tuple[str, dict, dict]]:
+    ) -> list[tuple[str | None, str, dict, dict]]:
         """Execute a batch of tool calls, parallelizing when safe.
 
         If all calls are in _PARALLEL_SAFE_TOOLS and len > 1, runs them
         concurrently via ThreadPoolExecutor. Otherwise falls back to serial.
 
         Returns:
-            List of (tool_name, tool_args, result) tuples in original order.
+            List of (tool_call_id, tool_name, tool_args, result) tuples in original order.
         """
-        parsed = [(fc.name, dict(fc.args) if fc.args else {}) for fc in function_calls]
+        parsed = [
+            (getattr(fc, "id", None), fc.name, dict(fc.args) if fc.args else {})
+            for fc in function_calls
+        ]
 
         from config import PARALLEL_FETCH, PARALLEL_MAX_WORKERS
 
@@ -210,20 +213,20 @@ class OrchestratorAgent:
         all_safe = (
             PARALLEL_FETCH
             and len(parsed) > 1
-            and all(name in self._PARALLEL_SAFE_TOOLS for name, _ in parsed)
+            and all(name in self._PARALLEL_SAFE_TOOLS for _, name, _ in parsed)
         )
 
         if not all_safe:
             # Serial fallback
             return [
-                (name, args, self._execute_tool_safe(name, args))
-                for name, args in parsed
+                (tc_id, name, args, self._execute_tool_safe(name, args))
+                for tc_id, name, args in parsed
             ]
 
         # Parallel execution
         self.logger.debug(
             f"[Parallel] Executing {len(parsed)} tools concurrently: "
-            f"{[name for name, _ in parsed]}"
+            f"{[name for _, name, _ in parsed]}"
         )
         max_workers = min(len(parsed), PARALLEL_MAX_WORKERS)
         results_by_idx: dict[int, dict] = {}
@@ -231,7 +234,7 @@ class OrchestratorAgent:
         with ThreadPoolExecutor(max_workers=max_workers) as pool:
             futures = {
                 pool.submit(self._execute_tool_safe, name, args): idx
-                for idx, (name, args) in enumerate(parsed)
+                for idx, (_, name, args) in enumerate(parsed)
             }
             for future in as_completed(futures):
                 idx = futures[future]
@@ -244,7 +247,7 @@ class OrchestratorAgent:
                     }
 
         return [
-            (parsed[i][0], parsed[i][1], results_by_idx[i])
+            (parsed[i][0], parsed[i][1], parsed[i][2], results_by_idx[i])
             for i in range(len(parsed))
         ]
 
@@ -1661,7 +1664,9 @@ class OrchestratorAgent:
                         self.logger.warning(f"[Tool Result: ERROR] {result.get('message', '')}")
 
                     function_responses.append(
-                        self.adapter.make_tool_result_message(tool_name, result)
+                        self.adapter.make_tool_result_message(
+                            tool_name, result, tool_call_id=fc.id
+                        )
                     )
 
                 guard.record_calls(call_keys)
@@ -2251,7 +2256,7 @@ class OrchestratorAgent:
 
             function_responses = []
             has_delegation_error = False
-            for tool_name, tool_args, result in tool_results:
+            for tc_id, tool_name, tool_args, result in tool_results:
                 if result.get("status") == "error":
                     self.logger.warning(f"[Tool Result: ERROR] {result.get('message', '')}")
 
@@ -2274,7 +2279,9 @@ class OrchestratorAgent:
                     return question
 
                 function_responses.append(
-                    self.adapter.make_tool_result_message(tool_name, result)
+                    self.adapter.make_tool_result_message(
+                        tool_name, result, tool_call_id=tc_id
+                    )
                 )
 
             # Track consecutive delegation failures
