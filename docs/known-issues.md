@@ -2,32 +2,13 @@
 
 Tracking bugs and issues in helio-ai-agent.
 
-**Last updated**: 2026-02-09
+**Last updated**: 2026-02-11
 
 ---
 
 ## Open Issues
 
-### 1. OMNI data parsing fails for recent time ranges
-
-**Status**: Open
-**Severity**: Medium
-**Component**: `data_ops/fetch.py`
-
-**Description**: Fetching OMNI_HRO_1MIN data for "last 3 days" fails with:
-```
-could not convert string to float: ''
-```
-
-The HAPI CSV response contains empty strings that can't be parsed as floats. "Last week" works, suggesting recent data has gaps.
-
-**Workaround**: Use "last week" or older time ranges.
-
-**Fix needed**: Handle empty strings in CSV parsing (treat as NaN).
-
----
-
-### 2. Gemini doesn't follow task instructions precisely
+### 1. Gemini doesn't follow task instructions precisely
 
 **Status**: Mitigated
 **Severity**: Low
@@ -43,7 +24,7 @@ This happens despite using `tool_config mode="ANY"` which forces function callin
 
 ---
 
-### 3. Multi-step tasks lose context between steps
+### 2. Multi-step tasks lose context between steps
 
 **Status**: Open
 **Severity**: Medium
@@ -62,6 +43,12 @@ The task instruction includes the expected labels (e.g., "compute running averag
 ---
 
 ## Resolved Issues
+
+### Fixed in 2026-02-11
+
+| Issue | Description | Fix |
+|-------|-------------|-----|
+| OMNI CSV parsing fails for recent time ranges | HAPI CSV response contained empty strings that couldn't be parsed as floats (`could not convert string to float: ''`) | No longer applicable — HAPI backend removed entirely, CDF-only backend has no CSV parsing |
 
 ### Fixed in 2026-02-09 LoopGuard batch
 
