@@ -195,8 +195,37 @@ agent/
    Abstract at the "complete response" level. Add streaming later per-provider if
    needed.
 
-5. **Provider-specific config is explicit** — thinking levels, JSON schema
-   enforcement, etc. are passed as optional kwargs that adapters handle or ignore.
+5. **Thinking = model selection, not a parameter** — the project uses exactly two
+   model tiers: a "smart" model for orchestrator/planner (deep reasoning) and a
+   "fast" model for all sub-agents (speed + tool calling). Instead of abstracting
+   thinking levels across providers (each has a wildly different API — see below),
+   **the user simply picks the right model pair in config**. The adapter doesn't
+   need a `thinking_level` parameter at all.
+
+   Provider thinking/reasoning control is extremely fragmented:
+   | Provider | How thinking is controlled |
+   |---|---|
+   | Gemini | `ThinkingConfig(thinking_level="HIGH"/"LOW")` on same model |
+   | OpenAI | `reasoning_effort` param (none/low/medium/high/xhigh); or pick o3 vs gpt-4.1 |
+   | Anthropic | `thinking: {type: "enabled", budget_tokens: N}` on same model |
+   | DeepSeek | Model name: `deepseek-reasoner` vs `deepseek-chat` (same V3.2 underneath) |
+   | Qwen3 | `enable_thinking: true/false` + `thinking_budget` param; or `/think` `/no_think` in prompt |
+   | Mistral | Model choice: Magistral (reasoning) vs Mistral Large (non-reasoning) |
+   | Kimi K2.5 | Model variant: thinking mode vs instant mode |
+
+   Trying to unify these behind a single `thinking_level` kwarg is brittle and
+   provider-specific. The two-model-tier approach sidesteps this entirely:
+   ```json
+   {"model": "deepseek-reasoner", "sub_agent_model": "deepseek-chat"}
+   {"model": "o3", "sub_agent_model": "gpt-4.1-mini"}
+   {"model": "magistral-medium-latest", "sub_agent_model": "mistral-large-latest"}
+   {"model": "qwen3-235b-a22b-thinking-2507", "sub_agent_model": "qwen3-32b"}
+   ```
+   The GeminiAdapter is the one exception — since Gemini controls thinking via a
+   config parameter on the same model, the adapter internally applies
+   `ThinkingConfig(thinking_level="HIGH")` for `model` and `"LOW"` for
+   `sub_agent_model`. This is an adapter-internal detail, not exposed in the
+   abstract interface.
 
 ---
 
@@ -282,7 +311,6 @@ class LLMAdapter(ABC):
         tools: list[ToolSchema],
         *,
         force_tool_calling: bool = False,
-        thinking_level: str = "none",   # "none", "low", "high"
         json_schema: Optional[dict] = None,  # For structured output
         history: Optional[list] = None,      # For session resumption
         **kwargs,
@@ -293,10 +321,14 @@ class LLMAdapter(ABC):
             system_prompt: System instructions for the LLM.
             tools: Tool definitions available in this session.
             force_tool_calling: If True, the LLM must call a tool (no text-only).
-            thinking_level: Reasoning effort ("none", "low", "high").
             json_schema: If set, enforce structured JSON output matching this schema.
             history: Serialized history from a previous session for resumption.
             **kwargs: Provider-specific options (passed through to adapter).
+
+        Note: Thinking/reasoning level is NOT a session parameter. It is controlled
+        by model selection — the user configures a "smart" model (orchestrator/planner)
+        and a "fast" model (sub-agents) in config.json. Each adapter applies
+        provider-specific thinking config internally based on the model name.
         """
         ...
 
@@ -360,7 +392,7 @@ def create_adapter(
     timeout_ms: int = 300_000,
     **kwargs,
 ) -> LLMAdapter:
-    """Create an LLM adapter for the given provider.
+    """Create an LLM adapter for the given provider and model.
 
     Args:
         provider: "gemini", "openai", or "anthropic"
@@ -368,6 +400,15 @@ def create_adapter(
         model: Model identifier (e.g. "gemini-2.5-flash", "gpt-4.1", "claude-sonnet-4-5-20250929")
         base_url: Override base URL (for OpenAI-compatible endpoints like DeepSeek, Ollama)
         timeout_ms: HTTP timeout in milliseconds
+
+    The application creates TWO adapter instances — one per model tier:
+        smart_adapter = create_adapter(provider, api_key, model=LLM_MODEL, ...)
+        fast_adapter  = create_adapter(provider, api_key, model=LLM_SUB_AGENT_MODEL, ...)
+
+    The orchestrator and planner use smart_adapter. All sub-agents use fast_adapter.
+    For providers where thinking is controlled by model name (DeepSeek, Qwen, Mistral),
+    this naturally gives the right behavior. For providers where thinking is a config
+    parameter (Gemini, Anthropic), the adapter can detect the model and apply internally.
     """
     if provider == "gemini":
         from .gemini_adapter import GeminiAdapter
@@ -438,13 +479,16 @@ types.Part.from_function_response(
 )
 ```
 
-**Special: ThinkingConfig mapping:**
+**Special: ThinkingConfig** — applied internally based on whether the model is
+the orchestrator/planner model or a sub-agent model. Not exposed in the abstract
+interface. The adapter constructor receives `is_smart_model: bool` (or infers it
+from model name) and applies accordingly:
 ```python
-thinking_level_map = {
-    "none": None,  # No ThinkingConfig
-    "low": types.ThinkingConfig(include_thoughts=True, thinking_level="LOW"),
-    "high": types.ThinkingConfig(include_thoughts=True, thinking_level="HIGH"),
-}
+# Applied internally in create_session(), not controlled by caller
+if self._is_smart_model:
+    thinking_config = types.ThinkingConfig(include_thoughts=True, thinking_level="HIGH")
+else:
+    thinking_config = types.ThinkingConfig(include_thoughts=True, thinking_level="LOW")
 ```
 
 **Special: JSON schema enforcement:**
@@ -612,11 +656,16 @@ if force_tool_calling:
     tool_choice = {"type": "any"}
 ```
 
-**Special: Thinking:**
+**Special: Thinking** — like Gemini, Anthropic controls thinking via API parameter
+on the same model. The adapter decides internally whether to enable thinking based
+on `is_smart_model`. For the "smart" model (orchestrator/planner), enable extended
+thinking with a generous budget; for "fast" models (sub-agents), either disable
+or use a small budget:
 ```python
-if thinking_level != "none":
-    # Anthropic uses budget_tokens for thinking control
-    thinking = {"type": "enabled", "budget_tokens": budget_map[thinking_level]}
+if self._is_smart_model:
+    thinking = {"type": "enabled", "budget_tokens": 16384}
+else:
+    thinking = {"type": "enabled", "budget_tokens": 2048}  # or disabled
 ```
 
 **Special: Message alternation** — Anthropic requires strict user/assistant alternation.
@@ -667,12 +716,21 @@ self.chat = self.client.chats.create(model=..., config=self.config)
 from agent.llm import create_adapter
 from agent.llm.base import ToolSchema
 
+# Two adapters: "smart" for orchestrator/planner, "fast" for sub-agents
 self.adapter = create_adapter(
     provider=LLM_PROVIDER,
     api_key=LLM_API_KEY,
-    model=self.model_name,
+    model=self.model_name,          # e.g. "o3", "deepseek-reasoner", "gemini-3-pro-preview"
     base_url=LLM_BASE_URL,
 )
+self.sub_adapter = create_adapter(
+    provider=LLM_PROVIDER,
+    api_key=LLM_API_KEY,
+    model=SUB_AGENT_MODEL,          # e.g. "gpt-4.1-mini", "deepseek-chat", "gemini-3-flash-preview"
+    base_url=LLM_BASE_URL,
+)
+# sub_adapter is passed to MissionAgent, VisualizationAgent, DataOpsAgent, etc.
+
 tool_schemas = [
     ToolSchema(name=t["name"], description=t["description"], parameters=t["parameters"])
     for t in get_tool_schemas(categories=ORCHESTRATOR_CATEGORIES, extra_names=ORCHESTRATOR_EXTRA_TOOLS)
@@ -680,7 +738,6 @@ tool_schemas = [
 self.session = self.adapter.create_session(
     system_prompt=get_system_prompt(gui_mode=gui_mode),
     tools=tool_schemas,
-    thinking_level="high",
 )
 ```
 
@@ -741,17 +798,22 @@ response = self._send_with_timeout(chat, user_message)
 session = self.adapter.create_session(
     system_prompt=self.system_prompt,
     tools=self._tool_schemas,
-    thinking_level="low",
 )
 response = self._send_with_timeout(self.adapter, session, user_message)
 ```
 
+Note: No `thinking_level` — the sub-agent adapter was already constructed with the
+`sub_agent_model` (fast model), so thinking is inherently controlled by model choice.
+For Gemini, the adapter internally applies `ThinkingConfig(thinking_level="LOW")`
+based on knowing this is the sub-agent model.
+
 ### 7.4 `agent/planner.py` — PlannerAgent
 
-Two phases need different adapter configurations:
+Two phases need different adapter configurations. The planner uses the "smart" model
+(same as orchestrator), so thinking is controlled by model choice:
 
-1. **Discovery phase**: `adapter.create_session(tools=discovery_tools, thinking_level="high")`
-2. **Planning phase**: `adapter.create_session(tools=[], json_schema=PLANNER_RESPONSE_SCHEMA, thinking_level="high")`
+1. **Discovery phase**: `adapter.create_session(tools=discovery_tools)`
+2. **Planning phase**: `adapter.create_session(tools=[], json_schema=PLANNER_RESPONSE_SCHEMA)`
 
 ### 7.5 `agent/memory_agent.py` — MemoryAgent
 
@@ -838,11 +900,12 @@ new format uses `"role"`/`"content"`. The `load_session()` method handles both.
 }
 ```
 
-**Example: Switch to DeepSeek:**
+**Example: DeepSeek with reasoning for orchestrator, non-reasoning for sub-agents:**
 ```json
 {
     "provider": "openai",
-    "model": "deepseek-chat",
+    "model": "deepseek-reasoner",
+    "sub_agent_model": "deepseek-chat",
     "base_url": "https://api.deepseek.com/v1"
 }
 ```
@@ -851,11 +914,25 @@ With `.env`:
 OPENAI_API_KEY=sk-...
 ```
 
-**Example: Switch to Anthropic Claude:**
+**Example: OpenAI with o3 for orchestrator, gpt-4.1-mini for sub-agents:**
+```json
+{
+    "provider": "openai",
+    "model": "o3",
+    "sub_agent_model": "gpt-4.1-mini"
+}
+```
+With `.env`:
+```
+OPENAI_API_KEY=sk-...
+```
+
+**Example: Anthropic Claude Opus for orchestrator, Haiku for sub-agents:**
 ```json
 {
     "provider": "anthropic",
-    "model": "claude-sonnet-4-5-20250929"
+    "model": "claude-opus-4-6",
+    "sub_agent_model": "claude-haiku-4-5-20251001"
 }
 ```
 With `.env`:
@@ -863,11 +940,32 @@ With `.env`:
 ANTHROPIC_API_KEY=sk-ant-...
 ```
 
+**Example: Qwen3 thinking for orchestrator, fast for sub-agents:**
+```json
+{
+    "provider": "openai",
+    "model": "qwen3-235b-a22b-thinking-2507",
+    "sub_agent_model": "qwen3-32b",
+    "base_url": "https://dashscope-intl.aliyuncs.com/compatible-mode/v1"
+}
+```
+
+**Example: Mistral Magistral for orchestrator, Large for sub-agents:**
+```json
+{
+    "provider": "openai",
+    "model": "magistral-medium-latest",
+    "sub_agent_model": "mistral-large-latest",
+    "base_url": "https://api.mistral.ai/v1"
+}
+```
+
 **Example: Local Ollama:**
 ```json
 {
     "provider": "openai",
     "model": "llama4-scout",
+    "sub_agent_model": "llama4-scout",
     "base_url": "http://localhost:11434/v1"
 }
 ```
