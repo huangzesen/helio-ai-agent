@@ -81,9 +81,9 @@ def _reset_data_dir() -> None:
 
 
 # Flat aliases for backward compatibility (existing code does `from config import GEMINI_MODEL`)
-GEMINI_MODEL = get("model", "gemini-3-pro-preview")
+GEMINI_MODEL = get("model", "gemini-3-flash-preview")
 GEMINI_SUB_AGENT_MODEL = get("sub_agent_model", "gemini-3-flash-preview")
 GEMINI_PLANNER_MODEL = get("planner_model", GEMINI_MODEL)
-GEMINI_FALLBACK_MODEL = get("fallback_model", "gemini-2.5-flash")
+GEMINI_FALLBACK_MODEL = get("fallback_model", "gemini-3-flash-preview")
 DATA_BACKEND = get("data_backend", "cdf")  # "cdf" or "hapi"
 CATALOG_SEARCH_METHOD = get("catalog_search_method", "semantic")  # "semantic" or "substring"

@@ -218,7 +218,7 @@ def setup_logging(verbose: bool = False) -> logging.Logger:
 
     # Console handler - less verbose unless --verbose flag
     import config as _config
-    console_format = _config.get("console_format", "full")
+    console_format = _config.get("console_format", "simple")
 
     if console_format != "clean":
         console_handler = logging.StreamHandler(sys.stderr)

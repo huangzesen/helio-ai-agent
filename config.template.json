@@ -4,13 +4,13 @@
   "_comment_data_dir": "Base directory for all agent state (logs, sessions, memory, caches). Override with HELIO_AGENT_DIR env var (highest priority) or this key. Default: ~/.helio-agent",
   "data_dir": null,
 
-  "_comment_models": "Any Gemini model string accepted by the API. Common options: gemini-3-pro-preview, gemini-3-flash-preview, gemini-2.5-pro, gemini-2.5-flash. Gradio --model flag overrides 'model' at runtime.",
-  "model": "gemini-3-pro-preview",
+  "_comment_models": "Any Gemini model string accepted by the API. Common options: gemini-3-flash-preview, gemini-3-pro-preview, gemini-2.5-pro, gemini-2.5-flash. Gradio --model flag overrides 'model' at runtime.",
+  "model": "gemini-3-flash-preview",
   "sub_agent_model": "gemini-3-flash-preview",
   "_comment_planner_model": "null = inherit from 'model'. Set explicitly to use a different model for multi-step planning.",
   "planner_model": null,
   "_comment_fallback_model": "All agents switch to this model for the rest of the session when any model hits quota/rate limits (HTTP 429).",
-  "fallback_model": "gemini-2.5-flash",
+  "fallback_model": "gemini-3-flash-preview",
 
   "_comment_data_backend": "Options: 'cdf' (CDAWeb REST + cdflib, default) or 'hapi' (HAPI CSV endpoint). Always falls back to the other on failure.",
   "data_backend": "cdf",
@@ -29,6 +29,6 @@
   "memory_error_count_threshold": 5,
   "memory_max_log_bytes_kb": 50,
 
-  "_comment_console_format": "Options: 'full' (timestamp + level + name + session_id + message, default), 'simple' (bare messages for DEBUG/INFO, [LEVEL] prefix for WARNING+), 'gui' (curated tagged records only — mirrors Gradio live-log sidebar), 'clean' (no console output at all, file logging still active).",
-  "console_format": "full"
+  "_comment_console_format": "Options: 'simple' (bare messages for DEBUG/INFO, [LEVEL] prefix for WARNING+, default), 'full' (timestamp + level + name + session_id + message), 'gui' (curated tagged records only — mirrors Gradio live-log sidebar), 'clean' (no console output at all, file logging still active).",
+  "console_format": "simple"
 }
