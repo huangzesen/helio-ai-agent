@@ -1193,7 +1193,7 @@ Files modified:
 - `_extract_grounding_sources()` and `_log_grounding_queries()` access `response.raw` for Gemini-specific grounding metadata
 - `generate()` on LLMAdapter accepts `contents: str | list` to support multimodal via `generate_multimodal()` escape hatch
 
-### Phase 2: OpenAI Adapter (estimated ~350 lines new code) — PENDING
+### Phase 2: OpenAI Adapter ✅ COMPLETE
 
 Create `agent/llm/openai_adapter.py` implementing `LLMAdapter`:
 - Implement `create_chat()` → client-managed message list (no SDK chat sessions)
@@ -1220,7 +1220,7 @@ Files to modify:
 - `agent/llm/base.py` — add `id: str | None = None` to `ToolCall`
 - `requirements.txt` — add `openai>=1.0.0` (optional dep)
 
-### Phase 3: Anthropic Adapter (estimated ~400 lines new code) — PENDING
+### Phase 3: Anthropic Adapter ✅ COMPLETE
 
 Create `agent/llm/anthropic_adapter.py` implementing `LLMAdapter`:
 - Implement client-managed message list (like OpenAI adapter)
