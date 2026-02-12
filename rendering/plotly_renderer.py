@@ -606,6 +606,7 @@ class PlotlyRenderer:
         colorscale: str | None = None,
         theme: str | None = None,
         vlines: list | None = None,
+        vrects: list | None = None,
     ) -> dict:
         """Apply aesthetic changes to the current figure.
 
@@ -627,6 +628,7 @@ class PlotlyRenderer:
             colorscale: Plotly colorscale name (for heatmap traces).
             theme: Plotly template name (e.g. "plotly_dark").
             vlines: List of {x, label, color, dash, width} dicts for vertical lines.
+            vrects: List of {x0, x1, label, color, opacity} dicts for highlighted time ranges.
 
         Returns:
             Result dict with status.
@@ -800,6 +802,46 @@ class PlotlyRenderer:
                     f"{skipped} of {total} vlines skipped — each vline requires "
                     f"an 'x' field with a timestamp string, e.g. "
                     f'vlines=[{{"x": "2024-01-15T12:00:00"}}]'
+                )
+
+        if vrects is not None:
+            skipped = 0
+            drawn = 0
+            for vr in vrects:
+                x0 = vr.get("x0")
+                x1 = vr.get("x1")
+                if x0 is None or x1 is None:
+                    skipped += 1
+                    continue
+                drawn += 1
+                color = vr.get("color", "rgba(135,206,250,0.3)")
+                opacity = vr.get("opacity", 0.3)
+                label = vr.get("label")
+                for row in range(1, self._panel_count + 1):
+                    for c in range(1, self._column_count + 1):
+                        fig.add_vrect(
+                            x0=x0, x1=x1, row=row, col=c,
+                            fillcolor=color, opacity=opacity,
+                            line_width=0, layer="below",
+                        )
+                if label:
+                    import pandas as pd
+                    try:
+                        mid_x = pd.Timestamp(x0) + (pd.Timestamp(x1) - pd.Timestamp(x0)) / 2
+                        fig.add_annotation(
+                            x=mid_x.isoformat(), y=1.02,
+                            xref="x", yref="paper",
+                            text=label, showarrow=False,
+                            font=dict(size=11),
+                        )
+                    except Exception:
+                        pass  # skip label if timestamps can't be parsed
+            if skipped > 0:
+                total = skipped + drawn
+                warnings.append(
+                    f"{skipped} of {total} vrects skipped — each vrect requires "
+                    f"'x0' and 'x1' fields with timestamp strings, e.g. "
+                    f'vrects=[{{"x0": "2024-01-10", "x1": "2024-01-15"}}]'
                 )
 
         result = {"status": "success", "message": "Style applied.", "display": "plotly"}
@@ -1092,6 +1134,22 @@ class PlotlyRenderer:
             # Empty panel
             if n == 0:
                 warnings.append(f"{panel_label} has no traces")
+
+            # Invisible traces (data points exist but all are NaN — nothing renders)
+            invisible = [
+                t["name"] for t in traces_in_panel
+                if isinstance(t["points"], int) and t["points"] > 0 and t["y_range"] is None
+            ]
+            if invisible:
+                names_str = ", ".join(f"'{nm}'" for nm in invisible)
+                if len(invisible) == n:
+                    warnings.append(
+                        f"{panel_label} appears empty — all traces have only NaN/missing data: {names_str}"
+                    )
+                else:
+                    warnings.append(
+                        f"{panel_label} has invisible traces (all NaN/missing data): {names_str}"
+                    )
 
         # Suspicious y-range (possible fill values)
         for info in trace_summary:

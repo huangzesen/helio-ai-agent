@@ -329,47 +329,63 @@ def test_3_compute_save(results: TestResults):
     results.end_scenario()
 
 
-def test_4_plot_export(results: TestResults):
-    """Test 4: Direct Plot & Export"""
-    results.start_scenario("Test 4: Plot & Export")
-    print("\n--- Test 4: Direct Plot & Export ---")
+def test_4_psp_electron_pad_spectrogram(results: TestResults):
+    """Test 4: PSP Electron Pitch Angle Distribution — multi-panel spectrogram + line plot"""
+    results.start_scenario("Test 4: PSP Electron PAD Spectrogram")
+    print("\n--- Test 4: PSP Electron PAD Spectrogram (multi-panel) ---")
     reset()
 
-    # Turn 1
-    print("\n  Turn 1: Plot DSCOVR magnetic field data")
-    r = send("Plot DSCOVR magnetic field data for January 2024")
+    # Turn 1 — complex multi-panel spectrogram request
+    print("\n  Turn 1: Fetch PSP electron PAD and plot energy spectrogram + mag field")
+    r = send(
+        "Fetch PSP SPAN-A electron pitch angle distribution data "
+        "(PSP_SWP_SPA_SF0_L3_PAD) for November 20-25, 2024. "
+        "I want a 3-panel figure: "
+        "(1) top panel — electron energy spectrogram showing differential energy flux "
+        "vs energy with log energy axis and log color scale, "
+        "(2) middle panel — pitch angle distribution at a mid-range energy level "
+        "as a spectrogram with pitch angle (0-180°) on the y-axis, "
+        "(3) bottom panel — magnetic field magnitude computed from the MAGF_SC vector "
+        "in the same dataset, plotted as a line. "
+        "Use Plasma colorscale for both spectrograms."
+    )
     text = resp_text(r)
     tools = tool_names(r)
     results.check(
-        "plot_data or delegate tool called",
-        "plot_data" in tools or "delegate_to_mission" in tools,
+        "Mission delegation initiated",
+        "delegate_to_mission" in tools or "fetch_data" in tools,
         f"tools: {tools}",
     )
     results.check(
-        "No error in response",
+        "No crash on complex spectrogram request",
         resp_error(r) is None,
         str(resp_error(r)),
     )
+    results.check(
+        "Response mentions PSP or electron or spectrogram",
+        any(w in text for w in ["psp", "electron", "spectrogram", "pad", "pitch angle",
+                                 "energy", "fetched", "plotted"]),
+        f"response snippet: {text[:200]}",
+    )
 
-    # Turn 2
-    print("\n  Turn 2: Change time range")
-    r = send("Zoom in to January 10-15, 2024")
+    # Turn 2 — style the plot
+    print("\n  Turn 2: Style the spectrogram with title and color range")
+    r = send(
+        "Set the title to 'PSP Encounter 21: Electron PAD — Nov 2024' "
+        "and set the spectrogram color range from 1e4 to 1e9."
+    )
     text = resp_text(r)
+    tools = tool_names(r)
     results.check(
-        "change_time_range tool called",
-        has_tool(r, "change_time_range"),
-        f"tools: {tool_names(r)}",
-    )
-    results.check(
-        "Response confirms new time range",
-        any(w in text for w in ["10", "15", "time range", "updated", "changed", "zoom"]),
-        f"response snippet: {text[:120]}",
+        "Styling tool invoked",
+        "style_plot" in tools or "delegate_to_visualization" in tools,
+        f"tools: {tools}",
     )
 
-    # Turn 3
-    png_path = str(PLOTS_DIR / "dscovr_mag.png")
-    print(f"\n  Turn 3: Export plot to {png_path}")
-    r = send(f"Export the current plot as {png_path}")
+    # Turn 3 — export
+    png_path = str(PLOTS_DIR / "psp_electron_pad.png")
+    print(f"\n  Turn 3: Export spectrogram to {png_path}")
+    r = send(f"Export the plot as {png_path}")
     text = resp_text(r)
     results.check(
         "export_plot tool called",
@@ -384,115 +400,152 @@ def test_4_plot_export(results: TestResults):
         png_path,
     )
 
-    # Turn 4
-    print("\n  Turn 4: Get plot info")
-    r = send("What's currently plotted?")
+    results.end_scenario()
+
+
+def test_5_cross_instrument_spectrogram(results: TestResults):
+    """Test 5: Cross-instrument spectrogram comparison — electron + ion + solar wind"""
+    results.start_scenario("Test 5: Cross-Instrument Spectrogram")
+    print("\n--- Test 5: Cross-Instrument Spectrogram Comparison ---")
+    reset()
+
+    # Turn 1 — fetch electron energy flux + request spectrogram
+    print("\n  Turn 1: Fetch PSP SPAN-A electron energy flux and plot as spectrogram")
+    r = send(
+        "Fetch PSP SPAN-A electron differential energy flux "
+        "(dataset PSP_SWP_SPA_SF1_L2_32E, parameter EFLUX_VS_ENERGY) "
+        "for December 15-20, 2023 and plot it as a spectrogram with "
+        "log energy axis and log color scale using Jet colorscale."
+    )
     text = resp_text(r)
+    tools = tool_names(r)
     results.check(
-        "get_plot_info tool called",
-        has_tool(r, "get_plot_info"),
-        f"tools: {tool_names(r)}",
+        "Data fetch initiated for electron flux",
+        "delegate_to_mission" in tools or "fetch_data" in tools,
+        f"tools: {tools}",
     )
     results.check(
-        "Response includes dataset info",
-        any(w in text for w in ["dscovr", "uri", "dataset", "plotted", "magnetic"]),
-        f"response snippet: {text[:120]}",
+        "Response confirms data or spectrogram",
+        any(w in text for w in ["electron", "flux", "spectrogram", "fetched",
+                                 "plotted", "psp", "span"]),
+        f"response snippet: {text[:200]}",
+    )
+
+    # Turn 2 — add magnetic field for context
+    print("\n  Turn 2: Also fetch and add PSP magnetic field magnitude")
+    r = send(
+        "Also fetch PSP magnetic field data for the same period and add "
+        "the field magnitude as a line plot on a new panel below the spectrogram."
+    )
+    text = resp_text(r)
+    tools = tool_names(r)
+    results.check(
+        "Second fetch or delegation initiated",
+        any(t in tools for t in ["delegate_to_mission", "fetch_data",
+                                  "delegate_to_visualization", "plot_data"]),
+        f"tools: {tools}",
+    )
+
+    # Turn 3 — style and title
+    print("\n  Turn 3: Add title and vertical line marker")
+    r = send(
+        "Title the plot 'PSP Encounter 17: Electron Energy Spectrogram — Dec 2023'. "
+        "Add a vertical red dashed line at December 17, 2023 12:00 UTC labeled 'Perihelion'."
+    )
+    text = resp_text(r)
+    tools = tool_names(r)
+    results.check(
+        "Style tool invoked",
+        "style_plot" in tools or "delegate_to_visualization" in tools,
+        f"tools: {tools}",
+    )
+    results.check(
+        "Response mentions title or line added",
+        any(w in text for w in ["title", "vertical", "perihelion", "styled", "updated", "added"]),
+        f"response snippet: {text[:150]}",
     )
 
     results.end_scenario()
 
 
-def test_5_multi_mission(results: TestResults):
-    """Test 5: Multi-Mission Comparison"""
-    results.start_scenario("Test 5: Multi-Mission")
-    print("\n--- Test 5: Multi-Mission Comparison ---")
+def test_6_multivar_pad_analysis(results: TestResults):
+    """Test 6: Multi-variable PAD analysis — spectrogram + derived quantities + annotations"""
+    results.start_scenario("Test 6: Multi-Variable PAD Analysis")
+    print("\n--- Test 6: Multi-Variable PAD Analysis (4-panel) ---")
     reset()
 
-    # Turn 1
-    print("\n  Turn 1: Fetch Wind magnetic field magnitude")
-    r = send("Fetch Wind magnetic field magnitude for January 2024")
+    # Turn 1 — fetch PAD data
+    print("\n  Turn 1: Fetch PSP consolidated electron PAD")
+    r = send(
+        "Fetch PSP consolidated electron pitch angle distribution "
+        "(PSP_SWP_SPE_SF0_L3_PAD) for December 23-26, 2024 — "
+        "this should cover PSP's closest perihelion passage."
+    )
     text = resp_text(r)
     tools = tool_names(r)
     results.check(
-        "Wind data fetch initiated",
+        "PAD data fetch initiated",
         "delegate_to_mission" in tools or "fetch_data" in tools,
         f"tools: {tools}",
     )
     results.check(
-        "Response confirms Wind data fetched",
-        any(w in text for w in ["wind", "fetched", "data", "loaded", "retrieved", "points"]),
-        f"response snippet: {text[:120]}",
+        "Response confirms PAD data fetched",
+        any(w in text for w in ["fetched", "electron", "pad", "pitch", "psp",
+                                 "data", "loaded", "retrieved", "points"]),
+        f"response snippet: {text[:200]}",
     )
 
-    # Turn 2
-    print("\n  Turn 2: Fetch DSCOVR magnetic field magnitude")
-    r = send("Also fetch DSCOVR magnetic field magnitude for the same period")
+    # Turn 2 — create a 4-panel plot with spectrograms, derived quantity, and B field
+    print("\n  Turn 2: Create 4-panel figure with spectrograms + anisotropy + B field")
+    r = send(
+        "Create a 4-panel stacked figure: "
+        "(1) electron energy spectrogram from EFLUX_VS_PA_E_byE_atP — show flux vs "
+        "energy with log axes on both y and color, Viridis colorscale, "
+        "(2) pitch angle distribution spectrogram from EFLUX_VS_PA_E_atE_byP at a "
+        "representative energy — show flux vs pitch angle (0-180°), Viridis colorscale "
+        "with log color scale, "
+        "(3) compute the field-aligned electron flux anisotropy — take the ratio of "
+        "flux at the smallest pitch angle bin to flux at the 90° bin — and plot it "
+        "as a line, "
+        "(4) compute the magnetic field magnitude from MAGF_SC and plot as a line. "
+        "Set the overall title to 'PSP Perihelion Dec 2024: Electron Distribution Analysis'."
+    )
     text = resp_text(r)
     tools = tool_names(r)
     results.check(
-        "DSCOVR data fetch initiated",
-        "delegate_to_mission" in tools or "fetch_data" in tools,
+        "Visualization or computation tool invoked",
+        any(t in tools for t in ["delegate_to_visualization", "plot_data",
+                                  "delegate_to_data_ops", "custom_operation"]),
         f"tools: {tools}",
     )
     results.check(
-        "Response confirms DSCOVR data fetched",
-        any(w in text for w in ["dscovr", "fetched", "data", "loaded", "retrieved", "points"]),
-        f"response snippet: {text[:120]}",
-    )
-
-    # Turn 3
-    print("\n  Turn 3: Plot both datasets together")
-    r = send("Plot both the Wind and DSCOVR magnetic field magnitude datasets together")
-    text = resp_text(r)
-    tools = tool_names(r)
-    results.check(
-        "plot_computed_data tool called",
-        "plot_computed_data" in tools or "plot_data" in tools,
-        f"tools: {tools}",
-    )
-
-    results.end_scenario()
-
-
-def test_6_error_handling(results: TestResults):
-    """Test 6: Error Handling & Edge Cases"""
-    results.start_scenario("Test 6: Error Handling")
-    print("\n--- Test 6: Error Handling & Edge Cases ---")
-    reset()
-
-    # Turn 1
-    print("\n  Turn 1: Search for unsupported mission")
-    r = send("Search for datasets from Voyager")
-    text = resp_text(r)
-    results.check(
-        "No crash on unsupported mission",
+        "No crash on complex 4-panel request",
         resp_error(r) is None,
         str(resp_error(r)),
     )
-    results.check(
-        "Response indicates no results or unsupported",
-        any(w in text for w in ["no ", "not ", "unavailable", "don't", "doesn't", "voyager", "support"]),
-        f"response snippet: {text[:150]}",
-    )
 
-    # Turn 2
-    print("\n  Turn 2: Fetch nonexistent dataset")
-    r = send("Fetch data from NONEXISTENT_DATASET_XYZ for last week")
-    text = resp_text(r)
-    results.check(
-        "Agent recovers from bad dataset",
-        True,  # If we got a response at all, agent didn't crash
-        f"error={resp_error(r)}, response snippet: {text[:120]}",
+    # Turn 3 — add annotations and export
+    png_path = str(PLOTS_DIR / "psp_pad_analysis.png")
+    print(f"\n  Turn 3: Highlight perihelion and export")
+    r = send(
+        "Highlight the perihelion closest approach at approximately December 24, 2024 "
+        "12:00 UTC with a vertical red dashed line labeled 'Closest Approach'. "
+        f"Then export the figure as {png_path}"
     )
-
-    # Turn 3
-    print("\n  Turn 3: General question to prove agent still works")
-    r = send("Hello, what missions do you support?")
     text = resp_text(r)
+    tools = tool_names(r)
     results.check(
-        "Agent is functional after errors",
-        any(w in text for w in ["ace", "wind", "dscovr", "psp", "mission"]),
-        f"response snippet: {text[:150]}",
+        "Style or export tool invoked",
+        any(t in tools for t in ["style_plot", "export_plot",
+                                  "delegate_to_visualization"]),
+        f"tools: {tools}",
+    )
+    time.sleep(1)
+    png_exists = Path(png_path).exists()
+    results.check(
+        "PNG file created on disk",
+        png_exists,
+        png_path,
     )
 
     results.end_scenario()
@@ -506,9 +559,9 @@ ALL_TESTS = {
     1: ("Discovery", test_1_discovery),
     2: ("Fetch & Describe", test_2_fetch_describe),
     3: ("Compute & Save", test_3_compute_save),
-    4: ("Plot & Export", test_4_plot_export),
-    5: ("Multi-Mission", test_5_multi_mission),
-    6: ("Error Handling", test_6_error_handling),
+    4: ("PSP Electron PAD Spectrogram", test_4_psp_electron_pad_spectrogram),
+    5: ("Cross-Instrument Spectrogram", test_5_cross_instrument_spectrogram),
+    6: ("Multi-Variable PAD Analysis", test_6_multivar_pad_analysis),
 }
 
 

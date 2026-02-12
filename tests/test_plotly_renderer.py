@@ -582,6 +582,47 @@ class TestReviewMetadata:
         # Hint should mention grid dimensions
         assert "2 row(s) x 2 column(s)" in review["hint"]
 
+    def test_review_warns_all_nan_panel(self, renderer):
+        """Panel where ALL traces are all-NaN triggers 'appears empty' warning."""
+        rng = pd.date_range("2024-01-01", periods=50, freq="min")
+        vals = np.full(50, np.nan)
+        df = pd.DataFrame({"value": vals}, index=rng)
+        entry = DataEntry(label="allnan", data=df, units="nT", description="AllNaN")
+        result = renderer.plot_data([entry])
+        review = result["review"]
+        empty_warns = [w for w in review["warnings"] if "appears empty" in w]
+        assert len(empty_warns) == 1
+        assert "AllNaN" in empty_warns[0]
+        assert "NaN/missing" in empty_warns[0]
+
+    def test_review_warns_invisible_trace_mixed(self, renderer):
+        """Panel with good + all-NaN traces warns about NaN ones only."""
+        rng = pd.date_range("2024-01-01", periods=50, freq="min")
+        good_df = pd.DataFrame({"value": np.random.randn(50)}, index=rng)
+        good_entry = DataEntry(label="good", data=good_df, units="nT", description="Good")
+        nan_df = pd.DataFrame({"value": np.full(50, np.nan)}, index=rng)
+        nan_entry = DataEntry(label="bad", data=nan_df, units="nT", description="Bad")
+        result = renderer.plot_data([good_entry, nan_entry])
+        review = result["review"]
+        invis_warns = [w for w in review["warnings"] if "invisible traces" in w]
+        assert len(invis_warns) == 1
+        assert "Bad" in invis_warns[0]
+        assert "Good" not in invis_warns[0]
+        # Should NOT say "appears empty" since one trace is valid
+        assert all("appears empty" not in w for w in review["warnings"])
+
+    def test_review_allnan_trace_summary(self, renderer):
+        """All-NaN trace reports y_range=None and has_gaps=True."""
+        rng = pd.date_range("2024-01-01", periods=30, freq="min")
+        df = pd.DataFrame({"value": np.full(30, np.nan)}, index=rng)
+        entry = DataEntry(label="nanonly", data=df, units="nT", description="NanOnly")
+        result = renderer.plot_data([entry])
+        ts = result["review"]["trace_summary"]
+        assert len(ts) == 1
+        assert ts[0]["y_range"] is None
+        assert ts[0]["has_gaps"] is True
+        assert ts[0]["points"] == 30
+
 
 # ---------------------------------------------------------------------------
 # Serialization (grid-aware)
