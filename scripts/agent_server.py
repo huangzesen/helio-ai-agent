@@ -30,7 +30,9 @@ sys.path.insert(0, str(PROJECT_ROOT))
 
 # --- Paths -------------------------------------------------------------------
 
-HELIO_DIR = Path.home() / ".helio-agent"
+from config import get_data_dir
+
+HELIO_DIR = get_data_dir()
 PORT_FILE = HELIO_DIR / "server.port"
 SESSION_DIR = HELIO_DIR / "sessions"
 

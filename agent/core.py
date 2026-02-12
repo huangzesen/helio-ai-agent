@@ -7,13 +7,15 @@ The OrchestratorAgent routes requests to:
 """
 
 import math
+import time
 import threading
+from concurrent.futures import Future, ThreadPoolExecutor
 from typing import Optional
 
 from google import genai
 from google.genai import types
 
-from config import GOOGLE_API_KEY, GEMINI_MODEL, GEMINI_SUB_AGENT_MODEL, GEMINI_PLANNER_MODEL, GEMINI_FALLBACK_MODEL
+from config import GOOGLE_API_KEY, GEMINI_MODEL, GEMINI_SUB_AGENT_MODEL, GEMINI_PLANNER_MODEL, GEMINI_FALLBACK_MODEL, get_data_dir
 from .tools import get_tool_schemas
 from .prompts import get_system_prompt, format_tool_result
 from .time_utils import parse_time_range, TimeRangeError
@@ -36,6 +38,7 @@ from .logging import (
 from .memory_agent import MemoryAgent
 from .loop_guard import LoopGuard, make_call_key
 from .model_fallback import activate_fallback, get_active_model, is_quota_error
+from .base_agent import _GEMINI_WARN_INTERVAL, _GEMINI_RETRY_TIMEOUT, _GEMINI_MAX_RETRIES
 from rendering.registry import get_method
 from rendering.plotly_renderer import PlotlyRenderer
 from knowledge.catalog import search_by_keywords
@@ -100,9 +103,12 @@ class OrchestratorAgent:
         self.logger.info("Initializing OrchestratorAgent")
 
         # Initialize Gemini client with retry for transient errors (503, 429, etc.)
+        # timeout=300000ms (5 min) is a hard backstop — the per-call timeout/retry
+        # logic in _send_with_timeout handles the normal case (warn 10s, retry 60s).
         self.client = genai.Client(
             api_key=GOOGLE_API_KEY,
             http_options=types.HttpOptions(
+                timeout=300_000,
                 retry_options=types.HttpRetryOptions(),
             ),
         )
@@ -182,6 +188,9 @@ class OrchestratorAgent:
         # Passive memory agent (lazy-initialized)
         self._memory_agent: Optional[MemoryAgent] = None
 
+        # Thread pool for timeout-wrapped Gemini calls
+        self._timeout_pool = ThreadPoolExecutor(max_workers=1)
+
     # ---- Cancellation API ----
 
     def request_cancel(self):
@@ -242,9 +251,9 @@ class OrchestratorAgent:
                 self.logger.debug(f"[Thinking] {preview}", extra={**tagged("thinking"), "skip_file": True})
 
     def _send_message(self, message):
-        """Send a message on self.chat with automatic model fallback on 429."""
+        """Send a message on self.chat with timeout/retry and model fallback on 429."""
         try:
-            return self.chat.send_message(message)
+            return self._send_with_timeout(self.chat, message)
         except Exception as exc:
             if is_quota_error(exc) and GEMINI_FALLBACK_MODEL:
                 activate_fallback(GEMINI_FALLBACK_MODEL)
@@ -252,8 +261,59 @@ class OrchestratorAgent:
                     model=GEMINI_FALLBACK_MODEL, config=self.config,
                 )
                 self.model_name = GEMINI_FALLBACK_MODEL
-                return self.chat.send_message(message)
+                return self._send_with_timeout(self.chat, message)
             raise
+
+    def _send_with_timeout(self, chat, message):
+        """Send a message to Gemini with periodic warnings and retry on timeout.
+
+        - Warns every _GEMINI_WARN_INTERVAL seconds while waiting (10s, 20s, ...).
+        - After _GEMINI_RETRY_TIMEOUT seconds, abandons the call and retries.
+        - Retries up to _GEMINI_MAX_RETRIES times before raising.
+        """
+        last_exc = None
+        for attempt in range(1 + _GEMINI_MAX_RETRIES):
+            future: Future = self._timeout_pool.submit(
+                chat.send_message, message
+            )
+            t0 = time.monotonic()
+            try:
+                while True:
+                    elapsed = time.monotonic() - t0
+                    remaining = _GEMINI_RETRY_TIMEOUT - elapsed
+                    if remaining <= 0:
+                        break
+                    wait = min(_GEMINI_WARN_INTERVAL, remaining)
+                    try:
+                        return future.result(timeout=wait)
+                    except TimeoutError:
+                        elapsed = time.monotonic() - t0
+                        if elapsed >= _GEMINI_RETRY_TIMEOUT:
+                            break
+                        self.logger.warning(
+                            f"[Orchestrator] Gemini API not responding "
+                            f"after {elapsed:.0f}s (attempt {attempt + 1})..."
+                        )
+
+                elapsed = time.monotonic() - t0
+                future.cancel()
+                last_exc = TimeoutError(
+                    f"Gemini API call timed out after {elapsed:.0f}s"
+                )
+                if attempt < _GEMINI_MAX_RETRIES:
+                    self.logger.warning(
+                        f"[Orchestrator] Gemini API timed out after "
+                        f"{elapsed:.0f}s, retrying ({attempt + 1}/{_GEMINI_MAX_RETRIES})..."
+                    )
+                else:
+                    self.logger.error(
+                        f"[Orchestrator] Gemini API timed out after "
+                        f"{elapsed:.0f}s, no retries left"
+                    )
+            except Exception:
+                raise
+
+        raise last_exc
 
     def _extract_grounding_sources(self, response) -> str:
         """Extract source citations from Google Search grounding metadata."""
@@ -1278,8 +1338,8 @@ class OrchestratorAgent:
 
                 full_text = response.text or ""
 
-                # Save original + extracted text to ~/.helio-agent/documents/{stem}/
-                docs_dir = Path.home() / ".helio-agent" / "documents"
+                # Save original + extracted text to data_dir/documents/{stem}/
+                docs_dir = get_data_dir() / "documents"
                 src = Path(file_path)
                 stem = src.stem
 
@@ -1529,7 +1589,7 @@ class OrchestratorAgent:
                 "- Return results as concise text, not as tool calls."
             )
             self._last_tool_context = "task:" + task.description[:50]
-            response = task_chat.send_message(task_prompt)
+            response = self._send_with_timeout(task_chat, task_prompt)
             self._track_usage(response)
 
             # Process tool calls with loop guard
@@ -1597,7 +1657,7 @@ class OrchestratorAgent:
                 self.logger.debug(f"[Gemini] Sending {len(function_responses)} tool result(s) back...")
                 tool_names = [fc.name for fc in function_calls]
                 self._last_tool_context = "+".join(tool_names)
-                response = task_chat.send_message(message=function_responses)
+                response = self._send_with_timeout(task_chat, function_responses)
                 self._track_usage(response)
 
             # Warn if no tools were called (Gemini just responded with text)

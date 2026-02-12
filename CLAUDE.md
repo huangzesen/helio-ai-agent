@@ -103,6 +103,12 @@ The server uses `agent.core.create_agent()` directly (same `OrchestratorAgent` a
 - **`.env`** at project root — API key only (secret):
   - `GOOGLE_API_KEY` — Gemini API key
 - **`~/.helio-agent/config.json`** — all other settings (user-editable, no secrets). See `config.template.json` for all available keys with defaults. If the file doesn't exist, built-in defaults are used.
+- **Data directory** (`~/.helio-agent` by default) — stores logs, sessions, memory, caches, and documents. Relocate via:
+  1. `HELIO_AGENT_DIR` environment variable (highest priority — useful for CI/Docker)
+  2. `"data_dir"` key in `config.json`
+  3. Default: `~/.helio-agent`
+
+  Note: the config file itself is always read from `~/.helio-agent/config.json` (or project-local). Only the data directory moves.
 
 ## Supported Spacecraft
 

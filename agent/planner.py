@@ -9,6 +9,8 @@ This module provides:
 
 import json
 import re
+import time
+from concurrent.futures import Future, ThreadPoolExecutor
 from typing import Optional
 
 from google import genai
@@ -16,6 +18,7 @@ from google.genai import types
 
 from .logging import get_logger, log_token_usage
 from .model_fallback import get_active_model
+from .base_agent import _GEMINI_WARN_INTERVAL, _GEMINI_RETRY_TIMEOUT, _GEMINI_MAX_RETRIES
 from .tasks import Task, TaskPlan, create_task, create_plan
 from .tools import get_tool_schemas
 from .tool_loop import run_tool_loop, extract_text_from_response
@@ -149,6 +152,8 @@ class PlannerAgent:
         self._token_usage = {"input_tokens": 0, "output_tokens": 0, "thinking_tokens": 0}
         self._api_calls = 0
         self._last_tool_context = "send_message"
+        self._timeout_pool = ThreadPoolExecutor(max_workers=1)
+        self.logger = get_logger()
 
         # Build function declarations when tools are available
         self._function_declarations = []
@@ -163,6 +168,51 @@ class PlannerAgent:
                     parameters=tool_schema["parameters"],
                 )
                 self._function_declarations.append(fd)
+
+    def _send_with_timeout(self, chat, message):
+        """Send a message to Gemini with periodic warnings and retry on timeout."""
+        last_exc = None
+        for attempt in range(1 + _GEMINI_MAX_RETRIES):
+            future: Future = self._timeout_pool.submit(
+                chat.send_message, message
+            )
+            t0 = time.monotonic()
+            try:
+                while True:
+                    elapsed = time.monotonic() - t0
+                    remaining = _GEMINI_RETRY_TIMEOUT - elapsed
+                    if remaining <= 0:
+                        break
+                    wait = min(_GEMINI_WARN_INTERVAL, remaining)
+                    try:
+                        return future.result(timeout=wait)
+                    except TimeoutError:
+                        elapsed = time.monotonic() - t0
+                        if elapsed >= _GEMINI_RETRY_TIMEOUT:
+                            break
+                        self.logger.warning(
+                            f"[PlannerAgent] Gemini API not responding "
+                            f"after {elapsed:.0f}s (attempt {attempt + 1})..."
+                        )
+
+                elapsed = time.monotonic() - t0
+                future.cancel()
+                last_exc = TimeoutError(
+                    f"Gemini API call timed out after {elapsed:.0f}s"
+                )
+                if attempt < _GEMINI_MAX_RETRIES:
+                    self.logger.warning(
+                        f"[PlannerAgent] Gemini API timed out after "
+                        f"{elapsed:.0f}s, retrying ({attempt + 1}/{_GEMINI_MAX_RETRIES})..."
+                    )
+                else:
+                    self.logger.error(
+                        f"[PlannerAgent] Gemini API timed out after "
+                        f"{elapsed:.0f}s, no retries left"
+                    )
+            except Exception:
+                raise
+        raise last_exc
 
     def _track_usage(self, response):
         """Accumulate token usage from a Gemini response."""
@@ -258,7 +308,7 @@ class PlannerAgent:
             logger.debug(f"[PlannerAgent] Discovery phase for: {user_request}")
 
         self._last_tool_context = "discovery_initial"
-        response = chat.send_message(user_request)
+        response = self._send_with_timeout(chat, user_request)
         self._track_usage(response)
 
         # Collect raw tool results so we can extract list_parameters data
@@ -273,6 +323,7 @@ class PlannerAgent:
             track_usage=self._track_usage,
             collect_tool_results=tool_results,
             cancel_event=self._cancel_event,
+            send_fn=lambda msg: self._send_with_timeout(chat, msg),
         )
 
         text = extract_text_from_response(response)
@@ -469,7 +520,7 @@ class PlannerAgent:
                 logger.debug(f"[PlannerAgent] Starting planning for: {user_request}")
 
             self._last_tool_context = "planning_initial"
-            response = self._chat.send_message(planning_message)
+            response = self._send_with_timeout(self._chat, planning_message)
             self._track_usage(response)
 
             result = self._parse_response(response)
@@ -564,7 +615,7 @@ class PlannerAgent:
                 logger.debug(f"[PlannerAgent] Sending results:\n{message}")
 
             self._last_tool_context = f"continue_planning_round{round_num}"
-            response = self._chat.send_message(message)
+            response = self._send_with_timeout(self._chat, message)
             self._track_usage(response)
 
             result = self._parse_response(response)

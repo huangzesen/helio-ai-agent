@@ -13,9 +13,16 @@ import argparse
 import json
 import re
 import shutil
+import sys
 from pathlib import Path
 
-MEMORY_PATH = Path.home() / ".helio-agent" / "memory.json"
+# Ensure project root is on sys.path so config is importable
+PROJECT_ROOT = Path(__file__).resolve().parent.parent
+sys.path.insert(0, str(PROJECT_ROOT))
+
+from config import get_data_dir
+
+MEMORY_PATH = get_data_dir() / "memory.json"
 
 # Ordered rules: first match wins
 SCOPE_RULES = [

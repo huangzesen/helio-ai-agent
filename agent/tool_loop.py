@@ -45,6 +45,7 @@ def run_tool_loop(
     track_usage=None,
     collect_tool_results: dict = None,
     cancel_event: threading.Event | None = None,
+    send_fn=None,
 ):
     """Run a tool-calling loop on an existing chat session.
 
@@ -62,10 +63,15 @@ def run_tool_loop(
         collect_tool_results: Optional dict to collect raw tool results.
             If provided, results are stored as ``{tool_name: [result, ...]}``
             so callers can inspect what the tools returned (e.g. parameter lists).
+        send_fn: Optional callable ``(message) -> response`` for sending messages.
+            If provided, used instead of ``chat.send_message``.  Allows callers
+            to inject timeout/retry wrappers.
 
     Returns:
         The final Gemini response after tools stop.
     """
+    if send_fn is None:
+        send_fn = lambda msg: chat.send_message(message=msg)
     guard = LoopGuard(max_total_calls=max_total_calls, max_iterations=max_iterations)
     consecutive_errors = 0
 
@@ -153,7 +159,7 @@ def run_tool_loop(
             if agent_obj and hasattr(agent_obj, "_last_tool_context"):
                 tool_names = [fc.name for fc in function_calls]
                 agent_obj._last_tool_context = "+".join(tool_names)
-        response = chat.send_message(message=function_responses)
+        response = send_fn(function_responses)
         if track_usage:
             track_usage(response)
 

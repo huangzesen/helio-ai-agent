@@ -1,6 +1,7 @@
 import json
 import os
 from pathlib import Path
+from typing import Optional
 from dotenv import load_dotenv
 
 load_dotenv()
@@ -41,6 +42,43 @@ def get(key: str, default=None):
 
 
 _user_config = _load_config()
+
+
+# ---- Data directory -----------------------------------------------------------
+# Single source of truth for the base data directory (logs, sessions, memory, etc.).
+# Priority: HELIO_AGENT_DIR env var > "data_dir" config key > ~/.helio-agent
+
+_data_dir: Optional[Path] = None
+
+
+def get_data_dir() -> Path:
+    """Return the resolved base data directory.
+
+    Resolution order:
+    1. ``HELIO_AGENT_DIR`` environment variable (highest — useful for CI/Docker)
+    2. ``"data_dir"`` key in config.json
+    3. ``~/.helio-agent`` (default)
+    """
+    global _data_dir
+    if _data_dir is not None:
+        return _data_dir
+    env_val = os.environ.get("HELIO_AGENT_DIR")
+    if env_val:
+        _data_dir = Path(env_val).expanduser().resolve()
+    else:
+        configured = get("data_dir")
+        if configured:
+            _data_dir = Path(configured).expanduser().resolve()
+        else:
+            _data_dir = Path.home() / ".helio-agent"
+    return _data_dir
+
+
+def _reset_data_dir() -> None:
+    """Reset the cached data directory (for testing only)."""
+    global _data_dir
+    _data_dir = None
+
 
 # Flat aliases for backward compatibility (existing code does `from config import GEMINI_MODEL`)
 GEMINI_MODEL = get("model", "gemini-3-pro-preview")

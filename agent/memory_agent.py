@@ -33,7 +33,7 @@ POLL_INTERVAL_SECONDS = config.get("memory_poll_interval_seconds", 30)
 MAX_LOG_BYTES = config.get("memory_max_log_bytes_kb", 50) * 1024
 
 # Directories
-STATE_DIR = Path.home() / ".helio-agent"
+STATE_DIR = config.get_data_dir()
 REPORTS_DIR = STATE_DIR / "reports"
 STATE_FILE = STATE_DIR / "memory_agent_state.json"
 

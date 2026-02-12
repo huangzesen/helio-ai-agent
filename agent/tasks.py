@@ -192,7 +192,8 @@ class TaskStore:
             base_dir: Override the default storage directory (for testing)
         """
         if base_dir is None:
-            base_dir = Path.home() / ".helio-agent" / "tasks"
+            from config import get_data_dir
+            base_dir = get_data_dir() / "tasks"
         self.base_dir = base_dir
         self.base_dir.mkdir(parents=True, exist_ok=True)
 

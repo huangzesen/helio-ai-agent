@@ -29,8 +29,10 @@ except ImportError:
     requests = None
 
 
+from config import get_data_dir
+
 MASTER_CDF_BASE = "https://cdaweb.gsfc.nasa.gov/pub/software/cdawlib/0MASTERS"
-MASTER_CDF_CACHE = Path.home() / ".helio-agent" / "master_cdfs"
+MASTER_CDF_CACHE = get_data_dir() / "master_cdfs"
 
 # CDF type string -> parameter type mapping
 _CDF_TYPE_MAP = {

@@ -25,12 +25,14 @@ try:
 except ImportError:
     requests = None
 
+from config import get_data_dir
+
 logger = logging.getLogger("helio-agent")
 
 HAPI_CATALOG_URL = "https://cdaweb.gsfc.nasa.gov/hapi/catalog"
-CATALOG_CACHE = Path.home() / ".helio-agent" / "cdaweb_catalog.json"
-EMBEDDINGS_CACHE = Path.home() / ".helio-agent" / "cdaweb_embeddings.npy"
-TEXTS_CACHE = Path.home() / ".helio-agent" / "cdaweb_embed_texts.npy"
+CATALOG_CACHE = get_data_dir() / "cdaweb_catalog.json"
+EMBEDDINGS_CACHE = get_data_dir() / "cdaweb_embeddings.npy"
+TEXTS_CACHE = get_data_dir() / "cdaweb_embed_texts.npy"
 CACHE_TTL_SECONDS = 24 * 60 * 60  # 24 hours
 
 # Lazy state for semantic search

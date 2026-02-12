@@ -84,7 +84,8 @@ class SessionManager:
 
     def __init__(self, base_dir: Optional[Path] = None):
         if base_dir is None:
-            base_dir = Path.home() / ".helio-agent" / "sessions"
+            from config import get_data_dir
+            base_dir = get_data_dir() / "sessions"
         self.base_dir = base_dir
         self.base_dir.mkdir(parents=True, exist_ok=True)
 

@@ -31,9 +31,11 @@ from datetime import datetime
 from pathlib import Path
 from typing import Optional
 
+from config import get_data_dir
+
 
 # Log directory
-LOG_DIR = Path.home() / ".helio-agent" / "logs"
+LOG_DIR = get_data_dir() / "logs"
 
 # Tags that the Gradio live-log handler will display.
 # To show a new category in Gradio, tag the log call with

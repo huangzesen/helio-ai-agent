@@ -19,10 +19,11 @@ import numpy as np
 PROJECT_ROOT = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(PROJECT_ROOT))
 
+from config import get_data_dir
 from knowledge.cdaweb_catalog import get_full_catalog, search_catalog
 
-EMBEDDINGS_CACHE = Path.home() / ".helio-agent" / "cdaweb_embeddings.npy"
-TEXTS_CACHE = Path.home() / ".helio-agent" / "cdaweb_embed_texts.npy"
+EMBEDDINGS_CACHE = get_data_dir() / "cdaweb_embeddings.npy"
+TEXTS_CACHE = get_data_dir() / "cdaweb_embed_texts.npy"
 
 # Test queries: mix of exact-match-friendly and natural-language
 TEST_QUERIES = [

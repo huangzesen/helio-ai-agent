@@ -45,7 +45,7 @@ class MemoryStore:
 
     def __init__(self, path: Optional[Path] = None):
         if path is None:
-            path = Path.home() / ".helio-agent" / "memory.json"
+            path = config.get_data_dir() / "memory.json"
         self.path = path
         self.cold_path = path.with_name("memory_cold.json")
         self._global_enabled: bool = True

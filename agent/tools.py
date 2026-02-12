@@ -722,7 +722,7 @@ Use this when:
 - User uploads or references a PDF or image file
 - User wants to read, summarize, or extract content from a document
 - User asks questions about a document's contents
-The extracted text is saved to ~/.helio-agent/documents/ for persistence across sessions.
+The extracted text is saved to the agent data directory (default ~/.helio-agent/documents/) for persistence across sessions.
 Returns the extracted text content and the saved file path.""",
         "parameters": {
             "type": "object",

@@ -25,6 +25,7 @@ Commands:
 import sys
 import argparse
 from pathlib import Path
+from config import get_data_dir
 from knowledge.startup import resolve_refresh_flags
 
 # readline is optional (not available on Windows without pyreadline3)
@@ -34,7 +35,7 @@ try:
 except ImportError:
     READLINE_AVAILABLE = False
 
-HISTORY_FILE = Path.home() / ".helio_agent_history"
+HISTORY_FILE = get_data_dir() / ".history"
 
 
 def setup_readline():
