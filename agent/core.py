@@ -44,11 +44,11 @@ from rendering.plotly_renderer import PlotlyRenderer
 from knowledge.catalog import search_by_keywords
 from knowledge.cdaweb_catalog import search_catalog as search_full_cdaweb_catalog
 from knowledge.metadata_client import (
-    list_parameters as hapi_list_parameters,
+    list_parameters,
     get_dataset_time_range,
-    list_missions as hapi_list_missions,
-    validate_dataset_id as hapi_validate_dataset_id,
-    validate_parameter_id as hapi_validate_parameter_id,
+    list_missions,
+    validate_dataset_id,
+    validate_parameter_id,
 )
 from data_ops.store import get_store, DataEntry, build_source_map, describe_sources
 from data_ops.fetch import fetch_data
@@ -825,25 +825,16 @@ class OrchestratorAgent:
 
         elif tool_name == "list_parameters":
             dataset_id = tool_args["dataset_id"]
-            from config import DATA_BACKEND
-
-            if DATA_BACKEND == "cdf":
-                # CDF backend: return CDF variable names directly — these are
-                # the only names fetch_data accepts.  Fall back to HAPI if the
-                # CDF introspection fails.
-                try:
-                    from data_ops.fetch_cdf import list_cdf_variables
-                    cdf_vars = list_cdf_variables(dataset_id)
-                    self.logger.debug(f"[CDF] Listed {len(cdf_vars)} data variables for {dataset_id}")
-                    return {"status": "success", "parameters": cdf_vars}
-                except Exception as e:
-                    self.logger.debug(f"[CDF] Could not list variables for {dataset_id}: {e}, falling back to HAPI")
-
-            # HAPI backend (or CDF fallback)
-            self.logger.debug(f"[HAPI] Fetching parameters for {dataset_id}...")
-            params = hapi_list_parameters(dataset_id)
-            self.logger.debug(f"[HAPI] Got {len(params)} parameters.")
-            return {"status": "success", "parameters": params}
+            # Return CDF variable names from Master CDF skeleton
+            try:
+                from data_ops.fetch_cdf import list_cdf_variables
+                cdf_vars = list_cdf_variables(dataset_id)
+                self.logger.debug(f"[CDF] Listed {len(cdf_vars)} data variables for {dataset_id}")
+                return {"status": "success", "parameters": cdf_vars}
+            except Exception as e:
+                self.logger.debug(f"[CDF] Could not list variables for {dataset_id}: {e}, using metadata cache")
+                params = list_parameters(dataset_id)
+                return {"status": "success", "parameters": params}
 
         elif tool_name == "get_data_availability":
             dataset_id = tool_args["dataset_id"]
@@ -858,7 +849,7 @@ class OrchestratorAgent:
             }
 
         elif tool_name == "browse_datasets":
-            from knowledge.metadata_client import browse_datasets as hapi_browse
+            from knowledge.metadata_client import browse_datasets
             from knowledge.mission_loader import load_mission as _load_mission
             from knowledge.catalog import SPACECRAFT, classify_instrument_type
             mission_id = tool_args["mission_id"]
@@ -867,7 +858,7 @@ class OrchestratorAgent:
                 _load_mission(mission_id)
             except FileNotFoundError:
                 pass
-            datasets = hapi_browse(mission_id)
+            datasets = browse_datasets(mission_id)
             if datasets is None:
                 return {"status": "error", "message": f"No dataset index for '{mission_id}'."}
 
@@ -888,7 +879,7 @@ class OrchestratorAgent:
                     "dataset_count": len(datasets), "datasets": datasets}
 
         elif tool_name == "list_missions":
-            missions = hapi_list_missions()
+            missions = list_missions()
             return {"status": "success", "missions": missions, "count": len(missions)}
 
         elif tool_name == "get_dataset_docs":
@@ -956,7 +947,7 @@ class OrchestratorAgent:
 
         elif tool_name == "fetch_data":
             # Pre-fetch validation: reject dataset/parameter IDs not in local cache
-            ds_validation = hapi_validate_dataset_id(tool_args["dataset_id"])
+            ds_validation = validate_dataset_id(tool_args["dataset_id"])
             if not ds_validation["valid"]:
                 return {"status": "error", "message": ds_validation["message"]}
 
@@ -964,7 +955,7 @@ class OrchestratorAgent:
             # names don't always match HAPI parameter names.
             from config import DATA_BACKEND
             if DATA_BACKEND != "cdf":
-                param_validation = hapi_validate_parameter_id(
+                param_validation = validate_parameter_id(
                     tool_args["dataset_id"], tool_args["parameter_id"]
                 )
                 if not param_validation["valid"]:
@@ -2121,7 +2112,7 @@ class OrchestratorAgent:
                     valid = []
                     invalid = []
                     for ds_id in task.candidate_datasets:
-                        v = hapi_validate_dataset_id(ds_id)
+                        v = validate_dataset_id(ds_id)
                         if v["valid"]:
                             valid.append(ds_id)
                         else:
@@ -2148,7 +2139,7 @@ class OrchestratorAgent:
                 for t in new_tasks:
                     if t.candidate_datasets:
                         for ds_id in t.candidate_datasets:
-                            v = hapi_validate_dataset_id(ds_id)
+                            v = validate_dataset_id(ds_id)
                             if not v["valid"]:
                                 invalid_ids.append(ds_id)
                 correction_msg = (
