@@ -1891,25 +1891,7 @@ def main():
         refresh_all=args.refresh_all,
     )
 
-    # Check HAPI availability and auto-fallback to CDF if needed
-    import config
-    from data_ops.fetch import check_hapi_status
-
-    if config.DATA_BACKEND == "hapi":
-        print("Checking HAPI service availability...")
-        if check_hapi_status():
-            print("HAPI service is online.")
-        else:
-            print(
-                "WARNING: CDAWeb HAPI service is unreachable. "
-                "Falling back to direct CDF file download backend."
-            )
-            config.DATA_BACKEND = "cdf"
-
-    if config.DATA_BACKEND == "cdf":
-        print(f"Data backend: CDF (direct file download)")
-    else:
-        print(f"Data backend: HAPI")
+    print("Data backend: CDF (direct file download)")
 
     # Initialize agent
     print("Initializing agent...")

@@ -72,7 +72,7 @@ def fetch_cdf_data(
 ) -> dict:
     """Fetch timeseries data by downloading CDF files from CDAWeb.
 
-    Same signature and return format as fetch_hapi_data().
+    Same signature and return format as fetch_data().
 
     Args:
         dataset_id: CDAWeb dataset ID (e.g., "AC_H2_MFI").
