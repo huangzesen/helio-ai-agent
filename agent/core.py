@@ -2769,6 +2769,7 @@ Example: ["Compare this with solar wind speed", "Zoom in to January 10-15", "Exp
         for complex cases the regex missed.
         """
         self.clear_cancel()
+        self.logger.info(f"[User] {user_message}")
 
         # Inject long-term memory context
         memory_section = self._memory_store.build_prompt_section()

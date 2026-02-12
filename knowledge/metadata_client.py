@@ -4,11 +4,10 @@ CDAWeb parameter metadata client.
 Fetches parameter info dynamically and filters to 1D plottable parameters
 (scalars and small vectors with size <= 3).
 
-Uses a four-layer resolution strategy with Master CDF as primary network fallback:
+Uses a three-layer resolution strategy:
 1. In-memory cache (fastest)
 2. Local file cache in knowledge/missions/*/metadata/ (instant, no network)
-3. Master CDF skeleton file (reliable, separate infrastructure from HAPI)
-4. HAPI /info endpoint (last-resort fallback)
+3. Master CDF skeleton file (network fallback)
 
 Supports local file cache: if a dataset's info response is saved in
 knowledge/missions/{mission}/metadata/{dataset_id}.json, it is loaded instantly
@@ -25,8 +24,6 @@ from pathlib import Path
 from typing import Optional
 
 logger = logging.getLogger("helio-agent")
-
-HAPI_BASE = "https://cdaweb.gsfc.nasa.gov/hapi"
 
 # Cache for metadata responses to avoid repeated API calls
 _info_cache: dict[str, dict] = {}
@@ -62,21 +59,20 @@ def _find_local_cache(dataset_id: str) -> Optional[Path]:
 def get_dataset_info(dataset_id: str, use_cache: bool = True) -> dict:
     """Fetch parameter metadata for a dataset.
 
-    Checks four sources in order:
+    Checks three sources in order:
     1. In-memory cache (fastest)
     2. Local file cache in knowledge/missions/*/metadata/ (instant, no network)
-    3. Master CDF skeleton file (reliable, separate infrastructure)
-    4. HAPI /info endpoint (last-resort fallback)
+    3. Master CDF skeleton file (network fallback)
 
     Args:
         dataset_id: CDAWeb dataset ID (e.g., "PSP_FLD_L2_MAG_RTN_1MIN")
         use_cache: Whether to use cached results (in-memory and local file)
 
     Returns:
-        HAPI-compatible info dict with startDate, stopDate, parameters, etc.
+        Info dict with startDate, stopDate, parameters, etc.
 
     Raises:
-        Exception: If all sources fail and no cache is available.
+        Exception: If all sources fail.
     """
     # 1. In-memory cache
     if use_cache and dataset_id in _info_cache:
@@ -90,33 +86,20 @@ def get_dataset_info(dataset_id: str, use_cache: bool = True) -> dict:
             _info_cache[dataset_id] = info
             return info
 
-    # 3. Master CDF (primary network fallback)
-    try:
-        from .master_cdf import fetch_dataset_metadata_from_master
-        info = fetch_dataset_metadata_from_master(dataset_id)
-        if info is not None:
-            logger.debug("Got metadata from Master CDF for %s", dataset_id)
-            if use_cache:
-                _info_cache[dataset_id] = info
-                _save_to_local_cache(dataset_id, info)
-            return info
-    except Exception as e:
-        logger.debug("Master CDF fallback failed for %s: %s", dataset_id, e)
+    # 3. Master CDF (network fallback)
+    from .master_cdf import fetch_dataset_metadata_from_master
+    info = fetch_dataset_metadata_from_master(dataset_id)
+    if info is not None:
+        logger.debug("Got metadata from Master CDF for %s", dataset_id)
+        if use_cache:
+            _info_cache[dataset_id] = info
+            _save_to_local_cache(dataset_id, info)
+        return info
 
-    # 4. HAPI /info (last resort)
-    logger.debug("Falling back to HAPI /info for %s", dataset_id)
-    resp = requests.get(
-        f"{HAPI_BASE}/info",
-        params={"id": dataset_id},
-        timeout=5,
+    raise ValueError(
+        f"No metadata available for dataset '{dataset_id}'. "
+        f"Master CDF download failed."
     )
-    resp.raise_for_status()
-    info = resp.json()
-
-    if use_cache:
-        _info_cache[dataset_id] = info
-
-    return info
 
 
 def _save_to_local_cache(dataset_id: str, info: dict) -> None:
@@ -171,7 +154,7 @@ def list_parameters(dataset_id: str) -> list[dict]:
 
     Returns:
         List of parameter dicts with name, description, units, size, dataset_id.
-        Returns empty list if HAPI request fails.
+        Returns empty list if metadata fetch fails.
     """
     try:
         info = get_dataset_info(dataset_id)
@@ -544,7 +527,7 @@ def _fallback_resource_url(dataset_id: str) -> str:
 def get_dataset_docs(dataset_id: str, max_chars: int = 4000) -> dict:
     """Look up CDAWeb documentation for a dataset.
 
-    Combines HAPI /info metadata (contact, resourceURL) with the actual
+    Combines dataset metadata (contact, resourceURL) with the actual
     documentation text scraped from the CDAWeb Notes page.
 
     Args:

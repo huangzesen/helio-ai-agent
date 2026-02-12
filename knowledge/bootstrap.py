@@ -3,7 +3,7 @@ Auto-download mission data on first run.
 
 When no mission JSON files exist (fresh clone), fetches the CDAWeb catalog
 via CDAS REST API and Master CDF files, and populates all mission files +
-metadata cache automatically. HAPI is only used as a last-resort fallback.
+metadata cache automatically.
 
 This module is lazy-imported by mission_loader.load_all_missions() only
 when no *.json files are found in knowledge/missions/.
@@ -34,7 +34,6 @@ from .mission_prefixes import (
 
 
 # Constants
-HAPI_SERVER = "https://cdaweb.gsfc.nasa.gov/hapi"  # last-resort fallback only
 MISSIONS_DIR = Path(__file__).parent / "missions"
 DEFAULT_WORKERS = 10
 MAX_RETRIES = 2
@@ -84,7 +83,7 @@ def populate_missions(only_stems: set[str] | None = None):
       2. Group datasets by mission via prefix matching
       3. Filter to only_stems if specified
       4. Create skeleton mission JSONs for missing ones
-      5. Parallel-fetch metadata for all datasets (Master CDF + HAPI fallback)
+      5. Parallel-fetch metadata for all datasets (Master CDF)
       6. Merge metadata into mission JSONs
       7. Generate _index.json and _calibration_exclude.json per mission
     """
@@ -123,7 +122,7 @@ def populate_missions(only_stems: set[str] | None = None):
                 total_datasets, len(mission_datasets))
 
     # Step 4: Create skeleton JSONs for missions that don't exist yet
-    # Include all requested stems, even those with no HAPI datasets
+    # Include all requested stems, even those with no CDAWeb datasets
     MISSIONS_DIR.mkdir(parents=True, exist_ok=True)
     stems_to_skeleton = set(mission_datasets.keys())
     if only_stems:
@@ -134,7 +133,7 @@ def populate_missions(only_stems: set[str] | None = None):
             skeleton = create_mission_skeleton(stem)
             _save_json(filepath, skeleton)
 
-    # Step 5: Parallel-fetch HAPI /info for all datasets
+    # Step 5: Parallel-fetch metadata for all datasets
     all_fetch_items = []
     for stem, datasets in mission_datasets.items():
         cache_dir = MISSIONS_DIR / stem / "metadata"
@@ -146,7 +145,7 @@ def populate_missions(only_stems: set[str] | None = None):
     random.shuffle(all_fetch_items)
 
     logger.info("Fetching parameter metadata for %d datasets across %d missions "
-                "(Master CDF primary, HAPI fallback, timeout=5s)...",
+                "(Master CDF, timeout=5s)...",
                  len(all_fetch_items), len(mission_datasets))
     results = _fetch_all_info(all_fetch_items, cdaweb_meta=cdaweb_meta)
 
@@ -173,10 +172,9 @@ def populate_missions(only_stems: set[str] | None = None):
 # ---------------------------------------------------------------------------
 
 def _fetch_catalog(cdaweb_meta: dict | None = None) -> list[dict]:
-    """Fetch the dataset catalog from CDAWeb.
+    """Fetch the dataset catalog from CDAWeb via CDAS REST API.
 
     Uses CDAS REST API metadata if provided, otherwise fetches it.
-    Falls back to HAPI /catalog as last resort.
     """
     # If we already have CDAS REST metadata, convert to catalog format
     if cdaweb_meta:
@@ -193,15 +191,7 @@ def _fetch_catalog(cdaweb_meta: dict | None = None) -> list[dict]:
         logger.info("Found %d datasets in CDAS REST catalog", len(catalog))
         return catalog
 
-    # Last-resort fallback: HAPI /catalog
-    logger.warning("CDAS REST unavailable, falling back to HAPI /catalog...")
-    url = f"{HAPI_SERVER}/catalog"
-    resp = requests.get(url, timeout=60)
-    resp.raise_for_status()
-    data = resp.json()
-    catalog = data.get("catalog", [])
-    logger.info("Found %d datasets in HAPI catalog", len(catalog))
-    return catalog
+    raise RuntimeError("Could not fetch dataset catalog from CDAS REST API")
 
 
 def _group_by_mission(catalog: list[dict]) -> dict[str, list[tuple[str, str | None]]]:
@@ -223,7 +213,7 @@ def _fetch_single_info(
     ds_id: str,
     cdaweb_meta: dict | None = None,
 ) -> dict | None:
-    """Fetch metadata for a single dataset. Master CDF first, HAPI fallback.
+    """Fetch metadata for a single dataset from Master CDF.
 
     Returns parsed info dict or None on failure.
     """
@@ -238,22 +228,9 @@ def _fetch_single_info(
             start_date = entry.get("start_date", "")
             stop_date = entry.get("stop_date", "")
 
-    # Try Master CDF first
-    info = fetch_dataset_metadata_from_master(
+    return fetch_dataset_metadata_from_master(
         ds_id, start_date=start_date, stop_date=stop_date
     )
-    if info is not None:
-        return info
-
-    # Fallback: HAPI /info
-    url = f"{HAPI_SERVER}/info"
-    try:
-        resp = requests.get(url, params={"id": ds_id}, timeout=5)
-        if resp.status_code != 200:
-            return None
-        return resp.json()
-    except Exception:
-        return None
 
 
 def _fetch_and_save(
@@ -263,7 +240,6 @@ def _fetch_and_save(
 ) -> dict | None:
     """Fetch a single dataset's metadata and save to cache. Thread-safe.
 
-    Uses Master CDF as primary source, HAPI /info as fallback.
     Returns parsed info dict or None on failure.
     """
     info = _fetch_single_info(ds_id, cdaweb_meta=cdaweb_meta)
@@ -286,8 +262,6 @@ def _fetch_all_info(
     cdaweb_meta: dict | None = None,
 ) -> dict[str, dict | None]:
     """Parallel-fetch metadata for all datasets, with retries.
-
-    Uses Master CDF as primary source, HAPI /info as fallback.
 
     Args:
         items: List of (dataset_id, instrument_hint, mission_stem, cache_dir).
@@ -400,7 +374,7 @@ def _merge_dataset_info(metadata_info: dict, cdaweb_entry: dict | None = None) -
     by metadata_client.py when the agent needs them.
 
     Args:
-        metadata_info: Metadata response (from Master CDF or HAPI /info).
+        metadata_info: Metadata response (from Master CDF).
         cdaweb_entry: Optional metadata from CDAWeb REST API for this dataset.
     """
     entry = {
@@ -536,7 +510,7 @@ def _merge_into_missions(
         # Update _meta
         mission_data["_meta"] = {
             "generated_at": datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ"),
-            "hapi_server": HAPI_SERVER,
+            "source": "CDAS REST + Master CDF",
         }
 
         _save_json(filepath, mission_data)
@@ -677,7 +651,7 @@ def refresh_time_ranges(only_stems: set[str] | None = None) -> dict:
 
     Fetches the CDAWeb REST API catalog (single HTTP request, ~3s) to get
     fresh TimeInterval dates for all ~3000 datasets, then patches the
-    existing mission JSONs.  No HAPI /info calls, no instrument regrouping.
+    existing mission JSONs.  No instrument regrouping.
 
     Args:
         only_stems: If provided, only refresh these mission stems.

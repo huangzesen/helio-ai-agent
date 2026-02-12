@@ -2,8 +2,7 @@
 Full CDAWeb catalog fetch, cache, and search.
 
 Provides access to the complete CDAWeb catalog (2000+ datasets) via the
-CDAS REST API. Falls back to HAPI /catalog only if CDAS fails.
-The cache is refreshed every 24 hours.
+CDAS REST API. The cache is refreshed every 24 hours.
 
 Search supports two methods (controlled by config.CATALOG_SEARCH_METHOD):
 - "semantic": fastembed cosine similarity (default, much better for NL queries)
@@ -29,7 +28,6 @@ from config import get_data_dir
 
 logger = logging.getLogger("helio-agent")
 
-HAPI_CATALOG_URL = "https://cdaweb.gsfc.nasa.gov/hapi/catalog"
 CATALOG_CACHE = get_data_dir() / "cdaweb_catalog.json"
 EMBEDDINGS_CACHE = get_data_dir() / "cdaweb_embeddings.npy"
 TEXTS_CACHE = get_data_dir() / "cdaweb_embed_texts.npy"
@@ -45,8 +43,7 @@ _catalog_texts = None
 def get_full_catalog() -> list[dict]:
     """Fetch and cache the full CDAWeb catalog.
 
-    Uses CDAS REST API as primary source, HAPI /catalog as fallback.
-    Returns a list of dicts with 'id' and 'title' keys.
+    Uses CDAS REST API. Returns a list of dicts with 'id' and 'title' keys.
     Uses a local file cache (refreshed every 24 hours).
 
     Returns:
@@ -66,12 +63,8 @@ def get_full_catalog() -> list[dict]:
     if requests is None:
         return []
 
-    # Primary: CDAS REST API
+    # Fetch from CDAS REST API
     catalog = _fetch_from_cdas_rest()
-
-    # Fallback: HAPI /catalog
-    if not catalog:
-        catalog = _fetch_from_hapi()
 
     if not catalog:
         # If all fetches fail, use stale cache
@@ -104,17 +97,6 @@ def _fetch_from_cdas_rest() -> list[dict]:
             {"id": ds_id, "title": meta.get("label", "")}
             for ds_id, meta in sorted(cdaweb_meta.items())
         ]
-    except Exception:
-        return []
-
-
-def _fetch_from_hapi() -> list[dict]:
-    """Fetch catalog from HAPI /catalog (last-resort fallback)."""
-    try:
-        resp = requests.get(HAPI_CATALOG_URL, timeout=30)
-        resp.raise_for_status()
-        data = resp.json()
-        return data.get("catalog", [])
     except Exception:
         return []
 
