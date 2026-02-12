@@ -9,7 +9,7 @@ The OrchestratorAgent routes requests to:
 import math
 import time
 import threading
-from concurrent.futures import Future, ThreadPoolExecutor
+from concurrent.futures import Future, ThreadPoolExecutor, as_completed
 from typing import Optional
 
 from google import genai
@@ -161,6 +161,7 @@ class OrchestratorAgent:
 
         # Cache of mission sub-agents, reused across requests in the session
         self._mission_agents: dict[str, MissionAgent] = {}
+        self._mission_agents_lock = threading.Lock()
 
         # Cached visualization sub-agent
         self._viz_agent: Optional[VisualizationAgent] = None
@@ -205,6 +206,68 @@ class OrchestratorAgent:
     def is_cancelled(self) -> bool:
         """Check whether cancellation has been requested."""
         return self._cancel_event.is_set()
+
+    # ---- Parallel tool execution ----
+
+    # Tools safe to run concurrently (I/O-bound, no shared mutable state conflicts)
+    _PARALLEL_SAFE_TOOLS = {"fetch_data", "delegate_to_mission"}
+
+    def _execute_tools_parallel(
+        self, function_calls: list
+    ) -> list[tuple[str, dict, dict]]:
+        """Execute a batch of tool calls, parallelizing when safe.
+
+        If all calls are in _PARALLEL_SAFE_TOOLS and len > 1, runs them
+        concurrently via ThreadPoolExecutor. Otherwise falls back to serial.
+
+        Returns:
+            List of (tool_name, tool_args, result) tuples in original order.
+        """
+        parsed = [(fc.name, dict(fc.args) if fc.args else {}) for fc in function_calls]
+
+        from config import PARALLEL_FETCH, PARALLEL_MAX_WORKERS
+
+        # Check if all tools are safe for parallel execution
+        all_safe = (
+            PARALLEL_FETCH
+            and len(parsed) > 1
+            and all(name in self._PARALLEL_SAFE_TOOLS for name, _ in parsed)
+        )
+
+        if not all_safe:
+            # Serial fallback
+            return [
+                (name, args, self._execute_tool_safe(name, args))
+                for name, args in parsed
+            ]
+
+        # Parallel execution
+        self.logger.debug(
+            f"[Parallel] Executing {len(parsed)} tools concurrently: "
+            f"{[name for name, _ in parsed]}"
+        )
+        max_workers = min(len(parsed), PARALLEL_MAX_WORKERS)
+        results_by_idx: dict[int, dict] = {}
+
+        with ThreadPoolExecutor(max_workers=max_workers) as pool:
+            futures = {
+                pool.submit(self._execute_tool_safe, name, args): idx
+                for idx, (name, args) in enumerate(parsed)
+            }
+            for future in as_completed(futures):
+                idx = futures[future]
+                try:
+                    results_by_idx[idx] = future.result()
+                except Exception as e:
+                    results_by_idx[idx] = {
+                        "status": "error",
+                        "message": f"Parallel execution error: {e}",
+                    }
+
+        return [
+            (parsed[i][0], parsed[i][1], results_by_idx[i])
+            for i in range(len(parsed))
+        ]
 
     @property
     def memory_store(self) -> MemoryStore:
@@ -1768,6 +1831,51 @@ class OrchestratorAgent:
             self.logger.debug(f"[Router] Created PlannerAgent ({GEMINI_PLANNER_MODEL})")
         return self._planner_agent
 
+    def _build_task_result_summary(
+        self, task: Task, labels_before: set[str], labels_after: set[str]
+    ) -> dict:
+        """Build an informative result summary dict for a completed plan task."""
+        result_text = (task.result or "")[:500]
+        if result_text in ("", "Done.") and task.tool_calls:
+            result_text = f"Tools called: {', '.join(task.tool_calls)}"
+
+        new_labels = labels_after - labels_before
+        if new_labels:
+            new_label_parts = []
+            for lbl in sorted(new_labels):
+                entry_info = next(
+                    (e for e in get_store().list_entries() if e["label"] == lbl),
+                    None,
+                )
+                if entry_info:
+                    new_label_parts.append(
+                        f"{lbl} ({entry_info.get('shape', '?')}, "
+                        f"{entry_info.get('num_points', '?')} pts, "
+                        f"units={entry_info.get('units', '?')}, "
+                        f"columns={entry_info.get('columns', [])})"
+                    )
+                else:
+                    new_label_parts.append(lbl)
+            result_text += f" | New data: {'; '.join(new_label_parts)}"
+        elif task.status == TaskStatus.FAILED:
+            result_text += " | No new data added."
+
+        warnings = []
+        for tr in getattr(task, "tool_results", []):
+            if tr.get("quality_warning"):
+                warnings.append(f"{tr.get('label', '?')}: {tr['quality_warning']}")
+            if tr.get("time_range_note"):
+                warnings.append(tr["time_range_note"])
+        if warnings:
+            result_text += f" | Warnings: {'; '.join(warnings)}"
+
+        return {
+            "description": task.description,
+            "status": task.status.value,
+            "result_summary": result_text,
+            "error": task.error,
+        }
+
     def _execute_plan_task(self, task: Task, plan: TaskPlan) -> None:
         """Execute a single plan task, routing to the appropriate agent.
 
@@ -2074,14 +2182,54 @@ class OrchestratorAgent:
             )
             self.logger.debug(format_plan_for_display(plan), extra=tagged("plan_task"))
 
-            # Execute batch — snapshot store labels before to detect new data
+            # Execute batch — partition into parallelizable fetch tasks and serial tasks
+            special_missions = {"__visualization__", "__data_ops__", "__data_extraction__"}
+            fetch_tasks = [t for t in new_tasks if t.mission and t.mission not in special_missions]
+            other_tasks = [t for t in new_tasks if t not in fetch_tasks]
+
             round_results = []
             cancelled = False
-            for i, task in enumerate(new_tasks):
+
+            # Run fetch tasks in parallel if multiple independent missions
+            from config import PARALLEL_FETCH
+            if PARALLEL_FETCH and len(fetch_tasks) > 1 and not self._cancel_event.is_set():
+                self.logger.debug(
+                    f"[Parallel] Executing {len(fetch_tasks)} fetch tasks concurrently: "
+                    f"{[t.mission for t in fetch_tasks]}"
+                )
+                labels_before = set(e['label'] for e in get_store().list_entries())
+                max_workers = min(len(fetch_tasks), 3)
+
+                with ThreadPoolExecutor(max_workers=max_workers) as pool:
+                    futures = {
+                        pool.submit(self._execute_plan_task, t, plan): t
+                        for t in fetch_tasks
+                    }
+                    for future in as_completed(futures):
+                        t = futures[future]
+                        try:
+                            future.result()
+                        except Exception as e:
+                            t.status = TaskStatus.FAILED
+                            t.error = str(e)
+
+                labels_after = set(e['label'] for e in get_store().list_entries())
+                # Build result summaries for all parallel tasks
+                for task in fetch_tasks:
+                    round_results.append(
+                        self._build_task_result_summary(task, labels_before, labels_after)
+                    )
+                store.save(plan)
+            else:
+                # Run fetch tasks serially (0 or 1 task)
+                other_tasks = list(new_tasks)  # all tasks go serial
+                fetch_tasks = []
+
+            # Run remaining tasks serially (viz, data_ops, data_extraction, or single fetches)
+            for i, task in enumerate(other_tasks):
                 if self._cancel_event.is_set():
                     self.logger.info("[Cancel] Stopping plan mid-batch")
-                    # Mark remaining tasks as SKIPPED
-                    for remaining in new_tasks[i:]:
+                    for remaining in other_tasks[i:]:
                         remaining.status = TaskStatus.SKIPPED
                         remaining.error = "Cancelled by user"
                     cancelled = True
@@ -2089,51 +2237,9 @@ class OrchestratorAgent:
                 labels_before = set(e['label'] for e in get_store().list_entries())
                 self._execute_plan_task(task, plan)
                 labels_after = set(e['label'] for e in get_store().list_entries())
-
-                # Build an informative result summary for the planner
-                result_text = (task.result or "")[:500]
-                if result_text in ("", "Done.") and task.tool_calls:
-                    result_text = f"Tools called: {', '.join(task.tool_calls)}"
-
-                # Append concrete outcome signals
-                new_labels = labels_after - labels_before
-                if new_labels:
-                    # Include structured details for new labels
-                    new_label_parts = []
-                    for lbl in sorted(new_labels):
-                        entry_info = next(
-                            (e for e in get_store().list_entries() if e["label"] == lbl),
-                            None,
-                        )
-                        if entry_info:
-                            new_label_parts.append(
-                                f"{lbl} ({entry_info.get('shape', '?')}, "
-                                f"{entry_info.get('num_points', '?')} pts, "
-                                f"units={entry_info.get('units', '?')}, "
-                                f"columns={entry_info.get('columns', [])})"
-                            )
-                        else:
-                            new_label_parts.append(lbl)
-                    result_text += f" | New data: {'; '.join(new_label_parts)}"
-                elif task.status == TaskStatus.FAILED:
-                    result_text += " | No new data added."
-
-                # Surface quality warnings from tool results
-                warnings = []
-                for tr in getattr(task, "tool_results", []):
-                    if tr.get("quality_warning"):
-                        warnings.append(f"{tr.get('label', '?')}: {tr['quality_warning']}")
-                    if tr.get("time_range_note"):
-                        warnings.append(tr["time_range_note"])
-                if warnings:
-                    result_text += f" | Warnings: {'; '.join(warnings)}"
-
-                round_results.append({
-                    "description": task.description,
-                    "status": task.status.value,
-                    "result_summary": result_text,
-                    "error": task.error,
-                })
+                round_results.append(
+                    self._build_task_result_summary(task, labels_before, labels_after)
+                )
                 store.save(plan)
 
             if cancelled:
@@ -2218,14 +2324,12 @@ class OrchestratorAgent:
             if not function_calls:
                 break
 
+            # Execute tools — parallel when safe, serial otherwise
+            tool_results = self._execute_tools_parallel(function_calls)
+
             function_responses = []
             has_delegation_error = False
-            for fc in function_calls:
-                tool_name = fc.name
-                tool_args = dict(fc.args) if fc.args else {}
-
-                result = self._execute_tool_safe(tool_name, tool_args)
-
+            for tool_name, tool_args, result in tool_results:
                 if result.get("status") == "error":
                     self.logger.warning(f"[Tool Result: ERROR] {result.get('message', '')}")
 
@@ -2337,21 +2441,22 @@ class OrchestratorAgent:
         return result
 
     def _get_or_create_mission_agent(self, mission_id: str) -> MissionAgent:
-        """Get a cached mission agent or create a new one."""
-        if mission_id not in self._mission_agents:
-            pitfalls = self._memory_store.get_scoped_pitfall_texts(f"mission:{mission_id}")
-            self._mission_agents[mission_id] = MissionAgent(
-                mission_id=mission_id,
-                client=self.client,
-                model_name=SUB_AGENT_MODEL,
-                tool_executor=self._execute_tool_safe,
-                verbose=self.verbose,
-                cancel_event=self._cancel_event,
-                pitfalls=pitfalls,
-                token_log_path=self._token_log_path,
-            )
-            self.logger.debug(f"[Router] Created {mission_id} mission agent ({SUB_AGENT_MODEL})")
-        return self._mission_agents[mission_id]
+        """Get a cached mission agent or create a new one. Thread-safe."""
+        with self._mission_agents_lock:
+            if mission_id not in self._mission_agents:
+                pitfalls = self._memory_store.get_scoped_pitfall_texts(f"mission:{mission_id}")
+                self._mission_agents[mission_id] = MissionAgent(
+                    mission_id=mission_id,
+                    client=self.client,
+                    model_name=SUB_AGENT_MODEL,
+                    tool_executor=self._execute_tool_safe,
+                    verbose=self.verbose,
+                    cancel_event=self._cancel_event,
+                    pitfalls=pitfalls,
+                    token_log_path=self._token_log_path,
+                )
+                self.logger.debug(f"[Router] Created {mission_id} mission agent ({SUB_AGENT_MODEL})")
+            return self._mission_agents[mission_id]
 
     def _get_or_create_viz_agent(self) -> VisualizationAgent:
         """Get the cached visualization agent or create a new one."""

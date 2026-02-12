@@ -7,6 +7,7 @@ DataStore is a singleton dict-like container keyed by label strings.
 
 import json
 import re
+import threading
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Optional
@@ -79,40 +80,48 @@ class DataStore:
 
     def __init__(self):
         self._entries: dict[str, DataEntry] = {}
+        self._lock = threading.RLock()
 
     def put(self, entry: DataEntry) -> None:
         """Store a DataEntry, overwriting any existing entry with the same label."""
-        self._entries[entry.label] = entry
+        with self._lock:
+            self._entries[entry.label] = entry
 
     def get(self, label: str) -> Optional[DataEntry]:
         """Retrieve a DataEntry by label, or None if not found."""
-        return self._entries.get(label)
+        with self._lock:
+            return self._entries.get(label)
 
     def has(self, label: str) -> bool:
         """Check if a label exists in the store."""
-        return label in self._entries
+        with self._lock:
+            return label in self._entries
 
     def remove(self, label: str) -> bool:
         """Remove an entry by label. Returns True if it existed."""
-        if label in self._entries:
-            del self._entries[label]
-            return True
-        return False
+        with self._lock:
+            if label in self._entries:
+                del self._entries[label]
+                return True
+            return False
 
     def list_entries(self) -> list[dict]:
         """Return summary dicts for all stored entries."""
-        return [entry.summary() for entry in self._entries.values()]
+        with self._lock:
+            return [entry.summary() for entry in self._entries.values()]
 
     def clear(self) -> None:
         """Remove all entries."""
-        self._entries.clear()
+        with self._lock:
+            self._entries.clear()
 
     def memory_usage_bytes(self) -> int:
         """Return approximate total memory usage of all stored DataFrames."""
-        return sum(
-            entry.data.memory_usage(deep=True).sum()
-            for entry in self._entries.values()
-        )
+        with self._lock:
+            return sum(
+                entry.data.memory_usage(deep=True).sum()
+                for entry in self._entries.values()
+            )
 
     def save_to_directory(self, dir_path: Path) -> None:
         """Persist all DataEntries to a directory as pickled DataFrames.
@@ -123,20 +132,21 @@ class DataStore:
         dir_path = Path(dir_path)
         dir_path.mkdir(parents=True, exist_ok=True)
 
-        index = {}
-        for label, entry in self._entries.items():
-            safe = _UNSAFE_CHARS.sub("_", label)
-            pkl_name = f"{safe}.pkl"
-            entry.data.to_pickle(dir_path / pkl_name)
-            entry_meta = {
-                "filename": pkl_name,
-                "units": entry.units,
-                "description": entry.description,
-                "source": entry.source,
-            }
-            if entry.metadata is not None:
-                entry_meta["metadata"] = entry.metadata
-            index[label] = entry_meta
+        with self._lock:
+            index = {}
+            for label, entry in self._entries.items():
+                safe = _UNSAFE_CHARS.sub("_", label)
+                pkl_name = f"{safe}.pkl"
+                entry.data.to_pickle(dir_path / pkl_name)
+                entry_meta = {
+                    "filename": pkl_name,
+                    "units": entry.units,
+                    "description": entry.description,
+                    "source": entry.source,
+                }
+                if entry.metadata is not None:
+                    entry_meta["metadata"] = entry.metadata
+                index[label] = entry_meta
 
         with open(dir_path / "_index.json", "w", encoding="utf-8") as f:
             json.dump(index, f, indent=2)
@@ -175,7 +185,8 @@ class DataStore:
         return count
 
     def __len__(self) -> int:
-        return len(self._entries)
+        with self._lock:
+            return len(self._entries)
 
 
 # Module-level singleton

@@ -11,7 +11,7 @@ Sub-agents override:
 
 import threading
 import time
-from concurrent.futures import Future, ThreadPoolExecutor
+from concurrent.futures import Future, ThreadPoolExecutor, as_completed
 from typing import Optional
 
 from google import genai
@@ -232,6 +232,59 @@ class BaseSubAgent:
         """Hook to add agent-specific context to error logs."""
         return kwargs
 
+    # ---- Parallel tool execution ----
+
+    _PARALLEL_SAFE_TOOLS = {"fetch_data"}
+
+    def _execute_tools_batch(
+        self, function_calls: list
+    ) -> list[tuple[str, dict, dict]]:
+        """Execute tool calls, parallelizing when all are fetch_data.
+
+        Returns list of (tool_name, tool_args, result) in original order.
+        """
+        from config import PARALLEL_FETCH, PARALLEL_MAX_WORKERS
+
+        parsed = [(fc.name, dict(fc.args) if fc.args else {}) for fc in function_calls]
+
+        all_safe = (
+            PARALLEL_FETCH
+            and len(parsed) > 1
+            and all(name in self._PARALLEL_SAFE_TOOLS for name, _ in parsed)
+        )
+
+        if not all_safe:
+            return [
+                (name, args, self.tool_executor(name, args))
+                for name, args in parsed
+            ]
+
+        self.logger.debug(
+            f"[{self.agent_name}] Parallel fetch: {len(parsed)} tools concurrently"
+        )
+        max_workers = min(len(parsed), PARALLEL_MAX_WORKERS)
+        results_by_idx: dict[int, dict] = {}
+
+        with ThreadPoolExecutor(max_workers=max_workers) as pool:
+            futures = {
+                pool.submit(self.tool_executor, name, args): idx
+                for idx, (name, args) in enumerate(parsed)
+            }
+            for future in as_completed(futures):
+                idx = futures[future]
+                try:
+                    results_by_idx[idx] = future.result()
+                except Exception as e:
+                    results_by_idx[idx] = {
+                        "status": "error",
+                        "message": f"Parallel execution error: {e}",
+                    }
+
+        return [
+            (parsed[i][0], parsed[i][1], results_by_idx[i])
+            for i in range(len(parsed))
+        ]
+
     # ---- Shared loops ----
 
     def process_request(self, user_message: str) -> dict:
@@ -305,16 +358,13 @@ class BaseSubAgent:
                     self.logger.debug(f"[{self.agent_name}] Stopping: {stop_reason}")
                     break
 
-                # Execute tools via the shared executor
+                # Execute tools — parallel when all are fetch_data, serial otherwise
+                tool_results = self._execute_tools_batch(function_calls)
+
                 function_responses = []
                 all_errors_this_round = True
-                for fc in function_calls:
-                    tool_name = fc.name
-                    tool_args = dict(fc.args) if fc.args else {}
-
+                for tool_name, tool_args, result in tool_results:
                     self.logger.debug(f"[{self.agent_name}] Tool: {tool_name}({tool_args})")
-
-                    result = self.tool_executor(tool_name, tool_args)
 
                     # Hook: let subclass intercept results (e.g., clarification)
                     intercept = self._on_tool_result(tool_name, tool_args, result)
@@ -477,14 +527,12 @@ class BaseSubAgent:
                     last_stop_reason = stop_reason
                     break
 
-                # Execute tools via the shared executor
-                function_responses = []
-                for fc in function_calls:
-                    tool_name = fc.name
-                    tool_args = dict(fc.args) if fc.args else {}
+                # Execute tools — parallel when all are fetch_data, serial otherwise
+                tool_results = self._execute_tools_batch(function_calls)
 
+                function_responses = []
+                for tool_name, tool_args, result in tool_results:
                     task.tool_calls.append(tool_name)
-                    result = self.tool_executor(tool_name, tool_args)
 
                     # Collect structured outcome for downstream use
                     task.tool_results.append(self._summarize_tool_outcome(tool_name, result))

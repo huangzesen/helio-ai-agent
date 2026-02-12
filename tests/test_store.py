@@ -212,3 +212,71 @@ class TestDescribeSources:
         store = DataStore()
         info = describe_sources(store, ["NONEXISTENT"])
         assert info == {}
+
+
+# ---------------------------------------------------------------------------
+# Concurrent access tests
+# ---------------------------------------------------------------------------
+
+class TestConcurrentAccess:
+    """Verify DataStore thread-safety under concurrent access."""
+
+    def test_concurrent_put_get(self):
+        """10 threads doing put/get simultaneously should not corrupt state."""
+        import threading
+
+        store = DataStore()
+        errors = []
+
+        def worker(thread_id):
+            try:
+                for i in range(20):
+                    label = f"thread_{thread_id}_entry_{i}"
+                    entry = _make_entry(label=label, n=5)
+                    store.put(entry)
+                    retrieved = store.get(label)
+                    if retrieved is None:
+                        errors.append(f"{label} was None after put")
+                    elif retrieved.label != label:
+                        errors.append(f"{label} had wrong label: {retrieved.label}")
+            except Exception as e:
+                errors.append(f"Thread {thread_id} error: {e}")
+
+        threads = [threading.Thread(target=worker, args=(i,)) for i in range(10)]
+        for t in threads:
+            t.start()
+        for t in threads:
+            t.join()
+
+        assert errors == [], f"Concurrent errors: {errors}"
+        assert len(store) == 200  # 10 threads × 20 entries
+
+    def test_concurrent_list_entries(self):
+        """list_entries should not crash while other threads modify the store."""
+        import threading
+
+        store = DataStore()
+        errors = []
+
+        def writer():
+            try:
+                for i in range(50):
+                    store.put(_make_entry(label=f"w_{i}", n=3))
+            except Exception as e:
+                errors.append(f"Writer error: {e}")
+
+        def reader():
+            try:
+                for _ in range(50):
+                    store.list_entries()
+            except Exception as e:
+                errors.append(f"Reader error: {e}")
+
+        threads = [threading.Thread(target=writer) for _ in range(3)]
+        threads += [threading.Thread(target=reader) for _ in range(3)]
+        for t in threads:
+            t.start()
+        for t in threads:
+            t.join()
+
+        assert errors == [], f"Concurrent errors: {errors}"

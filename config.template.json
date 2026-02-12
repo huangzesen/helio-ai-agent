@@ -12,11 +12,15 @@
   "_comment_fallback_model": "All agents switch to this model for the rest of the session when any model hits quota/rate limits (HTTP 429).",
   "fallback_model": "gemini-3-flash-preview",
 
-  "_comment_data_backend": "Options: 'cdf' (CDAWeb REST + cdflib, default) or 'hapi' (HAPI CSV endpoint). Always falls back to the other on failure.",
+  "_comment_data_backend": "Data backend. Only 'cdf' (CDAWeb REST + cdflib) is supported.",
   "data_backend": "cdf",
 
   "_comment_catalog_search_method": "Options: 'semantic' (fastembed cosine similarity, default) or 'substring' (case-insensitive multi-word match). Falls back to substring if fastembed is not installed.",
   "catalog_search_method": "semantic",
+
+  "_comment_parallel_fetch": "Enable parallel data fetching. When true, multiple CDF file downloads, tool calls, and plan tasks run concurrently via thread pools. parallel_max_workers controls the max thread count per pool.",
+  "parallel_fetch": true,
+  "parallel_max_workers": 4,
 
   "_comment_memory_limits": "Control how many memory entries are injected into agent prompts. Higher = more context but more tokens.",
   "max_preferences": 15,

@@ -1,12 +1,12 @@
 """
 CDF file download backend — fetches data from CDAWeb via direct CDF file download.
 
-Alternative to the HAPI CSV path. Downloads CDF files from CDAWeb's REST API,
-caches them locally in cdaweb_data/, and reads parameters using cdflib.
-
-Produces the same output format as fetch_hapi_data() so callers don't need changes.
+Downloads CDF files from CDAWeb's REST API, caches them locally in cdaweb_data/,
+and reads parameters using cdflib. Multi-day requests download CDF files in
+parallel using a thread pool.
 """
 
+from concurrent.futures import ThreadPoolExecutor, as_completed
 from pathlib import Path
 from urllib.parse import urlparse
 
@@ -108,16 +108,36 @@ def fetch_cdf_data(
     logger.debug(f"[CDF] Found {len(file_list)} files for {dataset_id} "
                  f"({time_min} to {time_max})")
 
-    # Download and read each file
+    # Download and read CDF files (parallel when enabled and multiple files)
+    from config import PARALLEL_FETCH, PARALLEL_MAX_WORKERS
+    use_parallel = PARALLEL_FETCH and len(file_list) > 1
+    max_workers = min(len(file_list), PARALLEL_MAX_WORKERS, 6)
     frames = []
     validmin = None
     validmax = None
-    for file_info in file_list:
-        local_path = _download_cdf_file(file_info["url"], CACHE_DIR)
-        df = _read_cdf_parameter(local_path, parameter_id)
+
+    if use_parallel:
+        logger.debug(f"[CDF] Downloading {len(file_list)} files in parallel "
+                     f"(max_workers={max_workers})")
+        with ThreadPoolExecutor(max_workers=max_workers) as pool:
+            futures = {
+                pool.submit(_download_and_read, fi["url"], parameter_id, CACHE_DIR): idx
+                for idx, fi in enumerate(file_list)
+            }
+            results_by_idx: dict[int, tuple[Path, pd.DataFrame]] = {}
+            for future in as_completed(futures):
+                idx = futures[future]
+                results_by_idx[idx] = future.result()
+    else:
+        results_by_idx = {}
+        for idx, fi in enumerate(file_list):
+            results_by_idx[idx] = _download_and_read(fi["url"], parameter_id, CACHE_DIR)
+
+    for idx in range(len(file_list)):
+        local_path, df = results_by_idx[idx]
         # Extract metadata from the first CDF file.
         # Always read FILLVAL/VALIDMIN/VALIDMAX from CDF (ground truth)
-        # since HAPI fill values may have different precision (float32 vs float64).
+        # since cached fill values may have different precision (float32 vs float64).
         if not frames:
             try:
                 cdf = cdflib.CDF(str(local_path))
@@ -215,8 +235,17 @@ def fetch_cdf_data(
     }
 
 
+def _download_and_read(
+    url: str, parameter_id: str, cache_dir: Path
+) -> tuple[Path, pd.DataFrame]:
+    """Download a CDF file and read one parameter. Thread-safe."""
+    local_path = _download_cdf_file(url, cache_dir)
+    df = _read_cdf_parameter(local_path, parameter_id)
+    return local_path, df
+
+
 def _find_parameter_meta(info: dict, parameter_id: str) -> dict:
-    """Find metadata for a specific parameter in a HAPI info response."""
+    """Find metadata for a specific parameter in metadata info."""
     for p in info.get("parameters", []):
         if p.get("name") == parameter_id:
             return p
