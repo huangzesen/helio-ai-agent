@@ -184,61 +184,58 @@ class TestAgentToolExecution:
         """Test that search_datasets calls catalog.search_by_keywords."""
         from agent.core import OrchestratorAgent
 
-        with patch("agent.core.genai"):
-            with patch("agent.core.search_by_keywords") as mock_search:
-                mock_search.return_value = {
-                    "spacecraft": "PSP",
-                    "spacecraft_name": "Parker Solar Probe",
-                    "instrument": "FIELDS/MAG",
-                    "instrument_name": "FIELDS Magnetometer",
-                    "datasets": ["PSP_FLD_L2_MAG_RTN_1MIN"],
-                }
+        with patch("agent.core.search_by_keywords") as mock_search:
+            mock_search.return_value = {
+                "spacecraft": "PSP",
+                "spacecraft_name": "Parker Solar Probe",
+                "instrument": "FIELDS/MAG",
+                "instrument_name": "FIELDS Magnetometer",
+                "datasets": ["PSP_FLD_L2_MAG_RTN_1MIN"],
+            }
 
-                agent = OrchestratorAgent.__new__(OrchestratorAgent)
-                agent.verbose = False
-                agent._renderer = None
+            agent = OrchestratorAgent.__new__(OrchestratorAgent)
+            agent.verbose = False
+            agent._renderer = None
 
-                result = agent._execute_tool("search_datasets", {"query": "parker magnetic"})
+            result = agent._execute_tool("search_datasets", {"query": "parker magnetic"})
 
-                mock_search.assert_called_once_with("parker magnetic")
-                assert result["spacecraft"] == "PSP"
+            mock_search.assert_called_once_with("parker magnetic")
+            assert result["spacecraft"] == "PSP"
 
     def test_list_parameters_tool(self):
         """Test that list_parameters returns CDF variables."""
         from agent.core import OrchestratorAgent
 
-        with patch("agent.core.genai"):
-            mock_vars = [
-                {"name": "Magnitude", "units": "nT", "size": [1], "description": ""},
-            ]
-            with patch("data_ops.fetch_cdf.list_cdf_variables", return_value=mock_vars) as mock_list:
-                agent = OrchestratorAgent.__new__(OrchestratorAgent)
-                agent.verbose = False
-                agent._renderer = None
+        mock_vars = [
+            {"name": "Magnitude", "units": "nT", "size": [1], "description": ""},
+        ]
+        with patch("data_ops.fetch_cdf.list_cdf_variables", return_value=mock_vars) as mock_list:
+            agent = OrchestratorAgent.__new__(OrchestratorAgent)
+            agent.verbose = False
+            agent._renderer = None
 
-                result = agent._execute_tool("list_parameters", {"dataset_id": "AC_H2_MFI"})
+            result = agent._execute_tool("list_parameters", {"dataset_id": "AC_H2_MFI"})
 
-                mock_list.assert_called_once_with("AC_H2_MFI")
-                assert len(result["parameters"]) == 1
+            mock_list.assert_called_once_with("AC_H2_MFI")
+            assert len(result["parameters"]) == 1
 
     def test_ask_clarification_tool(self):
         """Test that ask_clarification returns question data."""
         from agent.core import OrchestratorAgent
 
-        with patch("agent.core.genai"):
-            agent = OrchestratorAgent.__new__(OrchestratorAgent)
-            agent.verbose = False
-            agent._renderer = None
+        agent = OrchestratorAgent.__new__(OrchestratorAgent)
+        agent.verbose = False
+        agent._renderer = None
 
-            result = agent._execute_tool("ask_clarification", {
-                "question": "Which parameter?",
-                "options": ["Magnitude", "Vector"],
-                "context": "Multiple parameters available",
-            })
+        result = agent._execute_tool("ask_clarification", {
+            "question": "Which parameter?",
+            "options": ["Magnitude", "Vector"],
+            "context": "Multiple parameters available",
+        })
 
-            assert result["status"] == "clarification_needed"
-            assert result["question"] == "Which parameter?"
-            assert result["options"] == ["Magnitude", "Vector"]
+        assert result["status"] == "clarification_needed"
+        assert result["question"] == "Which parameter?"
+        assert result["options"] == ["Magnitude", "Vector"]
 
 
 class TestValidateTimeRange:
@@ -248,11 +245,10 @@ class TestValidateTimeRange:
     def agent(self):
         """Create a minimal OrchestratorAgent instance for testing."""
         from agent.core import OrchestratorAgent
-        with patch("agent.core.genai"):
-            a = OrchestratorAgent.__new__(OrchestratorAgent)
-            a.verbose = False
-            a._renderer = None
-            return a
+        a = OrchestratorAgent.__new__(OrchestratorAgent)
+        a.verbose = False
+        a._renderer = None
+        return a
 
     def _dt(self, s):
         """Shorthand for UTC datetime."""

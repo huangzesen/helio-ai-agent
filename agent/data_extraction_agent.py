@@ -10,8 +10,7 @@ Uses store_dataframe to create DataFrames and read_document to read
 documents.
 """
 
-from google import genai
-
+from .llm import LLMAdapter
 from .base_agent import BaseSubAgent
 from knowledge.prompt_builder import build_data_extraction_prompt
 
@@ -21,11 +20,11 @@ EXTRACTION_EXTRA_TOOLS = ["list_fetched_data"]
 
 
 class DataExtractionAgent(BaseSubAgent):
-    """A Gemini session specialized for converting unstructured text to DataFrames."""
+    """An LLM session specialized for converting unstructured text to DataFrames."""
 
     def __init__(
         self,
-        client: genai.Client,
+        adapter: LLMAdapter,
         model_name: str,
         tool_executor,
         verbose: bool = False,
@@ -33,7 +32,7 @@ class DataExtractionAgent(BaseSubAgent):
         token_log_path=None,
     ):
         super().__init__(
-            client=client,
+            adapter=adapter,
             model_name=model_name,
             tool_executor=tool_executor,
             verbose=verbose,

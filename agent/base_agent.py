@@ -1,7 +1,7 @@
 """
 Base class for all sub-agents (Mission, DataOps, DataExtraction, Visualization).
 
-Consolidates the shared logic: Gemini chat setup, token tracking, tool-calling
+Consolidates the shared logic: LLM chat setup, token tracking, tool-calling
 loops (process_request and execute_task), and LoopGuard integration.
 
 Sub-agents override:
@@ -14,16 +14,14 @@ import time
 from concurrent.futures import Future, ThreadPoolExecutor, as_completed
 from typing import Optional
 
-from google import genai
-from google.genai import types
-
+from .llm import LLMAdapter, LLMResponse, FunctionSchema
 from .tools import get_tool_schemas
 from .tasks import Task, TaskStatus
 from .logging import get_logger, log_error, log_token_usage
 from .loop_guard import LoopGuard, make_call_key
 from .model_fallback import get_active_model
 
-# Gemini API call timeout thresholds (seconds)
+# LLM API call timeout thresholds (seconds)
 _GEMINI_WARN_INTERVAL = 10      # log a warning every N seconds while waiting
 _GEMINI_RETRY_TIMEOUT = 60      # abandon call and retry after this
 _GEMINI_MAX_RETRIES = 2         # max retries before giving up
@@ -37,7 +35,7 @@ class BaseSubAgent:
 
     def __init__(
         self,
-        client: genai.Client,
+        adapter: LLMAdapter,
         model_name: str,
         tool_executor,
         verbose: bool = False,
@@ -49,7 +47,7 @@ class BaseSubAgent:
         pitfalls: list[str] | None = None,
         token_log_path=None,
     ):
-        self.client = client
+        self.adapter = adapter
         self.model_name = model_name
         self.tool_executor = tool_executor
         self.verbose = verbose
@@ -60,30 +58,16 @@ class BaseSubAgent:
         self._token_log_path = token_log_path
         self.logger = get_logger()
 
-        # Build function declarations from categories
+        # Build FunctionSchema list from categories
         categories = tool_categories or []
         extra = extra_tool_names or []
-        self._function_declarations = []
+        self._tool_schemas: list[FunctionSchema] = []
         for tool_schema in get_tool_schemas(categories=categories, extra_names=extra):
-            fd = types.FunctionDeclaration(
+            self._tool_schemas.append(FunctionSchema(
                 name=tool_schema["name"],
                 description=tool_schema["description"],
                 parameters=tool_schema["parameters"],
-            )
-            self._function_declarations.append(fd)
-
-        # Config for forced function calling (used by execute_task)
-        self.config = types.GenerateContentConfig(
-            system_instruction=self.system_prompt,
-            tools=[types.Tool(function_declarations=self._function_declarations)],
-            tool_config=types.ToolConfig(
-                function_calling_config=types.FunctionCallingConfig(mode="ANY")
-            ),
-            thinking_config=types.ThinkingConfig(
-                include_thoughts=True,
-                thinking_level="LOW",
-            ),
-        )
+            ))
 
         self._total_input_tokens = 0
         self._total_output_tokens = 0
@@ -91,24 +75,20 @@ class BaseSubAgent:
         self._api_calls = 0
         self._last_tool_context = "send_message"
 
-        # Thread pool for timeout-wrapped Gemini calls (1 worker — serial calls)
+        # Thread pool for timeout-wrapped LLM calls (1 worker — serial calls)
         self._timeout_pool = ThreadPoolExecutor(max_workers=1)
 
     # ---- Token tracking ----
 
-    def _track_usage(self, response):
-        """Accumulate token usage from a Gemini response."""
-        meta = getattr(response, "usage_metadata", None)
-        call_input = 0
-        call_output = 0
-        call_thinking = 0
-        if meta:
-            call_input = getattr(meta, "prompt_token_count", 0) or 0
-            call_output = getattr(meta, "candidates_token_count", 0) or 0
-            call_thinking = getattr(meta, "thoughts_token_count", 0) or 0
-            self._total_input_tokens += call_input
-            self._total_output_tokens += call_output
-            self._total_thinking_tokens += call_thinking
+    def _track_usage(self, response: LLMResponse):
+        """Accumulate token usage from an LLMResponse."""
+        usage = response.usage
+        call_input = usage.input_tokens
+        call_output = usage.output_tokens
+        call_thinking = usage.thinking_tokens
+        self._total_input_tokens += call_input
+        self._total_output_tokens += call_output
+        self._total_thinking_tokens += call_thinking
         self._api_calls += 1
         log_token_usage(
             agent_name=self.agent_name,
@@ -123,9 +103,8 @@ class BaseSubAgent:
             token_log_path=self._token_log_path,
         )
         if self.verbose:
-            from .thinking import extract_thoughts
             from .logging import tagged
-            for thought in extract_thoughts(response):
+            for thought in response.thoughts:
                 # Full text to terminal/file (untagged)
                 self.logger.debug(f"[Thinking] {thought}")
                 # Preview for Gradio (tagged) — Gradio handler shows these inline
@@ -142,10 +121,10 @@ class BaseSubAgent:
             "api_calls": self._api_calls,
         }
 
-    # ---- Gemini send with timeout/retry ----
+    # ---- LLM send with timeout/retry ----
 
-    def _send_with_timeout(self, chat, message) -> object:
-        """Send a message to Gemini with periodic warnings and retry on timeout.
+    def _send_with_timeout(self, chat, message) -> LLMResponse:
+        """Send a message to the LLM with periodic warnings and retry on timeout.
 
         - Warns every _GEMINI_WARN_INTERVAL seconds while waiting (10s, 20s, 30s, ...).
         - After _GEMINI_RETRY_TIMEOUT seconds, abandons the call and retries.
@@ -154,7 +133,7 @@ class BaseSubAgent:
         last_exc = None
         for attempt in range(1 + _GEMINI_MAX_RETRIES):
             future: Future = self._timeout_pool.submit(
-                chat.send_message, message
+                chat.send, message
             )
             t0 = time.monotonic()
             try:
@@ -172,7 +151,7 @@ class BaseSubAgent:
                         if elapsed >= _GEMINI_RETRY_TIMEOUT:
                             break
                         self.logger.warning(
-                            f"[{self.agent_name}] Gemini API not responding "
+                            f"[{self.agent_name}] LLM API not responding "
                             f"after {elapsed:.0f}s (attempt {attempt + 1})..."
                         )
 
@@ -180,20 +159,20 @@ class BaseSubAgent:
                 elapsed = time.monotonic() - t0
                 future.cancel()
                 last_exc = TimeoutError(
-                    f"Gemini API call timed out after {elapsed:.0f}s"
+                    f"LLM API call timed out after {elapsed:.0f}s"
                 )
                 if attempt < _GEMINI_MAX_RETRIES:
                     self.logger.warning(
-                        f"[{self.agent_name}] Gemini API timed out after "
+                        f"[{self.agent_name}] LLM API timed out after "
                         f"{elapsed:.0f}s, retrying ({attempt + 1}/{_GEMINI_MAX_RETRIES})..."
                     )
                 else:
                     self.logger.error(
-                        f"[{self.agent_name}] Gemini API timed out after "
+                        f"[{self.agent_name}] LLM API timed out after "
                         f"{elapsed:.0f}s, no retries left"
                     )
             except Exception:
-                # send_message raised a non-timeout exception — propagate immediately
+                # send raised a non-timeout exception — propagate immediately
                 raise
 
         raise last_exc
@@ -245,7 +224,10 @@ class BaseSubAgent:
         """
         from config import PARALLEL_FETCH, PARALLEL_MAX_WORKERS
 
-        parsed = [(fc.name, dict(fc.args) if fc.args else {}) for fc in function_calls]
+        parsed = [
+            (fc.name, fc.args if isinstance(fc.args, dict) else (dict(fc.args) if fc.args else {}))
+            for fc in function_calls
+        ]
 
         all_safe = (
             PARALLEL_FETCH
@@ -300,18 +282,12 @@ class BaseSubAgent:
         self.logger.debug(f"[{self.agent_name}] Processing: {user_message}")
 
         try:
-            # Conversational config: no forced function calling
-            conv_config = types.GenerateContentConfig(
-                system_instruction=self.system_prompt,
-                tools=[types.Tool(function_declarations=self._function_declarations)],
-                thinking_config=types.ThinkingConfig(
-                    include_thoughts=True,
-                    thinking_level="LOW",
-                ),
-            )
-            chat = self.client.chats.create(
+            # Create a fresh chat — conversational mode (no forced function calling)
+            chat = self.adapter.create_chat(
                 model=get_active_model(self.model_name),
-                config=conv_config,
+                system_prompt=self.system_prompt,
+                tools=self._tool_schemas,
+                thinking="low",
             )
             self._last_tool_context = "initial_message"
             response = self._send_with_timeout(chat, user_message)
@@ -333,33 +309,20 @@ class BaseSubAgent:
                     self.logger.info(f"[{self.agent_name}] Interrupted by user")
                     return {"text": "Interrupted by user.", "failed": True, "errors": ["Interrupted by user."]}
 
-                parts = (
-                    response.candidates[0].content.parts
-                    if response.candidates and response.candidates[0].content
-                    else None
-                )
-                if not parts:
-                    break
-
-                function_calls = []
-                for part in parts:
-                    if hasattr(part, "function_call") and part.function_call and part.function_call.name:
-                        function_calls.append(part.function_call)
-
-                if not function_calls:
+                if not response.tool_calls:
                     break
 
                 # Check for loops/duplicates/cycling
                 call_keys = set()
-                for fc in function_calls:
-                    call_keys.add(make_call_key(fc.name, dict(fc.args) if fc.args else {}))
+                for fc in response.tool_calls:
+                    call_keys.add(make_call_key(fc.name, fc.args))
                 stop_reason = guard.check_calls(call_keys)
                 if stop_reason:
                     self.logger.debug(f"[{self.agent_name}] Stopping: {stop_reason}")
                     break
 
                 # Execute tools — parallel when all are fetch_data, serial otherwise
-                tool_results = self._execute_tools_batch(function_calls)
+                tool_results = self._execute_tools_batch(response.tool_calls)
 
                 function_responses = []
                 all_errors_this_round = True
@@ -381,10 +344,7 @@ class BaseSubAgent:
                         collected_errors.append(f"{tool_name}: {err_msg}")
 
                     function_responses.append(
-                        types.Part.from_function_response(
-                            name=tool_name,
-                            response={"result": result}
-                        )
+                        self.adapter.make_tool_result_message(tool_name, result)
                     )
 
                 guard.record_calls(call_keys)
@@ -401,24 +361,13 @@ class BaseSubAgent:
                     break
 
                 self.logger.debug(f"[{self.agent_name}] Sending {len(function_responses)} tool result(s) back...")
-                tool_names = [fc.name for fc in function_calls]
+                tool_names = [fc.name for fc in response.tool_calls]
                 self._last_tool_context = "+".join(tool_names)
                 response = self._send_with_timeout(chat, function_responses)
                 self._track_usage(response)
 
             # Extract text response
-            text_parts = []
-            final_parts = (
-                response.candidates[0].content.parts
-                if response.candidates and response.candidates[0].content
-                else None
-            )
-            if final_parts:
-                for part in final_parts:
-                    if hasattr(part, "text") and part.text:
-                        text_parts.append(part.text)
-
-            text = "\n".join(text_parts) if text_parts else "Done."
+            text = response.text or "Done."
             failed = stop_reason is not None and not had_successful_tool
             return {"text": text, "failed": failed, "errors": collected_errors}
 
@@ -476,9 +425,13 @@ class BaseSubAgent:
         self.logger.debug(f"[{self.agent_name}] Executing: {task.description}")
 
         try:
-            chat = self.client.chats.create(
+            # Create a fresh chat with forced function calling
+            chat = self.adapter.create_chat(
                 model=get_active_model(self.model_name),
-                config=self.config,
+                system_prompt=self.system_prompt,
+                tools=self._tool_schemas,
+                force_tool_call=True,
+                thinking="low",
             )
             task_prompt = self._get_task_prompt(task)
             self._last_tool_context = "task:" + task.description[:50]
@@ -501,26 +454,21 @@ class BaseSubAgent:
                     last_stop_reason = "cancelled by user"
                     break
 
-                if not response.candidates or not response.candidates[0].content.parts:
+                if not response.tool_calls and not response.text:
                     break
 
-                function_calls = []
-                for part in response.candidates[0].content.parts:
-                    if hasattr(part, "function_call") and part.function_call and part.function_call.name:
-                        function_calls.append(part.function_call)
-
-                if not function_calls:
+                if not response.tool_calls:
                     break
 
                 # Hook: let subclass skip certain calls (e.g., ask_clarification)
-                if self._should_skip_function_call(function_calls):
+                if self._should_skip_function_call(response.tool_calls):
                     self.logger.debug(f"[{self.agent_name}] Skipping function calls per hook")
                     break
 
                 # Check for loops/duplicates/cycling
                 call_keys = set()
-                for fc in function_calls:
-                    call_keys.add(make_call_key(fc.name, dict(fc.args) if fc.args else {}))
+                for fc in response.tool_calls:
+                    call_keys.add(make_call_key(fc.name, fc.args))
                 stop_reason = guard.check_calls(call_keys)
                 if stop_reason:
                     self.logger.debug(f"[{self.agent_name}] Stopping: {stop_reason}")
@@ -528,7 +476,7 @@ class BaseSubAgent:
                     break
 
                 # Execute tools — parallel when all are fetch_data, serial otherwise
-                tool_results = self._execute_tools_batch(function_calls)
+                tool_results = self._execute_tools_batch(response.tool_calls)
 
                 function_responses = []
                 for tool_name, tool_args, result in tool_results:
@@ -543,16 +491,13 @@ class BaseSubAgent:
                         self.logger.warning(f"[{self.agent_name}] Tool error: {result.get('message', '')}")
 
                     function_responses.append(
-                        types.Part.from_function_response(
-                            name=tool_name,
-                            response={"result": result}
-                        )
+                        self.adapter.make_tool_result_message(tool_name, result)
                     )
 
                 guard.record_calls(call_keys)
 
                 self.logger.debug(f"[{self.agent_name}] Sending {len(function_responses)} tool result(s) back...")
-                tool_names = [fc.name for fc in function_calls]
+                tool_names = [fc.name for fc in response.tool_calls]
                 self._last_tool_context = "+".join(tool_names)
                 response = self._send_with_timeout(chat, function_responses)
                 self._track_usage(response)
@@ -566,14 +511,7 @@ class BaseSubAgent:
                 self.logger.warning(f"[{self.agent_name}] No tools were called")
 
             # Extract text response
-            text_parts = []
-            parts = response.candidates[0].content.parts if response.candidates and response.candidates[0].content else None
-            if parts:
-                for part in parts:
-                    if hasattr(part, "text") and part.text:
-                        text_parts.append(part.text)
-
-            result_text = "\n".join(text_parts) if text_parts else ""
+            result_text = response.text or ""
 
             # If LLM produced no text, build a structured summary from tool outcomes
             if not result_text and task.tool_results:

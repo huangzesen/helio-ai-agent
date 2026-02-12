@@ -1,11 +1,9 @@
 """
-Automatic model fallback for Gemini API calls.
+Automatic model fallback for LLM API calls.
 
 When any model hits quota or rate limits (429 RESOURCE_EXHAUSTED), all agents
-switch to GEMINI_FALLBACK_MODEL for the remainder of the session.
+switch to the fallback model for the remainder of the session.
 """
-
-from google.genai import errors as genai_errors
 
 from .logging import get_logger
 
@@ -35,8 +33,14 @@ def get_active_model(requested_model: str) -> str:
     return requested_model
 
 
-def is_quota_error(exc: Exception) -> bool:
-    """Return True if *exc* is a 429 / RESOURCE_EXHAUSTED error."""
-    if isinstance(exc, genai_errors.ClientError):
-        return getattr(exc, "code", None) == 429 or "RESOURCE_EXHAUSTED" in str(exc)
-    return False
+def is_quota_error(exc: Exception, adapter=None) -> bool:
+    """Return True if *exc* is a 429 / RESOURCE_EXHAUSTED error.
+
+    Delegates to the adapter if provided, otherwise falls back to checking
+    the exception message string (provider-agnostic heuristic).
+    """
+    if adapter is not None:
+        return adapter.is_quota_error(exc)
+    # Fallback heuristic — works for most providers
+    msg = str(exc)
+    return "429" in msg or "RESOURCE_EXHAUSTED" in msg

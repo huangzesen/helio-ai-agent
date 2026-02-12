@@ -12,8 +12,7 @@ operations in mission agents.
 
 import re
 
-from google import genai
-
+from .llm import LLMAdapter
 from .base_agent import BaseSubAgent
 from .tasks import Task
 from knowledge.prompt_builder import build_visualization_prompt
@@ -36,7 +35,7 @@ def _extract_labels_from_instruction(instruction: str) -> list[str]:
 
 
 class VisualizationAgent(BaseSubAgent):
-    """A Gemini session specialized for visualization.
+    """An LLM session specialized for visualization.
 
     Uses three declarative tools (plot_data, style_plot, manage_plot)
     plus list_fetched_data to discover available data.
@@ -44,7 +43,7 @@ class VisualizationAgent(BaseSubAgent):
 
     def __init__(
         self,
-        client: genai.Client,
+        adapter: LLMAdapter,
         model_name: str,
         tool_executor,
         verbose: bool = False,
@@ -55,7 +54,7 @@ class VisualizationAgent(BaseSubAgent):
     ):
         self.gui_mode = gui_mode
         super().__init__(
-            client=client,
+            adapter=adapter,
             model_name=model_name,
             tool_executor=tool_executor,
             verbose=verbose,

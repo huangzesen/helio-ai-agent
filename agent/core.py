@@ -12,10 +12,8 @@ import threading
 from concurrent.futures import Future, ThreadPoolExecutor, as_completed
 from typing import Optional
 
-from google import genai
-from google.genai import types
-
 from config import GOOGLE_API_KEY, GEMINI_MODEL, GEMINI_SUB_AGENT_MODEL, GEMINI_PLANNER_MODEL, GEMINI_FALLBACK_MODEL, get_data_dir
+from .llm import LLMAdapter, GeminiAdapter, LLMResponse, FunctionSchema
 from .tools import get_tool_schemas
 from .prompts import get_system_prompt, format_tool_result
 from .time_utils import parse_time_range, TimeRangeError
@@ -102,48 +100,29 @@ class OrchestratorAgent:
         self._token_log_path = get_token_log_path()  # snapshot before concurrent processes overwrite
         self.logger.info("Initializing OrchestratorAgent")
 
-        # Initialize Gemini client with retry for transient errors (503, 429, etc.)
-        # timeout=300000ms (5 min) is a hard backstop — the per-call timeout/retry
-        # logic in _send_with_timeout handles the normal case (warn 10s, retry 60s).
-        self.client = genai.Client(
-            api_key=GOOGLE_API_KEY,
-            http_options=types.HttpOptions(
-                timeout=300_000,
-                retry_options=types.HttpRetryOptions(),
-            ),
-        )
+        # Initialize LLM adapter (wraps all provider SDK calls)
+        self.adapter: LLMAdapter = GeminiAdapter(api_key=GOOGLE_API_KEY)
 
-        # Build function declarations for Gemini (orchestrator tools only)
-        function_declarations = []
-        for tool_schema in get_tool_schemas(categories=ORCHESTRATOR_CATEGORIES, extra_names=ORCHESTRATOR_EXTRA_TOOLS):
-            fd = types.FunctionDeclaration(
-                name=tool_schema["name"],
-                description=tool_schema["description"],
-                parameters=tool_schema["parameters"],
+        # Build tool schemas for the orchestrator
+        self._tool_schemas = [
+            FunctionSchema(
+                name=t["name"],
+                description=t["description"],
+                parameters=t["parameters"],
             )
-            function_declarations.append(fd)
+            for t in get_tool_schemas(categories=ORCHESTRATOR_CATEGORIES, extra_names=ORCHESTRATOR_EXTRA_TOOLS)
+        ]
 
-        # Create tool object with all function declarations
-        # Note: google_search is NOT combined here — the Gemini generateContent API
-        # does not support multi-tool use (function calling + google_search together).
-        # Instead, google_search is a custom function that makes a separate API call.
-        tool = types.Tool(function_declarations=function_declarations)
-
-        # Store model name and config
+        # Store model name and system prompt for chat creation
         self.model_name = model or DEFAULT_MODEL
-        self.config = types.GenerateContentConfig(
-            system_instruction=get_system_prompt(gui_mode=gui_mode),
-            tools=[tool],
-            thinking_config=types.ThinkingConfig(
-                include_thoughts=True,
-                thinking_level="HIGH",
-            ),
-        )
+        self._system_prompt = get_system_prompt(gui_mode=gui_mode)
 
         # Create chat session (use get_active_model in case fallback was already activated)
-        self.chat = self.client.chats.create(
+        self.chat = self.adapter.create_chat(
             model=get_active_model(self.model_name),
-            config=self.config
+            system_prompt=self._system_prompt,
+            tools=self._tool_schemas,
+            thinking="high",
         )
 
         # Plotly renderer for visualization
@@ -278,19 +257,14 @@ class OrchestratorAgent:
         """Return the current Plotly figure (or None)."""
         return self._renderer.get_figure()
 
-    def _track_usage(self, response):
-        """Accumulate token usage from a Gemini response."""
-        meta = getattr(response, "usage_metadata", None)
-        call_input = 0
-        call_output = 0
-        call_thinking = 0
-        if meta:
-            call_input = getattr(meta, "prompt_token_count", 0) or 0
-            call_output = getattr(meta, "candidates_token_count", 0) or 0
-            call_thinking = getattr(meta, "thoughts_token_count", 0) or 0
-            self._total_input_tokens += call_input
-            self._total_output_tokens += call_output
-            self._total_thinking_tokens += call_thinking
+    def _track_usage(self, response: LLMResponse):
+        """Accumulate token usage from an LLMResponse."""
+        call_input = response.usage.input_tokens
+        call_output = response.usage.output_tokens
+        call_thinking = response.usage.thinking_tokens
+        self._total_input_tokens += call_input
+        self._total_output_tokens += call_output
+        self._total_thinking_tokens += call_thinking
         self._api_calls += 1
         log_token_usage(
             agent_name="OrchestratorAgent",
@@ -305,30 +279,32 @@ class OrchestratorAgent:
             token_log_path=self._token_log_path,
         )
         if self.verbose:
-            from .thinking import extract_thoughts
-            for thought in extract_thoughts(response):
+            for thought in response.thoughts:
                 # Full text to file/console (untagged)
                 self.logger.debug(f"[Thinking] {thought}")
                 # Preview for Gradio (tagged) — Gradio handler shows these inline
                 preview = thought[:500] + ("..." if len(thought) > 500 else "")
                 self.logger.debug(f"[Thinking] {preview}", extra={**tagged("thinking"), "skip_file": True})
 
-    def _send_message(self, message):
+    def _send_message(self, message) -> LLMResponse:
         """Send a message on self.chat with timeout/retry and model fallback on 429."""
         try:
             return self._send_with_timeout(self.chat, message)
         except Exception as exc:
-            if is_quota_error(exc) and GEMINI_FALLBACK_MODEL:
+            if is_quota_error(exc, adapter=self.adapter) and GEMINI_FALLBACK_MODEL:
                 activate_fallback(GEMINI_FALLBACK_MODEL)
-                self.chat = self.client.chats.create(
-                    model=GEMINI_FALLBACK_MODEL, config=self.config,
+                self.chat = self.adapter.create_chat(
+                    model=GEMINI_FALLBACK_MODEL,
+                    system_prompt=self._system_prompt,
+                    tools=self._tool_schemas,
+                    thinking="high",
                 )
                 self.model_name = GEMINI_FALLBACK_MODEL
                 return self._send_with_timeout(self.chat, message)
             raise
 
-    def _send_with_timeout(self, chat, message):
-        """Send a message to Gemini with periodic warnings and retry on timeout.
+    def _send_with_timeout(self, chat, message) -> LLMResponse:
+        """Send a message to the LLM with periodic warnings and retry on timeout.
 
         - Warns every _GEMINI_WARN_INTERVAL seconds while waiting (10s, 20s, ...).
         - After _GEMINI_RETRY_TIMEOUT seconds, abandons the call and retries.
@@ -337,7 +313,7 @@ class OrchestratorAgent:
         last_exc = None
         for attempt in range(1 + _GEMINI_MAX_RETRIES):
             future: Future = self._timeout_pool.submit(
-                chat.send_message, message
+                chat.send, message
             )
             t0 = time.monotonic()
             try:
@@ -378,11 +354,12 @@ class OrchestratorAgent:
 
         raise last_exc
 
-    def _extract_grounding_sources(self, response) -> str:
+    def _extract_grounding_sources(self, response: LLMResponse) -> str:
         """Extract source citations from Google Search grounding metadata."""
-        if not response.candidates:
+        raw = response.raw
+        if not raw or not getattr(raw, "candidates", None):
             return ""
-        candidate = response.candidates[0]
+        candidate = raw.candidates[0]
         meta = getattr(candidate, "grounding_metadata", None)
         if not meta:
             return ""
@@ -401,8 +378,16 @@ class OrchestratorAgent:
             return ""
         return "\n\nSources:\n" + "\n".join(sources)
 
+    def _log_grounding_queries(self, response: LLMResponse) -> None:
+        """Log Google Search grounding queries from the raw response (if any)."""
+        raw = response.raw
+        if raw and getattr(raw, "candidates", None):
+            meta = getattr(raw.candidates[0], "grounding_metadata", None)
+            if meta and getattr(meta, "web_search_queries", None):
+                self.logger.debug(f"[Search] Queries: {meta.web_search_queries}")
+
     def _google_search(self, query: str) -> dict:
-        """Execute a Google Search query via a separate Gemini API call.
+        """Execute a Google Search query via a separate LLM API call.
 
         The generateContent API does not support combining google_search with
         function_declarations in the same request.  This method makes an
@@ -416,13 +401,12 @@ class OrchestratorAgent:
             Dict with status, answer text, and source URLs.
         """
         try:
-            search_config = types.GenerateContentConfig(
-                tools=[types.Tool(google_search=types.GoogleSearch())],
-            )
-            response = self.client.models.generate_content(
+            if not hasattr(self.adapter, "google_search"):
+                return {"status": "error", "message": "Google Search not supported by current LLM provider"}
+
+            response = self.adapter.google_search(
+                query=query,
                 model=get_active_model(self.model_name),
-                contents=query,
-                config=search_config,
             )
             self._last_tool_context = "google_search"
             self._track_usage(response)
@@ -433,8 +417,9 @@ class OrchestratorAgent:
             # Extract sources from grounding metadata
             sources_text = self._extract_grounding_sources(response)
 
-            if response.candidates:
-                meta = getattr(response.candidates[0], "grounding_metadata", None)
+            raw = response.raw
+            if raw and getattr(raw, "candidates", None):
+                meta = getattr(raw.candidates[0], "grounding_metadata", None)
                 if meta and getattr(meta, "web_search_queries", None):
                     self.logger.debug(f"[Search] Queries: {meta.web_search_queries}")
 
@@ -1371,12 +1356,18 @@ class OrchestratorAgent:
                         "Describe any visual elements briefly."
                     )
 
-                # Send to Gemini as multimodal content
-                doc_part = types.Part.from_bytes(data=file_bytes, mime_type=mime_type)
-                response = self.client.models.generate_content(
-                    model=get_active_model(self.model_name),
-                    contents=[doc_part, extraction_prompt],
-                )
+                # Send to LLM as multimodal content
+                if hasattr(self.adapter, "make_bytes_part") and hasattr(self.adapter, "generate_multimodal"):
+                    doc_part = self.adapter.make_bytes_part(data=file_bytes, mime_type=mime_type)
+                    response = self.adapter.generate_multimodal(
+                        model=get_active_model(self.model_name),
+                        contents=[doc_part, extraction_prompt],
+                    )
+                else:
+                    response = self.adapter.generate(
+                        model=get_active_model(self.model_name),
+                        contents=extraction_prompt,
+                    )
                 self._last_tool_context = "extract_document"
                 self._track_usage(response)
 
@@ -1602,26 +1593,12 @@ class OrchestratorAgent:
 
         try:
             # Create a fresh chat session for task execution with forced function calling
-            task_config = types.GenerateContentConfig(
-                system_instruction=get_system_prompt(gui_mode=self.gui_mode),
-                tools=[types.Tool(function_declarations=[
-                    types.FunctionDeclaration(
-                        name=t["name"],
-                        description=t["description"],
-                        parameters=t["parameters"],
-                    ) for t in get_tool_schemas(categories=ORCHESTRATOR_CATEGORIES, extra_names=ORCHESTRATOR_EXTRA_TOOLS)
-                ])],
-                tool_config=types.ToolConfig(
-                    function_calling_config=types.FunctionCallingConfig(mode="ANY")
-                ),
-                thinking_config=types.ThinkingConfig(
-                    include_thoughts=True,
-                    thinking_level="LOW",
-                ),
-            )
-            task_chat = self.client.chats.create(
+            task_chat = self.adapter.create_chat(
                 model=get_active_model(self.model_name),
-                config=task_config,
+                system_prompt=self._system_prompt,
+                tools=self._tool_schemas,
+                force_tool_call=True,
+                thinking="low",
             )
             task_prompt = (
                 f"Execute this task: {task.instruction}\n\n"
@@ -1652,18 +1629,12 @@ class OrchestratorAgent:
                     last_stop_reason = "cancelled by user"
                     break
 
-                if not response.candidates or not response.candidates[0].content.parts:
+                if not response.tool_calls:
                     break
 
-                function_calls = []
-                for part in response.candidates[0].content.parts:
-                    if hasattr(part, "function_call") and part.function_call and part.function_call.name:
-                        function_calls.append(part.function_call)
+                function_calls = response.tool_calls
 
-                if not function_calls:
-                    break
-
-                # Break if Gemini is trying to ask for clarification (not supported in task execution)
+                # Break if LLM is trying to ask for clarification (not supported in task execution)
                 if any(fc.name == "ask_clarification" for fc in function_calls):
                     self.logger.debug("[Task] Skipping clarification request")
                     break
@@ -1671,7 +1642,7 @@ class OrchestratorAgent:
                 # Check for loops/duplicates/cycling
                 call_keys = set()
                 for fc in function_calls:
-                    call_keys.add(make_call_key(fc.name, dict(fc.args) if fc.args else {}))
+                    call_keys.add(make_call_key(fc.name, fc.args))
                 stop_reason = guard.check_calls(call_keys)
                 if stop_reason:
                     self.logger.debug(f"[Task] Stopping: {stop_reason}")
@@ -1681,7 +1652,7 @@ class OrchestratorAgent:
                 function_responses = []
                 for fc in function_calls:
                     tool_name = fc.name
-                    tool_args = dict(fc.args) if fc.args else {}
+                    tool_args = fc.args
 
                     task.tool_calls.append(tool_name)
                     result = self._execute_tool_safe(tool_name, tool_args)
@@ -1690,21 +1661,18 @@ class OrchestratorAgent:
                         self.logger.warning(f"[Tool Result: ERROR] {result.get('message', '')}")
 
                     function_responses.append(
-                        types.Part.from_function_response(
-                            name=tool_name,
-                            response={"result": result}
-                        )
+                        self.adapter.make_tool_result_message(tool_name, result)
                     )
 
                 guard.record_calls(call_keys)
 
-                self.logger.debug(f"[Gemini] Sending {len(function_responses)} tool result(s) back...")
+                self.logger.debug(f"[LLM] Sending {len(function_responses)} tool result(s) back...")
                 tool_names = [fc.name for fc in function_calls]
                 self._last_tool_context = "+".join(tool_names)
                 response = self._send_with_timeout(task_chat, function_responses)
                 self._track_usage(response)
 
-            # Warn if no tools were called (Gemini just responded with text)
+            # Warn if no tools were called (LLM just responded with text)
             if not task.tool_calls:
                 log_error(
                     f"Task completed without any tool calls: {task.description}",
@@ -1713,14 +1681,7 @@ class OrchestratorAgent:
                 self.logger.warning("[WARNING] No tools were called for this task")
 
             # Extract text response
-            text_parts = []
-            parts = response.candidates[0].content.parts if response.candidates and response.candidates[0].content else None
-            if parts:
-                for part in parts:
-                    if hasattr(part, "text") and part.text:
-                        text_parts.append(part.text)
-
-            result_text = "\n".join(text_parts) if text_parts else "Done."
+            result_text = response.text or "Done."
 
             if last_stop_reason:
                 task.status = TaskStatus.FAILED
@@ -1771,25 +1732,14 @@ class OrchestratorAgent:
 
         prompt = "\n".join(summary_parts)
 
-        self.logger.debug("[Gemini] Generating execution summary...")
+        self.logger.debug("[LLM] Generating execution summary...")
 
         try:
             self._last_tool_context = "plan_summary"
             response = self._send_message(prompt)
             self._track_usage(response)
 
-            text_parts = []
-            parts = (
-                response.candidates[0].content.parts
-                if response.candidates and response.candidates[0].content
-                else None
-            )
-            if parts:
-                for part in parts:
-                    if hasattr(part, "text") and part.text:
-                        text_parts.append(part.text)
-
-            text = "\n".join(text_parts) if text_parts else plan.progress_summary()
+            text = response.text or plan.progress_summary()
             text += self._extract_grounding_sources(response)
             return text
 
@@ -1802,7 +1752,7 @@ class OrchestratorAgent:
         """Get the cached planner agent or create a new one."""
         if self._planner_agent is None:
             self._planner_agent = PlannerAgent(
-                client=self.client,
+                adapter=self.adapter,
                 model_name=GEMINI_PLANNER_MODEL,
                 tool_executor=self._execute_tool_safe,
                 verbose=self.verbose,
@@ -2273,15 +2223,12 @@ class OrchestratorAgent:
 
     def _process_single_message(self, user_message: str) -> str:
         """Process a single (non-complex) user message."""
-        self.logger.debug("[Gemini] Sending message to model...")
+        self.logger.debug("[LLM] Sending message to model...")
         self._last_tool_context = "initial_message"
         response = self._send_message(user_message)
         self._track_usage(response)
-        self.logger.debug("[Gemini] Response received.")
-        if response.candidates:
-            meta = getattr(response.candidates[0], "grounding_metadata", None)
-            if meta and getattr(meta, "web_search_queries", None):
-                self.logger.debug(f"[Search] Queries: {meta.web_search_queries}")
+        self.logger.debug("[LLM] Response received.")
+        self._log_grounding_queries(response)
 
         max_iterations = 10
         iteration = 0
@@ -2294,16 +2241,10 @@ class OrchestratorAgent:
                 self.logger.info("[Cancel] Stopping orchestrator loop")
                 break
 
-            if not response.candidates or not response.candidates[0].content.parts:
+            if not response.tool_calls:
                 break
 
-            function_calls = []
-            for part in response.candidates[0].content.parts:
-                if hasattr(part, "function_call") and part.function_call and part.function_call.name:
-                    function_calls.append(part.function_call)
-
-            if not function_calls:
-                break
+            function_calls = response.tool_calls
 
             # Execute tools — parallel when safe, serial otherwise
             tool_results = self._execute_tools_parallel(function_calls)
@@ -2333,10 +2274,7 @@ class OrchestratorAgent:
                     return question
 
                 function_responses.append(
-                    types.Part.from_function_response(
-                        name=tool_name,
-                        response={"result": result}
-                    )
+                    self.adapter.make_tool_result_message(tool_name, result)
                 )
 
             # Track consecutive delegation failures
@@ -2350,33 +2288,19 @@ class OrchestratorAgent:
 
             if consecutive_delegation_errors >= 2:
                 self.logger.debug(f"[Orchestrator] {consecutive_delegation_errors} consecutive delegation failures, stopping retries")
-                # Send results back one more time so Gemini can produce a final text answer
+                # Send results back one more time so LLM can produce a final text answer
                 response = self._send_message(function_responses)
                 self._track_usage(response)
                 break
 
-            self.logger.debug(f"[Gemini] Sending {len(function_responses)} tool result(s) back to model...")
+            self.logger.debug(f"[LLM] Sending {len(function_responses)} tool result(s) back to model...")
             response = self._send_message(function_responses)
             self._track_usage(response)
-            self.logger.debug("[Gemini] Response received.")
-            if response.candidates:
-                meta = getattr(response.candidates[0], "grounding_metadata", None)
-                if meta and getattr(meta, "web_search_queries", None):
-                    self.logger.debug(f"[Search] Queries: {meta.web_search_queries}")
+            self.logger.debug("[LLM] Response received.")
+            self._log_grounding_queries(response)
 
         # Extract text response
-        text_parts = []
-        parts = (
-            response.candidates[0].content.parts
-            if response.candidates and response.candidates[0].content
-            else None
-        )
-        if parts:
-            for part in parts:
-                if hasattr(part, "text") and part.text:
-                    text_parts.append(part.text)
-
-        text = "\n".join(text_parts) if text_parts else "Done."
+        text = response.text or "Done."
         text += self._extract_grounding_sources(response)
         return text
 
@@ -2428,7 +2352,7 @@ class OrchestratorAgent:
                 pitfalls = self._memory_store.get_scoped_pitfall_texts(f"mission:{mission_id}")
                 self._mission_agents[mission_id] = MissionAgent(
                     mission_id=mission_id,
-                    client=self.client,
+                    adapter=self.adapter,
                     model_name=SUB_AGENT_MODEL,
                     tool_executor=self._execute_tool_safe,
                     verbose=self.verbose,
@@ -2444,7 +2368,7 @@ class OrchestratorAgent:
         if self._viz_agent is None:
             pitfalls = self._memory_store.get_scoped_pitfall_texts("visualization")
             self._viz_agent = VisualizationAgent(
-                client=self.client,
+                adapter=self.adapter,
                 model_name=SUB_AGENT_MODEL,
                 tool_executor=self._execute_tool_safe,
                 verbose=self.verbose,
@@ -2460,7 +2384,7 @@ class OrchestratorAgent:
         """Get the cached data ops agent or create a new one."""
         if self._dataops_agent is None:
             self._dataops_agent = DataOpsAgent(
-                client=self.client,
+                adapter=self.adapter,
                 model_name=SUB_AGENT_MODEL,
                 tool_executor=self._execute_tool_safe,
                 verbose=self.verbose,
@@ -2474,7 +2398,7 @@ class OrchestratorAgent:
         """Get the cached data extraction agent or create a new one."""
         if self._data_extraction_agent is None:
             self._data_extraction_agent = DataExtractionAgent(
-                client=self.client,
+                adapter=self.adapter,
                 model_name=SUB_AGENT_MODEL,
                 tool_executor=self._execute_tool_safe,
                 verbose=self.verbose,
@@ -2491,7 +2415,7 @@ class OrchestratorAgent:
         if self._memory_agent is not None and self._memory_agent.is_running:
             return
         self._memory_agent = MemoryAgent(
-            client=self.client,
+            adapter=self.adapter,
             model_name=SUB_AGENT_MODEL,
             memory_store=self._memory_store,
             verbose=self.verbose,
@@ -2514,7 +2438,7 @@ class OrchestratorAgent:
         try:
             if self._memory_agent is None:
                 self._memory_agent = MemoryAgent(
-                    client=self.client,
+                    adapter=self.adapter,
                     model_name=SUB_AGENT_MODEL,
                     memory_store=self._memory_store,
                     verbose=self.verbose,
@@ -2580,12 +2504,10 @@ Respond with a JSON array of strings only (no markdown fencing). Each suggestion
 Example: ["Compare this with solar wind speed", "Zoom in to January 10-15", "Export the plot as PDF"]"""
 
         try:
-            response = self.client.models.generate_content(
+            response = self.adapter.generate(
                 model=get_active_model(SUB_AGENT_MODEL),
                 contents=prompt,
-                config=types.GenerateContentConfig(
-                    temperature=0.7,
-                ),
+                temperature=0.7,
             )
             self._last_tool_context = "follow_up_suggestions"
             self._track_usage(response)
@@ -2628,10 +2550,7 @@ Example: ["Compare this with solar wind speed", "Zoom in to January 10-15", "Exp
         if not self._session_id:
             return
         try:
-            history_dicts = [
-                content.model_dump(exclude_none=True)
-                for content in self.chat.get_history()
-            ]
+            history_dicts = self.chat.get_history()
         except Exception:
             history_dicts = []
 
@@ -2684,27 +2603,33 @@ Example: ["Compare this with solar wind speed", "Zoom in to January 10-15", "Exp
         history_dicts, data_dir, metadata, figure_state = self._session_manager.load_session(session_id)
 
         # Restore chat with saved history — fall back to fresh chat if
-        # the Gemini SDK can't reconstruct function_call/function_response parts
+        # the adapter can't reconstruct function_call/function_response parts
         if history_dicts:
             try:
-                self.chat = self.client.chats.create(
+                self.chat = self.adapter.create_chat(
                     model=self.model_name,
-                    config=self.config,
+                    system_prompt=self._system_prompt,
+                    tools=self._tool_schemas,
                     history=history_dicts,
+                    thinking="high",
                 )
             except Exception as e:
                 self.logger.warning(
                     f"[Session] Could not restore chat history: {e}. "
                     "Starting fresh chat (data still restored)."
                 )
-                self.chat = self.client.chats.create(
+                self.chat = self.adapter.create_chat(
                     model=self.model_name,
-                    config=self.config,
+                    system_prompt=self._system_prompt,
+                    tools=self._tool_schemas,
+                    thinking="high",
                 )
         else:
-            self.chat = self.client.chats.create(
+            self.chat = self.adapter.create_chat(
                 model=self.model_name,
-                config=self.config,
+                system_prompt=self._system_prompt,
+                tools=self._tool_schemas,
+                thinking="high",
             )
 
         # Restore DataStore
@@ -2783,9 +2708,11 @@ Example: ["Compare this with solar wind speed", "Zoom in to January 10-15", "Exp
     def reset(self):
         """Reset conversation history, mission agent cache, and sub-agents."""
         self._cancel_event.clear()
-        self.chat = self.client.chats.create(
+        self.chat = self.adapter.create_chat(
             model=get_active_model(self.model_name),
-            config=self.config
+            system_prompt=self._system_prompt,
+            tools=self._tool_schemas,
+            thinking="high",
         )
         self._current_plan = None
         self._plan_time_range = None

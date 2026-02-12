@@ -8,8 +8,6 @@ inheriting from BaseSubAgent.
 
 import threading
 
-from google.genai import types
-
 from .logging import get_logger
 from .loop_guard import LoopGuard, make_call_key
 
@@ -17,10 +15,16 @@ logger = get_logger()
 
 
 def extract_text_from_response(response) -> str:
-    """Extract concatenated text from a Gemini response, ignoring tool calls.
+    """Extract concatenated text from a response, ignoring tool calls.
 
-    Returns empty string if no text parts are found.
+    Accepts both ``LLMResponse`` (has ``.text``) and raw Gemini responses.
+    Returns empty string if no text is found.
     """
+    # LLMResponse path
+    if hasattr(response, "tool_calls") and hasattr(response, "text"):
+        return response.text or ""
+
+    # Raw Gemini response fallback
     parts = (
         response.candidates[0].content.parts
         if response.candidates and response.candidates[0].content
@@ -35,6 +39,30 @@ def extract_text_from_response(response) -> str:
     return "\n".join(texts)
 
 
+def _extract_tool_calls(response):
+    """Extract tool calls from either an LLMResponse or raw Gemini response.
+
+    Returns list of objects with .name and .args attributes.
+    """
+    # LLMResponse path
+    if hasattr(response, "tool_calls"):
+        return response.tool_calls
+
+    # Raw Gemini response fallback
+    parts = (
+        response.candidates[0].content.parts
+        if getattr(response, "candidates", None) and response.candidates[0].content
+        else None
+    )
+    if not parts:
+        return []
+    calls = []
+    for part in parts:
+        if hasattr(part, "function_call") and part.function_call and part.function_call.name:
+            calls.append(part.function_call)
+    return calls
+
+
 def run_tool_loop(
     chat,
     response,
@@ -46,6 +74,7 @@ def run_tool_loop(
     collect_tool_results: dict = None,
     cancel_event: threading.Event | None = None,
     send_fn=None,
+    adapter=None,
 ):
     """Run a tool-calling loop on an existing chat session.
 
@@ -53,8 +82,8 @@ def run_tool_loop(
     function calls (or a guard limit is hit).
 
     Args:
-        chat: An active ``genai`` chat session.
-        response: The initial Gemini response (may already contain tool calls).
+        chat: An active chat session (ChatSession or raw genai chat).
+        response: The initial response (LLMResponse or raw Gemini response).
         tool_executor: ``(tool_name: str, tool_args: dict) -> dict`` callable.
         agent_name: Label for log messages.
         max_total_calls: Hard cap on total tool invocations.
@@ -66,12 +95,20 @@ def run_tool_loop(
         send_fn: Optional callable ``(message) -> response`` for sending messages.
             If provided, used instead of ``chat.send_message``.  Allows callers
             to inject timeout/retry wrappers.
+        adapter: Optional LLMAdapter instance for building tool result messages.
+            When provided, uses ``adapter.make_tool_result_message()`` instead
+            of raw Gemini ``types.Part.from_function_response()``.
 
     Returns:
-        The final Gemini response after tools stop.
+        The final response after tools stop.
     """
     if send_fn is None:
-        send_fn = lambda msg: chat.send_message(message=msg)
+        # Prefer ChatSession.send, fall back to raw genai chat.send_message
+        if hasattr(chat, "send"):
+            send_fn = chat.send
+        else:
+            send_fn = lambda msg: chat.send_message(message=msg)
+
     guard = LoopGuard(max_total_calls=max_total_calls, max_iterations=max_iterations)
     consecutive_errors = 0
 
@@ -85,27 +122,15 @@ def run_tool_loop(
             logger.info(f"[{agent_name}] Tool loop interrupted by user")
             break
 
-        parts = (
-            response.candidates[0].content.parts
-            if response.candidates and response.candidates[0].content
-            else None
-        )
-        if not parts:
-            break
-
-        # Collect function calls from the response
-        function_calls = []
-        for part in parts:
-            if hasattr(part, "function_call") and part.function_call and part.function_call.name:
-                function_calls.append(part.function_call)
-
+        function_calls = _extract_tool_calls(response)
         if not function_calls:
             break
 
         # Check for loops / duplicates / cycling
         call_keys = set()
         for fc in function_calls:
-            call_keys.add(make_call_key(fc.name, dict(fc.args) if fc.args else {}))
+            args = fc.args if isinstance(fc.args, dict) else (dict(fc.args) if fc.args else {})
+            call_keys.add(make_call_key(fc.name, args))
         stop_reason = guard.check_calls(call_keys)
         if stop_reason:
             logger.debug(f"[{agent_name}] Tool loop stopping: {stop_reason}")
@@ -116,7 +141,7 @@ def run_tool_loop(
         all_errors = True
         for fc in function_calls:
             tool_name = fc.name
-            tool_args = dict(fc.args) if fc.args else {}
+            tool_args = fc.args if isinstance(fc.args, dict) else (dict(fc.args) if fc.args else {})
             logger.debug(f"[{agent_name}] Tool: {tool_name}({tool_args})")
 
             result = tool_executor(tool_name, tool_args)
@@ -133,12 +158,17 @@ def run_tool_loop(
             else:
                 logger.warning(f"[{agent_name}] Tool error: {result.get('message', '')}")
 
-            function_responses.append(
-                types.Part.from_function_response(
-                    name=tool_name,
-                    response={"result": result},
+            if adapter is not None:
+                function_responses.append(adapter.make_tool_result_message(tool_name, result))
+            else:
+                # Fallback: raw Gemini types (should not happen after full migration)
+                from google.genai import types
+                function_responses.append(
+                    types.Part.from_function_response(
+                        name=tool_name,
+                        response={"result": result},
+                    )
                 )
-            )
 
         guard.record_calls(call_keys)
 

@@ -274,12 +274,19 @@ All times are UTC. Outputs `TimeRange` objects with `start`/`end` datetimes.
 - `custom_ops.py`: AST-validated, sandboxed executor for LLM-generated pandas/numpy code. Replaces all hardcoded compute functions — the LLM writes the pandas code directly.
 - Data fetching uses the CDF backend exclusively — downloads CDF files from CDAWeb REST API, caches locally, reads with cdflib. Errors propagate directly for the agent to learn from.
 
+### LLM Abstraction Layer (`agent/llm/`)
+- **Phase 1 complete (February 2026)**: All LLM SDK calls go through `agent/llm/` adapter layer
+- `agent/llm/base.py` — Abstract types: `ToolCall`, `UsageMetadata`, `LLMResponse`, `FunctionSchema`, `ChatSession` ABC, `LLMAdapter` ABC
+- `agent/llm/gemini_adapter.py` — `GeminiAdapter` + `GeminiChatSession` wrapping `google-genai` SDK (the ONLY file that imports `google.genai`)
+- Escape hatches for provider-specific features via `LLMResponse.raw` field and adapter-specific methods (`google_search`, `generate_multimodal`, `make_bytes_part`)
+- Design doc: `docs/llm-abstraction-plan.md` — includes implementation notes for Phases 2-4 (OpenAI, Anthropic, session persistence)
+
 ### Agent Loop (`agent/core.py`)
-- Gemini decides which tools to call via function calling.
-- Tool results are fed back to Gemini as function responses.
-- Orchestrator loop continues until Gemini produces a text response (or 10 iterations), with consecutive delegation error tracking (breaks after 2 failures).
+- LLM decides which tools to call via function calling (through `LLMAdapter` interface).
+- Tool results are fed back via `adapter.make_tool_result_message()`.
+- Orchestrator loop continues until LLM produces a text response (or 10 iterations), with consecutive delegation error tracking (breaks after 2 failures).
 - Sub-agent loops limited to 5 iterations with duplicate call detection and consecutive error tracking.
-- Token usage accumulated from `response.usage_metadata` (prompt_token_count, candidates_token_count, thoughts_token_count).
+- Token usage accumulated from `LLMResponse.usage` (input_tokens, output_tokens, thinking_tokens).
 
 ### LLM-Driven Routing (`agent/core.py`, `agent/mission_agent.py`, `agent/data_ops_agent.py`, `agent/visualization_agent.py`)
 - **Routing**: The OrchestratorAgent (LLM) decides whether to handle a request directly or delegate via `delegate_to_mission` (fetching), `delegate_to_data_ops` (computation), `delegate_to_data_extraction` (text-to-DataFrame), or `delegate_to_visualization` (visualization) tools. No regex-based routing — the LLM uses conversation context and the routing table to decide.
@@ -306,7 +313,8 @@ All times are UTC. Outputs `TimeRange` objects with `start`/`end` datetimes.
   9. See `docs/planning-workflow.md` for the full detailed flow
 - Tasks are tagged with `mission="__visualization__"` for visualization dispatch, `mission="__data_ops__"` for compute dispatch, `mission="__data_extraction__"` for text-to-DataFrame dispatch
 
-### Thinking Levels (Gemini ThinkingConfig)
+### Thinking Levels
+- Controlled via `create_chat(thinking="high"|"low"|"default")` in the adapter layer
 - **HIGH**: Orchestrator (`agent/core.py`) and PlannerAgent (`agent/planner.py`) — deep reasoning for routing decisions and plan decomposition
 - **LOW**: MissionAgent, VisualizationAgent, DataOpsAgent, DataExtractionAgent — fast execution with minimal thinking overhead
 - Thinking tokens tracked separately in `get_token_usage()` across all agents
@@ -433,6 +441,9 @@ GOOGLE_API_KEY=<gemini-api-key>
   "sub_agent_model": "gemini-3-flash-preview",
   "planner_model": null,
   "fallback_model": "gemini-2.5-flash",
+  "llm_provider": "gemini",
+  "llm_api_key": null,
+  "llm_base_url": null,
   "data_backend": "cdf",
   "catalog_search_method": "semantic",
   "max_preferences": 15,
@@ -541,7 +552,7 @@ python -m pytest tests/                                          # All tests
 ## Dependencies
 
 ```
-google-genai>=1.60.0    # Gemini API
+google-genai>=1.60.0    # Gemini API (via agent/llm/gemini_adapter.py)
 python-dotenv>=1.0.0    # .env loading
 requests>=2.28.0        # HTTP calls (CDAS REST, Master CDF, CDF downloads)
 cdflib>=1.3.0           # CDF file reading (Master CDF metadata, data files)
@@ -553,4 +564,5 @@ gradio>=4.44.0          # Browser-based chat UI
 matplotlib>=3.7.0       # Legacy plotting (unused in main pipeline)
 tqdm>=4.60.0            # Progress bars for bootstrap/data downloads
 pytest>=7.0.0           # Test framework
+# Future (Phase 2-3): openai>=1.0.0, anthropic>=0.40.0
 ```
