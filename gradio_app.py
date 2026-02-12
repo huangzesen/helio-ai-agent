@@ -117,7 +117,7 @@ def _on_mission_change(mission_id: str):
             "",
         )
 
-    # load_mission() ensures HAPI cache exists (downloads if needed)
+    # load_mission() ensures metadata cache exists (downloads if needed)
     from knowledge.mission_loader import load_mission as _load_mission
     try:
         _load_mission(mission_id)

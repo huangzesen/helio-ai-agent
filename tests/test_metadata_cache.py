@@ -26,9 +26,8 @@ from knowledge.metadata_client import (
 )
 
 
-# Sample HAPI /info response for testing
-SAMPLE_HAPI_INFO = {
-    "HAPI": "3.0",
+# Sample metadata response for testing
+SAMPLE_METADATA_INFO = {
     "startDate": "2018-10-06T00:00:00.000Z",
     "stopDate": "2025-12-31T00:00:00.000Z",
     "parameters": [
@@ -87,20 +86,20 @@ def fake_missions_dir(tmp_path):
     missions_dir = tmp_path / "missions"
 
     # Create PSP cache
-    psp_hapi = missions_dir / "psp" / "metadata"
-    psp_hapi.mkdir(parents=True)
+    psp_meta = missions_dir / "psp" / "metadata"
+    psp_meta.mkdir(parents=True)
 
-    # Write sample HAPI /info file
-    cache_file = psp_hapi / "PSP_FLD_L2_MAG_RTN_1MIN.json"
-    cache_file.write_text(json.dumps(SAMPLE_HAPI_INFO), encoding="utf-8")
+    # Write sample metadata file
+    cache_file = psp_meta / "PSP_FLD_L2_MAG_RTN_1MIN.json"
+    cache_file.write_text(json.dumps(SAMPLE_METADATA_INFO), encoding="utf-8")
 
     # Write _index.json
-    index_file = psp_hapi / "_index.json"
+    index_file = psp_meta / "_index.json"
     index_file.write_text(json.dumps(SAMPLE_INDEX), encoding="utf-8")
 
     # Create ACE cache (second mission for list_missions tests)
-    ace_hapi = missions_dir / "ace" / "metadata"
-    ace_hapi.mkdir(parents=True)
+    ace_meta = missions_dir / "ace" / "metadata"
+    ace_meta.mkdir(parents=True)
     ace_index = {
         "mission_id": "ACE",
         "dataset_count": 1,
@@ -116,11 +115,10 @@ def fake_missions_dir(tmp_path):
             },
         ],
     }
-    ace_index_file = ace_hapi / "_index.json"
+    ace_index_file = ace_meta / "_index.json"
     ace_index_file.write_text(json.dumps(ace_index), encoding="utf-8")
-    ace_cache = ace_hapi / "AC_H2_MFI.json"
-    ace_hapi_info = {
-        "HAPI": "3.0",
+    ace_cache = ace_meta / "AC_H2_MFI.json"
+    ace_meta_info = {
         "startDate": "1998-01-01T00:00:00.000Z",
         "stopDate": "2025-12-31T00:00:00.000Z",
         "parameters": [
@@ -131,7 +129,7 @@ def fake_missions_dir(tmp_path):
              "description": "Total magnetic field"},
         ],
     }
-    ace_cache.write_text(json.dumps(ace_hapi_info), encoding="utf-8")
+    ace_cache.write_text(json.dumps(ace_meta_info), encoding="utf-8")
 
     # Create a dir without _index.json (should be skipped by list_missions)
     empty_mission = missions_dir / "empty_mission" / "metadata"
@@ -186,23 +184,25 @@ class TestGetDatasetInfoLocalCache:
             info2 = get_dataset_info("PSP_FLD_L2_MAG_RTN_1MIN")
             assert info1 == info2
 
-    def test_use_cache_false_skips_local(self, fake_missions_dir):
-        """use_cache=False skips both memory and local file, hits network."""
+    def test_use_cache_false_skips_local_uses_master_cdf(self, fake_missions_dir):
+        """use_cache=False skips both memory and local file, hits Master CDF."""
+        master_info = {"startDate": "2018-01-01", "parameters": [{"name": "Time", "type": "isotime"}]}
         with patch("knowledge.metadata_client._MISSIONS_DIR", fake_missions_dir), \
-             patch("knowledge.master_cdf.fetch_dataset_metadata_from_master", return_value=None), \
-             patch("knowledge.metadata_client.requests.get") as mock_get:
-            # Master CDF is mocked to return None, so HAPI fallback is used
-            mock_get.return_value.status_code = 200
-            mock_get.return_value.raise_for_status = lambda: None
-            mock_get.return_value.json.return_value = {"parameters": []}
-            get_dataset_info("PSP_FLD_L2_MAG_RTN_1MIN", use_cache=False)
-            # HAPI network call SHOULD have been made because use_cache=False
-            assert mock_get.call_count >= 1
+             patch("knowledge.master_cdf.fetch_dataset_metadata_from_master", return_value=master_info):
+            info = get_dataset_info("PSP_FLD_L2_MAG_RTN_1MIN", use_cache=False)
+            assert info["startDate"] == "2018-01-01"
+
+    def test_use_cache_false_raises_when_master_cdf_fails(self, fake_missions_dir):
+        """use_cache=False raises ValueError when Master CDF returns None."""
+        with patch("knowledge.metadata_client._MISSIONS_DIR", fake_missions_dir), \
+             patch("knowledge.master_cdf.fetch_dataset_metadata_from_master", return_value=None):
+            with pytest.raises(ValueError, match="No metadata available"):
+                get_dataset_info("PSP_FLD_L2_MAG_RTN_1MIN", use_cache=False)
 
 
 class TestListParametersFromCache:
     def test_lists_parameters_from_local_cache(self, fake_missions_dir):
-        """list_parameters works with locally cached HAPI /info."""
+        """list_parameters works with locally cached metadata."""
         with patch("knowledge.metadata_client._MISSIONS_DIR", fake_missions_dir):
             params = list_parameters("PSP_FLD_L2_MAG_RTN_1MIN")
             assert len(params) == 2

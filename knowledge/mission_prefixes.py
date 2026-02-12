@@ -2,7 +2,7 @@
 Shared CDAWeb dataset ID prefix mapping.
 
 Maps dataset ID prefixes to (mission_stem, instrument_hint) tuples.
-Used by scripts/generate_mission_data.py and scripts/fetch_hapi_cache.py
+Used by scripts/generate_mission_data.py and scripts/fetch_metadata_cache.py
 to determine which mission a CDAWeb dataset belongs to.
 
 Order matters: longer/more-specific prefixes must come before shorter ones
@@ -511,7 +511,7 @@ def create_mission_skeleton(mission_stem: str) -> dict:
     """Create a minimal mission JSON skeleton for a new mission.
 
     The skeleton has the correct structure but minimal content.
-    It can be populated by generate_mission_data.py with HAPI metadata.
+    It can be populated by generate_mission_data.py with CDAWeb metadata.
 
     Args:
         mission_stem: Lowercase mission identifier (e.g., "themis").

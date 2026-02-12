@@ -207,7 +207,7 @@ def get_dataset_time_range(dataset_id: str) -> Optional[dict]:
             "start": info.get("startDate"),
             "stop": info.get("stopDate"),
         }
-    except requests.RequestException:
+    except (requests.RequestException, ValueError):
         return None
 
 

@@ -3,8 +3,6 @@
 Auto-generate/update per-mission JSON files from CDAWeb metadata.
 
 Uses CDAS REST API for catalog + Master CDF files for parameter metadata.
-HAPI is only used as a last-resort fallback.
-
 Hand-curated fields (profile, keywords) are preserved on merge.
 
 Usage:
@@ -40,15 +38,12 @@ from knowledge.mission_prefixes import (
 )
 
 
-# HAPI server base URL (last-resort fallback)
-HAPI_SERVER = "https://cdaweb.gsfc.nasa.gov/hapi"
-
 # Missions directory
 MISSIONS_DIR = Path(__file__).parent.parent / "knowledge" / "missions"
 
 
 def fetch_catalog() -> list[dict]:
-    """Fetch the dataset catalog from CDAS REST API (HAPI fallback)."""
+    """Fetch the dataset catalog from CDAS REST API."""
     from knowledge.cdaweb_metadata import fetch_dataset_metadata
 
     print("Fetching dataset catalog from CDAS REST API...")
@@ -58,19 +53,11 @@ def fetch_catalog() -> list[dict]:
         print(f"  Found {len(catalog)} datasets in CDAS REST catalog")
         return catalog
 
-    # Fallback: HAPI /catalog
-    print("  CDAS REST unavailable, falling back to HAPI /catalog...")
-    url = f"{HAPI_SERVER}/catalog"
-    resp = requests.get(url, timeout=5)
-    resp.raise_for_status()
-    data = resp.json()
-    catalog = data.get("catalog", [])
-    print(f"  Found {len(catalog)} datasets in HAPI catalog")
-    return catalog
+    raise RuntimeError("Could not fetch dataset catalog from CDAS REST API")
 
 
 def fetch_dataset_info(dataset_id: str, mission_stem: str | None = None) -> dict | None:
-    """Get metadata for a dataset — cache, Master CDF, then HAPI fallback.
+    """Get metadata for a dataset — cache or Master CDF.
 
     Returns parsed JSON or None on error.
     """
@@ -87,19 +74,7 @@ def fetch_dataset_info(dataset_id: str, mission_stem: str | None = None) -> dict
     # Try Master CDF
     try:
         from knowledge.master_cdf import fetch_dataset_metadata_from_master
-        info = fetch_dataset_metadata_from_master(dataset_id)
-        if info is not None:
-            return info
-    except Exception:
-        pass
-
-    # Fallback: HAPI /info
-    url = f"{HAPI_SERVER}/info?id={dataset_id}"
-    try:
-        resp = requests.get(url, timeout=5)
-        if resp.status_code != 200:
-            return None
-        return resp.json()
+        return fetch_dataset_metadata_from_master(dataset_id)
     except Exception as e:
         print(f"    Warning: Failed to fetch info for {dataset_id}: {e}")
         return None
@@ -125,24 +100,24 @@ def save_mission_json(mission_stem: str, data: dict):
 
 def merge_dataset_info(
     existing_ds: dict | None,
-    hapi_info: dict,
+    metadata_info: dict,
     dataset_id: str,
 ) -> dict:
-    """Merge HAPI /info data into an existing dataset entry.
+    """Merge metadata into an existing dataset entry.
 
     Overwrites: description, start_date, stop_date, parameters, _meta
     """
     if existing_ds is None:
         existing_ds = {}
 
-    # Extract info from HAPI response
-    description = hapi_info.get("description", existing_ds.get("description", ""))
-    start_date = hapi_info.get("startDate", existing_ds.get("start_date", ""))
-    stop_date = hapi_info.get("stopDate", existing_ds.get("stop_date", ""))
+    # Extract info from metadata response
+    description = metadata_info.get("description", existing_ds.get("description", ""))
+    start_date = metadata_info.get("startDate", existing_ds.get("start_date", ""))
+    stop_date = metadata_info.get("stopDate", existing_ds.get("stop_date", ""))
 
-    # Build parameters array from HAPI response
+    # Build parameters array from metadata response
     parameters = []
-    for param in hapi_info.get("parameters", []):
+    for param in metadata_info.get("parameters", []):
         name = param.get("name", "")
         if name.lower() == "time":
             continue  # Skip the time parameter
@@ -165,27 +140,27 @@ def merge_dataset_info(
     }
 
 
-def update_mission(mission_stem: str, hapi_catalog: list[dict], verbose: bool = False):
-    """Update a single mission's JSON file with HAPI data.
+def update_mission(mission_stem: str, catalog: list[dict], verbose: bool = False):
+    """Update a single mission's JSON file with CDAWeb metadata.
 
     Args:
         mission_stem: Lowercase mission file stem (e.g., "psp", "ace")
-        hapi_catalog: Full HAPI catalog list
+        catalog: Full dataset catalog list
         verbose: Print detailed progress
     """
     mission_data = load_mission_json(mission_stem)
     mission_id = mission_data["id"]
     print(f"\nUpdating {mission_id} ({mission_stem}.json)...")
 
-    # Find all HAPI datasets that belong to this mission
+    # Find all CDAWeb datasets that belong to this mission
     matched_datasets = []
-    for entry in hapi_catalog:
+    for entry in catalog:
         ds_id = entry.get("id", "")
         ds_mission, ds_instrument = match_dataset_to_mission(ds_id)
         if ds_mission == mission_stem:
             matched_datasets.append((ds_id, ds_instrument))
 
-    print(f"  Found {len(matched_datasets)} HAPI datasets for {mission_id}")
+    print(f"  Found {len(matched_datasets)} CDAWeb datasets for {mission_id}")
 
     # Collect existing dataset IDs across all instruments
     existing_dataset_ids = set()
@@ -220,11 +195,11 @@ def update_mission(mission_stem: str, hapi_catalog: list[dict], verbose: bool = 
                 }
             target_instrument = "General"
 
-        # Get HAPI /info (local cache first, then network)
+        # Get metadata (local cache first, then Master CDF)
         if verbose:
             print(f"    Loading info for {ds_id}...")
-        hapi_info = fetch_dataset_info(ds_id, mission_stem=mission_stem)
-        if hapi_info is None:
+        metadata_info = fetch_dataset_info(ds_id, mission_stem=mission_stem)
+        if metadata_info is None:
             if verbose:
                 print(f"    Warning: No info available for {ds_id}")
             continue
@@ -239,7 +214,7 @@ def update_mission(mission_stem: str, hapi_catalog: list[dict], verbose: bool = 
         else:
             new_count += 1
 
-        datasets[ds_id] = merge_dataset_info(existing, hapi_info, ds_id)
+        datasets[ds_id] = merge_dataset_info(existing, metadata_info, ds_id)
 
         if verbose:
             status = "updated" if existing else "NEW"
@@ -256,10 +231,10 @@ def update_mission(mission_stem: str, hapi_catalog: list[dict], verbose: bool = 
     print(f"  Summary: {updated_count} updated, {new_count} new datasets")
 
 
-def discover_unmatched(hapi_catalog: list[dict]):
-    """Show HAPI datasets that don't match any known mission prefix."""
+def discover_unmatched(catalog: list[dict]):
+    """Show CDAWeb datasets that don't match any known mission prefix."""
     unmatched = []
-    for entry in hapi_catalog:
+    for entry in catalog:
         ds_id = entry.get("id", "")
         mission, _ = match_dataset_to_mission(ds_id)
         if mission is None:
@@ -280,17 +255,17 @@ def discover_unmatched(hapi_catalog: list[dict]):
                 print(f"    {ds_id}")
 
 
-def create_new_missions(hapi_catalog: list[dict], verbose: bool = False):
-    """Create skeleton JSON files for missions found in the HAPI catalog
+def create_new_missions(catalog: list[dict], verbose: bool = False):
+    """Create skeleton JSON files for missions found in the catalog
     that don't yet have a local JSON file.
 
     Args:
-        hapi_catalog: Full HAPI catalog list
+        catalog: Full dataset catalog list
         verbose: Print detailed progress
     """
     # Find all mission stems referenced in the catalog
     discovered_stems = set()
-    for entry in hapi_catalog:
+    for entry in catalog:
         ds_id = entry.get("id", "")
         mission_stem, _ = match_dataset_to_mission(ds_id)
         if mission_stem:
@@ -334,7 +309,7 @@ def create_new_missions(hapi_catalog: list[dict], verbose: bool = False):
 
 def main():
     parser = argparse.ArgumentParser(
-        description="Update per-mission JSON files from CDAWeb HAPI metadata"
+        description="Update per-mission JSON files from CDAWeb metadata"
     )
     parser.add_argument(
         "--mission",
@@ -344,12 +319,12 @@ def main():
     parser.add_argument(
         "--discover",
         action="store_true",
-        help="Show HAPI datasets that don't match any known mission",
+        help="Show CDAWeb datasets that don't match any known mission",
     )
     parser.add_argument(
         "--create-new",
         action="store_true",
-        help="Create skeleton JSON files for new missions found in the HAPI catalog, then update all",
+        help="Create skeleton JSON files for new missions found in the catalog, then update all",
     )
     parser.add_argument(
         "--force",
@@ -397,21 +372,21 @@ def main():
         populate_missions(only_stems=scope_stems)
         return
 
-    # Fetch HAPI catalog
-    hapi_catalog = fetch_catalog()
+    # Fetch catalog from CDAS REST API
+    catalog = fetch_catalog()
 
     if args.discover:
-        discover_unmatched(hapi_catalog)
+        discover_unmatched(catalog)
         return
 
     if args.create_new:
-        created = create_new_missions(hapi_catalog, verbose=args.verbose)
+        created = create_new_missions(catalog, verbose=args.verbose)
         if not args.mission:
             # --create-new alone only creates skeletons; skip the slow per-dataset update.
             # To populate, run: --mission <stem>  or omit --create-new to update all.
-            print("\nSkeletons created. To populate a specific mission with HAPI metadata, run:")
+            print("\nSkeletons created. To populate a specific mission with metadata, run:")
             print("  python scripts/generate_mission_data.py --mission <stem>")
-            print("To populate ALL missions (slow — thousands of HAPI requests):")
+            print("To populate ALL missions (slow — thousands of Master CDF downloads):")
             print("  python scripts/generate_mission_data.py")
             return
 
@@ -419,7 +394,7 @@ def main():
         # Update a single mission
         mission_stem = args.mission.lower()
         try:
-            update_mission(mission_stem, hapi_catalog, verbose=args.verbose)
+            update_mission(mission_stem, catalog, verbose=args.verbose)
         except FileNotFoundError as e:
             print(f"Error: {e}")
             sys.exit(1)
@@ -428,7 +403,7 @@ def main():
         for filepath in sorted(MISSIONS_DIR.glob("*.json")):
             mission_stem = filepath.stem
             try:
-                update_mission(mission_stem, hapi_catalog, verbose=args.verbose)
+                update_mission(mission_stem, catalog, verbose=args.verbose)
             except Exception as e:
                 print(f"  Error updating {mission_stem}: {e}")
 

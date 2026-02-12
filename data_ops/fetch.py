@@ -2,9 +2,9 @@
 Data fetcher — pulls timeseries from CDAWeb into pandas DataFrames.
 
 Downloads CDF files from CDAWeb's REST API and reads them with cdflib.
-No HAPI fallback — errors propagate directly so the agent can learn
-from failures (e.g., virtual parameters that exist in Master CDF
-metadata but not in actual data files).
+Errors propagate directly so the agent can learn from failures
+(e.g., virtual parameters that exist in Master CDF metadata but
+not in actual data files).
 """
 
 import logging

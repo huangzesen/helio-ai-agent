@@ -87,7 +87,7 @@ def fetch_cdf_data(
         ValueError: If no data is available.
         requests.HTTPError: If a download fails.
     """
-    # Get metadata from local HAPI cache if available
+    # Get metadata from local cache if available
     cdf_native = False
     info = get_dataset_info(dataset_id)
     try:
@@ -96,7 +96,7 @@ def fetch_cdf_data(
         description = param_meta.get("description", "")
         fill_value = param_meta.get("fill", None)
     except ValueError:
-        # Parameter not in HAPI cache — it's a CDF-native variable name.
+        # Parameter not in metadata cache — it's a CDF-native variable name.
         # We'll extract metadata from the first CDF file below.
         cdf_native = True
         units = ""
@@ -196,13 +196,13 @@ def fetch_cdf_data(
             f"in range {time_min} to {time_max}"
         )
 
-    # Ensure float64 dtype (CDF often stores float32; match HAPI path)
+    # Ensure float64 dtype (CDF often stores float32)
     for col in df.columns:
         df[col] = pd.to_numeric(df[col], errors="coerce").astype(np.float64)
 
     # Replace fill values with NaN.
     # CDF files store fill values as float32 but data is promoted to float64,
-    # so exact equality can fail (e.g., HAPI says 999.99 but CDF float32
+    # so exact equality can fail (e.g., metadata says 999.99 but CDF float32
     # becomes 999.989990234375 in float64). Always use np.isclose.
     if fill_value is not None:
         try:
@@ -381,7 +381,7 @@ def _read_cdf_parameter(
 
     Returns:
         DataFrame with DatetimeIndex named 'time' and integer column names
-        (1, 2, 3...) matching HAPI CSV column naming.
+        (1, 2, 3...) for vector components.
     """
     cdf = cdflib.CDF(str(cdf_path))
     info = cdf.cdf_info()
@@ -401,7 +401,7 @@ def _read_cdf_parameter(
             f"Available: {all_vars}"
         ) from e
 
-    # Build DataFrame with integer column names matching HAPI CSV convention
+    # Build DataFrame with integer column names
     if param_data.ndim == 1:
         # Scalar parameter
         df = pd.DataFrame({1: param_data}, index=times)

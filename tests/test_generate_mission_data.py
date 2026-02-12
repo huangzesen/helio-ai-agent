@@ -1,8 +1,8 @@
 """
-Tests for the HAPI auto-generation script's merge logic.
+Tests for the auto-generation script's merge logic.
 
 Tests the merge_dataset_info function to ensure it preserves
-hand-curated fields (tier) while overwriting HAPI-derived fields.
+hand-curated fields (tier) while overwriting metadata-derived fields.
 
 Run with: python -m pytest tests/test_generate_mission_data.py -v
 """
@@ -22,12 +22,12 @@ from generate_mission_data import (
 
 
 class TestMergeDatasetInfo:
-    """Test the merge logic for combining HAPI data with existing JSON."""
+    """Test the merge logic for combining metadata with existing JSON."""
 
     def test_new_dataset_has_no_tier(self):
         """A new dataset (no existing entry) should not have a tier field."""
-        hapi_info = {
-            "description": "New dataset from HAPI",
+        metadata_info = {
+            "description": "New dataset from CDAWeb",
             "startDate": "2020-01-01",
             "stopDate": "2025-01-01",
             "parameters": [
@@ -35,9 +35,9 @@ class TestMergeDatasetInfo:
                 {"name": "Bx", "type": "double", "units": "nT", "description": "X component"},
             ],
         }
-        result = merge_dataset_info(None, hapi_info, "NEW_DATASET_ID")
+        result = merge_dataset_info(None, metadata_info, "NEW_DATASET_ID")
         assert "tier" not in result
-        assert result["description"] == "New dataset from HAPI"
+        assert result["description"] == "New dataset from CDAWeb"
         assert result["start_date"] == "2020-01-01"
         assert result["stop_date"] == "2025-01-01"
         # Time parameter should be filtered out
@@ -50,8 +50,8 @@ class TestMergeDatasetInfo:
             "description": "Old description",
             "parameters": [],
         }
-        hapi_info = {
-            "description": "Updated description from HAPI",
+        metadata_info = {
+            "description": "Updated description from CDAWeb",
             "startDate": "2018-10-06",
             "stopDate": "2025-12-31",
             "parameters": [
@@ -59,9 +59,9 @@ class TestMergeDatasetInfo:
                 {"name": "Bmag", "type": "double", "units": "nT"},
             ],
         }
-        result = merge_dataset_info(existing, hapi_info, "TEST_DS")
+        result = merge_dataset_info(existing, metadata_info, "TEST_DS")
         assert "tier" not in result
-        assert result["description"] == "Updated description from HAPI"  # Overwritten
+        assert result["description"] == "Updated description from CDAWeb"  # Overwritten
         assert len(result["parameters"]) == 1  # Time filtered
 
     def test_overwrites_dates(self):
@@ -71,12 +71,12 @@ class TestMergeDatasetInfo:
             "stop_date": "2020-01-01",
             "parameters": [],
         }
-        hapi_info = {
+        metadata_info = {
             "startDate": "2018-10-06",
             "stopDate": "2025-11-30",
             "parameters": [],
         }
-        result = merge_dataset_info(existing, hapi_info, "TEST_DS")
+        result = merge_dataset_info(existing, metadata_info, "TEST_DS")
         assert result["start_date"] == "2018-10-06"
         assert result["stop_date"] == "2025-11-30"
 
@@ -85,26 +85,26 @@ class TestMergeDatasetInfo:
             "tier": "primary",
             "parameters": [{"name": "old_param"}],
         }
-        hapi_info = {
+        metadata_info = {
             "parameters": [
                 {"name": "Time", "type": "isotime"},
                 {"name": "new_param", "type": "double", "units": "nT", "description": "New"},
             ],
         }
-        result = merge_dataset_info(existing, hapi_info, "TEST_DS")
+        result = merge_dataset_info(existing, metadata_info, "TEST_DS")
         assert len(result["parameters"]) == 1
         assert result["parameters"][0]["name"] == "new_param"
 
     def test_parameter_size_preserved(self):
-        hapi_info = {
+        metadata_info = {
             "parameters": [
                 {"name": "Bvec", "type": "double", "units": "nT", "size": [3], "description": "B vector"},
             ],
         }
-        result = merge_dataset_info(None, hapi_info, "TEST_DS")
+        result = merge_dataset_info(None, metadata_info, "TEST_DS")
         assert result["parameters"][0]["size"] == [3]
 
-    def test_empty_hapi_info(self):
+    def test_empty_metadata_info(self):
         result = merge_dataset_info(None, {"parameters": []}, "TEST_DS")
         assert "tier" not in result
         assert result["parameters"] == []

@@ -1,4 +1,4 @@
-"""Tests for knowledge.cdaweb_catalog — full CDAWeb HAPI catalog search."""
+"""Tests for knowledge.cdaweb_catalog — full CDAWeb catalog search."""
 
 import json
 import time

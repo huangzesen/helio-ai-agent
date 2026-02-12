@@ -51,7 +51,7 @@ def generate_spacecraft_overview() -> str:
 def generate_dataset_quick_reference() -> str:
     """Generate the known-dataset-ID table for the system prompt.
 
-    Lists dataset IDs and types. Parameter details come from HAPI via
+    Lists dataset IDs and types. Parameter details come from
     list_parameters at runtime — not hardcoded here.
     """
     lines = [
@@ -87,9 +87,9 @@ def generate_planner_dataset_reference() -> str:
 def generate_mission_profiles() -> str:
     """Generate detailed per-mission context sections.
 
-    Provides domain knowledge (analysis tips, caveats, coordinate systems)
-    that HAPI doesn't supply. Parameter-level metadata (units, descriptions)
-    comes from HAPI at runtime via list_parameters.
+    Provides domain knowledge (analysis tips, caveats, coordinate systems).
+    Parameter-level metadata (units, descriptions) comes from
+    list_parameters at runtime via Master CDF.
     """
     sections = []
     for sc_id, sc in SPACECRAFT.items():
@@ -106,7 +106,7 @@ def generate_mission_profiles() -> str:
             lines.append("- Analysis tips:")
             for tip in profile["analysis_patterns"]:
                 lines.append(f"  - {tip}")
-        # List instruments and datasets (details from HAPI)
+        # List instruments and datasets
         for inst_id, inst in sc["instruments"].items():
             ds_list = ", ".join(inst["datasets"])
             lines.append(f"  **{inst['name']}** ({inst_id}): {ds_list}")

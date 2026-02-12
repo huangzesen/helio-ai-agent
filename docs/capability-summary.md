@@ -27,7 +27,7 @@ gradio_app.py  (browser-based chat UI, inline Plotly plots, data table sidebar)
   |  - Flags: --share, --port, --quiet, --model
   |  - Flags: --refresh, --refresh-full, --refresh-all (same as main.py)
   |  - Multimodal file upload (PDF, images)
-  |  - Browse & Fetch sidebar (mission → dataset → parameter dropdowns, direct HAPI fetch)
+  |  - Browse & Fetch sidebar (mission → dataset → parameter dropdowns, direct CDF fetch)
   |
   v
 agent/core.py  OrchestratorAgent  (LLM-driven orchestrator)
@@ -101,16 +101,16 @@ agent/core.py  OrchestratorAgent  (LLM-driven orchestrator)
   |       mission_loader.py        Lazy-loading cache, routing table, dataset access
   |       mission_prefixes.py      Shared CDAWeb dataset ID prefix map (40+ missions)
   |       cdaweb_metadata.py       CDAWeb REST API client — InstrumentType-based grouping
-  |       cdaweb_catalog.py        Full CDAWeb catalog fetch/cache/search (CDAS REST primary, HAPI fallback)
+  |       cdaweb_catalog.py        Full CDAWeb catalog fetch/cache/search (CDAS REST API)
   |       catalog.py               Thin routing layer (loads from JSON, backward-compat SPACECRAFT dict)
   |       prompt_builder.py        Slim system prompt (routing table + catalog search) + rich mission/visualization prompts
-  |       metadata_client.py       Dataset metadata (4-layer cache: memory → file → Master CDF → HAPI)
-  |       master_cdf.py            Master CDF skeleton download + HAPI-compatible metadata extraction
+  |       metadata_client.py       Dataset metadata (3-layer cache: memory → file → Master CDF)
+  |       master_cdf.py            Master CDF skeleton download + parameter metadata extraction
   |       startup.py               Mission data startup: status check, interactive refresh menu, CLI flag resolution
-  |       bootstrap.py             Mission JSON auto-generation from CDAS REST + Master CDF (HAPI fallback)
+  |       bootstrap.py             Mission JSON auto-generation from CDAS REST + Master CDF
   |
   +---> data_ops/                 Python-side data pipeline (pandas-backed)
-  |       fetch.py                  Data fetching with CDF/HAPI fallback (default: CDF backend)
+  |       fetch.py                  Data fetching via CDF backend
   |       fetch_cdf.py              CDF data fetching + Master CDF-based variable listing
   |       store.py                  In-memory DataStore singleton (label -> DataEntry w/ DataFrame)
   |       custom_ops.py             AST-validated sandboxed executor for LLM-generated pandas/numpy code
@@ -121,10 +121,10 @@ agent/core.py  OrchestratorAgent  (LLM-driven orchestrator)
   |
   +---> scripts/                  Tooling
           generate_mission_data.py  Auto-populate JSON from CDAS REST + Master CDF
-          fetch_metadata_cache.py   Download metadata cache (Master CDF primary, HAPI fallback)
+          fetch_metadata_cache.py   Download metadata cache (Master CDF)
           agent_server.py           TCP socket server for multi-turn agent testing
           run_agent_tests.py        Integration test suite (6 scenarios)
-          test_dataset_loading.py   End-to-end dataset loading test across all HAPI datasets
+          test_dataset_loading.py   End-to-end dataset loading test across all datasets
           regression_test_20260207.py  Regression tests from 2026-02-07 session
           stress_test.py            Stress testing
 ```
@@ -162,7 +162,7 @@ The LLM inspects this metadata within the existing tool loop and can self-correc
 ### Data Operations (fetch -> custom_operation -> plot)
 | Tool | Purpose |
 |------|---------|
-| `fetch_data` | Pull data into memory via CDF or HAPI (label: `DATASET.PARAM`) |
+| `fetch_data` | Pull data into memory via CDF download (label: `DATASET.PARAM`) |
 | `list_fetched_data` | Show all in-memory timeseries |
 | `custom_operation` | LLM-generated pandas/numpy code (AST-validated, sandboxed) — handles magnitude, arithmetic, smoothing, resampling, derivatives, and any other transformation |
 | `compute_spectrogram` | LLM-generated scipy.signal code to compute spectrograms from timeseries (AST-validated, sandboxed) |
@@ -272,7 +272,7 @@ All times are UTC. Outputs `TimeRange` objects with `start`/`end` datetimes.
 - `DataEntry` wraps a `pd.DataFrame` (DatetimeIndex + float64 columns).
 - `DataStore` is a singleton dict keyed by label. The LLM chains tools automatically: fetch -> custom_operation -> plot.
 - `custom_ops.py`: AST-validated, sandboxed executor for LLM-generated pandas/numpy code. Replaces all hardcoded compute functions — the LLM writes the pandas code directly.
-- Data fetching defaults to CDF backend (`DATA_BACKEND=cdf`) with automatic HAPI fallback. HAPI CSV parsing uses `pd.read_csv()` with `pd.to_numeric(errors="coerce")` for robust handling. Detects HAPI JSON error responses (e.g., code 1201 "no data for time range") before attempting CSV parsing.
+- Data fetching uses the CDF backend exclusively — downloads CDF files from CDAWeb REST API, caches locally, reads with cdflib. Errors propagate directly for the agent to learn from.
 
 ### Agent Loop (`agent/core.py`)
 - Gemini decides which tools to call via function calling.
@@ -317,12 +317,12 @@ All times are UTC. Outputs `TimeRange` objects with `start`/`end` datetimes.
 - **52 mission JSON files**, all auto-generated from CDAS REST API + Master CDF metadata. Profiles include instrument groupings, dataset parameters, and time ranges populated by `scripts/generate_mission_data.py`.
 - **Shared prefix map**: `knowledge/mission_prefixes.py` maps CDAWeb dataset ID prefixes to mission identifiers (40+ mission groups).
 - **CDAWeb InstrumentType grouping**: `knowledge/cdaweb_metadata.py` fetches the CDAWeb REST API to get authoritative InstrumentType per dataset (18+ categories like "Magnetic Fields (space)", "Plasma and Solar Wind"). Bootstrap uses this to group datasets into meaningful instrument categories with keywords, instead of dumping everything into "General".
-- **Full catalog search**: `knowledge/cdaweb_catalog.py` provides `search_full_catalog` tool — searches all 2000+ CDAWeb datasets by keyword (CDAS REST primary, HAPI fallback), with 24-hour local cache.
-- **Master CDF metadata**: `knowledge/master_cdf.py` downloads CDF skeleton files from CDAWeb and extracts HAPI-compatible parameter metadata (names, types, units, fill values, sizes). Cached to `~/.helio-agent/master_cdfs/`. Used as primary network source for parameter metadata, replacing HAPI `/info`.
-- **4-layer metadata resolution**: `knowledge/metadata_client.py` resolves dataset metadata through: in-memory cache → local file cache → Master CDF download → HAPI `/info` (last resort). Master CDF results are persisted to the local file cache for subsequent use.
+- **Full catalog search**: `knowledge/cdaweb_catalog.py` provides `search_full_catalog` tool — searches all 2000+ CDAWeb datasets by keyword (CDAS REST API), with 24-hour local cache.
+- **Master CDF metadata**: `knowledge/master_cdf.py` downloads CDF skeleton files from CDAWeb and extracts parameter metadata (names, types, units, fill values, sizes). Cached to `~/.helio-agent/master_cdfs/`. Used as the network source for parameter metadata.
+- **3-layer metadata resolution**: `knowledge/metadata_client.py` resolves dataset metadata through: in-memory cache → local file cache → Master CDF download. Master CDF results are persisted to the local file cache for subsequent use.
 - **Recommended datasets**: All datasets in the instrument section are shown as recommended. Additional datasets are discoverable via `browse_datasets`.
 - **Calibration exclusion lists**: Per-mission `_calibration_exclude.json` files filter out calibration, housekeeping, and ephemeris datasets from browse results. Uses glob patterns and exact IDs.
-- **Auto-generation**: `scripts/generate_mission_data.py` queries CDAS REST API for catalog + Master CDF for parameters (HAPI fallback). Use `--create-new` to create skeleton JSON files for new missions.
+- **Auto-generation**: `scripts/generate_mission_data.py` queries CDAS REST API for catalog + Master CDF for parameters. Use `--create-new` to create skeleton JSON files for new missions.
 - **Loader**: `knowledge/mission_loader.py` provides in-memory cache, routing table, and dataset access. Routing table derives capabilities from instrument keywords (magnetic field, plasma, energetic particles, electric field, radio/plasma waves, geomagnetic indices, ephemeris, composition, coronagraph, imaging).
 
 ### Long-term Memory (`agent/memory.py`)
@@ -368,7 +368,7 @@ All times are UTC. Outputs `TimeRange` objects with `start`/`end` datetimes.
 ### Auto-Clamping Time Ranges
 - `_validate_time_range()` in `agent/core.py` auto-adjusts requested time ranges to fit dataset availability windows
 - Handles partial overlaps (clamps to available range) and full mismatches (informs user of available range)
-- Fail-open: if metadata call fails (Master CDF + HAPI), proceeds without validation
+- Fail-open: if metadata call fails (Master CDF), proceeds without validation
 
 ### Default Plot Styling
 - `_DEFAULT_LAYOUT` in `rendering/plotly_renderer.py` sets explicit white backgrounds (`paper_bgcolor`, `plot_bgcolor`) and dark font color
@@ -475,7 +475,7 @@ python gradio_app.py --refresh      # Refresh dataset time ranges before launch
 Features:
 - Interactive Plotly figures displayed above the chat
 - Multimodal file upload (PDF, images) via drag-and-drop
-- Browse & Fetch sidebar: mission → dataset → parameter cascade dropdowns with direct HAPI fetch
+- Browse & Fetch sidebar: mission → dataset → parameter cascade dropdowns with direct CDF fetch
 - Data table sidebar showing all in-memory timeseries
 - Data preview with head/tail rows for any label
 - Token usage and memory tracking
@@ -519,7 +519,7 @@ All log calls can be tagged with `extra=tagged("category")`. The Gradio live log
 | `"thinking"` | `[Thinking] The user wants...` (first 500 chars) | `core.py`, `base_agent.py`, `planner.py` |
 | `"error"` | Real errors with context/stack traces | `agent/logging.py:log_error()` |
 
-**What is NOT shown in Gradio** (terminal/file only): `[HAPI]`, `[CDF]`, `[Gemini]`, `[Tool:]` calls, full thinking text, internal tool-result warnings/errors, DataOps plumbing. Only `log_error()` errors appear in Gradio (tagged `"error"`); per-tool `logger.warning("Tool error: ...")` lines are untagged and filtered out.
+**What is NOT shown in Gradio** (terminal/file only): `[CDF]`, `[Gemini]`, `[Tool:]` calls, full thinking text, internal tool-result warnings/errors, DataOps plumbing. Only `log_error()` errors appear in Gradio (tagged `"error"`); per-tool `logger.warning("Tool error: ...")` lines are untagged and filtered out.
 
 **To add a new category to Gradio:**
 1. Tag the log call: `logger.debug("...", extra=tagged("my_tag"))`
@@ -543,7 +543,7 @@ python -m pytest tests/                                          # All tests
 ```
 google-genai>=1.60.0    # Gemini API
 python-dotenv>=1.0.0    # .env loading
-requests>=2.28.0        # HTTP calls (CDAS REST, Master CDF, HAPI)
+requests>=2.28.0        # HTTP calls (CDAS REST, Master CDF, CDF downloads)
 cdflib>=1.3.0           # CDF file reading (Master CDF metadata, data files)
 numpy>=1.24.0           # Array operations
 pandas>=2.0.0           # DataFrame-based data pipeline

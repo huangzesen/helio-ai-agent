@@ -2,7 +2,7 @@
 Static spacecraft/instrument catalog with keyword matching.
 
 Provides fast local lookup to map natural language queries to CDAWeb dataset IDs.
-HAPI API is used separately to fetch parameter metadata.
+Parameter metadata is fetched separately via Master CDF files.
 
 Data is loaded from per-mission JSON files in knowledge/missions/.
 """

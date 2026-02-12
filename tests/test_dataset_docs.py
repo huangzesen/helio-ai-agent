@@ -198,7 +198,7 @@ class TestGetDatasetDocs:
     def setup_method(self):
         clear_cache()
 
-    def test_success_with_hapi_and_notes(self):
+    def test_success_with_metadata_and_notes(self):
         fake_info = {
             "contact": "N. Ness @ Bartol Research Institute",
             "resourceURL": "https://cdaweb.gsfc.nasa.gov/misc/NotesA.html#AC_H2_MFI",
@@ -254,8 +254,8 @@ class TestGetDatasetDocs:
         assert len(result["documentation"]) <= 100 + len("\n[truncated]")
         assert result["documentation"].endswith("[truncated]")
 
-    def test_fallback_url_when_hapi_fails(self):
-        """When HAPI /info fails, construct URL from dataset ID first letter."""
+    def test_fallback_url_when_metadata_fails(self):
+        """When metadata fetch fails, construct URL from dataset ID first letter."""
         with patch("knowledge.metadata_client.get_dataset_info", side_effect=Exception("network error")), \
              patch("knowledge.metadata_client.requests.get") as mock_get:
             mock_resp = MagicMock()
@@ -306,8 +306,8 @@ class TestGetDatasetDocs:
         assert result["documentation"] is None
         assert result["contact"] == "Someone"
 
-    def test_hapi_info_without_resource_url(self):
-        """When HAPI info has no resourceURL, fallback URL is constructed."""
+    def test_metadata_without_resource_url(self):
+        """When metadata has no resourceURL, fallback URL is constructed."""
         fake_info = {
             "contact": "Test Contact",
             "parameters": [],

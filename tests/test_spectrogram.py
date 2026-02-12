@@ -323,7 +323,7 @@ class TestComputeSpectrogramToolHandler:
             data=df,
             units="nT",
             description="Test timeseries",
-            source="hapi",
+            source="cdf",
         )
         store.put(source)
 

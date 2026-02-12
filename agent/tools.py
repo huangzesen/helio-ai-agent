@@ -272,7 +272,7 @@ Do NOT call this tool when the request cannot be expressed as a pandas/numpy ope
         "description": """Create a new DataFrame from scratch and store it in memory. Use this when:
 - You have text data (event lists, search results, catalogs) that should become a plottable dataset
 - The user wants to manually define data points (e.g., from a table in a paper or website)
-- You need to create a dataset that doesn't come from CDAWeb HAPI
+- You need to create a dataset that doesn't come from CDAWeb
 
 The pandas_code must:
 - Use only `pd` (pandas) and `np` (numpy) — no imports, no file I/O, no `df` variable

@@ -41,7 +41,7 @@ def _make_store_with_entries() -> DataStore:
         data=scalar_df,
         units="nT",
         description="Magnetic field magnitude",
-        source="hapi",
+        source="cdf",
     ))
 
     vector_df = pd.DataFrame(
@@ -52,7 +52,7 @@ def _make_store_with_entries() -> DataStore:
         data=vector_df,
         units="nT",
         description="Magnetic field vector",
-        source="hapi",
+        source="cdf",
     ))
 
     return store
@@ -277,7 +277,7 @@ class TestDataStorePersistence:
         data_dir.mkdir()
 
         index = {"missing_label": {"filename": "missing.pkl", "units": "nT",
-                                    "description": "", "source": "hapi"}}
+                                    "description": "", "source": "cdf"}}
         with open(data_dir / "_index.json", "w") as f:
             json.dump(index, f)
 

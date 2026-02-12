@@ -3,7 +3,7 @@ Tests for the metadata client.
 
 Run with: python -m pytest tests/test_metadata_client.py
 
-Note: These tests require network access to CDAWeb HAPI server.
+Note: These tests require network access to CDAWeb.
 Some tests are marked slow and can be skipped with: pytest -m "not slow"
 """
 
@@ -20,8 +20,8 @@ from knowledge.metadata_client import (
 )
 
 
-def _mock_hapi_404(*args, **kwargs):
-    """Return a 404 response to simulate HAPI server rejecting invalid dataset."""
+def _mock_404(*args, **kwargs):
+    """Return a 404 response to simulate server rejecting invalid dataset."""
     resp = MagicMock()
     resp.status_code = 404
     resp.raise_for_status.side_effect = requests.HTTPError(
@@ -31,7 +31,7 @@ def _mock_hapi_404(*args, **kwargs):
 
 
 @pytest.fixture(autouse=True)
-def clear_hapi_cache():
+def clear_metadata_cache():
     """Clear cache before each test."""
     clear_cache()
 
@@ -39,7 +39,7 @@ def clear_hapi_cache():
 class TestGetDatasetInfo:
     @pytest.mark.slow
     def test_fetch_psp_mag_info(self):
-        """Test fetching PSP MAG dataset info from HAPI."""
+        """Test fetching PSP MAG dataset info."""
         info = get_dataset_info("PSP_FLD_L2_MAG_RTN_1MIN")
         assert info is not None
         assert "startDate" in info
@@ -49,7 +49,7 @@ class TestGetDatasetInfo:
 
     @pytest.mark.slow
     def test_fetch_ace_mag_info(self):
-        """Test fetching ACE MAG dataset info from HAPI."""
+        """Test fetching ACE MAG dataset info."""
         info = get_dataset_info("AC_H2_MFI")
         assert info is not None
         assert "parameters" in info
@@ -64,7 +64,7 @@ class TestGetDatasetInfo:
 
     def test_invalid_dataset_raises(self):
         """Test that invalid dataset ID raises an error."""
-        with patch("knowledge.metadata_client.requests.get", side_effect=_mock_hapi_404):
+        with patch("knowledge.metadata_client.requests.get", side_effect=_mock_404):
             with pytest.raises(Exception):
                 get_dataset_info("INVALID_DATASET_XYZ_123")
 
@@ -99,7 +99,7 @@ class TestListParameters:
 
     def test_invalid_dataset_returns_empty(self):
         """Test that invalid dataset returns empty list."""
-        with patch("knowledge.metadata_client.requests.get", side_effect=_mock_hapi_404):
+        with patch("knowledge.metadata_client.requests.get", side_effect=_mock_404):
             params = list_parameters("INVALID_DATASET_XYZ")
             assert params == []
 
@@ -116,7 +116,7 @@ class TestGetDatasetTimeRange:
 
     def test_invalid_dataset_returns_none(self):
         """Test that invalid dataset returns None."""
-        with patch("knowledge.metadata_client.requests.get", side_effect=_mock_hapi_404):
+        with patch("knowledge.metadata_client.requests.get", side_effect=_mock_404):
             time_range = get_dataset_time_range("INVALID_XYZ")
             assert time_range is None
 

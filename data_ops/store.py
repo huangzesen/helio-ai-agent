@@ -28,7 +28,7 @@ class DataEntry:
         data: DataFrame with DatetimeIndex and one or more float64 columns.
         units: Physical units string (e.g., "nT").
         description: Human-readable description.
-        source: Origin — "hapi" for fetched data, "computed" for derived data.
+        source: Origin — "cdf" for fetched data, "computed" for derived data.
     """
 
     label: str

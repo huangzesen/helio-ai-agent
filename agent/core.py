@@ -524,7 +524,7 @@ class OrchestratorAgent:
                 - "end": clamped end datetime
                 - "note": human-readable note about the adjustment
             Returns error dict with "status"="error" if no overlap.
-            Returns None if the HAPI call fails (fail-open).
+            Returns None if the metadata lookup fails (fail-open).
         """
         from datetime import datetime, timezone
 
@@ -538,7 +538,7 @@ class OrchestratorAgent:
             if not avail_start_str or not avail_stop_str:
                 return None
 
-            # Parse HAPI date strings (may or may not have timezone)
+            # Parse date strings (may or may not have timezone)
             avail_start = datetime.fromisoformat(avail_start_str)
             avail_stop = datetime.fromisoformat(avail_stop_str)
 
@@ -853,7 +853,7 @@ class OrchestratorAgent:
             from knowledge.mission_loader import load_mission as _load_mission
             from knowledge.catalog import SPACECRAFT, classify_instrument_type
             mission_id = tool_args["mission_id"]
-            # Ensure HAPI cache exists (triggers download if needed)
+            # Ensure metadata cache exists (triggers download if needed)
             try:
                 _load_mission(mission_id)
             except FileNotFoundError:
@@ -946,20 +946,10 @@ class OrchestratorAgent:
         # --- Data Operations Tools ---
 
         elif tool_name == "fetch_data":
-            # Pre-fetch validation: reject dataset/parameter IDs not in local cache
+            # Pre-fetch validation: reject dataset IDs not in local cache
             ds_validation = validate_dataset_id(tool_args["dataset_id"])
             if not ds_validation["valid"]:
                 return {"status": "error", "message": ds_validation["message"]}
-
-            # Skip HAPI parameter validation for CDF backend — CDF variable
-            # names don't always match HAPI parameter names.
-            from config import DATA_BACKEND
-            if DATA_BACKEND != "cdf":
-                param_validation = validate_parameter_id(
-                    tool_args["dataset_id"], tool_args["parameter_id"]
-                )
-                if not param_validation["valid"]:
-                    return {"status": "error", "message": param_validation["message"]}
 
             try:
                 time_range = parse_time_range(tool_args["time_range"])
@@ -2107,7 +2097,7 @@ class OrchestratorAgent:
                 task.round = round_num
                 task.candidate_datasets = td.get("candidate_datasets")
 
-                # Validate candidate_datasets against local HAPI cache
+                # Validate candidate_datasets against local metadata cache
                 if task.candidate_datasets:
                     valid = []
                     invalid = []
@@ -2144,7 +2134,7 @@ class OrchestratorAgent:
                                 invalid_ids.append(ds_id)
                 correction_msg = (
                     "VALIDATION ERROR: The following dataset IDs do not exist "
-                    f"in the local HAPI cache: {invalid_ids}. "
+                    f"in the local metadata cache: {invalid_ids}. "
                     "Re-emit the same tasks using ONLY dataset IDs from the "
                     "Discovery Results. Do NOT invent dataset IDs."
                 )

@@ -46,7 +46,7 @@ class TestGenerateDatasetQuickReference:
 
     def test_directs_to_list_parameters(self):
         table = generate_dataset_quick_reference()
-        # Parameter details come from HAPI, not hardcoded
+        # Parameter details come from metadata, not hardcoded
         assert "list_parameters" in table
 
     def test_is_markdown_table(self):
@@ -191,7 +191,7 @@ class TestBuildMissionPrompt:
         assert "save_data" not in workflow_section
 
     def test_mission_prompt_has_parameter_summaries_with_cache(self, tmp_path):
-        """When local HAPI cache exists, primary datasets show parameter names."""
+        """When local metadata cache exists, primary datasets show parameter names."""
         import json
         from unittest.mock import patch
 

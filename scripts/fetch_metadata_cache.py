@@ -2,7 +2,7 @@
 """
 Fetch and cache dataset parameter metadata for all datasets matching a mission.
 
-Uses Master CDF skeleton files as primary source, HAPI /info as fallback.
+Uses Master CDF skeleton files as the source.
 Saves metadata JSON responses to local files for instant offline lookup.
 Also generates a lightweight _index.json summary per mission.
 
@@ -34,7 +34,6 @@ from knowledge.mission_prefixes import match_dataset_to_mission
 
 
 # Constants
-HAPI_SERVER = "https://cdaweb.gsfc.nasa.gov/hapi"  # last-resort fallback
 MISSIONS_DIR = Path(__file__).parent.parent / "knowledge" / "missions"
 DEFAULT_WORKERS = 10
 
@@ -43,7 +42,7 @@ _cdaweb_meta: dict | None = None
 
 
 def fetch_catalog() -> list[dict]:
-    """Fetch dataset catalog from CDAS REST API (HAPI fallback)."""
+    """Fetch dataset catalog from CDAS REST API."""
     global _cdaweb_meta
     from knowledge.cdaweb_metadata import fetch_dataset_metadata
 
@@ -54,19 +53,11 @@ def fetch_catalog() -> list[dict]:
         print(f"  Found {len(catalog)} datasets in CDAS REST catalog")
         return catalog
 
-    # Fallback: HAPI /catalog
-    print("  CDAS REST unavailable, falling back to HAPI /catalog...")
-    url = f"{HAPI_SERVER}/catalog"
-    resp = requests.get(url, timeout=5)
-    resp.raise_for_status()
-    data = resp.json()
-    catalog = data.get("catalog", [])
-    print(f"  Found {len(catalog)} datasets in HAPI catalog")
-    return catalog
+    raise RuntimeError("Could not fetch dataset catalog from CDAS REST API")
 
 
 def fetch_dataset_info(dataset_id: str) -> dict | None:
-    """Fetch metadata for a dataset. Master CDF first, HAPI fallback."""
+    """Fetch metadata for a dataset from Master CDF."""
     from knowledge.master_cdf import fetch_dataset_metadata_from_master
 
     # Get dates from CDAS REST metadata if available
@@ -78,26 +69,13 @@ def fetch_dataset_info(dataset_id: str) -> dict | None:
             start_date = entry.get("start_date", "")
             stop_date = entry.get("stop_date", "")
 
-    # Try Master CDF first
-    info = fetch_dataset_metadata_from_master(
+    return fetch_dataset_metadata_from_master(
         dataset_id, start_date=start_date, stop_date=stop_date
     )
-    if info is not None:
-        return info
-
-    # Fallback: HAPI /info
-    url = f"{HAPI_SERVER}/info"
-    try:
-        resp = requests.get(url, params={"id": dataset_id}, timeout=5)
-        if resp.status_code != 200:
-            return None
-        return resp.json()
-    except Exception:
-        return None
 
 
 def build_index_entry(dataset_id: str, info: dict, instrument_hint: str | None) -> dict:
-    """Build a lightweight index entry from a HAPI /info response."""
+    """Build a lightweight index entry from a metadata response."""
     # Count non-Time parameters
     param_count = sum(
         1 for p in info.get("parameters", [])
@@ -160,16 +138,16 @@ def _fetch_and_save(ds_id: str, instrument_hint: str | None, cache_dir: Path) ->
 
 def cache_mission(
     mission_stem: str,
-    hapi_catalog: list[dict],
+    catalog: list[dict],
     force: bool = False,
     verbose: bool = False,
     workers: int = DEFAULT_WORKERS,
 ):
-    """Fetch and cache HAPI /info for all datasets matching a mission.
+    """Fetch and cache metadata for all datasets matching a mission.
 
     Args:
         mission_stem: Lowercase mission file stem (e.g., "psp", "ace")
-        hapi_catalog: Full HAPI catalog list
+        catalog: Full dataset catalog list
         force: Re-fetch even if local file exists
         verbose: Print detailed progress
         workers: Number of parallel fetch threads
@@ -192,7 +170,7 @@ def cache_mission(
 
     # Find matching datasets
     matched = []
-    for entry in hapi_catalog:
+    for entry in catalog:
         ds_id = entry.get("id", "")
         ds_mission, ds_instrument = match_dataset_to_mission(ds_id)
         if ds_mission == mission_stem:
@@ -264,7 +242,7 @@ def cache_mission(
 
 def main():
     parser = argparse.ArgumentParser(
-        description="Fetch and cache HAPI /info metadata for mission datasets"
+        description="Fetch and cache metadata for mission datasets"
     )
     group = parser.add_mutually_exclusive_group(required=True)
     group.add_argument(
@@ -297,20 +275,20 @@ def main():
 
     start_time = time.time()
 
-    # Fetch catalog once (CDAS REST primary, HAPI fallback)
-    hapi_catalog = fetch_catalog()
+    # Fetch catalog from CDAS REST API
+    catalog = fetch_catalog()
 
     if args.mission:
         mission_stem = args.mission.lower()
         cache_mission(
-            mission_stem, hapi_catalog,
+            mission_stem, catalog,
             force=args.force, verbose=args.verbose, workers=args.workers,
         )
     else:
         # All missions
         for filepath in sorted(MISSIONS_DIR.glob("*.json")):
             cache_mission(
-                filepath.stem, hapi_catalog,
+                filepath.stem, catalog,
                 force=args.force, verbose=args.verbose, workers=args.workers,
             )
 

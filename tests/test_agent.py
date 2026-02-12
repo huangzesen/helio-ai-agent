@@ -204,22 +204,19 @@ class TestAgentToolExecution:
                 assert result["spacecraft"] == "PSP"
 
     def test_list_parameters_tool(self):
-        """Test that list_parameters calls HAPI client."""
+        """Test that list_parameters returns CDF variables."""
         from agent.core import OrchestratorAgent
 
         with patch("agent.core.genai"):
-            with patch("agent.core.hapi_list_parameters") as mock_list:
-                mock_list.return_value = [
-                    {"name": "Magnitude", "units": "nT", "size": [1], "description": "", "dataset_id": "AC_H2_MFI"},
-                ]
-
+            mock_vars = [
+                {"name": "Magnitude", "units": "nT", "size": [1], "description": ""},
+            ]
+            with patch("data_ops.fetch_cdf.list_cdf_variables", return_value=mock_vars) as mock_list:
                 agent = OrchestratorAgent.__new__(OrchestratorAgent)
                 agent.verbose = False
                 agent._renderer = None
 
-                # Force HAPI backend for this test (default is now CDF)
-                with patch("config.DATA_BACKEND", "hapi"):
-                    result = agent._execute_tool("list_parameters", {"dataset_id": "AC_H2_MFI"})
+                result = agent._execute_tool("list_parameters", {"dataset_id": "AC_H2_MFI"})
 
                 mock_list.assert_called_once_with("AC_H2_MFI")
                 assert len(result["parameters"]) == 1
@@ -269,7 +266,7 @@ class TestValidateTimeRange:
             )
             assert result is None
 
-    def test_hapi_failure_returns_none(self, agent):
+    def test_metadata_failure_returns_none(self, agent):
         with patch("agent.core.get_dataset_time_range") as mock:
             mock.return_value = None
             result = agent._validate_time_range(

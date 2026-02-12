@@ -2,11 +2,11 @@
 Master CDF skeleton file reader for CDAWeb parameter metadata.
 
 Downloads Master CDF files from CDAWeb's static HTTP server and extracts
-HAPI-compatible parameter metadata (names, types, units, fill values, sizes).
+parameter metadata (names, types, units, fill values, sizes).
 
 Master CDFs are lightweight skeleton files (~10-100 KB) that contain variable
 definitions and attributes but no actual data. They serve as the authoritative
-source for parameter metadata, replacing the unreliable HAPI /info endpoint.
+source for parameter metadata.
 
 URL pattern: https://cdaweb.gsfc.nasa.gov/pub/software/cdawlib/0MASTERS/{id_lower}_00000000_v01.cdf
 """
@@ -112,16 +112,16 @@ def download_master_cdf(dataset_id: str, cache_dir: Path | None = None) -> Path:
 
 
 def extract_metadata(cdf_path: Path) -> dict:
-    """Extract HAPI-compatible parameter metadata from a Master CDF file.
+    """Extract parameter metadata from a Master CDF file.
 
     Reads all zVariables and rVariables from the CDF, filters to data
-    variables (VAR_TYPE == "data"), and produces a HAPI-compatible dict.
+    variables (VAR_TYPE == "data"), and produces a structured dict.
 
     Args:
         cdf_path: Path to a local Master CDF file.
 
     Returns:
-        Dict with "parameters" list (HAPI format), "startDate", "stopDate".
+        Dict with "parameters" list, "startDate", "stopDate".
     """
     if cdflib is None:
         raise RuntimeError("'cdflib' package required for Master CDF reading")
@@ -129,7 +129,7 @@ def extract_metadata(cdf_path: Path) -> dict:
     cdf = cdflib.CDF(str(cdf_path))
     cdf_info = cdf.cdf_info()
 
-    # Start with synthetic Time parameter (HAPI convention)
+    # Start with synthetic Time parameter
     parameters = [
         {"name": "Time", "type": "isotime", "units": "UTC", "fill": None}
     ]
@@ -185,7 +185,7 @@ def extract_metadata(cdf_path: Path) -> dict:
         dim_sizes = var_inq.Dim_Sizes
         if isinstance(dim_sizes, (list, np.ndarray)) and len(dim_sizes) > 0:
             size = [int(d) for d in dim_sizes]
-            # Squeeze leading 1-dimensions to match HAPI convention
+            # Squeeze leading 1-dimensions
             # e.g., [1, 25] -> [25], but keep [1] as scalar
             while len(size) > 1 and size[0] == 1:
                 size = size[1:]
@@ -219,7 +219,7 @@ def fetch_dataset_metadata_from_master(
     stop_date: str = "",
     cache_dir: Path | None = None,
 ) -> dict | None:
-    """High-level: download Master CDF + extract HAPI-compatible metadata.
+    """High-level: download Master CDF + extract parameter metadata.
 
     Args:
         dataset_id: CDAWeb dataset ID.
@@ -228,7 +228,7 @@ def fetch_dataset_metadata_from_master(
         cache_dir: Override cache directory for Master CDFs.
 
     Returns:
-        HAPI-compatible info dict, or None on failure.
+        Info dict, or None on failure.
     """
     try:
         cdf_path = download_master_cdf(dataset_id, cache_dir=cache_dir)
