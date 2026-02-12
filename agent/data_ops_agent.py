@@ -7,8 +7,7 @@ delegates computation requests here, keeping fetching in mission agents
 and visualization in the visualization agent.
 """
 
-from google import genai
-
+from .llm import LLMAdapter
 from .base_agent import BaseSubAgent
 from .tasks import Task
 from knowledge.prompt_builder import build_data_ops_prompt
@@ -19,11 +18,11 @@ DATAOPS_EXTRA_TOOLS = ["list_fetched_data"]
 
 
 class DataOpsAgent(BaseSubAgent):
-    """A Gemini session specialized for data transformations and analysis."""
+    """An LLM session specialized for data transformations and analysis."""
 
     def __init__(
         self,
-        client: genai.Client,
+        adapter: LLMAdapter,
         model_name: str,
         tool_executor,
         verbose: bool = False,
@@ -31,7 +30,7 @@ class DataOpsAgent(BaseSubAgent):
         token_log_path=None,
     ):
         super().__init__(
-            client=client,
+            adapter=adapter,
             model_name=model_name,
             tool_executor=tool_executor,
             verbose=verbose,

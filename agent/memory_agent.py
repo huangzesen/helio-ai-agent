@@ -13,9 +13,8 @@ from datetime import datetime
 from pathlib import Path
 from typing import Optional
 
-from google.genai import types
-
 import config
+from .llm import LLMAdapter
 from .logging import get_logger, get_current_log_path, get_log_size, LOG_DIR
 from .memory import Memory, MemoryStore
 from .model_fallback import get_active_model
@@ -53,7 +52,7 @@ class MemoryAgent:
 
     Usage::
 
-        agent = MemoryAgent(client, model_name, memory_store)
+        agent = MemoryAgent(adapter, model_name, memory_store)
         agent.start()          # spawns daemon thread
         ...                    # main loop runs unblocked
         agent.stop()           # signals thread to exit (blocks up to 5s)
@@ -61,13 +60,13 @@ class MemoryAgent:
 
     def __init__(
         self,
-        client,
+        adapter: LLMAdapter,
         model_name: str,
         memory_store: MemoryStore,
         verbose: bool = False,
         session_id: str = "",
     ):
-        self.client = client
+        self.adapter = adapter
         self.model_name = model_name
         self.memory_store = memory_store
         self.verbose = verbose
@@ -233,13 +232,13 @@ class MemoryAgent:
         )
 
         try:
-            response = self.client.models.generate_content(
+            response = self.adapter.generate(
                 model=get_active_model(self.model_name),
                 contents=prompt,
-                config=types.GenerateContentConfig(temperature=0.2),
+                temperature=0.2,
             )
         except Exception as e:
-            logger.debug(f"[MemoryAgent] Gemini call failed: {e}")
+            logger.debug(f"[MemoryAgent] LLM call failed: {e}")
             return
 
         text = (response.text or "").strip()
@@ -349,10 +348,10 @@ Current memories:
 {memories_json}"""
 
         try:
-            response = self.client.models.generate_content(
+            response = self.adapter.generate(
                 model=get_active_model(self.model_name),
                 contents=prompt,
-                config=types.GenerateContentConfig(temperature=0.1),
+                temperature=0.1,
             )
         except Exception as e:
             logger.debug(f"[MemoryAgent] Consolidation LLM call failed: {e}")

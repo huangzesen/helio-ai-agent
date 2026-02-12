@@ -4,7 +4,7 @@ Design document for decoupling helio-ai-agent from the `google-genai` SDK so tha
 multiple LLM providers (OpenAI, Anthropic, DeepSeek, Qwen, Kimi, Mistral, etc.)
 can be used as interchangeable backends.
 
-**Status:** Proposed (February 2026)
+**Status:** Phase 1 complete (February 2026). Phases 2-4 pending.
 
 ---
 
@@ -1161,59 +1161,110 @@ should remain provider-specific:
 
 ## 14. Implementation Phases
 
-### Phase 1: Core Abstractions + Gemini Adapter (estimated ~800 lines new code)
+### Phase 1: Core Abstractions + Gemini Adapter ✅ COMPLETE
 
-Files to create:
-- `agent/llm/__init__.py` (~40 lines)
-- `agent/llm/base.py` (~150 lines)
-- `agent/llm/gemini_adapter.py` (~300 lines)
+**Branch:** `feature/llm-abstraction`
+**928 tests passing, 0 failures.**
 
-Files to modify:
-- `agent/core.py` — replace `genai.Client` with adapter
-- `agent/base_agent.py` — replace `genai.Client` with adapter
-- `agent/planner.py` — replace `genai.Client` with adapter
-- `agent/memory_agent.py` — replace `genai.Client` with adapter
-- `agent/tool_loop.py` — use adapter instead of `types.Part.from_function_response`
-- `agent/thinking.py` — use `LLMResponse.thinking` instead of part inspection
-- `agent/model_fallback.py` — delegate to adapter
-- `config.py` — add `provider` setting
+Files created:
+- `agent/llm/__init__.py` — package init, re-exports public API
+- `agent/llm/base.py` — `ToolCall`, `UsageMetadata`, `LLMResponse`, `FunctionSchema`, `ChatSession` ABC, `LLMAdapter` ABC
+- `agent/llm/gemini_adapter.py` — `GeminiAdapter`, `GeminiChatSession`, Gemini-specific escape hatches (`google_search`, `generate_multimodal`, `make_bytes_part`)
+- `tests/test_llm_adapter.py` — 17 tests for adapter types and GeminiAdapter (mocked SDK)
 
-Tests:
-- `tests/test_llm_adapter.py` — mock-based tests for the adapter interface
+Files modified:
+- `config.py` — added `LLM_PROVIDER`, `LLM_API_KEY`, `LLM_BASE_URL`, `get_api_key()`
+- `config.template.json` — added `llm_provider`, `llm_api_key`, `llm_base_url` fields
+- `agent/model_fallback.py` — removed `google.genai` import, `is_quota_error()` accepts optional adapter
+- `agent/thinking.py` — works with `LLMResponse` (backward-compat fallback to raw Gemini)
+- `agent/tool_loop.py` — added `adapter` param, uses `adapter.make_tool_result_message()`
+- `agent/base_agent.py` — `client: genai.Client` → `adapter: LLMAdapter` (~30 touchpoints)
+- `agent/planner.py` — same pattern (~15 touchpoints)
+- `agent/memory_agent.py` — `client` → `adapter`, `generate_content` → `adapter.generate()`
+- `agent/mission_agent.py`, `visualization_agent.py`, `data_ops_agent.py`, `data_extraction_agent.py` — constructor parameter updates
+- `agent/core.py` — the big one (~50 touchpoints): `genai.Client` → `GeminiAdapter`, all response parsing via `LLMResponse`
+- `tests/test_agent.py`, `tests/test_planner.py`, `tests/test_memory_agent.py` — updated for new parameter names
 
-### Phase 2: OpenAI Adapter (estimated ~350 lines new code)
+**Key design decisions in implementation (diverging from original plan):**
+- `ToolCall.args` is a plain `dict` (no `.id` field — Gemini doesn't have explicit tool call IDs; handled by `make_tool_result_message` per-provider)
+- `ChatSession.send()` replaces both `send_message()` and `send_tool_results()` — tool results are passed as provider-specific objects built by `make_tool_result_message()`
+- `create_chat()` has a `thinking` param ("low"/"high"/"default") even though the design doc said thinking=model selection. This is needed because Gemini uses the same model with different ThinkingConfig levels. Other adapters can ignore it.
+- `tool_loop.py` has a lazy-import fallback for `google.genai.types` when no adapter is provided (safety net during migration)
+- `_extract_grounding_sources()` and `_log_grounding_queries()` access `response.raw` for Gemini-specific grounding metadata
+- `generate()` on LLMAdapter accepts `contents: str | list` to support multimodal via `generate_multimodal()` escape hatch
+
+### Phase 2: OpenAI Adapter (estimated ~350 lines new code) — PENDING
+
+Create `agent/llm/openai_adapter.py` implementing `LLMAdapter`:
+- Implement `create_chat()` → client-managed message list (no SDK chat sessions)
+- Implement `send()` → `client.chat.completions.create(model, messages, tools)`
+- Implement `make_tool_result_message()` → `{"role": "tool", "tool_call_id": ..., "content": ...}`
+- Handle `ToolCall.id` — OpenAI assigns `call_xxxxx` IDs that must round-trip via tool results
+- `force_tool_call=True` → `tool_choice="required"`
+- `json_schema` → `response_format: {"type": "json_schema", ...}`
+- `is_quota_error()` → check `openai.RateLimitError`
+- `base_url` param for OpenAI-compatible providers (DeepSeek, Qwen, Ollama, etc.)
+- `thinking` param: OpenAI has `reasoning_effort` for o3/o4-mini; ignore for other models
+- `get_history()` → return the message list directly
+
+Implementation notes from Phase 1:
+- `make_tool_result_message()` must include `tool_call_id` — Phase 1 ToolCall has no `.id` field since Gemini doesn't use one. Options: (a) add `id: str | None` to ToolCall, populate from provider; (b) have the adapter track IDs internally in the ChatSession. Option (a) is cleaner — add optional `id` field to `ToolCall` in `base.py`, populate in OpenAI/Anthropic adapters, leave None for Gemini.
+- `ChatSession.send()` receives either a string or a list of tool-result objects. For OpenAI, tool results are dicts; the session appends them to the message list and calls completions.create.
+- The `tool_loop.py` fallback import of `google.genai.types` can be removed once Phase 2 confirms all callers pass an adapter.
 
 Files to create:
 - `agent/llm/openai_adapter.py` (~300 lines)
-
-Files to modify:
-- `requirements.txt` — add `openai>=1.0.0` (optional)
-- `config.py` — `OPENAI_API_KEY` env var support
-
-Tests:
 - `tests/test_openai_adapter.py`
 
-### Phase 3: Anthropic Adapter (estimated ~400 lines new code)
+Files to modify:
+- `agent/llm/base.py` — add `id: str | None = None` to `ToolCall`
+- `requirements.txt` — add `openai>=1.0.0` (optional dep)
+
+### Phase 3: Anthropic Adapter (estimated ~400 lines new code) — PENDING
+
+Create `agent/llm/anthropic_adapter.py` implementing `LLMAdapter`:
+- Implement client-managed message list (like OpenAI adapter)
+- Handle strict user/assistant alternation (merge consecutive same-role messages)
+- `make_tool_result_message()` → `{"type": "tool_result", "tool_use_id": ..., "content": ...}` (must be in user message)
+- Tool results from multiple calls must be batched in a single user message
+- `force_tool_call=True` → `tool_choice={"type": "any"}`
+- `json_schema` → use tool-based structured output (define schema as a tool, force call)
+- `thinking` param → `thinking: {"type": "enabled", "budget_tokens": N}` — map "high"→16384, "low"→2048
+- `is_quota_error()` → check `anthropic.RateLimitError`
+- Extended thinking content → `LLMResponse.thoughts`
+
+Implementation notes from Phase 1:
+- `ToolCall.id` (added in Phase 2) will carry `toolu_xxxxx` IDs from Anthropic
+- `system` parameter is separate from messages in Anthropic API (not a system message)
+- `response.content` blocks: `text`, `tool_use`, `thinking` — map to our LLMResponse fields
 
 Files to create:
 - `agent/llm/anthropic_adapter.py` (~350 lines)
-
-Files to modify:
-- `requirements.txt` — add `anthropic>=0.40.0` (optional)
-- `config.py` — `ANTHROPIC_API_KEY` env var support
-
-Tests:
 - `tests/test_anthropic_adapter.py`
 
-### Phase 4: Session + Config + UI (estimated ~200 lines modified)
-
 Files to modify:
-- `agent/session.py` — normalized history format + migration
-- `config.py` — `provider`, `base_url` settings
-- `config.template.json` — updated template
+- `requirements.txt` — add `anthropic>=0.40.0` (optional dep)
+
+### Phase 4: Session Persistence + Config + UI (estimated ~200 lines modified) — PENDING
+
+Normalize session history format so sessions saved with one provider can at least be detected:
+- Add `provider` tag to session metadata
+- Old Gemini-format sessions (with `"parts"` key) continue to work with Gemini adapter
+- New sessions use a provider-agnostic format (see design doc Section 9)
+- Cross-provider session resumption NOT supported (tag mismatch → fresh chat)
+
+Add CLI and UI support:
 - `main.py` — `--provider` CLI flag
 - `gradio_app.py` — provider selector dropdown
-- `docs/capability-summary.md` — updated
+- `agent/llm/__init__.py` — `create_adapter(provider, ...)` factory function
+- `agent/core.py` — read `LLM_PROVIDER` from config to select adapter at startup
+- Remove `tool_loop.py` backward-compat lazy import of `google.genai.types`
+- Update `docs/capability-summary.md`
+
+Optional Phase 5 (cost optimization):
+- Context caching for repeated system prompts (Gemini: 90% discount, Anthropic: cache_control)
+- Add `cache_system_prompt()` as adapter-specific method
+- OpenAI: automatic prompt caching, no action needed
 
 ---
 

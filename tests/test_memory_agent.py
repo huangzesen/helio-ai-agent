@@ -11,6 +11,7 @@ from unittest.mock import MagicMock, patch
 
 import pytest
 
+from agent.llm import LLMResponse
 from agent.memory import Memory, MemoryStore
 from agent.memory_agent import (
     MemoryAgent,
@@ -37,10 +38,10 @@ def memory_store(tmp_dir):
 
 @pytest.fixture
 def agent(memory_store):
-    """Provide a MemoryAgent with mock client."""
-    client = MagicMock()
+    """Provide a MemoryAgent with mock adapter."""
+    adapter = MagicMock()
     return MemoryAgent(
-        client=client,
+        adapter=adapter,
         model_name="test-model",
         memory_store=memory_store,
         verbose=False,
@@ -311,7 +312,7 @@ class TestConsolidate:
         removed = agent.consolidate(max_total=5)
         assert removed == 0
         # Client should NOT have been called
-        agent.client.models.generate_content.assert_not_called()
+        agent.adapter.generate.assert_not_called()
 
     def test_consolidates_when_over_limit(self, agent, memory_store):
         """Should call LLM and reduce memory count."""
@@ -329,7 +330,7 @@ class TestConsolidate:
         ])
         mock_response = MagicMock()
         mock_response.text = consolidated
-        agent.client.models.generate_content.return_value = mock_response
+        agent.adapter.generate.return_value = mock_response
 
         removed = agent.consolidate(max_total=10)
         assert removed == 10  # 15 - 5
@@ -355,7 +356,7 @@ class TestConsolidate:
         ])
         mock_response = MagicMock()
         mock_response.text = consolidated
-        agent.client.models.generate_content.return_value = mock_response
+        agent.adapter.generate.return_value = mock_response
 
         agent.consolidate(max_total=10)
         all_memories = memory_store.get_all()
@@ -370,7 +371,7 @@ class TestConsolidate:
             memory_store.add(Memory(
                 id=f"f{i}", type="preference", content=f"Pref {i}",
             ))
-        agent.client.models.generate_content.side_effect = Exception("API error")
+        agent.adapter.generate.side_effect = Exception("API error")
 
         removed = agent.consolidate(max_total=10)
         assert removed == 0
@@ -384,7 +385,7 @@ class TestConsolidate:
             ))
         mock_response = MagicMock()
         mock_response.text = "not valid json at all"
-        agent.client.models.generate_content.return_value = mock_response
+        agent.adapter.generate.return_value = mock_response
 
         removed = agent.consolidate(max_total=10)
         assert removed == 0
@@ -398,7 +399,7 @@ class TestConsolidate:
             ))
         mock_response = MagicMock()
         mock_response.text = "[]"
-        agent.client.models.generate_content.return_value = mock_response
+        agent.adapter.generate.return_value = mock_response
 
         removed = agent.consolidate(max_total=10)
         assert removed == 0
@@ -416,7 +417,7 @@ class TestConsolidate:
         ])
         mock_response = MagicMock()
         mock_response.text = f"```json\n{consolidated}\n```"
-        agent.client.models.generate_content.return_value = mock_response
+        agent.adapter.generate.return_value = mock_response
 
         removed = agent.consolidate(max_total=10)
         assert removed == 10  # 12 - 2
@@ -435,7 +436,7 @@ class TestConsolidate:
         ])
         mock_response = MagicMock()
         mock_response.text = consolidated
-        agent.client.models.generate_content.return_value = mock_response
+        agent.adapter.generate.return_value = mock_response
 
         agent.consolidate(max_total=10)
         # Cold storage should have the 10 evicted memories

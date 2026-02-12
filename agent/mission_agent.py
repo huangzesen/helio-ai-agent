@@ -8,8 +8,7 @@ data products without context pollution from other missions.
 
 from typing import Optional
 
-from google import genai
-
+from .llm import LLMAdapter
 from .base_agent import BaseSubAgent
 from .tasks import Task
 from knowledge.prompt_builder import build_mission_prompt
@@ -20,7 +19,7 @@ MISSION_EXTRA_TOOLS = ["list_fetched_data"]
 
 
 class MissionAgent(BaseSubAgent):
-    """A Gemini session specialized for one spacecraft mission.
+    """An LLM session specialized for one spacecraft mission.
 
     Attributes:
         mission_id: Spacecraft key (e.g., "PSP", "ACE")
@@ -29,7 +28,7 @@ class MissionAgent(BaseSubAgent):
     def __init__(
         self,
         mission_id: str,
-        client: genai.Client,
+        adapter: LLMAdapter,
         model_name: str,
         tool_executor,
         verbose: bool = False,
@@ -39,7 +38,7 @@ class MissionAgent(BaseSubAgent):
     ):
         self.mission_id = mission_id
         super().__init__(
-            client=client,
+            adapter=adapter,
             model_name=model_name,
             tool_executor=tool_executor,
             verbose=verbose,

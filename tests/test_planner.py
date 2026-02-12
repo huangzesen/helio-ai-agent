@@ -124,16 +124,16 @@ class TestPlannerAgentInterface:
     def test_init_no_chat(self):
         """PlannerAgent starts with no active chat."""
         # Use None client — we won't make API calls
-        agent = PlannerAgent(client=None, model_name="test-model")
+        agent = PlannerAgent(adapter=None, model_name="test-model")
         assert agent._chat is None
         assert agent.model_name == "test-model"
         assert agent.verbose is False
         assert agent.tool_executor is None
-        assert agent._function_declarations == []
+        assert agent._tool_schemas == []
 
     def test_get_token_usage_initial(self):
         """Token usage starts at zero."""
-        agent = PlannerAgent(client=None, model_name="test-model")
+        agent = PlannerAgent(adapter=None, model_name="test-model")
         usage = agent.get_token_usage()
         assert usage["input_tokens"] == 0
         assert usage["output_tokens"] == 0
@@ -141,14 +141,14 @@ class TestPlannerAgentInterface:
 
     def test_reset_clears_chat(self):
         """Reset should clear the chat session."""
-        agent = PlannerAgent(client=None, model_name="test-model")
+        agent = PlannerAgent(adapter=None, model_name="test-model")
         agent._chat = "something"
         agent.reset()
         assert agent._chat is None
 
     def test_continue_planning_without_chat_returns_none(self):
         """continue_planning should return None if no chat session exists."""
-        agent = PlannerAgent(client=None, model_name="test-model")
+        agent = PlannerAgent(adapter=None, model_name="test-model")
         result = agent.continue_planning([{"description": "test", "status": "completed"}])
         assert result is None
 
@@ -427,27 +427,27 @@ class TestPlannerAgentWithTools:
     def test_init_with_tool_executor_has_declarations(self):
         """When tool_executor is provided, function declarations should be built."""
         agent = PlannerAgent(
-            client=None,
+            adapter=None,
             model_name="test-model",
             tool_executor=self._dummy_executor,
         )
         assert agent.tool_executor is not None
-        assert len(agent._function_declarations) > 0
+        assert len(agent._tool_schemas) > 0
 
     def test_init_without_tool_executor_no_declarations(self):
         """When tool_executor is None, no function declarations."""
-        agent = PlannerAgent(client=None, model_name="test-model")
+        agent = PlannerAgent(adapter=None, model_name="test-model")
         assert agent.tool_executor is None
-        assert agent._function_declarations == []
+        assert agent._tool_schemas == []
 
     def test_tool_names_include_discovery(self):
         """Function declarations should include discovery tools."""
         agent = PlannerAgent(
-            client=None,
+            adapter=None,
             model_name="test-model",
             tool_executor=self._dummy_executor,
         )
-        tool_names = {fd.name for fd in agent._function_declarations}
+        tool_names = {fd.name for fd in agent._tool_schemas}
         # Discovery tools
         assert "search_datasets" in tool_names
         assert "list_parameters" in tool_names
@@ -461,11 +461,11 @@ class TestPlannerAgentWithTools:
     def test_tool_names_exclude_routing_and_visualization(self):
         """Function declarations should NOT include routing or visualization tools."""
         agent = PlannerAgent(
-            client=None,
+            adapter=None,
             model_name="test-model",
             tool_executor=self._dummy_executor,
         )
-        tool_names = {fd.name for fd in agent._function_declarations}
+        tool_names = {fd.name for fd in agent._tool_schemas}
         # Routing tools should NOT be present
         assert "delegate_to_mission" not in tool_names
         assert "delegate_to_visualization" not in tool_names
@@ -491,7 +491,7 @@ class TestPlannerAgentWithTools:
         """PlannerAgent should have a _run_discovery method for two-phase planning."""
         assert hasattr(PlannerAgent, "_run_discovery")
         agent = PlannerAgent(
-            client=None,
+            adapter=None,
             model_name="test-model",
             tool_executor=self._dummy_executor,
         )

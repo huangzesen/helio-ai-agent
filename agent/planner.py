@@ -13,9 +13,7 @@ import time
 from concurrent.futures import Future, ThreadPoolExecutor
 from typing import Optional
 
-from google import genai
-from google.genai import types
-
+from .llm import LLMAdapter, LLMResponse, FunctionSchema
 from .logging import get_logger, log_token_usage
 from .model_fallback import get_active_model
 from .base_agent import _GEMINI_WARN_INTERVAL, _GEMINI_RETRY_TIMEOUT, _GEMINI_MAX_RETRIES
@@ -139,10 +137,10 @@ class PlannerAgent:
     The planning phase always uses JSON schema enforcement for guaranteed output.
     """
 
-    def __init__(self, client: genai.Client, model_name: str,
+    def __init__(self, adapter: LLMAdapter, model_name: str,
                  tool_executor=None, verbose: bool = False,
                  cancel_event=None, token_log_path=None):
-        self.client = client
+        self.adapter = adapter
         self.model_name = model_name
         self.tool_executor = tool_executor
         self.verbose = verbose
@@ -155,26 +153,25 @@ class PlannerAgent:
         self._timeout_pool = ThreadPoolExecutor(max_workers=1)
         self.logger = get_logger()
 
-        # Build function declarations when tools are available
-        self._function_declarations = []
+        # Build FunctionSchema list when tools are available
+        self._tool_schemas: list[FunctionSchema] = []
         if self.tool_executor is not None:
             for tool_schema in get_tool_schemas(
                 categories=PLANNER_TOOL_CATEGORIES,
                 extra_names=PLANNER_EXTRA_TOOLS,
             ):
-                fd = types.FunctionDeclaration(
+                self._tool_schemas.append(FunctionSchema(
                     name=tool_schema["name"],
                     description=tool_schema["description"],
                     parameters=tool_schema["parameters"],
-                )
-                self._function_declarations.append(fd)
+                ))
 
-    def _send_with_timeout(self, chat, message):
-        """Send a message to Gemini with periodic warnings and retry on timeout."""
+    def _send_with_timeout(self, chat, message) -> LLMResponse:
+        """Send a message to the LLM with periodic warnings and retry on timeout."""
         last_exc = None
         for attempt in range(1 + _GEMINI_MAX_RETRIES):
             future: Future = self._timeout_pool.submit(
-                chat.send_message, message
+                chat.send, message
             )
             t0 = time.monotonic()
             try:
@@ -191,42 +188,38 @@ class PlannerAgent:
                         if elapsed >= _GEMINI_RETRY_TIMEOUT:
                             break
                         self.logger.warning(
-                            f"[PlannerAgent] Gemini API not responding "
+                            f"[PlannerAgent] LLM API not responding "
                             f"after {elapsed:.0f}s (attempt {attempt + 1})..."
                         )
 
                 elapsed = time.monotonic() - t0
                 future.cancel()
                 last_exc = TimeoutError(
-                    f"Gemini API call timed out after {elapsed:.0f}s"
+                    f"LLM API call timed out after {elapsed:.0f}s"
                 )
                 if attempt < _GEMINI_MAX_RETRIES:
                     self.logger.warning(
-                        f"[PlannerAgent] Gemini API timed out after "
+                        f"[PlannerAgent] LLM API timed out after "
                         f"{elapsed:.0f}s, retrying ({attempt + 1}/{_GEMINI_MAX_RETRIES})..."
                     )
                 else:
                     self.logger.error(
-                        f"[PlannerAgent] Gemini API timed out after "
+                        f"[PlannerAgent] LLM API timed out after "
                         f"{elapsed:.0f}s, no retries left"
                     )
             except Exception:
                 raise
         raise last_exc
 
-    def _track_usage(self, response):
-        """Accumulate token usage from a Gemini response."""
-        meta = getattr(response, "usage_metadata", None)
-        call_input = 0
-        call_output = 0
-        call_thinking = 0
-        if meta:
-            call_input = getattr(meta, "prompt_token_count", 0) or 0
-            call_output = getattr(meta, "candidates_token_count", 0) or 0
-            call_thinking = getattr(meta, "thoughts_token_count", 0) or 0
-            self._token_usage["input_tokens"] += call_input
-            self._token_usage["output_tokens"] += call_output
-            self._token_usage["thinking_tokens"] += call_thinking
+    def _track_usage(self, response: LLMResponse):
+        """Accumulate token usage from an LLMResponse."""
+        usage = response.usage
+        call_input = usage.input_tokens
+        call_output = usage.output_tokens
+        call_thinking = usage.thinking_tokens
+        self._token_usage["input_tokens"] += call_input
+        self._token_usage["output_tokens"] += call_output
+        self._token_usage["thinking_tokens"] += call_thinking
         self._api_calls += 1
         log_token_usage(
             agent_name="PlannerAgent",
@@ -241,17 +234,16 @@ class PlannerAgent:
             token_log_path=self._token_log_path,
         )
         if self.verbose:
-            from .thinking import extract_thoughts
             from .logging import tagged
-            for thought in extract_thoughts(response):
+            for thought in response.thoughts:
                 # Full text to terminal/file (untagged)
                 logger.debug(f"[Thinking] {thought}")
                 # Preview for Gradio (tagged) — Gradio handler shows these inline
                 preview = thought[:500] + ("..." if len(thought) > 500 else "")
                 logger.debug(f"[Thinking] {preview}", extra={**tagged("thinking"), "skip_file": True})
 
-    def _parse_response(self, response) -> Optional[dict]:
-        """Parse JSON response from Gemini, normalizing mission fields.
+    def _parse_response(self, response: LLMResponse) -> Optional[dict]:
+        """Parse JSON response from the LLM, normalizing mission fields.
 
         The planning phase always uses JSON schema enforcement, so the
         response text is guaranteed to be valid JSON.
@@ -290,18 +282,11 @@ class PlannerAgent:
         """
         discovery_prompt = build_discovery_prompt()
 
-        config = types.GenerateContentConfig(
-            system_instruction=discovery_prompt,
-            tools=[types.Tool(function_declarations=self._function_declarations)],
-            thinking_config=types.ThinkingConfig(
-                include_thoughts=True,
-                thinking_level="LOW",
-            ),
-        )
-
-        chat = self.client.chats.create(
+        chat = self.adapter.create_chat(
             model=get_active_model(self.model_name),
-            config=config,
+            system_prompt=discovery_prompt,
+            tools=self._tool_schemas,
+            thinking="low",
         )
 
         if self.verbose:
@@ -324,6 +309,7 @@ class PlannerAgent:
             collect_tool_results=tool_results,
             cancel_event=self._cancel_event,
             send_fn=lambda msg: self._send_with_timeout(chat, msg),
+            adapter=self.adapter,
         )
 
         text = extract_text_from_response(response)
@@ -484,25 +470,17 @@ class PlannerAgent:
         try:
             # Phase 1: Discovery (only when tools are available)
             discovery_context = ""
-            if self._function_declarations and self.tool_executor:
+            if self._tool_schemas and self.tool_executor:
                 discovery_context = self._run_discovery(user_request)
 
             # Phase 2: Planning (always JSON-schema-enforced)
             system_prompt = build_planner_agent_prompt()
 
-            config = types.GenerateContentConfig(
-                system_instruction=system_prompt,
-                response_mime_type="application/json",
-                response_schema=PLANNER_RESPONSE_SCHEMA,
-                thinking_config=types.ThinkingConfig(
-                    include_thoughts=True,
-                    thinking_level="HIGH",
-                ),
-            )
-
-            self._chat = self.client.chats.create(
+            self._chat = self.adapter.create_chat(
                 model=get_active_model(self.model_name),
-                config=config,
+                system_prompt=system_prompt,
+                json_schema=PLANNER_RESPONSE_SCHEMA,
+                thinking="high",
             )
 
             # Build the planning message with discovery context
