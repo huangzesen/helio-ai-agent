@@ -83,6 +83,19 @@ TOOLS = [
         ],
     },
     {
+        "name": "update_plot_spec",
+        "description": "Create or update the plot via a single unified specification. Layout changes trigger a full re-render; style-only changes are applied in-place.",
+        "parameters": [
+            {"name": "spec", "type": "object", "required": True,
+             "description": "Complete plot specification. Must include 'labels' (comma-separated). "
+                            "Layout fields: panels, panel_types, plot_type, columns, column_titles, "
+                            "colorscale, log_y, log_z, z_min, z_max. "
+                            "Style fields: title, x_label, y_label, trace_colors, line_styles, "
+                            "log_scale, x_range, y_range, legend, font_size, canvas_size, "
+                            "annotations, theme, vlines, vrects."},
+        ],
+    },
+    {
         "name": "manage_plot",
         "description": "Structural operations on the plot: export, reset, zoom, get state, add/remove traces.",
         "parameters": [
@@ -183,17 +196,10 @@ def render_method_catalog() -> str:
     lines.extend([
         "## Examples",
         "",
-        "- Plot stored data: `plot_data(labels=\"ACE_Bmag,PSP_Bmag\", title=\"Comparison\")`",
-        "- Multi-panel plot: `plot_data(labels=\"Bmag,Density\", panels=[[\"Bmag\"], [\"Density\"]])`",
-        "- Spectrogram: `plot_data(labels=\"ACE_Bmag_spectrogram\", plot_type=\"spectrogram\")`",
-        "- Mixed panels: `plot_data(labels=\"PAD,Br,Bmag\", panels=[[\"PAD\"],[\"Br\"],[\"Bmag\"]], panel_types=[\"spectrogram\",\"line\",\"line\"])`",
-        "- Side-by-side: `plot_data(labels=\"A,B,C,D\", panels=[[\"A\",\"B\"],[\"C\",\"D\"]], columns=2, column_titles=[\"Period 1\",\"Period 2\"])`",
-        "- Set title: `style_plot(title=\"Solar Wind Speed\")`",
-        "- Y-axis label: `style_plot(y_label=\"B (nT)\")`",
-        "- Log scale: `style_plot(log_scale=\"y\")`",
-        "- Trace color: `style_plot(trace_colors={\"ACE Bmag\": \"red\"})`",
-        "- Canvas size: `style_plot(canvas_size={\"width\": 1920, \"height\": 1080})`",
-        "- Vertical line: `style_plot(vlines=[{\"x\": \"2024-01-15T09:33:00\", \"label\": \"Event\"}])`  (defaults to red)",
+        "- New plot via spec: `update_plot_spec(spec={\"labels\": \"ACE_Bmag,PSP_Bmag\", \"title\": \"Comparison\"})`",
+        "- Multi-panel spec: `update_plot_spec(spec={\"labels\": \"Bmag,Density\", \"panels\": [[\"Bmag\"], [\"Density\"]], \"y_label\": {\"1\": \"nT\", \"2\": \"cm^-3\"}})`",
+        "- Style change via spec: `update_plot_spec(spec={\"labels\": \"ACE_Bmag\", \"title\": \"New Title\", \"trace_colors\": {\"ACE Bmag\": \"red\"}})`",
+        "- Spectrogram spec: `update_plot_spec(spec={\"labels\": \"ACE_spec\", \"plot_type\": \"spectrogram\", \"colorscale\": \"Jet\", \"log_z\": true})`",
         "- Zoom: `manage_plot(action=\"set_time_range\", time_range=\"2024-01-15 to 2024-01-20\")`",
         "- Reset: `manage_plot(action=\"reset\")`",
         "- Get state: `manage_plot(action=\"get_state\")`",

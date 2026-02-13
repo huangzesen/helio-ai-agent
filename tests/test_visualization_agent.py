@@ -39,12 +39,12 @@ class TestVizAgentToolFiltering:
         names = {t["name"] for t in tools}
         assert "list_fetched_data" in names
 
-    def test_viz_tools_count_is_4(self):
+    def test_viz_tools_count_is_5(self):
         tools = get_tool_schemas(
             categories=VIZ_TOOL_CATEGORIES,
             extra_names=VIZ_EXTRA_TOOLS,
         )
-        assert len(tools) == 4  # plot_data + style_plot + manage_plot + list_fetched_data
+        assert len(tools) == 5  # plot_data + style_plot + update_plot_spec + manage_plot + list_fetched_data
 
     def test_viz_tools_exclude_routing(self):
         tools = get_tool_schemas(

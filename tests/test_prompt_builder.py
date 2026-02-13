@@ -416,18 +416,16 @@ class TestBuildDataOpsPrompt:
 class TestBuildVisualizationPrompt:
     """Test the visualization agent's system prompt builder."""
 
-    def test_contains_tool_catalog(self):
+    def test_contains_spec_workflow(self):
         prompt = build_visualization_prompt()
-        assert "## Visualization Tools" in prompt
-        assert "plot_data" in prompt
-        assert "style_plot" in prompt
+        assert "update_plot_spec" in prompt
         assert "manage_plot" in prompt
 
     def test_contains_tool_usage_sections(self):
         prompt = build_visualization_prompt()
-        assert "## Using plot_data" in prompt
-        assert "## Using style_plot" in prompt
+        assert "## How update_plot_spec Works" in prompt
         assert "## Using manage_plot" in prompt
+        assert "## Spec Field Reference" in prompt
 
     def test_contains_workflow(self):
         prompt = build_visualization_prompt()
@@ -450,22 +448,21 @@ class TestBuildVisualizationPrompt:
         assert "## Time Range Format" in prompt
         assert "NOT '/'" in prompt
 
-    def test_has_plot_method_in_workflow(self):
+    def test_has_spec_method_in_workflow(self):
         prompt = build_visualization_prompt()
-        assert "plot_data" in prompt
+        assert "update_plot_spec" in prompt
 
     def test_has_panel_example(self):
         prompt = build_visualization_prompt()
         assert "panels" in prompt
 
-    def test_has_fetch_data_note(self):
+    def test_has_vector_data_note(self):
         prompt = build_visualization_prompt()
-        assert "fetch_data first" in prompt
+        assert "Vector data" in prompt
 
-    def test_describes_four_tools(self):
+    def test_describes_three_tools(self):
         prompt = build_visualization_prompt()
-        assert "plot_data" in prompt
-        assert "style_plot" in prompt
+        assert "update_plot_spec" in prompt
         assert "manage_plot" in prompt
         assert "list_fetched_data" in prompt
 

@@ -700,6 +700,42 @@ class OrchestratorAgent:
                 return sub_entry, label
         return None, None
 
+    # Fields that define the plot structure — changes trigger full re-render
+    _LAYOUT_FIELDS = {
+        "labels", "panels", "panel_types", "plot_type", "columns",
+        "column_titles", "colorscale", "log_y", "log_z", "z_min", "z_max",
+    }
+
+    def _handle_update_plot_spec(self, tool_args: dict) -> dict:
+        """Handle update_plot_spec: diff old vs new spec, re-render or restyle."""
+        new_spec = tool_args.get("spec", {})
+        if not new_spec.get("labels"):
+            return {"status": "error", "message": "spec.labels is required"}
+
+        old_spec = self._renderer.get_current_spec()
+
+        # Determine if any layout field changed
+        layout_changed = any(
+            new_spec.get(k) != old_spec.get(k) for k in self._LAYOUT_FIELDS
+        )
+
+        if layout_changed or not old_spec:
+            # Full re-render: resolve entries, call render_from_spec
+            return self._handle_render_spec({"spec": new_spec})
+        else:
+            # Style-only: extract style fields, call style()
+            style_kwargs = {
+                k: v for k, v in new_spec.items()
+                if k not in self._LAYOUT_FIELDS
+            }
+            if style_kwargs:
+                result = self._handle_style_plot(style_kwargs)
+            else:
+                result = {"status": "success", "message": "No changes detected.", "display": "plotly"}
+            # Update stored spec to reflect new desired state
+            self._renderer._current_plot_spec = dict(new_spec)
+            return result
+
     def _handle_plot_data(self, tool_args: dict) -> dict:
         """Handle the plot_data tool call."""
         store = get_store()
@@ -999,6 +1035,9 @@ class OrchestratorAgent:
             }
 
         # --- Visualization (declarative tools) ---
+
+        elif tool_name == "update_plot_spec":
+            return self._handle_update_plot_spec(tool_args)
 
         elif tool_name == "plot_data":
             return self._handle_plot_data(tool_args)
@@ -1806,6 +1845,15 @@ class OrchestratorAgent:
 
             agent = self._get_or_create_viz_agent()
             full_request = f"{request}\n\nContext: {context}" if context else request
+
+            # Inject current plot spec so the viz agent can diff against it
+            import json as _json
+            current_spec = self._renderer.get_current_spec()
+            if current_spec:
+                full_request += f"\n\nCurrent plot spec:\n{_json.dumps(current_spec, indent=2)}"
+            else:
+                full_request += "\n\nNo plot currently displayed."
+
             sub_result = agent.process_request(full_request)
             self.logger.debug("[Router] Visualization specialist finished", extra=tagged("delegation_done"))
             return self._wrap_delegation_result(sub_result, store_snapshot=get_store().list_entries())
@@ -2408,13 +2456,22 @@ class OrchestratorAgent:
                 self._handle_export_task(task)
             else:
                 # Plot tasks: ensure instruction includes actual labels
-                has_tool_ref = "plot_data" in instr_lower
+                has_tool_ref = "update_plot_spec" in instr_lower or "plot_data" in instr_lower
                 if not has_tool_ref and entries:
                     all_labels = ",".join(e["label"] for e in entries)
                     task.instruction = (
-                        f"Use plot_data to plot {all_labels}. "
+                        f"Use update_plot_spec to plot {all_labels}. "
                         f"Original request: {task.instruction}"
                     )
+
+                # Inject current spec context for the viz agent
+                import json as _json
+                current_spec = self._renderer.get_current_spec()
+                if current_spec:
+                    task.instruction += f"\n\nCurrent plot spec:\n{_json.dumps(current_spec, indent=2)}"
+                else:
+                    task.instruction += "\n\nNo plot currently displayed."
+
                 self._get_or_create_viz_agent().execute_task(task)
         elif task.mission == "__data_ops__":
             self._get_or_create_dataops_agent().execute_task(task)

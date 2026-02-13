@@ -852,3 +852,75 @@ class TestRenderFromSpec:
         fig = renderer.get_figure()
         # vlines should add shapes to the figure
         assert len(fig.layout.shapes) > 0
+
+
+# ---------------------------------------------------------------------------
+# get_current_spec / spec tracking
+# ---------------------------------------------------------------------------
+
+class TestSpecTracking:
+    """Tests for the current plot spec tracking."""
+
+    def test_get_current_spec_empty_initially(self, renderer):
+        """get_current_spec returns empty dict before any render."""
+        assert renderer.get_current_spec() == {}
+
+    def test_get_current_spec_after_render_from_spec(self, renderer):
+        """get_current_spec returns the spec used in render_from_spec."""
+        entry = _make_entry("A", n=50, desc="Alpha")
+        spec = {"labels": "A", "title": "Test Title"}
+        renderer.render_from_spec(spec, [entry])
+        current = renderer.get_current_spec()
+        assert current == spec
+        # Returned dict is a copy, not the same object
+        assert current is not renderer._current_plot_spec
+
+    def test_spec_cleared_on_reset(self, renderer):
+        """reset() clears the current spec."""
+        entry = _make_entry("A", n=50, desc="Alpha")
+        renderer.render_from_spec({"labels": "A"}, [entry])
+        assert renderer.get_current_spec() != {}
+        renderer.reset()
+        assert renderer.get_current_spec() == {}
+
+    def test_style_merges_into_spec(self, renderer):
+        """style() merges its args into the current spec."""
+        entry = _make_entry("A", n=50, desc="Alpha")
+        renderer.render_from_spec({"labels": "A"}, [entry])
+        renderer.style(title="New Title", font_size=16)
+        spec = renderer.get_current_spec()
+        assert spec["title"] == "New Title"
+        assert spec["font_size"] == 16
+        # Original labels preserved
+        assert spec["labels"] == "A"
+
+    def test_spec_round_trip(self, renderer):
+        """Render with spec, get it back, render again — same figure."""
+        entry = _make_entry("X", n=30, desc="Xray")
+        spec = {"labels": "X", "title": "Round Trip", "font_size": 14}
+        renderer.render_from_spec(spec, [entry])
+        fig1_data = renderer.get_figure().to_dict()
+
+        # Get spec and re-render on fresh renderer
+        recovered_spec = renderer.get_current_spec()
+        renderer2 = PlotlyRenderer(verbose=False)
+        renderer2.render_from_spec(recovered_spec, [entry])
+        fig2_data = renderer2.get_figure().to_dict()
+
+        assert len(fig1_data["data"]) == len(fig2_data["data"])
+        assert fig1_data["layout"]["title"]["text"] == fig2_data["layout"]["title"]["text"]
+        assert fig2_data["layout"]["font"]["size"] == 14
+
+    def test_spec_in_save_restore_state(self, renderer):
+        """save_state/restore_state preserves the current spec."""
+        entry = _make_entry("S", n=20, desc="Sigma")
+        spec = {"labels": "S", "title": "Saved Spec"}
+        renderer.render_from_spec(spec, [entry])
+
+        state = renderer.save_state()
+        assert state is not None
+        assert state["plot_spec"] == spec
+
+        renderer2 = PlotlyRenderer(verbose=False)
+        renderer2.restore_state(state)
+        assert renderer2.get_current_spec() == spec

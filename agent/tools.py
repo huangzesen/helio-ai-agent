@@ -729,6 +729,34 @@ Use this for titles, axis labels, log scale, colors, line styles, canvas size, a
     },
     {
         "category": "visualization",
+        "name": "update_plot_spec",
+        "description": """Create or update the plot by providing the complete plot specification.
+
+The spec is a single JSON object containing all layout and style fields. The system compares
+the new spec to the current one and decides whether to re-render (layout changed) or just
+restyle (only aesthetics changed). Creating a new plot = updating an empty spec.
+
+Layout fields (trigger re-render when changed): labels, panels, panel_types, plot_type,
+columns, column_titles, colorscale, log_y, log_z, z_min, z_max.
+
+Style fields (applied in-place): title, x_label, y_label, trace_colors, line_styles,
+log_scale, x_range, y_range, legend, font_size, canvas_size, annotations, theme, vlines, vrects.
+
+You receive the current spec in your context. Output the full desired spec — include ALL
+fields you want in the final result, not just the changes.""",
+        "parameters": {
+            "type": "object",
+            "properties": {
+                "spec": {
+                    "type": "object",
+                    "description": "Complete plot specification. All fields optional except 'labels' (comma-separated data labels from list_fetched_data). See tool description for full field list."
+                }
+            },
+            "required": ["spec"]
+        }
+    },
+    {
+        "category": "visualization",
         "name": "manage_plot",
         "description": """Structural operations on the plot: export, reset, zoom, get state, add/remove traces.
 Use action parameter to select the operation.""",

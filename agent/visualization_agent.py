@@ -2,12 +2,12 @@
 Visualization sub-agent with optional think phase.
 
 For plot-creation requests, runs a think phase to inspect data (shapes,
-types, units, NaN counts) before constructing plot_data calls. Style and
-manage requests skip the think phase to avoid wasting tokens.
+types, units, NaN counts) before constructing update_plot_spec calls.
+Style and manage requests skip the think phase to avoid wasting tokens.
 
-Owns all visualization operations via three declarative tools:
-- plot_data — create plots from in-memory data
-- style_plot — apply aesthetics via key-value params
+Owns visualization through two tools:
+- update_plot_spec — create/update plots via a single unified JSON spec
+  (replaces the old plot_data + style_plot two-step workflow)
 - manage_plot — structural ops (reset, zoom, add/remove traces)
 
 The orchestrator delegates visualization requests here, keeping data
@@ -29,8 +29,12 @@ from knowledge.prompt_builder import (
 )
 
 # Visualization agent gets its own tool category + list_fetched_data from data_ops
+# Only update_plot_spec and manage_plot are exposed; plot_data and style_plot are
+# internal primitives used by other agents and the pipeline system.
 VIZ_TOOL_CATEGORIES = ["visualization"]
 VIZ_EXTRA_TOOLS = ["list_fetched_data"]
+# Tools to exclude from the viz agent (internal primitives)
+_VIZ_EXCLUDED_TOOLS = {"plot_data", "style_plot"}
 
 # Think phase: data inspection only (no viz tools)
 VIZ_THINK_EXTRA_TOOLS = ["list_fetched_data", "describe_data", "preview_data"]
@@ -97,6 +101,12 @@ class VisualizationAgent(BaseSubAgent):
             pitfalls=pitfalls,
             token_log_path=token_log_path,
         )
+
+        # Filter out plot_data and style_plot — viz agent uses update_plot_spec instead
+        self._tool_schemas = [
+            ts for ts in self._tool_schemas
+            if ts.name not in _VIZ_EXCLUDED_TOOLS
+        ]
 
         # Build think-phase tool schemas (data inspection only)
         self._think_tool_schemas: list[FunctionSchema] = []
@@ -193,7 +203,7 @@ class VisualizationAgent(BaseSubAgent):
                 enriched = (
                     f"{user_message}\n\n"
                     f"## Data Inspection Findings\n{think_context}\n\n"
-                    f"Now create the visualization using plot_data."
+                    f"Now create the visualization using update_plot_spec."
                 )
             else:
                 enriched = user_message
@@ -207,7 +217,7 @@ class VisualizationAgent(BaseSubAgent):
         """Build an explicit task prompt with concrete label values.
 
         Extracts actual data labels from the instruction (injected by
-        _execute_plan_task) and constructs the exact plot_data call
+        _execute_plan_task) and constructs the exact update_plot_spec call
         so Gemini Flash sees the precise command to execute.
 
         Note: Export tasks are handled directly by the orchestrator and
@@ -228,13 +238,12 @@ class VisualizationAgent(BaseSubAgent):
         task_prompt = (
             f"Execute this task: {task.instruction}\n\n"
             f"Your FIRST call must be: "
-            f"plot_data(labels=\"{labels_str}\")\n\n"
+            f"update_plot_spec(spec={{\"labels\": \"{labels_str}\"}})\n\n"
             "RULES:\n"
             "- Do NOT call manage_plot(action='reset'), manage_plot(action='get_state'), or manage_plot(action='export').\n"
-            "- Call plot_data with the labels shown above.\n"
-            "- After plotting, inspect review.sizing_recommendation and call\n"
-            "  style_plot(canvas_size=...) if it differs from review.figure_size.\n"
-            "- After plotting, you may call style_plot to adjust titles/labels/axes.\n"
+            "- Call update_plot_spec with the labels shown above.\n"
+            "- After plotting, inspect review.sizing_recommendation and update the spec\n"
+            "  with canvas_size if it differs from review.figure_size.\n"
             "- Do NOT call manage_plot(action='set_time_range') unless the review shows a wrong time range.\n"
             "- Do NOT export the plot — exporting is handled by the orchestrator."
             + pitfall_section

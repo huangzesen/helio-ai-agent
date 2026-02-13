@@ -30,12 +30,12 @@ class TestRegistryStructure:
         names = [t["name"] for t in TOOLS]
         assert len(names) == len(set(names)), f"Duplicate tool names: {[n for n in names if names.count(n) > 1]}"
 
-    def test_tool_count_is_3(self):
-        assert len(TOOLS) == 3
+    def test_tool_count_is_4(self):
+        assert len(TOOLS) == 4
 
     def test_tool_names(self):
         names = {t["name"] for t in TOOLS}
-        assert names == {"plot_data", "style_plot", "manage_plot"}
+        assert names == {"plot_data", "style_plot", "update_plot_spec", "manage_plot"}
 
     def test_parameters_have_required_fields(self):
         for t in TOOLS:

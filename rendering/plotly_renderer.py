@@ -135,6 +135,8 @@ class PlotlyRenderer:
         # Trace tracking: parallel to fig.data
         self._trace_labels: list[str] = []
         self._trace_panels: list[tuple[int, int]] = []  # (row, col) per trace
+        # Current plot spec for spec-based rendering
+        self._current_plot_spec: dict = {}
 
     # ------------------------------------------------------------------
     # Helpers
@@ -946,6 +948,19 @@ class PlotlyRenderer:
                     f'vrects=[{{"x0": "2024-01-10", "x1": "2024-01-15"}}]'
                 )
 
+        # Merge applied style fields into the current spec
+        style_fields = {
+            "title": title, "x_label": x_label, "y_label": y_label,
+            "trace_colors": trace_colors, "line_styles": line_styles,
+            "log_scale": log_scale, "x_range": x_range, "y_range": y_range,
+            "legend": legend, "font_size": font_size, "canvas_size": canvas_size,
+            "annotations": annotations, "colorscale": colorscale, "theme": theme,
+            "vlines": vlines, "vrects": vrects,
+        }
+        for k, v in style_fields.items():
+            if v is not None:
+                self._current_plot_spec[k] = v
+
         result = {"status": "success", "message": "Style applied.", "display": "plotly"}
         if warnings:
             result["warnings"] = warnings
@@ -1120,6 +1135,7 @@ class PlotlyRenderer:
         self._color_index = 0
         self._trace_labels.clear()
         self._trace_panels.clear()
+        self._current_plot_spec = {}
         return {"status": "success", "message": "Canvas reset."}
 
     def get_current_state(self) -> dict:
@@ -1131,6 +1147,13 @@ class PlotlyRenderer:
             "has_plot": self._figure is not None and len(self._figure.data) > 0,
             "traces": list(self._trace_labels),
         }
+
+    def get_current_spec(self) -> dict:
+        """Return a copy of the current plot spec.
+
+        Returns an empty dict if no spec-based render has occurred.
+        """
+        return dict(self._current_plot_spec)
 
     # ------------------------------------------------------------------
     # Review metadata (for LLM self-assessment)
@@ -1366,6 +1389,9 @@ class PlotlyRenderer:
             if style_result.get("warnings"):
                 result.setdefault("warnings", []).extend(style_result["warnings"])
 
+        # Store the full spec for spec-based diffing
+        self._current_plot_spec = dict(spec)
+
         return result
 
     # ------------------------------------------------------------------
@@ -1397,6 +1423,7 @@ class PlotlyRenderer:
             "color_index": self._color_index,
             "trace_labels": list(self._trace_labels),
             "trace_panels": [{"row": r, "col": c} for r, c in self._trace_panels],
+            "plot_spec": dict(self._current_plot_spec),
         }
 
     def restore_state(self, state: dict) -> None:
@@ -1426,6 +1453,8 @@ class PlotlyRenderer:
             else:
                 panels.append((1, 1))
         self._trace_panels = panels
+
+        self._current_plot_spec = state.get("plot_spec", {})
 
         tr_str = state.get("time_range")
         if tr_str:
