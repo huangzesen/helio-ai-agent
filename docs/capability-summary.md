@@ -130,7 +130,7 @@ agent/core.py  OrchestratorAgent  (LLM-driven orchestrator)
           stress_test.py            Stress testing
 ```
 
-## Tools (29 tool schemas)
+## Tools (33 tool schemas)
 
 ### Dataset Discovery
 | Tool | Purpose |
@@ -206,10 +206,18 @@ The LLM inspects this metadata within the existing tool loop and can self-correc
 | `delegate_to_visualization` | LLM-driven delegation to the visualization sub-agent |
 | `request_planning` | Activate multi-step planning system for complex requests (orchestrator can trigger dynamically) |
 
+### Pipeline
+| Tool | Purpose |
+|------|---------|
+| `save_pipeline` | Save session's data workflow as a reusable pipeline template (LLM cherry-picks steps from recording buffer) |
+| `run_pipeline` | Execute a saved pipeline — deterministic by default, or with LLM-mediated modifications |
+| `list_pipelines` | List all saved pipelines with names, descriptions, step counts, and variables |
+| `delete_pipeline` | Delete a saved pipeline by ID |
+
 ## Sub-Agent Architecture (5 agents)
 
 ### OrchestratorAgent (agent/core.py)
-- Sees tools: discovery, conversation, routing, document + `list_fetched_data` extra
+- Sees tools: discovery, conversation, routing, document, pipeline + `list_fetched_data` extra
 - Routes: data fetching -> MissionAgent, computation -> DataOpsAgent, text-to-data -> DataExtractionAgent, visualization -> VisualizationAgent
 - Handles multi-step plans with mission-tagged task dispatch (`__data_ops__`, `__data_extraction__`, `__visualization__`)
 

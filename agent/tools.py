@@ -1031,6 +1031,102 @@ Do NOT use this for requests that can be satisfied with 1-2 direct delegations."
             "required": ["request", "reasoning", "time_range"]
         }
     },
+
+    # ---- Pipeline tools (orchestrator only) ----
+
+    {
+        "category": "pipeline",
+        "name": "save_pipeline",
+        "description": """Save the current session's data workflow as a reusable pipeline. Use this when the user wants to save their current analysis as a template they can re-run later with different time ranges.
+
+You MUST provide the steps array — cherry-pick from the tool calls made in this session, keeping only the successful data-producing and visualization steps. For each step, write a clear 'intent' describing what it does in plain English.
+
+Time ranges in fetch_data steps should use the variable "$TIME_RANGE" so the pipeline can be replayed for different dates.""",
+        "parameters": {
+            "type": "object",
+            "properties": {
+                "name": {
+                    "type": "string",
+                    "description": "Human-readable name for the pipeline (e.g., 'ACE B-field Overview')"
+                },
+                "description": {
+                    "type": "string",
+                    "description": "What this pipeline does (e.g., 'Fetch ACE mag data, compute magnitude, two-panel plot')"
+                },
+                "steps": {
+                    "type": "array",
+                    "description": "Ordered list of pipeline steps. Each step: {tool_name, tool_args, intent, produces (optional), depends_on (optional), critical (optional, default true)}",
+                    "items": {
+                        "type": "object",
+                        "properties": {
+                            "tool_name": {"type": "string"},
+                            "tool_args": {"type": "object"},
+                            "intent": {"type": "string", "description": "Plain-English description of what this step does"},
+                            "produces": {"type": "array", "items": {"type": "string"}, "description": "DataStore labels created by this step"},
+                            "depends_on": {"type": "array", "items": {"type": "integer"}, "description": "Step IDs (1-based) that must succeed first"},
+                            "critical": {"type": "boolean", "description": "If true (default), failure aborts dependent steps"}
+                        },
+                        "required": ["tool_name", "tool_args", "intent"]
+                    }
+                },
+                "variables": {
+                    "type": "object",
+                    "description": "Template variables. Keys start with '$' (e.g., '$TIME_RANGE'). Values: {type, description, default}. If omitted, $TIME_RANGE is auto-detected from fetch_data steps."
+                }
+            },
+            "required": ["name", "description", "steps"]
+        }
+    },
+    {
+        "category": "pipeline",
+        "name": "run_pipeline",
+        "description": """Execute a saved pipeline. By default runs deterministically (no LLM, zero tokens, consistent output).
+
+If the user requests modifications (e.g., 'run my ACE pipeline but with red lines'), pass them in the 'modifications' field — this triggers LLM-mediated mode where the pipeline runs first, then the LLM applies only the requested changes.""",
+        "parameters": {
+            "type": "object",
+            "properties": {
+                "pipeline_id": {
+                    "type": "string",
+                    "description": "The pipeline ID (slug) to execute"
+                },
+                "variable_overrides": {
+                    "type": "object",
+                    "description": "Override template variables. Example: {\"$TIME_RANGE\": \"2026-01-01 to 2026-01-31\"}"
+                },
+                "modifications": {
+                    "type": "string",
+                    "description": "Natural language description of changes to apply after pipeline execution (triggers LLM-mediated mode)"
+                }
+            },
+            "required": ["pipeline_id"]
+        }
+    },
+    {
+        "category": "pipeline",
+        "name": "list_pipelines",
+        "description": "List all saved pipelines with their names, descriptions, step counts, and variables.",
+        "parameters": {
+            "type": "object",
+            "properties": {},
+            "required": []
+        }
+    },
+    {
+        "category": "pipeline",
+        "name": "delete_pipeline",
+        "description": "Delete a saved pipeline by its ID.",
+        "parameters": {
+            "type": "object",
+            "properties": {
+                "pipeline_id": {
+                    "type": "string",
+                    "description": "The pipeline ID (slug) to delete"
+                }
+            },
+            "required": ["pipeline_id"]
+        }
+    },
 ]
 
 

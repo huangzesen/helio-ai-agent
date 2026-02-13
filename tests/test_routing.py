@@ -21,7 +21,7 @@ class TestToolCategoryFiltering:
 
     def test_no_filter_returns_all_tools(self):
         all_tools = get_tool_schemas()
-        assert len(all_tools) == 29
+        assert len(all_tools) == 33
         names = {t["name"] for t in all_tools}
         assert "plot_data" in names
         assert "style_plot" in names
