@@ -181,31 +181,44 @@ New category: `"pipeline"`
 | Column name changed upstream | custom_operation sandbox error caught; dependent steps skipped |
 | User wants to fix a failed step | "Run pipeline with modifications: fix step 2" → LLM-mediated mode |
 
-## Implementation Order
+## Implementation Progress
 
-**Phase 1 — MVP (deterministic replay)**
-1. Create `agent/pipeline.py` — dataclasses, PipelineStore, PipelineRecorder, PipelineExecutor
-2. Add 4 tool schemas to `agent/tools.py`
-3. Hook PipelineRecorder into `core.py:_execute_tool_safe()`
-4. Add tool handlers + `_handle_save_pipeline` / `_handle_run_pipeline` (deterministic only)
-5. Add pipeline tools to orchestrator tool set
+**Phase 1 — MVP (deterministic replay)** — COMPLETE (commit 7286125, feature/pipeline branch)
+1. ~~Create `agent/pipeline.py`~~ — Pipeline, PipelineStep, PipelineVariable, PipelineStore, PipelineRecorder, PipelineExecutor (~350 lines)
+2. ~~Add 4 tool schemas to `agent/tools.py`~~ — save_pipeline, run_pipeline, list_pipelines, delete_pipeline
+3. ~~Hook PipelineRecorder into `core.py:_execute_tool_safe()`~~ — single line, records after every tool call
+4. ~~Add tool handlers + `_handle_save_pipeline` / `_handle_run_pipeline`~~ — 4 handlers on OrchestratorAgent
+5. ~~Add pipeline tools to orchestrator tool set~~ — added "pipeline" to ORCHESTRATOR_CATEGORIES
 
-**Phase 2 — LLM-mediated replay**
-1. Implement `Pipeline.to_llm_context()` — human-readable pipeline formatting
-2. Implement modifications path in `_handle_run_pipeline()` — inject pipeline context into prompt, let LLM execute with modifications
-3. Optionally: "save modified pipeline" flow (user runs with modifications, then saves the updated version)
+**Phase 2 — LLM-mediated replay** — COMPLETE (same commit)
+1. ~~Implement `Pipeline.to_llm_context()`~~ — human-readable formatting for LLM context injection
+2. ~~Implement modifications path in `_handle_run_pipeline()`~~ — runs deterministic first, then LLM applies only requested changes
+3. "Save modified pipeline" flow — available via existing save_pipeline (user can save after modifications)
 
-**Phase 3 — Polish**
+**Phase 3 — Unified Plot Spec** — COMPLETE
+1. ~~`render_from_spec()` on PlotlyRenderer~~ — takes a single spec dict + DataEntry list, calls plot_data + style in one shot
+2. ~~`render_spec` tool schema + handler in core.py~~ — resolves labels from DataStore, dispatches to renderer
+3. ~~`merge_plot_steps()` in pipeline.py~~ — auto-merges consecutive plot_data + style_plot into render_spec during save
+4. ~~Updated `_handle_run_pipeline` modifications prompt~~ — guides LLM to use style_plot for style-only changes (no re-fetch)
+5. ~~`render_spec` added to RECORDABLE_TOOLS~~
+
+**Phase 4 — Polish** — NOT STARTED
 1. Add pipeline listing to Gradio sidebar
-2. Unit tests for PipelineStore, PipelineExecutor, variable substitution
-3. Pipeline export/import for sharing
+2. Pipeline export/import for sharing
+
+**Tests** — 54 pipeline tests + 7 render_from_spec tests, all passing. Covers:
+- PipelineStore: save/load/list/delete round-trip, overwrite, nonexistent
+- PipelineExecutor: variable substitution, dependency ordering, critical/non-critical failure propagation, transitive skip, exceptions
+- PipelineRecorder: recording filter (only recordable tools), error filtering, deep copy, clear
+- Dataclass round-trips: PipelineStep, Pipeline, PipelineVariable
+- Variable substitution: strings, dicts, lists, nested, multiple vars, scalars
+- Slugify: basic, special chars, empty, whitespace
+- merge_plot_steps: plot_data alone → render_spec, plot_data + style_plot merged, multiple style_plot merged, style overrides plot fields, mixed steps preserve order, depends_on remapped, internal deps removed, intents combined, two separate groups, empty input
+- render_from_spec: basic spec, panels + style, equivalence with plot_data + style, trace colors, empty entries error, title override, vlines
 
 ## Verification
 
-1. **Unit tests** (no API key needed):
-   - `PipelineStore`: save/load/list/delete round-trip
-   - `PipelineExecutor`: variable substitution, dependency ordering, critical failure propagation
-   - `PipelineRecorder`: recording filter (only recordable tools), clear/get
+1. **Unit tests** (no API key needed): `venv/bin/python -m pytest tests/test_pipeline.py -v`
 
 2. **Integration test** (requires API key):
    - Start agent → "Show me ACE magnetic field for last week" → "Save this as a pipeline called ACE overview" → reset session → "Run my ACE overview pipeline for January 2026" → verify plot produced

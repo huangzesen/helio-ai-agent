@@ -38,7 +38,7 @@ from .logging import (
 from .memory_agent import MemoryAgent
 from .pipeline import (
     Pipeline, PipelineStep, PipelineVariable, PipelineExecutor,
-    PipelineRecorder, get_pipeline_store, _slugify,
+    PipelineRecorder, get_pipeline_store, _slugify, merge_plot_steps,
 )
 from .loop_guard import LoopGuard, make_call_key
 from .model_fallback import activate_fallback, get_active_model, is_quota_error
@@ -1871,6 +1871,9 @@ class OrchestratorAgent:
         elif tool_name == "delete_pipeline":
             return self._handle_delete_pipeline(tool_args)
 
+        elif tool_name == "render_spec":
+            return self._handle_render_spec(tool_args)
+
         else:
             result = {"status": "error", "message": f"Unknown tool: {tool_name}"}
             log_error(
@@ -1902,6 +1905,9 @@ class OrchestratorAgent:
                 depends_on=sd.get("depends_on", []),
                 critical=sd.get("critical", True),
             ))
+
+        # Merge consecutive plot_data + style_plot into render_spec
+        steps = merge_plot_steps(steps)
 
         # Build variables — auto-detect $TIME_RANGE if not provided
         variables = {}
@@ -1988,6 +1994,23 @@ class OrchestratorAgent:
         if modifications:
             # LLM-mediated mode: pipeline already executed, now apply modifications
             context = pipeline.to_llm_context()
+
+            # Detect whether pipeline has render_spec steps (unified spec)
+            has_render_spec = any(s.tool_name == "render_spec" for s in pipeline.steps)
+            if has_render_spec:
+                style_guidance = (
+                    "This pipeline uses render_spec (unified plot spec). "
+                    "For style-only changes (colors, labels, scale, etc.), "
+                    "use style_plot — it modifies the existing figure without re-rendering. "
+                    "Do NOT re-fetch data or call render_spec again unless the modification "
+                    "specifically requires changing the plot structure (adding/removing panels or traces)."
+                )
+            else:
+                style_guidance = (
+                    "For style changes, use style_plot. "
+                    "For adding new computations, use custom_operation then add traces with manage_plot."
+                )
+
             mod_prompt = (
                 f"A saved pipeline has just been executed successfully. "
                 f"The data and plot are ready.\n\n"
@@ -1995,7 +2018,7 @@ class OrchestratorAgent:
                 f"USER'S REQUESTED MODIFICATIONS: {modifications}\n\n"
                 f"Apply ONLY the user's requested modifications. "
                 f"Do NOT re-fetch data or re-create the plot from scratch unless the modification specifically requires it. "
-                f"For style changes, use style_plot. For adding new computations, use custom_operation then add traces with manage_plot."
+                f"{style_guidance}"
             )
             mod_response = self._process_single_message(mod_prompt)
             result["modifications_applied"] = modifications
@@ -2021,6 +2044,41 @@ class OrchestratorAgent:
         if deleted:
             return {"status": "success", "message": f"Pipeline '{pipeline_id}' deleted."}
         return {"status": "error", "message": f"Pipeline '{pipeline_id}' not found."}
+
+    def _handle_render_spec(self, tool_args: dict) -> dict:
+        """Render a plot from a unified spec (pipeline use)."""
+        spec = tool_args.get("spec", {})
+        labels_str = spec.get("labels", "")
+        if not labels_str:
+            return {"status": "error", "message": "spec.labels is required"}
+
+        # Resolve labels from the store (same logic as _handle_plot_data)
+        store = get_store()
+        panels = spec.get("panels")
+        if panels:
+            panel_labels = list(dict.fromkeys(
+                label for panel in panels for label in panel
+            ))
+        else:
+            panel_labels = [l.strip() for l in labels_str.split(",")]
+
+        entries = []
+        for label in panel_labels:
+            entry, _ = self._resolve_entry(store, label)
+            if entry is None:
+                return {"status": "error", "message": f"Label '{label}' not found in memory"}
+            entries.append(entry)
+
+        try:
+            result = self._renderer.render_from_spec(spec, entries)
+        except Exception as e:
+            return {"status": "error", "message": str(e)}
+
+        review = result.get("review", {})
+        for w in review.get("warnings", []):
+            self.logger.debug(f"[PlotReview] {w}")
+
+        return result
 
     def _execute_tool_safe(self, tool_name: str, tool_args: dict) -> dict:
         """Execute a tool with error handling and logging.

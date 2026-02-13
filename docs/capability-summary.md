@@ -130,7 +130,7 @@ agent/core.py  OrchestratorAgent  (LLM-driven orchestrator)
           stress_test.py            Stress testing
 ```
 
-## Tools (33 tool schemas)
+## Tools (34 tool schemas)
 
 ### Dataset Discovery
 | Tool | Purpose |
@@ -209,10 +209,11 @@ The LLM inspects this metadata within the existing tool loop and can self-correc
 ### Pipeline
 | Tool | Purpose |
 |------|---------|
-| `save_pipeline` | Save session's data workflow as a reusable pipeline template (LLM cherry-picks steps from recording buffer) |
+| `save_pipeline` | Save session's data workflow as a reusable pipeline template (auto-merges plot_data + style_plot into unified render_spec) |
 | `run_pipeline` | Execute a saved pipeline — deterministic by default, or with LLM-mediated modifications |
 | `list_pipelines` | List all saved pipelines with names, descriptions, step counts, and variables |
 | `delete_pipeline` | Delete a saved pipeline by ID |
+| `render_spec` | Render a plot from a unified spec (combines plot_data layout + style_plot aesthetics in one JSON) |
 
 ## Sub-Agent Architecture (5 agents)
 

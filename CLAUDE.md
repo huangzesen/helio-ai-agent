@@ -13,7 +13,7 @@ helio-ai-agent is an AI-powered natural language interface for spacecraft and he
 The system has four layers:
 
 1. **Agent layer** (`agent/`) — LLM with function calling (default: Gemini, via `agent/llm/` adapter layer). Five agent types:
-   - `core.py` **OrchestratorAgent** — routes to sub-agents, handles data ops directly. Tools defined in `tools.py` (33 tool schemas). Includes pipeline tools for saving/replaying data workflows.
+   - `core.py` **OrchestratorAgent** — routes to sub-agents, handles data ops directly. Tools defined in `tools.py` (34 tool schemas). Includes pipeline tools for saving/replaying data workflows.
    - `mission_agent.py` **MissionAgent** — per-spacecraft data specialists (discovery + data_ops tools only).
    - `visualization_agent.py` **VisualizationAgent** — visualization specialist using 3 declarative tools (`plot_data`, `style_plot`, `manage_plot`) + tool catalog in prompt. No free-form code generation.
    - `agent/llm/` — LLM abstraction layer. `base.py` defines abstract types (`LLMAdapter`, `ChatSession`, `LLMResponse`, `ToolCall`, `FunctionSchema`). Three adapters: `gemini_adapter.py` (Google Gemini), `openai_adapter.py` (OpenAI-compatible), `anthropic_adapter.py` (Anthropic Claude). Only the active adapter's SDK is imported.

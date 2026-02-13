@@ -1114,6 +1114,28 @@ If the user requests modifications (e.g., 'run my ACE pipeline but with red line
     },
     {
         "category": "pipeline",
+        "name": "render_spec",
+        "description": """Render a plot from a unified plot specification. Used by the pipeline system to combine plot_data + style_plot into a single step.
+
+The spec is a single JSON object containing all layout fields (from plot_data) and aesthetic fields (from style_plot). Same spec = same plot, always.
+
+Layout fields: labels, panels, panel_types, title, plot_type, colorscale, log_y, log_z, z_min, z_max, columns, column_titles.
+Style fields: x_label, y_label, trace_colors, line_styles, log_scale, x_range, y_range, legend, font_size, canvas_size, annotations, theme, vlines, vrects.
+
+All fields are optional except 'labels'.""",
+        "parameters": {
+            "type": "object",
+            "properties": {
+                "spec": {
+                    "type": "object",
+                    "description": "Unified plot specification containing all plot layout and style fields"
+                }
+            },
+            "required": ["spec"]
+        }
+    },
+    {
+        "category": "pipeline",
         "name": "delete_pipeline",
         "description": "Delete a saved pipeline by its ID.",
         "parameters": {

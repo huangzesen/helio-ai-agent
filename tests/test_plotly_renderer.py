@@ -745,3 +745,110 @@ class TestPerPanelType:
         fig = renderer.get_figure()
         assert "heatmap" in fig.data[0].type.lower()
         assert "scatter" in fig.data[1].type.lower()
+
+
+# ---------------------------------------------------------------------------
+# render_from_spec
+# ---------------------------------------------------------------------------
+
+class TestRenderFromSpec:
+    """Tests for the unified plot spec renderer."""
+
+    def test_basic_spec(self, renderer):
+        """Minimal spec with just labels produces a valid plot."""
+        entry = _make_entry("A", n=50, desc="Alpha")
+        spec = {"labels": "A"}
+        result = renderer.render_from_spec(spec, [entry])
+        assert result["status"] == "success"
+        assert result["panels"] == 1
+        fig = renderer.get_figure()
+        assert fig is not None
+        assert len(fig.data) == 1
+
+    def test_spec_with_panels_and_style(self, renderer):
+        """Spec with panels, title, and style fields."""
+        e1 = _make_entry("A", n=30, desc="Alpha")
+        e2 = _make_entry("B", n=30, desc="Beta")
+        spec = {
+            "labels": "A,B",
+            "panels": [["A"], ["B"]],
+            "title": "Spec Title",
+            "y_label": {"1": "nT", "2": "km/s"},
+            "font_size": 16,
+            "legend": False,
+        }
+        result = renderer.render_from_spec(spec, [e1, e2])
+        assert result["status"] == "success"
+        assert result["panels"] == 2
+        fig = renderer.get_figure()
+        assert fig.layout.title.text == "Spec Title"
+        assert fig.layout.font.size == 16
+        assert fig.layout.showlegend is False
+
+    def test_spec_matches_plot_data_plus_style(self, renderer):
+        """render_from_spec produces same traces as plot_data + style."""
+        entry = _make_entry("X", n=40, desc="Xray")
+
+        # Method 1: plot_data + style
+        r1 = renderer.plot_data([entry], title="Title1")
+        renderer.style(font_size=18, legend=False)
+        fig1_data = renderer.get_figure().to_dict()
+
+        # Method 2: render_from_spec (fresh renderer)
+        renderer2 = PlotlyRenderer(verbose=False)
+        spec = {"labels": "X", "title": "Title1", "font_size": 18, "legend": False}
+        r2 = renderer2.render_from_spec(spec, [entry])
+
+        assert r1["status"] == "success"
+        assert r2["status"] == "success"
+        fig2_data = renderer2.get_figure().to_dict()
+
+        # Same number of traces
+        assert len(fig1_data["data"]) == len(fig2_data["data"])
+        # Same layout title
+        assert fig1_data["layout"]["title"]["text"] == fig2_data["layout"]["title"]["text"]
+        # Same font size
+        assert fig2_data["layout"]["font"]["size"] == 18
+        # Same legend setting
+        assert fig2_data["layout"]["showlegend"] is False
+
+    def test_spec_trace_colors(self, renderer):
+        """Spec trace_colors are applied to traces."""
+        entry = _make_entry("M", n=20, desc="Mag")
+        spec = {
+            "labels": "M",
+            "trace_colors": {"Mag": "red"},
+        }
+        result = renderer.render_from_spec(spec, [entry])
+        assert result["status"] == "success"
+        fig = renderer.get_figure()
+        assert fig.data[0].line.color == "red"
+
+    def test_spec_empty_entries_error(self, renderer):
+        """Spec with no entries returns error."""
+        spec = {"labels": "A"}
+        result = renderer.render_from_spec(spec, [])
+        assert result["status"] == "error"
+
+    def test_spec_title_from_style_overrides_plot(self, renderer):
+        """When spec has title, it's used by both plot_data and style (style wins)."""
+        entry = _make_entry("Z", n=20, desc="Zeta")
+        spec = {"labels": "Z", "title": "Final Title"}
+        result = renderer.render_from_spec(spec, [entry])
+        assert result["status"] == "success"
+        fig = renderer.get_figure()
+        # style() is called after plot_data(), so title from style() is applied
+        assert fig.layout.title.text == "Final Title"
+
+    def test_spec_vlines(self, renderer):
+        """Spec with vlines adds vertical line shapes."""
+        entry = _make_entry("V", n=20, desc="Vdata")
+        spec = {
+            "labels": "V",
+            "vlines": [{"x": "2024-01-01T00:10:00", "color": "blue"}],
+        }
+        result = renderer.render_from_spec(spec, [entry])
+        assert result["status"] == "success"
+        fig = renderer.get_figure()
+        # vlines should add shapes to the figure
+        assert len(fig.layout.shapes) > 0

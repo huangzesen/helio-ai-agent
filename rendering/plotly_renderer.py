@@ -1310,6 +1310,65 @@ class PlotlyRenderer:
         return result_dict
 
     # ------------------------------------------------------------------
+    # Public API: render_from_spec (unified pipeline spec)
+    # ------------------------------------------------------------------
+
+    def render_from_spec(self, spec: dict, entries: list[DataEntry]) -> dict:
+        """Create a complete plot from a unified spec dict.
+
+        The spec merges all plot_data layout fields and style_plot aesthetic
+        fields into a single JSON object.  Same spec = same plot, always.
+
+        Spec fields (all optional except ``labels``):
+          From plot_data: labels, panels, panel_types, title, plot_type,
+                          colorscale, log_y, log_z, z_min, z_max, columns,
+                          column_titles
+          From style_plot: x_label, y_label, trace_colors, line_styles,
+                           log_scale, x_range, y_range, legend, font_size,
+                           canvas_size, annotations, theme, vlines, vrects
+
+        Args:
+            spec: Unified plot specification dict.
+            entries: DataEntry objects referenced by the spec labels.
+
+        Returns:
+            Result dict with status, panels, traces, display — same shape
+            as plot_data().
+        """
+        # --- Step 1: create the figure via plot_data() ---
+        plot_kwargs: dict = {}
+        for key in (
+            "panels", "panel_types", "title", "plot_type",
+            "colorscale", "log_y", "log_z", "z_min", "z_max",
+            "columns", "column_titles",
+        ):
+            if key in spec:
+                plot_kwargs[key] = spec[key]
+
+        result = self.plot_data(entries=entries, **plot_kwargs)
+        if result.get("status") == "error":
+            return result
+
+        # --- Step 2: apply styling via style() ---
+        style_kwargs: dict = {}
+        for key in (
+            "title", "x_label", "y_label", "trace_colors", "line_styles",
+            "log_scale", "x_range", "y_range", "legend", "font_size",
+            "canvas_size", "annotations", "colorscale", "theme",
+            "vlines", "vrects",
+        ):
+            if key in spec:
+                style_kwargs[key] = spec[key]
+
+        if style_kwargs:
+            style_result = self.style(**style_kwargs)
+            # Merge warnings from style into the plot result
+            if style_result.get("warnings"):
+                result.setdefault("warnings", []).extend(style_result["warnings"])
+
+        return result
+
+    # ------------------------------------------------------------------
     # Accessor for Gradio / external use
     # ------------------------------------------------------------------
 

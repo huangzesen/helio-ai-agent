@@ -31,6 +31,7 @@ logger = get_logger()
 RECORDABLE_TOOLS = {
     "fetch_data", "custom_operation", "compute_spectrogram",
     "store_dataframe", "plot_data", "style_plot", "manage_plot",
+    "render_spec",
 }
 
 
@@ -429,6 +430,95 @@ class PipelineExecutor:
             "summary": ", ".join(summary_parts),
             "variables_used": resolved_vars,
         }
+
+
+def merge_plot_steps(steps: list[PipelineStep]) -> list[PipelineStep]:
+    """Merge consecutive plot_data + style_plot steps into render_spec steps.
+
+    Scans the step list for patterns where a ``plot_data`` step is immediately
+    followed by one or more ``style_plot`` steps.  Each such group is collapsed
+    into a single ``render_spec`` step whose ``spec`` combines the plot_data
+    args with all subsequent style_plot args.
+
+    Steps that are not part of such a group are passed through unchanged.
+    Step IDs are renumbered and ``depends_on`` references are updated.
+    """
+    # Build groups: each group is a list of consecutive steps to merge
+    groups: list[list[PipelineStep]] = []
+    i = 0
+    while i < len(steps):
+        step = steps[i]
+        if step.tool_name == "plot_data":
+            group = [step]
+            j = i + 1
+            while j < len(steps) and steps[j].tool_name == "style_plot":
+                group.append(steps[j])
+                j += 1
+            groups.append(group)
+            i = j
+        else:
+            groups.append([step])
+            i += 1
+
+    # Build old_id → new_id mapping and merged steps
+    old_to_new: dict[int, int] = {}
+    merged: list[PipelineStep] = []
+    new_id = 1
+
+    for group in groups:
+        if len(group) == 1 and group[0].tool_name != "plot_data":
+            # Pass-through (non-plot step)
+            old_step = group[0]
+            old_to_new[old_step.step_id] = new_id
+            merged.append(PipelineStep(
+                step_id=new_id,
+                tool_name=old_step.tool_name,
+                tool_args=old_step.tool_args,
+                intent=old_step.intent,
+                produces=old_step.produces,
+                depends_on=old_step.depends_on,  # updated below
+                critical=old_step.critical,
+            ))
+            new_id += 1
+        else:
+            # Merge group: first is plot_data, rest are style_plot (if any)
+            plot_step = group[0]
+            spec = dict(plot_step.tool_args)
+            for style_step in group[1:]:
+                spec.update(style_step.tool_args)
+
+            # Combine intents
+            intents = [s.intent for s in group if s.intent]
+            combined_intent = "; ".join(intents) if intents else plot_step.intent
+
+            # Map all old IDs in this group to the same new ID
+            for s in group:
+                old_to_new[s.step_id] = new_id
+
+            # Collect all depends_on from the group (excluding internal refs)
+            group_ids = {s.step_id for s in group}
+            all_deps = []
+            for s in group:
+                for d in s.depends_on:
+                    if d not in group_ids and d not in all_deps:
+                        all_deps.append(d)
+
+            merged.append(PipelineStep(
+                step_id=new_id,
+                tool_name="render_spec",
+                tool_args={"spec": spec},
+                intent=combined_intent,
+                produces=plot_step.produces,
+                depends_on=all_deps,  # updated below
+                critical=plot_step.critical,
+            ))
+            new_id += 1
+
+    # Remap depends_on references
+    for step in merged:
+        step.depends_on = [old_to_new.get(d, d) for d in step.depends_on]
+
+    return merged
 
 
 # ---- Singleton store ----

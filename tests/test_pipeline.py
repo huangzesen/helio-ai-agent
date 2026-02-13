@@ -7,7 +7,7 @@ from pathlib import Path
 from agent.pipeline import (
     Pipeline, PipelineStep, PipelineVariable,
     PipelineStore, PipelineRecorder, PipelineExecutor,
-    _slugify, _substitute_variables,
+    _slugify, _substitute_variables, merge_plot_steps,
 )
 
 
@@ -410,3 +410,162 @@ class TestPipelineExecutor:
         assert result["steps_skipped"] == 2
         assert result["step_results"][1]["status"] == "skipped"
         assert result["step_results"][2]["status"] == "skipped"
+
+
+# ---- merge_plot_steps ----
+
+class TestMergePlotSteps:
+    def test_no_plot_steps_unchanged(self):
+        """Non-plot steps pass through with renumbered IDs."""
+        steps = [
+            _make_step(step_id=1, tool_name="fetch_data"),
+            _make_step(step_id=2, tool_name="custom_operation", depends_on=[1]),
+        ]
+        merged = merge_plot_steps(steps)
+        assert len(merged) == 2
+        assert merged[0].tool_name == "fetch_data"
+        assert merged[1].tool_name == "custom_operation"
+        assert merged[1].depends_on == [1]
+
+    def test_plot_data_alone_becomes_render_spec(self):
+        """A lone plot_data (no following style_plot) becomes render_spec."""
+        steps = [
+            _make_step(step_id=1, tool_name="plot_data",
+                       tool_args={"labels": "A,B", "title": "Test"}),
+        ]
+        merged = merge_plot_steps(steps)
+        assert len(merged) == 1
+        assert merged[0].tool_name == "render_spec"
+        assert merged[0].tool_args["spec"]["labels"] == "A,B"
+        assert merged[0].tool_args["spec"]["title"] == "Test"
+
+    def test_plot_data_plus_style_merged(self):
+        """plot_data followed by style_plot merged into single render_spec."""
+        steps = [
+            _make_step(step_id=1, tool_name="plot_data",
+                       tool_args={"labels": "A", "panels": [["A"]]}),
+            _make_step(step_id=2, tool_name="style_plot",
+                       tool_args={"title": "My Title", "font_size": 14},
+                       depends_on=[1]),
+        ]
+        merged = merge_plot_steps(steps)
+        assert len(merged) == 1
+        step = merged[0]
+        assert step.tool_name == "render_spec"
+        spec = step.tool_args["spec"]
+        assert spec["labels"] == "A"
+        assert spec["panels"] == [["A"]]
+        assert spec["title"] == "My Title"
+        assert spec["font_size"] == 14
+
+    def test_plot_data_plus_multiple_style_merged(self):
+        """plot_data + multiple style_plot steps merged into one render_spec."""
+        steps = [
+            _make_step(step_id=1, tool_name="plot_data",
+                       tool_args={"labels": "A"}),
+            _make_step(step_id=2, tool_name="style_plot",
+                       tool_args={"title": "T1"}, depends_on=[1]),
+            _make_step(step_id=3, tool_name="style_plot",
+                       tool_args={"font_size": 16, "legend": True}, depends_on=[2]),
+        ]
+        merged = merge_plot_steps(steps)
+        assert len(merged) == 1
+        spec = merged[0].tool_args["spec"]
+        assert spec["labels"] == "A"
+        assert spec["title"] == "T1"
+        assert spec["font_size"] == 16
+        assert spec["legend"] is True
+
+    def test_style_overrides_plot_field(self):
+        """When plot_data and style_plot set the same field, style_plot wins."""
+        steps = [
+            _make_step(step_id=1, tool_name="plot_data",
+                       tool_args={"labels": "A", "title": "Original"}),
+            _make_step(step_id=2, tool_name="style_plot",
+                       tool_args={"title": "Styled"}, depends_on=[1]),
+        ]
+        merged = merge_plot_steps(steps)
+        assert merged[0].tool_args["spec"]["title"] == "Styled"
+
+    def test_mixed_steps_preserve_order(self):
+        """fetch → compute → plot_data + style_plot → result is 3 steps."""
+        steps = [
+            _make_step(step_id=1, tool_name="fetch_data"),
+            _make_step(step_id=2, tool_name="custom_operation", depends_on=[1]),
+            _make_step(step_id=3, tool_name="plot_data",
+                       tool_args={"labels": "A"}, depends_on=[2]),
+            _make_step(step_id=4, tool_name="style_plot",
+                       tool_args={"title": "T"}, depends_on=[3]),
+        ]
+        merged = merge_plot_steps(steps)
+        assert len(merged) == 3
+        assert merged[0].tool_name == "fetch_data"
+        assert merged[0].step_id == 1
+        assert merged[1].tool_name == "custom_operation"
+        assert merged[1].step_id == 2
+        assert merged[2].tool_name == "render_spec"
+        assert merged[2].step_id == 3
+
+    def test_depends_on_remapped(self):
+        """depends_on references updated after merging shifts IDs."""
+        steps = [
+            _make_step(step_id=1, tool_name="fetch_data"),
+            _make_step(step_id=2, tool_name="plot_data",
+                       tool_args={"labels": "A"}, depends_on=[1]),
+            _make_step(step_id=3, tool_name="style_plot",
+                       tool_args={"title": "T"}, depends_on=[2]),
+        ]
+        merged = merge_plot_steps(steps)
+        assert len(merged) == 2
+        # render_spec depends on fetch_data (step 1), not on the old plot_data (2)
+        assert merged[1].depends_on == [1]
+
+    def test_internal_deps_removed(self):
+        """Dependencies within a merged group are excluded from the result."""
+        steps = [
+            _make_step(step_id=1, tool_name="plot_data",
+                       tool_args={"labels": "A"}),
+            _make_step(step_id=2, tool_name="style_plot",
+                       tool_args={"title": "T"}, depends_on=[1]),
+        ]
+        merged = merge_plot_steps(steps)
+        # The style_plot's dep on plot_data is internal to the group
+        assert merged[0].depends_on == []
+
+    def test_intent_combined(self):
+        """Intents from merged steps are joined."""
+        steps = [
+            _make_step(step_id=1, tool_name="plot_data",
+                       tool_args={"labels": "A"}, intent="Create plot"),
+            _make_step(step_id=2, tool_name="style_plot",
+                       tool_args={"title": "T"}, intent="Style axes"),
+        ]
+        merged = merge_plot_steps(steps)
+        assert "Create plot" in merged[0].intent
+        assert "Style axes" in merged[0].intent
+
+    def test_empty_steps(self):
+        """Empty input returns empty output."""
+        assert merge_plot_steps([]) == []
+
+    def test_two_separate_plot_groups(self):
+        """Two plot_data groups separated by a non-plot step stay separate."""
+        steps = [
+            _make_step(step_id=1, tool_name="plot_data",
+                       tool_args={"labels": "A"}),
+            _make_step(step_id=2, tool_name="style_plot",
+                       tool_args={"title": "T1"}, depends_on=[1]),
+            _make_step(step_id=3, tool_name="custom_operation",
+                       tool_args={"code": "x"}),
+            _make_step(step_id=4, tool_name="plot_data",
+                       tool_args={"labels": "B"}),
+            _make_step(step_id=5, tool_name="style_plot",
+                       tool_args={"title": "T2"}, depends_on=[4]),
+        ]
+        merged = merge_plot_steps(steps)
+        assert len(merged) == 3
+        assert merged[0].tool_name == "render_spec"
+        assert merged[0].tool_args["spec"]["labels"] == "A"
+        assert merged[1].tool_name == "custom_operation"
+        assert merged[2].tool_name == "render_spec"
+        assert merged[2].tool_args["spec"]["labels"] == "B"
