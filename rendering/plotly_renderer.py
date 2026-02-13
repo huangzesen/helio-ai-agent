@@ -1,19 +1,17 @@
 """
 Plotly-based renderer for visualization.
 
-Provides three public methods dispatched by agent/core.py:
-- plot_data() — create plots (single panel overlay or multi-panel)
-- style() — apply aesthetics via key-value params (no code gen)
-- manage() — structural ops: export, reset, zoom, add/remove traces
-
-Also provides a stateless entry point:
+All figure construction flows through a single stateless builder:
 - build_figure_from_spec() — creates a fresh go.Figure from a spec dict
   containing _meta (data/grid layout), layout (raw Plotly JSON), and
   traces (per-trace patches matched by label).
 
-State is kept in a mutable go.Figure that accumulates traces / layout
-changes across calls (legacy API). The stateless builder is the preferred
-path for new code.
+The PlotlyRenderer class is a thin stateful wrapper that delegates to
+build_figure_from_spec() and provides:
+- plot_data() — builds a legacy spec from kwargs, calls render_from_spec()
+- render_from_spec() — the spec→figure bridge (copies result into state)
+- style() — apply aesthetics via key-value params (no code gen)
+- manage() — structural ops: export, reset, zoom, add/remove traces
 """
 
 from __future__ import annotations
@@ -112,10 +110,7 @@ _LEGEND_MAX_LINE = 30  # max chars per line in legend
 # ---------------------------------------------------------------------------
 
 class ColorState:
-    """Tracks label-to-color assignments for stable coloring across renders.
-
-    This is the extracted, reusable version of PlotlyRenderer._next_color().
-    """
+    """Tracks label-to-color assignments for stable coloring across renders."""
 
     def __init__(
         self,
@@ -179,12 +174,12 @@ class RenderResult:
 # Stateless figure builder
 # ---------------------------------------------------------------------------
 
-def _scatter_cls_static(n_points: int):
+def _scatter_cls(n_points: int):
     """Return go.Scattergl for large datasets, go.Scatter otherwise."""
     return go.Scattergl if n_points > _GL_THRESHOLD else go.Scatter
 
 
-def _add_line_traces_static(
+def _add_line_traces(
     entries: list[DataEntry],
     row: int,
     fig: go.Figure,
@@ -193,7 +188,7 @@ def _add_line_traces_static(
     trace_panels: list[tuple[int, int]],
     col: int = 1,
 ) -> list[str]:
-    """Add line traces — stateless version of PlotlyRenderer._add_line_traces."""
+    """Add line traces for entries to a specific panel cell."""
     added_labels: list[str] = []
 
     for entry in entries:
@@ -212,7 +207,7 @@ def _add_line_traces_static(
                 val_arr = entry.values[:, comp_col]
                 t_disp, v_disp = _downsample_minmax(time_list, val_arr, _MAX_DISPLAY_POINTS)
                 v_disp = [float(v) if np.isfinite(v) else None for v in v_disp]
-                Scatter = _scatter_cls_static(len(v_disp))
+                Scatter = _scatter_cls(len(v_disp))
                 fig.add_trace(
                     Scatter(
                         x=t_disp, y=v_disp,
@@ -229,7 +224,7 @@ def _add_line_traces_static(
             vals = entry.values.ravel() if entry.values.ndim > 1 else entry.values
             t_disp, v_disp = _downsample_minmax(time_list, vals, _MAX_DISPLAY_POINTS)
             v_disp = [float(v) if np.isfinite(v) else None for v in v_disp]
-            Scatter = _scatter_cls_static(len(v_disp))
+            Scatter = _scatter_cls(len(v_disp))
             fig.add_trace(
                 Scatter(
                     x=t_disp, y=v_disp,
@@ -246,7 +241,7 @@ def _add_line_traces_static(
     return added_labels
 
 
-def _add_spectrogram_trace_static(
+def _add_spectrogram_trace(
     entry: DataEntry,
     row: int,
     fig: go.Figure,
@@ -259,7 +254,7 @@ def _add_spectrogram_trace_static(
     z_min: float | None = None,
     z_max: float | None = None,
 ) -> str:
-    """Add a spectrogram heatmap — stateless version of PlotlyRenderer._add_spectrogram_trace."""
+    """Add a spectrogram heatmap trace to a specific panel cell."""
     meta = entry.metadata or {}
 
     if entry.is_xarray:
@@ -335,7 +330,7 @@ def _add_spectrogram_trace_static(
     return label
 
 
-def _validate_spectrogram_entry_static(entry: DataEntry) -> str | None:
+def _validate_spectrogram_entry(entry: DataEntry) -> str | None:
     """Return error message if entry is unsuitable for spectrogram, else None."""
     if entry.is_xarray:
         non_time_dims = [d for d in entry.data.dims if d != "time"]
@@ -355,7 +350,7 @@ def _validate_spectrogram_entry_static(entry: DataEntry) -> str | None:
     return None
 
 
-def _resolve_column_sublabel_static(
+def _resolve_column_sublabel(
     label: str, entry_map: dict[str, DataEntry],
 ) -> DataEntry | None:
     """Try to resolve 'PARENT.column' by selecting a column from a parent entry."""
@@ -440,6 +435,7 @@ def _build_from_meta(
     panels = meta.get("panels")
     panel_types = meta.get("panel_types")
     columns = max(meta.get("columns", 1), 1)
+    column_titles = meta.get("column_titles")
 
     # Build entry map
     entry_map: dict[str, DataEntry] = {}
@@ -455,8 +451,8 @@ def _build_from_meta(
 
     # Resolve effective per-panel types
     default_type = "line"
-    if panel_types is not None and panels is not None:
-        if len(panel_types) != len(panels):
+    if panel_types is not None:
+        if panels is not None and len(panel_types) != len(panels):
             return {"status": "error",
                     "message": f"panel_types length ({len(panel_types)}) "
                                f"must match panels length ({len(panels)})"}
@@ -471,6 +467,8 @@ def _build_from_meta(
     )
     if columns > 1:
         subplot_kwargs["horizontal_spacing"] = 0.08
+    if column_titles and len(column_titles) == columns:
+        subplot_kwargs["column_titles"] = column_titles
     fig = make_subplots(**subplot_kwargs)
     width = _DEFAULT_WIDTH if columns == 1 else int(_DEFAULT_WIDTH * columns * 0.55)
     fig.update_layout(
@@ -484,7 +482,10 @@ def _build_from_meta(
     trace_panels: list[tuple[int, int]] = []
     all_trace_labels: list[str] = []
 
-    spectro_kwargs = {}  # can extend later from meta
+    spectro_kwargs = {}
+    for sk in ("colorscale", "log_y", "log_z", "z_min", "z_max"):
+        if sk in meta:
+            spectro_kwargs[sk] = meta[sk]
 
     if panels is not None:
         for panel_idx, panel_labels in enumerate(panels):
@@ -494,7 +495,7 @@ def _build_from_meta(
             for lbl in panel_labels:
                 e = entry_map.get(lbl)
                 if e is None:
-                    e = _resolve_column_sublabel_static(lbl, entry_map)
+                    e = _resolve_column_sublabel(lbl, entry_map)
                 if e is None:
                     return {"status": "error",
                             "message": f"Label '{lbl}' not found in provided entries"}
@@ -510,7 +511,7 @@ def _build_from_meta(
                     if not col_entries:
                         continue
                     c = col_idx + 1
-                    result = _dispatch_traces_static(
+                    result = _dispatch_traces(
                         col_entries, row, fig, ptype, color_state,
                         trace_labels, trace_panels, col=c, **spectro_kwargs,
                     )
@@ -518,7 +519,7 @@ def _build_from_meta(
                         return result
                     all_trace_labels.extend(result)
             else:
-                result = _dispatch_traces_static(
+                result = _dispatch_traces(
                     panel_entries, row, fig, ptype, color_state,
                     trace_labels, trace_panels, **spectro_kwargs,
                 )
@@ -537,7 +538,7 @@ def _build_from_meta(
                 if not col_entries:
                     continue
                 c = col_idx + 1
-                result = _dispatch_traces_static(
+                result = _dispatch_traces(
                     col_entries, 1, fig, ptype, color_state,
                     trace_labels, trace_panels, col=c, **spectro_kwargs,
                 )
@@ -545,7 +546,7 @@ def _build_from_meta(
                     return result
                 all_trace_labels.extend(result)
         else:
-            result = _dispatch_traces_static(
+            result = _dispatch_traces(
                 entries, 1, fig, ptype, color_state,
                 trace_labels, trace_panels, **spectro_kwargs,
             )
@@ -611,6 +612,8 @@ def _build_from_legacy(
         meta["panel_types"] = spec["panel_types"]
     if "columns" in spec:
         meta["columns"] = spec["columns"]
+    if "column_titles" in spec:
+        meta["column_titles"] = spec["column_titles"]
 
     # Build layout dict from style fields
     layout: dict = {}
@@ -750,13 +753,16 @@ def _build_from_legacy(
         if not meta.get("panel_types"):
             n_panels = len(meta["panels"]) if "panels" in meta else 1
             meta["panel_types"] = [spec["plot_type"]] * n_panels
+    for spectro_key in ("colorscale", "log_y", "log_z", "z_min", "z_max"):
+        if spectro_key in spec:
+            meta[spectro_key] = spec[spectro_key]
 
     effective_time_range = time_range or spec.get("time_range")
 
     return _build_from_meta(meta, layout, traces_patch, entries, color_state, effective_time_range)
 
 
-def _dispatch_traces_static(
+def _dispatch_traces(
     entries: list[DataEntry],
     row: int,
     fig: go.Figure,
@@ -767,21 +773,21 @@ def _dispatch_traces_static(
     col: int = 1,
     **spectro_kwargs,
 ) -> list[str] | dict:
-    """Add traces for a panel — stateless version of _dispatch_panel_traces."""
+    """Add traces for a single panel cell, dispatching by panel_type."""
     if panel_type == "spectrogram":
         labels: list[str] = []
         for e in entries:
-            err = _validate_spectrogram_entry_static(e)
+            err = _validate_spectrogram_entry(e)
             if err is not None:
                 return {"status": "error", "message": err}
-            label = _add_spectrogram_trace_static(
+            label = _add_spectrogram_trace(
                 e, row, fig, trace_labels, trace_panels,
                 col=col, **spectro_kwargs,
             )
             labels.append(label)
         return labels
     else:
-        return _add_line_traces_static(
+        return _add_line_traces(
             entries, row, fig, color_state, trace_labels, trace_panels, col=col,
         )
 
@@ -832,15 +838,6 @@ class PlotlyRenderer:
             print(f"  [PlotlyRenderer] {msg}")
             sys.stdout.flush()
 
-    def _next_color(self, label: str) -> str:
-        """Return a stable colour for *label*, assigning a new one if unseen."""
-        if label in self._label_colors:
-            return self._label_colors[label]
-        color = _DEFAULT_COLORS[self._color_index % len(_DEFAULT_COLORS)]
-        self._color_index += 1
-        self._label_colors[label] = color
-        return color
-
     def _panel_to_rowcol(self, panel: int) -> tuple[int, int]:
         """Convert a flat 1-based panel number to (row, col) using row-major indexing.
 
@@ -851,342 +848,6 @@ class PlotlyRenderer:
         row = (panel - 1) // cols + 1
         col = (panel - 1) % cols + 1
         return (row, col)
-
-    def _ensure_figure(self, rows: int = 1, cols: int = 1,
-                        column_titles: list[str] | None = None) -> go.Figure:
-        """Guarantee a figure exists with at least *rows* subplot rows and *cols* columns.
-
-        Always uses make_subplots so that row/col args work on add_trace.
-        """
-        cols = max(cols, 1)
-        if self._figure is None or rows > self._panel_count or cols > self._column_count:
-            subplot_kwargs: dict = dict(
-                rows=max(rows, 1), cols=cols, shared_xaxes=True,
-                vertical_spacing=0.06,
-            )
-            if cols > 1:
-                subplot_kwargs["horizontal_spacing"] = 0.08
-            if column_titles and len(column_titles) == cols:
-                subplot_kwargs["column_titles"] = column_titles
-            self._figure = make_subplots(**subplot_kwargs)
-            self._panel_count = max(rows, 1)
-            self._column_count = cols
-            width = _DEFAULT_WIDTH if cols == 1 else int(_DEFAULT_WIDTH * cols * 0.55)
-            self._figure.update_layout(
-                **_DEFAULT_LAYOUT,
-                width=width,
-                height=_PANEL_HEIGHT * self._panel_count,
-                legend=dict(font=dict(size=11), tracegroupgap=2),
-            )
-        return self._figure
-
-    def _grow_panels(self, needed_rows: int, needed_cols: int | None = None) -> go.Figure:
-        """Rebuild with more rows if needed, copying existing traces."""
-        if needed_cols is None:
-            needed_cols = self._column_count
-        if needed_rows <= self._panel_count and needed_cols <= self._column_count:
-            return self._ensure_figure()
-
-        old_fig = self._figure
-        cols = max(needed_cols, self._column_count)
-        subplot_kwargs: dict = dict(
-            rows=needed_rows, cols=cols, shared_xaxes=True,
-            vertical_spacing=0.06,
-        )
-        if cols > 1:
-            subplot_kwargs["horizontal_spacing"] = 0.08
-        new_fig = make_subplots(**subplot_kwargs)
-        width = _DEFAULT_WIDTH if cols == 1 else int(_DEFAULT_WIDTH * cols * 0.55)
-        new_fig.update_layout(
-            **_DEFAULT_LAYOUT,
-            width=width,
-            height=_PANEL_HEIGHT * needed_rows,
-            legend=dict(font=dict(size=11), tracegroupgap=2),
-        )
-
-        # Copy traces from old figure, preserving (row, col) assignment
-        if old_fig is not None:
-            for i, trace in enumerate(old_fig.data):
-                if i < len(self._trace_panels):
-                    row, col = self._trace_panels[i]
-                else:
-                    row = _row_of_trace(trace)
-                    col = 1
-                new_fig.add_trace(trace, row=row, col=col)
-            # Copy layout properties we care about (title, axis labels)
-            if old_fig.layout.title and old_fig.layout.title.text:
-                new_fig.update_layout(title_text=old_fig.layout.title.text)
-
-        self._figure = new_fig
-        self._panel_count = needed_rows
-        self._column_count = cols
-        return self._figure
-
-    def _scatter_cls(self, n_points: int):
-        """Return go.Scattergl for large datasets, go.Scatter otherwise."""
-        return go.Scattergl if n_points > _GL_THRESHOLD else go.Scatter
-
-    @staticmethod
-    def _resolve_column_sublabel(
-        label: str, entry_map: dict[str, "DataEntry"]
-    ) -> "DataEntry | None":
-        """Try to resolve 'PARENT.column' by selecting a column from a parent entry.
-
-        Splits the label progressively (right to left) to find a parent entry
-        whose DataFrame contains the trailing part as a column name.
-        Returns a new DataEntry with just that column, or None.
-        """
-        parts = label.split(".")
-        for i in range(len(parts) - 1, 0, -1):
-            parent_label = ".".join(parts[:i])
-            col_name = ".".join(parts[i:])
-            parent = entry_map.get(parent_label)
-            if parent is not None and not parent.is_xarray and col_name in parent.data.columns:
-                return DataEntry(
-                    label=label,
-                    data=parent.data[[col_name]],
-                    units=parent.units,
-                    description=(
-                        f"{parent.description} [{col_name}]"
-                        if parent.description else col_name
-                    ),
-                    source=parent.source,
-                    metadata=parent.metadata,
-                )
-        return None
-
-    # ------------------------------------------------------------------
-    # Internal helpers (used by plot_data)
-    # ------------------------------------------------------------------
-
-    @staticmethod
-    def _validate_spectrogram_entry(entry: DataEntry) -> str | None:
-        """Return error message if entry is unsuitable for spectrogram, else None."""
-        if entry.is_xarray:
-            non_time_dims = [d for d in entry.data.dims if d != "time"]
-            if not non_time_dims:
-                return (
-                    f"Entry '{entry.label}' is scalar (no non-time dimensions). "
-                    "Spectrograms require 2D data (time x bins). "
-                    "Use panel_types to set this panel to 'line'."
-                )
-        else:
-            if len(entry.data.columns) <= 1:
-                return (
-                    f"Entry '{entry.label}' is scalar (1 column). "
-                    "Spectrograms require 2D data (time x bins). "
-                    "Use panel_types to set this panel to 'line'."
-                )
-        return None
-
-    def _dispatch_panel_traces(
-        self,
-        entries: list[DataEntry],
-        row: int,
-        fig: go.Figure,
-        panel_type: str,
-        col: int = 1,
-        **spectro_kwargs,
-    ) -> list[str] | dict:
-        """Add traces for a single panel cell, dispatching by panel_type.
-
-        Returns list of trace labels on success, or an error dict.
-        """
-        if panel_type == "spectrogram":
-            labels: list[str] = []
-            for e in entries:
-                err = self._validate_spectrogram_entry(e)
-                if err is not None:
-                    return {"status": "error", "message": err}
-                label = self._add_spectrogram_trace(
-                    e, row, fig, col=col, **spectro_kwargs,
-                )
-                labels.append(label)
-            return labels
-        else:
-            return self._add_line_traces(entries, row, fig, col=col)
-
-    def _add_line_traces(
-        self,
-        entries: list[DataEntry],
-        row: int,
-        fig: go.Figure,
-        col: int = 1,
-    ) -> list[str]:
-        """Add line traces for entries to a specific panel cell.
-
-        Returns the list of trace labels added.
-        """
-        added_labels: list[str] = []
-
-        for entry in entries:
-            display_name = entry.description or entry.label
-            # Use pandas index (Timestamps with .isoformat()) not numpy
-            # datetime64 (which .tolist() converts to nanosecond ints).
-            if entry.is_xarray:
-                import pandas as pd
-                time_list = [pd.Timestamp(t).isoformat() for t in entry.data.coords["time"].values]
-            else:
-                time_list = [t.isoformat() for t in entry.data.index]
-
-            # Decompose vectors into scalar components
-            if entry.values.ndim == 2 and entry.values.shape[1] > 1:
-                comp_names = ["x", "y", "z"]
-                for comp_col in range(entry.values.shape[1]):
-                    comp = comp_names[comp_col] if comp_col < 3 else str(comp_col)
-                    label = f"{display_name} ({comp})"
-                    val_arr = entry.values[:, comp_col]
-                    t_disp, v_disp = _downsample_minmax(
-                        time_list, val_arr, _MAX_DISPLAY_POINTS,
-                    )
-                    v_disp = [float(v) if np.isfinite(v) else None for v in v_disp]
-                    Scatter = self._scatter_cls(len(v_disp))
-                    fig.add_trace(
-                        Scatter(
-                            x=t_disp, y=v_disp,
-                            name=_wrap_display_name(label),
-                            mode="lines",
-                            line=dict(color=self._next_color(label)),
-                        ),
-                        row=row, col=col,
-                    )
-                    self._trace_labels.append(label)
-                    self._trace_panels.append((row, col))
-                    added_labels.append(label)
-            else:
-                vals = entry.values.ravel() if entry.values.ndim > 1 else entry.values
-                t_disp, v_disp = _downsample_minmax(
-                    time_list, vals, _MAX_DISPLAY_POINTS,
-                )
-                v_disp = [float(v) if np.isfinite(v) else None for v in v_disp]
-                Scatter = self._scatter_cls(len(v_disp))
-                fig.add_trace(
-                    Scatter(
-                        x=t_disp, y=v_disp,
-                        name=_wrap_display_name(display_name),
-                        mode="lines",
-                        line=dict(color=self._next_color(display_name)),
-                    ),
-                    row=row, col=col,
-                )
-                self._trace_labels.append(display_name)
-                self._trace_panels.append((row, col))
-                added_labels.append(display_name)
-
-        return added_labels
-
-    def _add_spectrogram_trace(
-        self,
-        entry: DataEntry,
-        row: int,
-        fig: go.Figure,
-        col: int = 1,
-        colorscale: str = "Viridis",
-        log_y: bool = False,
-        log_z: bool = False,
-        z_min: float | None = None,
-        z_max: float | None = None,
-    ) -> str:
-        """Add a spectrogram heatmap trace to a specific panel cell.
-
-        Handles both DataFrame entries (time x columns) and xarray DataArray
-        entries (2D: time x bins, or 3D+: averaged over middle dims).
-
-        Returns the trace label.
-        """
-        meta = entry.metadata or {}
-
-        if entry.is_xarray:
-            import pandas as pd
-            da = entry.data
-            # Convert time coordinates to isoformat strings
-            times = [pd.Timestamp(t).isoformat() for t in da.coords["time"].values]
-
-            # Find the non-time dimension(s) for bin values
-            non_time_dims = [d for d in da.dims if d != "time"]
-            if non_time_dims:
-                last_dim = non_time_dims[-1]
-                if last_dim in da.coords:
-                    bin_values = [float(v) for v in da.coords[last_dim].values]
-                else:
-                    bin_values = list(range(da.sizes[last_dim]))
-            else:
-                bin_values = [0]
-
-            z_values = da.values.astype(float)
-            # If 3D+, average over middle dims to get (time, bins)
-            if z_values.ndim > 2:
-                # Axes between time (0) and last non-time dim (-1)
-                middle_axes = tuple(range(1, z_values.ndim - 1))
-                z_values = np.nanmean(z_values, axis=middle_axes)
-        else:
-            # DataFrame path
-            times = [t.isoformat() for t in entry.data.index]
-
-            bin_values = meta.get("bin_values")
-            if bin_values is None:
-                try:
-                    bin_values = [float(c) for c in entry.data.columns]
-                except (ValueError, TypeError):
-                    bin_values = list(range(len(entry.data.columns)))
-
-            z_values = entry.data.values.astype(float)
-        if log_z:
-            z_values = np.where(z_values > 0, np.log10(z_values), np.nan)
-
-        z_data = z_values.T.tolist()
-        bin_list = [float(b) for b in bin_values]
-
-        colorbar_title = meta.get("value_label", "")
-        if log_z and colorbar_title:
-            colorbar_title = f"log\u2081\u2080({colorbar_title})"
-        elif log_z:
-            colorbar_title = "log\u2081\u2080(intensity)"
-
-        label = entry.description or entry.label
-
-        # Constrain colorbar to the panel's y-domain so it doesn't span
-        # the full figure height in multi-panel layouts.
-        subplot_ref = fig.get_subplot(row, col)
-        if subplot_ref and hasattr(subplot_ref, 'yaxis'):
-            domain = subplot_ref.yaxis.domain
-            cb_y = (domain[0] + domain[1]) / 2
-            cb_len = domain[1] - domain[0]
-        else:
-            cb_y = 0.5
-            cb_len = 1.0
-
-        colorbar_cfg = dict(y=cb_y, len=cb_len, yanchor="middle")
-        if colorbar_title:
-            colorbar_cfg["title"] = dict(text=colorbar_title)
-
-        heatmap = go.Heatmap(
-            x=times,
-            y=bin_list,
-            z=z_data,
-            colorscale=colorscale,
-            colorbar=colorbar_cfg,
-            zmin=z_min,
-            zmax=z_max,
-            name=label,
-        )
-
-        fig.add_trace(heatmap, row=row, col=col)
-        self._trace_labels.append(label)
-        self._trace_panels.append((row, col))
-
-        fig.update_xaxes(type="date", row=row, col=col)
-
-        y_axis_title = meta.get("bin_label", "")
-        if y_axis_title:
-            fig.update_yaxes(title_text=y_axis_title, row=row, col=col)
-
-        if log_y:
-            fig.update_yaxes(type="log", row=row, col=col)
-
-        self._log(f"Spectrogram '{entry.label}': {len(times)} time steps x {len(bin_list)} bins")
-
-        return label
 
     # ------------------------------------------------------------------
     # Public API: plot_data
@@ -1209,6 +870,9 @@ class PlotlyRenderer:
     ) -> dict:
         """Create a fresh plot from DataEntry objects.
 
+        Builds a legacy spec dict from the kwargs and delegates to
+        render_from_spec(), which routes through build_figure_from_spec().
+
         Args:
             entries: All data to plot.
             panels: Panel layout, e.g. [["A","B"], ["C"]] for 2-panel.
@@ -1216,163 +880,44 @@ class PlotlyRenderer:
             title: Plot title.
             plot_type: Default plot type: "line" or "spectrogram".
             panel_types: Per-panel plot type, parallel to panels array.
-                         E.g. ["spectrogram", "line", "line"]. Omit to use
-                         plot_type for all panels.
             colorscale: Plotly colorscale for spectrogram.
             log_y: Log scale on y-axis (spectrogram).
             log_z: Log scale on z-axis (spectrogram).
             z_min: Min value for spectrogram color scale.
             z_max: Max value for spectrogram color scale.
             columns: Number of columns for grid layout (default 1).
-                     Use 2 for side-by-side epoch comparison.
             column_titles: Column header labels (e.g. ['Jan 2020', 'Oct 2024']).
 
         Returns:
             Result dict with status, panels, traces, display, columns.
         """
-        if not entries:
-            return {"status": "error", "message": "No entries to plot"}
-
-        for entry in entries:
-            if len(entry.time) == 0:
-                return {"status": "error",
-                        "message": f"Entry '{entry.label}' has no data points"}
-
-        columns = max(columns, 1)
-
-        # Resolve effective per-panel types
-        if panel_types is not None and panels is not None:
-            if len(panel_types) != len(panels):
-                return {"status": "error",
-                        "message": f"panel_types length ({len(panel_types)}) "
-                                   f"must match panels length ({len(panels)})"}
-            effective_types = list(panel_types)
-        else:
-            n = len(panels) if panels is not None else 1
-            effective_types = [plot_type] * n
-
-        spectro_kwargs = dict(
-            colorscale=colorscale, log_y=log_y, log_z=log_z,
-            z_min=z_min, z_max=z_max,
-        )
-
-        # Build label -> entry lookup
-        entry_map: dict[str, DataEntry] = {}
-        for entry in entries:
-            entry_map[entry.label] = entry
-
-        # Reset figure for fresh plot
-        self._figure = None
-        self._panel_count = 0
-        self._column_count = 1
-        self._trace_labels = []
-        self._trace_panels = []
-        # Keep label_colors for stable coloring across plot_data calls
-
-        all_trace_labels: list[str] = []
-
-        if panels is not None:
-            # Multi-panel mode
-            n_panels = len(panels)
-            fig = self._ensure_figure(rows=n_panels, cols=columns,
-                                      column_titles=column_titles)
-
-            for panel_idx, panel_labels in enumerate(panels):
-                row = panel_idx + 1  # 1-based
-                ptype = effective_types[panel_idx]
-
-                # Resolve entries for this row
-                panel_entries = []
-                for lbl in panel_labels:
-                    e = entry_map.get(lbl)
-                    if e is None:
-                        e = self._resolve_column_sublabel(lbl, entry_map)
-                    if e is None:
-                        return {"status": "error",
-                                "message": f"Label '{lbl}' not found in provided entries"}
-                    panel_entries.append(e)
-
-                if columns > 1:
-                    # Distribute this row's entries across columns
-                    n_entries = len(panel_entries)
-                    per_col = max(1, (n_entries + columns - 1) // columns)
-                    for col_idx in range(columns):
-                        start = col_idx * per_col
-                        end = min(start + per_col, n_entries)
-                        col_entries = panel_entries[start:end]
-                        if not col_entries:
-                            continue
-                        c = col_idx + 1  # 1-based
-                        result = self._dispatch_panel_traces(
-                            col_entries, row, fig, ptype, col=c,
-                            **spectro_kwargs,
-                        )
-                        if isinstance(result, dict):
-                            return result  # error
-                        all_trace_labels.extend(result)
-                else:
-                    result = self._dispatch_panel_traces(
-                        panel_entries, row, fig, ptype,
-                        **spectro_kwargs,
-                    )
-                    if isinstance(result, dict):
-                        return result  # error
-                    all_trace_labels.extend(result)
-        else:
-            # Overlay mode — all in row 1
-            ptype = effective_types[0]
-            fig = self._ensure_figure(rows=1, cols=columns,
-                                      column_titles=column_titles)
-
-            if columns > 1:
-                # Distribute entries across columns
-                n_entries = len(entries)
-                per_col = max(1, (n_entries + columns - 1) // columns)
-                for col_idx in range(columns):
-                    start = col_idx * per_col
-                    end = min(start + per_col, n_entries)
-                    col_entries = entries[start:end]
-                    if not col_entries:
-                        continue
-                    c = col_idx + 1
-                    result = self._dispatch_panel_traces(
-                        col_entries, 1, fig, ptype, col=c,
-                        **spectro_kwargs,
-                    )
-                    if isinstance(result, dict):
-                        return result  # error
-                    all_trace_labels.extend(result)
-            else:
-                result = self._dispatch_panel_traces(
-                    entries, 1, fig, ptype,
-                    **spectro_kwargs,
-                )
-                if isinstance(result, dict):
-                    return result  # error
-                all_trace_labels.extend(result)
-
-        # Ensure the x-axis is rendered as formatted dates
-        fig.update_xaxes(type="date")
-
-        # Apply stored time range to the new figure (only for single-column)
-        if self._current_time_range and columns == 1:
-            fig.update_xaxes(range=[
-                self._current_time_range.start.isoformat(),
-                self._current_time_range.end.isoformat(),
-            ])
-
+        # Build a legacy spec dict from kwargs
+        spec: dict = {"labels": ",".join(e.label for e in entries)}
+        if panels:
+            spec["panels"] = panels
         if title:
-            fig.update_layout(title_text=title)
+            spec["title"] = title
+        if plot_type != "line":
+            spec["plot_type"] = plot_type
+        if panel_types:
+            spec["panel_types"] = panel_types
+        if columns != 1:
+            spec["columns"] = columns
+        if column_titles:
+            spec["column_titles"] = column_titles
+        # Spectrogram kwargs
+        if colorscale != "Viridis":
+            spec["colorscale"] = colorscale
+        if log_y:
+            spec["log_y"] = log_y
+        if log_z:
+            spec["log_z"] = log_z
+        if z_min is not None:
+            spec["z_min"] = z_min
+        if z_max is not None:
+            spec["z_max"] = z_max
 
-        result = {
-            "status": "success",
-            "panels": self._panel_count,
-            "columns": self._column_count,
-            "traces": all_trace_labels,
-            "display": "plotly",
-        }
-        result["review"] = self._build_review_metadata()
-        return result
+        return self.render_from_spec(spec, entries)
 
     # ------------------------------------------------------------------
     # Public API: style
@@ -1742,9 +1287,17 @@ class PlotlyRenderer:
                     "message": f"Entry '{entry.label}' has no data points"}
 
         row, col = self._panel_to_rowcol(panel)
-        fig = self._grow_panels(row)
-        added = self._add_line_traces([entry], row, fig, col=col)
-        fig.update_xaxes(type="date")
+        cs = ColorState(
+            label_colors=dict(self._label_colors),
+            color_index=self._color_index,
+        )
+        added = _add_line_traces(
+            [entry], row, self._figure, cs,
+            self._trace_labels, self._trace_panels, col=col,
+        )
+        self._label_colors = cs.label_colors
+        self._color_index = cs.color_index
+        self._figure.update_xaxes(type="date")
 
         return {"status": "success",
                 "added_traces": added,
@@ -1757,8 +1310,8 @@ class PlotlyRenderer:
     def set_time_range(self, time_range: TimeRange) -> dict:
         tr_str = time_range.to_time_range_string()
         self._log(f"Setting time range: {tr_str}")
-        fig = self._ensure_figure()
-        fig.update_xaxes(range=[time_range.start, time_range.end])
+        if self._figure is not None:
+            self._figure.update_xaxes(range=[time_range.start, time_range.end])
         self._current_time_range = time_range
         return {"status": "success", "time_range": tr_str}
 
@@ -2146,18 +1699,3 @@ class PlotlyRenderer:
                 self._current_time_range = None
         else:
             self._current_time_range = None
-
-
-# ------------------------------------------------------------------
-# Helpers
-# ------------------------------------------------------------------
-
-def _row_of_trace(trace) -> int:
-    """Determine which subplot row a trace belongs to (1-based).
-
-    Plotly stores this as xaxis='x2', yaxis='y2' for row 2, etc.
-    """
-    yaxis = getattr(trace, "yaxis", None) or "y"
-    # 'y' -> row 1, 'y2' -> row 2, 'y3' -> row 3
-    suffix = yaxis.replace("y", "")
-    return int(suffix) if suffix else 1
