@@ -1209,6 +1209,10 @@ class OrchestratorAgent:
             if err:
                 return {"status": "error", "message": err}
 
+            # Determine if "df" alias exists (only when at least one source is a DataFrame)
+            has_df_alias = any(not isinstance(v, xr.DataArray) for v in sources.values())
+            df_extra = ["df"] if has_df_alias else []
+
             try:
                 op_result, warnings = run_multi_source_operation(sources, tool_args["pandas_code"])
             except (ValueError, RuntimeError) as e:
@@ -1216,7 +1220,7 @@ class OrchestratorAgent:
                 return {
                     "status": "error",
                     "message": f"{prefix} error: {e}",
-                    "available_variables": list(sources.keys()) + ["df"],
+                    "available_variables": list(sources.keys()) + df_extra,
                     "source_info": describe_sources(store, labels),
                 }
 
@@ -1254,7 +1258,7 @@ class OrchestratorAgent:
                 "status": "success",
                 **entry.summary(),
                 "source_info": describe_sources(store, labels),
-                "available_variables": list(sources.keys()) + ["df"],
+                "available_variables": list(sources.keys()) + df_extra,
             }
             if warnings:
                 result["warnings"] = warnings
@@ -1348,6 +1352,72 @@ class OrchestratorAgent:
             if entry is None:
                 return {"status": "error", "message": f"Label '{tool_args['label']}' not found in memory"}
 
+            # --- xarray DataArray path ---
+            if entry.is_xarray:
+                import numpy as np
+                da = entry.data
+                dims = dict(da.sizes)
+                n_time = dims.get("time", 0)
+
+                # Coordinate info
+                coords_info = {}
+                for cname, coord in da.coords.items():
+                    cvals = coord.values
+                    info = {"size": len(cvals), "dtype": str(cvals.dtype)}
+                    if np.issubdtype(cvals.dtype, np.number):
+                        info["min"] = float(np.nanmin(cvals))
+                        info["max"] = float(np.nanmax(cvals))
+                    elif np.issubdtype(cvals.dtype, np.datetime64):
+                        info["min"] = str(cvals[0])
+                        info["max"] = str(cvals[-1])
+                    coords_info[cname] = info
+
+                # Global statistics on finite values
+                flat = da.values.flatten()
+                finite = flat[np.isfinite(flat)]
+                nan_count = int(flat.size - finite.size)
+                if finite.size > 0:
+                    pcts = np.percentile(finite, [25, 50, 75])
+                    statistics = {
+                        "min": float(np.min(finite)),
+                        "max": float(np.max(finite)),
+                        "mean": float(np.mean(finite)),
+                        "std": float(np.std(finite)),
+                        "25%": float(pcts[0]),
+                        "50%": float(pcts[1]),
+                        "75%": float(pcts[2]),
+                    }
+                else:
+                    statistics = {"min": None, "max": None, "mean": None, "std": None}
+
+                # Time info
+                time_start = time_end = time_span = median_cadence = None
+                if n_time > 0:
+                    times = da.coords["time"].values
+                    time_start = str(times[0])
+                    time_end = str(times[-1])
+                    time_span = str(pd.Timestamp(times[-1]) - pd.Timestamp(times[0]))
+                    if n_time > 1:
+                        dt = pd.Series(times).diff().dropna()
+                        median_cadence = str(dt.median())
+
+                return {
+                    "status": "success",
+                    "label": entry.label,
+                    "units": entry.units,
+                    "storage_type": "xarray",
+                    "dims": dims,
+                    "coordinates": coords_info,
+                    "num_points": n_time,
+                    "time_start": time_start,
+                    "time_end": time_end,
+                    "time_span": time_span,
+                    "median_cadence": median_cadence,
+                    "nan_count": nan_count,
+                    "nan_percentage": round(nan_count / flat.size * 100, 1) if flat.size > 0 else 0,
+                    "statistics": statistics,
+                }
+
             df = entry.data
             stats = {}
 
@@ -1407,6 +1477,48 @@ class OrchestratorAgent:
             if entry is None:
                 return {"status": "error", "message": f"Label '{tool_args['label']}' not found in memory"}
 
+            # --- xarray DataArray path ---
+            if entry.is_xarray:
+                import numpy as np
+                da = entry.data
+                n_time = da.sizes.get("time", 0)
+                n_rows = min(tool_args.get("n_rows", 3), 10)
+                position = tool_args.get("position", "both")
+
+                def _xr_time_slice(indices):
+                    rows = []
+                    for i in indices:
+                        sl = da.isel(time=i)
+                        vals = sl.values.flatten()
+                        finite = vals[np.isfinite(vals)]
+                        rows.append({
+                            "timestamp": str(da.coords["time"].values[i]),
+                            "shape": list(sl.shape),
+                            "min": float(np.min(finite)) if finite.size > 0 else None,
+                            "max": float(np.max(finite)) if finite.size > 0 else None,
+                            "mean": float(np.mean(finite)) if finite.size > 0 else None,
+                            "nan_count": int(vals.size - finite.size),
+                        })
+                    return rows
+
+                result = {
+                    "status": "success",
+                    "label": entry.label,
+                    "units": entry.units,
+                    "storage_type": "xarray",
+                    "dims": dict(da.sizes),
+                    "total_time_steps": n_time,
+                }
+                if n_time > 0:
+                    head_idx = list(range(min(n_rows, n_time)))
+                    tail_idx = list(range(max(n_time - n_rows, 0), n_time))
+                    if position in ("head", "both"):
+                        result["head"] = _xr_time_slice(head_idx)
+                    if position in ("tail", "both"):
+                        result["tail"] = _xr_time_slice(tail_idx)
+
+                return result
+
             df = entry.data
             n_rows = min(tool_args.get("n_rows", 5), 50)
             position = tool_args.get("position", "both")
@@ -1443,6 +1555,35 @@ class OrchestratorAgent:
                 return {"status": "error", "message": f"Label '{tool_args['label']}' not found in memory"}
 
             from pathlib import Path
+
+            # --- xarray DataArray path: export as NetCDF ---
+            if entry.is_xarray:
+                da = entry.data
+                filename = tool_args.get("filename", "")
+                if not filename:
+                    safe_label = entry.label.replace(".", "_").replace("/", "_")
+                    filename = f"{safe_label}.nc"
+                if not filename.endswith(".nc"):
+                    filename += ".nc"
+
+                parent = Path(filename).parent
+                if parent and str(parent) != "." and not parent.exists():
+                    parent.mkdir(parents=True, exist_ok=True)
+
+                da.to_netcdf(filename, encoding={"time": {"units": "nanoseconds since 1970-01-01"}})
+                filepath = str(Path(filename).resolve())
+                file_size = Path(filename).stat().st_size
+
+                self.logger.debug(f"[DataOps] Exported xarray '{entry.label}' to {filepath} ({file_size:,} bytes)")
+
+                return {
+                    "status": "success",
+                    "label": entry.label,
+                    "filepath": filepath,
+                    "format": "netcdf",
+                    "dims": dict(da.sizes),
+                    "file_size_bytes": file_size,
+                }
 
             # Generate filename if not provided
             filename = tool_args.get("filename", "")

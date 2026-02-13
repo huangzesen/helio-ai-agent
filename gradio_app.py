@@ -272,6 +272,8 @@ def _preview_data(label: str) -> list[list] | None:
     entry = get_store().get(label)
     if entry is None:
         return None
+    if entry.is_xarray:
+        return None  # 3D+ data cannot be displayed in a 2D table
     df = entry.data
     n = len(df)
     # Slice FIRST to avoid copying the entire DataFrame
