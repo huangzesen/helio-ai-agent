@@ -18,7 +18,7 @@
 │                  agent/core.py                          │
 │                                                         │
 │  • Routes requests via LLM function calling             │
-│  • Injects long-term memory into system prompt          │
+│  • Injects long-term memory into user messages           │
 │  • Aggregates token usage across all sub-agents         │
 │  • Auto-saves session after every turn                  │
 │  • Model fallback on 429 quota errors                   │
@@ -106,13 +106,13 @@ OrchestratorAgent (HIGH thinking, Gemini 3 Pro)
 ┌──────────────┐     ┌──────────────┐     ┌──────────────┐     ┌──────────────┐
 │    FETCH     │     │    STORE     │     │   COMPUTE    │     │     PLOT     │
 │              │     │              │     │              │     │              │
-│ HAPI /data   │────▶│  DataStore   │────▶│  AST sandbox │────▶│ PlotlyRender │
-│ endpoint     │     │  (singleton) │     │              │     │              │
+│ CDAWeb REST  │────▶│  DataStore   │────▶│  AST sandbox │────▶│ PlotlyRender │
+│ → CDF files  │     │  (singleton) │     │              │     │              │
 │              │     │              │     │  Allowed:    │     │  plot_data() │
-│ fetch.py     │     │  store.py    │     │  pd, np,     │     │  style()     │
-│              │     │              │     │  signal      │     │  manage()    │
-│ CSV → pandas │     │  DataEntry:  │     │              │     │              │
-│ DataFrame    │     │  ├─ label    │     │  custom_ops  │     │  Downsample  │
+│ fetch_cdf.py │     │  store.py    │     │  pd, np,     │     │  style()     │
+│              │     │              │     │  scipy, pywt │     │  manage()    │
+│ cdflib →     │     │  DataEntry:  │     │              │     │              │
+│ pandas DF    │     │  ├─ label    │     │  custom_ops  │     │  Downsample  │
 │ fill → NaN   │     │  ├─ data(DF) │     │  .py         │     │  >5k pts     │
 │              │     │  ├─ units    │     │              │     │              │
 │              │     │  ├─ source   │     │  Blocked:    │     │  WebGL       │
@@ -143,9 +143,9 @@ OrchestratorAgent
 │                agent/core.py                            │
 ├─────────────────────────────────────────────────────────┤
 │                                                         │
-│  DISCOVERY (6 tools)         DATA OPS (8 tools)         │
+│  DISCOVERY (7 tools)         DATA OPS (7 tools)         │
 │  ├─ search_datasets          ├─ fetch_data              │
-│  │   → catalog.search()      │   → fetch.fetch_hapi()   │
+│  │   → catalog.search()      │   → fetch_cdf.fetch()    │
 │  ├─ browse_datasets          │   → DataStore.put()       │
 │  │   → metadata_client           ├─ custom_operation         │
 │  ├─ list_parameters          │   → AST validate          │
@@ -191,7 +191,7 @@ LLM produces text reply → User
 │  missions/*.json (52 files)                             │
 │  ├─ PSP, ACE, OMNI, Wind, DSCOVR, MMS, STEREO-A, ...  │
 │  ├─ id, name, keywords, profile                        │
-│  └─ instruments → datasets → parameters (HAPI metadata)│
+│  └─ instruments → datasets → parameters (Master CDF)   │
 │           │                                             │
 │           ▼                                             │
 │  mission_loader.py ──────────────▶ prompt_builder.py    │
@@ -212,7 +212,7 @@ LLM produces text reply → User
 │  cdaweb_catalog.py                                      │
 │  └─ search_catalog() (2000+ datasets, 24h cache)       │
 │                                                         │
-│  Cache: ~/.helio-agent/hapi_cache/{mission}/            │
+│  Cache: knowledge/missions/{mission}/metadata/          │
 └─────────────────────────────────────────────────────────┘
 ```
 
@@ -326,11 +326,10 @@ is_complex_request() → YES (multi-spacecraft)
 ├── reports/report_*.md        ← MemoryAgent error reports
 │
 ├── logs/
-│   └── agent_YYYYMMDD.log    ← daily rotation, DEBUG level always captured
+│   └── agent_YYYYMMDD_HHMMSS.log  ← one per session, DEBUG level always captured
 │
-├── hapi_cache/{mission}/
-│   ├── {dataset_id}.json      ← HAPI /info metadata
-│   └── _index.json            ← dataset list
+├── master_cdfs/               ← cached Master CDF skeleton files
+│   └── {dataset_id}.cdf
 │
 └── documents/                 ← saved PDF/image text extractions
 ```
@@ -505,7 +504,7 @@ MissionAgent("ACE") created/cached
  │
  ├─ → calls fetch_data(dataset="AC_H2_MFI", parameter="BGSEc",
  │                      time_min="2026-02-02", time_max="2026-02-09")
- │   → data_ops/fetch.py fetches from HAPI
+ │   → data_ops/fetch_cdf.py downloads CDF from CDAWeb
  │   → DataStore.put("AC_H2_MFI.BGSEc", DataEntry(...))
  │
  └─ Returns: "Fetched AC_H2_MFI.BGSEc (10080 points, nT)"

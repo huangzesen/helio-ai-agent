@@ -13,10 +13,10 @@ helio-ai-agent is an AI-powered natural language interface for spacecraft and he
 The system has four layers:
 
 1. **Agent layer** (`agent/`) — LLM with function calling (default: Gemini, via `agent/llm/` adapter layer). Five agent types:
-   - `core.py` **OrchestratorAgent** — routes to sub-agents, handles data ops directly. Tools defined in `tools.py` (16 tool schemas).
+   - `core.py` **OrchestratorAgent** — routes to sub-agents, handles data ops directly. Tools defined in `tools.py` (29 tool schemas).
    - `mission_agent.py` **MissionAgent** — per-spacecraft data specialists (discovery + data_ops tools only).
    - `visualization_agent.py` **VisualizationAgent** — visualization specialist using 3 declarative tools (`plot_data`, `style_plot`, `manage_plot`) + tool catalog in prompt. No free-form code generation.
-   - `agent/llm/` — LLM abstraction layer. `base.py` defines abstract types (`LLMAdapter`, `ChatSession`, `LLMResponse`, `ToolCall`, `FunctionSchema`). `gemini_adapter.py` wraps `google-genai` SDK — the ONLY file that imports it. See `docs/llm-abstraction-plan.md` for design + Phase 2-4 roadmap.
+   - `agent/llm/` — LLM abstraction layer. `base.py` defines abstract types (`LLMAdapter`, `ChatSession`, `LLMResponse`, `ToolCall`, `FunctionSchema`). Three adapters: `gemini_adapter.py` (Google Gemini), `openai_adapter.py` (OpenAI-compatible), `anthropic_adapter.py` (Anthropic Claude). Only the active adapter's SDK is imported.
 
 2. **Rendering** (`rendering/`) — Pure-Python Plotly renderer (`plotly_renderer.py`) and tool registry (`registry.py`). The `PlotlyRenderer` class provides interactive Plotly figures with vector decomposition, multi-panel subplots, WebGL for large datasets, and PNG/PDF export via kaleido. The `registry.py` describes 3 declarative visualization tools (`plot_data`, `style_plot`, `manage_plot`).
 
@@ -140,7 +140,7 @@ Time ranges use `YYYY-MM-DD to YYYY-MM-DD` format. The agent accepts flexible in
 ## For Future Sessions
 
 - Read `docs/capability-summary.md` first to understand what has been implemented.
-- Read `docs/llm-abstraction-plan.md` for the LLM adapter layer design + Phase 2-4 implementation notes. Phase 1 (Gemini adapter + full refactor) is complete; Phases 2-4 (OpenAI, Anthropic, session persistence) are pending.
+- The LLM abstraction layer (`agent/llm/`) supports three providers: Gemini, OpenAI-compatible, and Anthropic. Session persistence normalization (Phase 4) is pending.
 - Read `docs/planning-workflow.md` for the detailed planning & data fetch pipeline (candidate_datasets design).
 - Read `docs/known-issues.md` for tracked bugs and their status.
 - Most Plotly customizations (titles, labels, scales, render types, etc.) are handled by `style_plot` via declarative key-value params — no code changes needed. For new visualization capabilities: add to `rendering/registry.py`, implement in `rendering/plotly_renderer.py`, add handler in `agent/core.py:_execute_tool()`. For non-visualization tools: add schema in `agent/tools.py`, handler in `agent/core.py:_execute_tool()`. Update `docs/capability-summary.md` either way.

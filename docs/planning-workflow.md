@@ -399,13 +399,13 @@ All tool calls funnel through `OrchestratorAgent._execute_tool(tool_name, tool_a
 
 ### Discovery Tools
 - `search_datasets`: keyword search across the local mission JSON catalog
-- `list_parameters`: HAPI `/info` call, adds CDF variables if backend=cdf
-- `get_data_availability`: HAPI `/info` for time range
+- `list_parameters`: 3-layer metadata resolution (memory → file cache → Master CDF)
+- `get_data_availability`: dataset time range from metadata cache
 - `browse_datasets`: all science datasets for a mission (filtered by calibration exclusion lists)
 - `search_full_catalog`: searches all 2000+ CDAWeb datasets
 
 ### Data Fetch
-- `fetch_data`: validates dataset/parameter IDs via HAPI, parses time range, auto-clamps to dataset availability, detects duplicate fetches, reports NaN-only columns
+- `fetch_data`: validates dataset/parameter IDs, parses time range, auto-clamps to dataset availability, detects duplicate fetches, reports NaN-only columns
 
 ### Compute
 - `custom_operation`: AST-validated sandboxed execution of LLM-generated pandas/numpy code
@@ -485,7 +485,7 @@ Do NOT create new tasks that attempt the same searches.
 | Orchestrator `_process_single_message` | — (no LoopGuard) | 10 (hard limit) |
 
 ### Auto-Clamping Time Ranges
-`_validate_time_range()` in `core.py` auto-adjusts requested time ranges to fit dataset availability windows. Handles partial overlaps (clamps) and full mismatches (informs user). Fail-open: proceeds without validation if HAPI metadata call fails.
+`_validate_time_range()` in `core.py` auto-adjusts requested time ranges to fit dataset availability windows. Handles partial overlaps (clamps) and full mismatches (informs user). Fail-open: proceeds without validation if metadata call fails.
 
 ### Model Fallback
 When any Gemini API call hits a 429 RESOURCE_EXHAUSTED error, all agents switch to `GEMINI_FALLBACK_MODEL` (default: `gemini-2.5-flash`) for the session. The orchestrator's persistent chat is recreated with the fallback model.
@@ -646,7 +646,7 @@ Plan status → COMPLETED.
 | `agent/time_utils.py` | TimeRange parsing |
 | `knowledge/prompt_builder.py` | All agent prompts: planner, mission, discovery, orchestrator, data ops, visualization |
 | `data_ops/store.py` | In-memory DataStore singleton (label → DataEntry) |
-| `data_ops/fetch.py` | HAPI data fetching with validation |
+| `data_ops/fetch.py` | CDF data fetching (delegates to fetch_cdf.py) |
 | `data_ops/custom_ops.py` | AST-validated sandboxed executor |
 | `rendering/plotly_renderer.py` | Plotly figure management |
 | `rendering/registry.py` | Visualization tool registry (3 declarative tools) |

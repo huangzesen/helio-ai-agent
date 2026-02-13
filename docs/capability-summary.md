@@ -130,7 +130,7 @@ agent/core.py  OrchestratorAgent  (LLM-driven orchestrator)
           stress_test.py            Stress testing
 ```
 
-## Tools (28 tool schemas)
+## Tools (29 tool schemas)
 
 ### Dataset Discovery
 | Tool | Purpose |
@@ -286,11 +286,13 @@ All times are UTC. Outputs `TimeRange` objects with `start`/`end` datetimes.
 - Data fetching uses the CDF backend exclusively — downloads CDF files from CDAWeb REST API, caches locally, reads with cdflib. Errors propagate directly for the agent to learn from.
 
 ### LLM Abstraction Layer (`agent/llm/`)
-- **Phase 1 complete (February 2026)**: All LLM SDK calls go through `agent/llm/` adapter layer
+- **Phases 1-3 complete (February 2026)**: All LLM SDK calls go through `agent/llm/` adapter layer. Three adapters implemented.
 - `agent/llm/base.py` — Abstract types: `ToolCall`, `UsageMetadata`, `LLMResponse`, `FunctionSchema`, `ChatSession` ABC, `LLMAdapter` ABC
-- `agent/llm/gemini_adapter.py` — `GeminiAdapter` + `GeminiChatSession` wrapping `google-genai` SDK (the ONLY file that imports `google.genai`)
-- Escape hatches for provider-specific features via `LLMResponse.raw` field and adapter-specific methods (`google_search`, `generate_multimodal`, `make_bytes_part`)
-- Design doc: `docs/llm-abstraction-plan.md` — includes implementation notes for Phases 2-4 (OpenAI, Anthropic, session persistence)
+- `agent/llm/gemini_adapter.py` — `GeminiAdapter` + `GeminiChatSession` wrapping `google-genai` SDK
+- `agent/llm/openai_adapter.py` — `OpenAIAdapter` for OpenAI-compatible providers (OpenAI, DeepSeek, Qwen, Ollama, etc.)
+- `agent/llm/anthropic_adapter.py` — `AnthropicAdapter` for Anthropic Claude models
+- Escape hatches for provider-specific features via `LLMResponse.raw` field and adapter-specific methods
+- Phase 4 pending: session persistence normalization, CLI `--provider` flag, Gradio UI selector
 
 ### Agent Loop (`agent/core.py`)
 - LLM decides which tools to call via function calling (through `LLMAdapter` interface).
