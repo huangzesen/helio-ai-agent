@@ -5,13 +5,11 @@ For plot-creation requests, runs a think phase to inspect data (shapes,
 types, units, NaN counts) before constructing update_plot_spec calls.
 Style requests skip the think phase to avoid wasting tokens.
 
-Owns visualization through two tools:
+Owns all visualization through three tools:
 - update_plot_spec — create/update plots via a single unified JSON spec
   (replaces the old plot_data + style_plot two-step workflow)
+- manage_plot — export, reset, zoom, get state, add/remove traces
 - list_fetched_data — discover available data in memory
-
-manage_plot remains available to the orchestrator for export/reset but is
-not exposed to the viz agent — its actions overlap with the spec.
 """
 
 import re
@@ -29,12 +27,10 @@ from knowledge.prompt_builder import (
 )
 
 # Visualization agent gets its own tool category + list_fetched_data from data_ops
-# Only update_plot_spec is exposed; plot_data, style_plot, and manage_plot are
-# excluded (internal primitives / orchestrator-only).
+# update_plot_spec and manage_plot are exposed; plot_data and style_plot are
+# excluded (legacy primitives superseded by update_plot_spec).
 VIZ_TOOL_CATEGORIES = ["visualization"]
-VIZ_EXTRA_TOOLS = ["list_fetched_data"]
-# Tools to exclude from the viz agent
-_VIZ_EXCLUDED_TOOLS = {"plot_data", "style_plot", "manage_plot"}
+VIZ_EXTRA_TOOLS = ["list_fetched_data", "manage_plot"]
 
 # Think phase: data inspection only (no viz tools)
 VIZ_THINK_EXTRA_TOOLS = ["list_fetched_data", "describe_data", "preview_data"]
@@ -69,8 +65,9 @@ def _extract_labels_from_instruction(instruction: str) -> list[str]:
 class VisualizationAgent(BaseSubAgent):
     """An LLM session specialized for visualization.
 
-    Uses two tools: update_plot_spec (create/update plots via unified spec)
-    and list_fetched_data (discover available data).
+    Uses three tools: update_plot_spec (create/update plots via unified spec),
+    manage_plot (export, reset, zoom, add/remove traces), and
+    list_fetched_data (discover available data).
 
     For plot-creation requests via process_request(), runs an optional
     think phase to inspect data before the execute phase.
@@ -101,12 +98,6 @@ class VisualizationAgent(BaseSubAgent):
             pitfalls=pitfalls,
             token_log_path=token_log_path,
         )
-
-        # Filter out plot_data and style_plot — viz agent uses update_plot_spec instead
-        self._tool_schemas = [
-            ts for ts in self._tool_schemas
-            if ts.name not in _VIZ_EXCLUDED_TOOLS
-        ]
 
         # Build think-phase tool schemas (data inspection only)
         self._think_tool_schemas: list[FunctionSchema] = []
@@ -243,7 +234,7 @@ class VisualizationAgent(BaseSubAgent):
             "- Call update_plot_spec with the labels shown above.\n"
             "- After plotting, inspect review.sizing_recommendation and update the spec\n"
             "  with canvas_size if it differs from review.figure_size.\n"
-            "- Do NOT export the plot — exporting is handled by the orchestrator."
+            "- Use manage_plot for export, reset, zoom, or trace operations if needed."
             + pitfall_section
         )
 

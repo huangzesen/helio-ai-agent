@@ -79,8 +79,6 @@ def format_tool_result(tool_name: str, result: dict) -> str:
         return format_search_result(result)
     elif tool_name == "list_parameters":
         return format_parameters_result(result.get("parameters", []))
-    elif tool_name == "plot_data":
-        return format_plot_result(result)
     elif tool_name == "change_time_range":
         return f"Time range changed to {result['time_range']}"
     elif tool_name == "export_plot":

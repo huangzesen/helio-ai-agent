@@ -611,8 +611,9 @@ def build_visualization_prompt(gui_mode: bool = False) -> str:
     lines = [
         "You are a visualization specialist for a scientific data visualization tool.",
         "",
-        "You have two tools:",
+        "You have three tools:",
         "- `update_plot_spec` — create or update plots via a single JSON spec",
+        "- `manage_plot` — export, reset, zoom, get state, add/remove traces",
         "- `list_fetched_data` — see what data is available in memory",
         "",
         "## How update_plot_spec Works",
@@ -702,6 +703,15 @@ def build_visualization_prompt(gui_mode: bool = False) -> str:
         "})",
         "```",
         "",
+        "## manage_plot Actions",
+        "",
+        "- `manage_plot(action=\"export\", filename=\"output.png\")` — export to PNG/PDF",
+        "- `manage_plot(action=\"reset\")` — clear the plot",
+        "- `manage_plot(action=\"set_time_range\", time_range=\"2024-01-15 to 2024-01-20\")` — zoom",
+        "- `manage_plot(action=\"get_state\")` — inspect current figure state",
+        "- `manage_plot(action=\"add_trace\", label=\"ACE_Bmag\", panel=1)` — add a trace",
+        "- `manage_plot(action=\"remove_trace\", label=\"ACE Bmag\")` — remove a trace",
+        "",
         "## Time Range Format",
         "",
         "- Date range: '2024-01-15 to 2024-01-20' (use ' to ' separator, NOT '/')",
@@ -713,11 +723,10 @@ def build_visualization_prompt(gui_mode: bool = False) -> str:
         "For conversational requests:",
         "1. Call `list_fetched_data` first to see what data is in memory",
         "2. Call `update_plot_spec` with the complete desired spec",
-        "3. Exporting and resetting are handled by the orchestrator — not your concern",
+        "3. Use `manage_plot` for structural operations (export, reset, zoom, add/remove traces)",
         "",
         "For task execution (when instruction starts with 'Execute this task'):",
         "- Go straight to `update_plot_spec` — do NOT call list_fetched_data or reset first",
-        "- Export requests should never reach you — the orchestrator handles them directly",
         "- Data labels are provided in the instruction — use them directly",
         "",
         "## Plot Self-Review",
@@ -1009,7 +1018,7 @@ Each task has:
 - custom_operation(source_labels, pandas_code, output_label, description): pandas/numpy transformation (source_labels is an array)
 - store_dataframe(pandas_code, output_label, description): Create DataFrame from scratch
 - describe_data(label): Statistical summary of in-memory data
-- plot_data(labels): Plot data from memory (comma-separated labels)
+- update_plot_spec(spec): Plot data from memory via unified spec (spec must include 'labels')
 - save_data(label, filename): Export timeseries to CSV (only when user explicitly asks)
 - google_search(query): Search the web for context
 - recall_memories(query, type, limit): Search archived memories from past sessions
@@ -1055,8 +1064,8 @@ Tag each task with the "mission" field:
   (e.g., density in cm^-3 and speed in km/s need separate panels).
 - Each panel should share a single y-axis unit.
 - For side-by-side epoch comparisons (different time periods of the same quantities),
-  instruct the visualization task to use columns=2 in the plot_data call.
-  Example: "Use plot_data to plot Vsw_Jan,Bmag_Jan,Vsw_Oct,Bmag_Oct with columns=2"
+  instruct the visualization task to use columns=2 in the update_plot_spec call.
+  Example: "Use update_plot_spec to plot Vsw_Jan,Bmag_Jan,Vsw_Oct,Bmag_Oct with columns=2"
 
 ## Planning Guidelines
 
@@ -1095,7 +1104,7 @@ Describe the physical quantity needed (e.g., "magnetic field vector", "proton de
 Every fetch instruction MUST describe the physical quantity needed and time range.
 Do NOT include specific parameter names — the mission agent selects parameters.
 Every custom_operation instruction MUST include the exact source_labels (array of label strings).
-Every visualization instruction MUST start with "Use plot_data to plot ...".
+Every visualization instruction MUST start with "Use update_plot_spec to plot ...".
 
 Example instructions:
 - "Fetch magnetic field vector components for 2024-01-10 to 2024-01-17" (mission: "ACE",
@@ -1103,7 +1112,7 @@ Example instructions:
 - "Fetch solar wind plasma data (density, speed) for last week" (mission: "PSP",
   candidate_datasets: ["PSP_COHO1HR_MERGED_MAG_PLASMA", "PSP_SWP_SPI_SF00_L3_MOM"])
 - "Compute magnitude of AC_H2_MFI.BGSEc, save as ACE_Bmag" (mission: "__data_ops__")
-- "Use plot_data to plot ACE_Bmag and Wind_Bmag" (mission: "__visualization__")
+- "Use update_plot_spec to plot ACE_Bmag and Wind_Bmag" (mission: "__visualization__")
 
 ## Multi-Round Example
 
@@ -1127,7 +1136,7 @@ After receiving results showing both computes succeeded:
 
 Round 3 response:
 {{"status": "done", "reasoning": "All data ready, plotting comparison", "tasks": [
-  {{"description": "Plot comparison", "instruction": "Use plot_data to plot ACE_Bmag and Wind_Bmag together with title 'ACE vs Wind Magnetic Field Magnitude'", "mission": "__visualization__"}}
+  {{"description": "Plot comparison", "instruction": "Use update_plot_spec to plot ACE_Bmag and Wind_Bmag together with title 'ACE vs Wind Magnetic Field Magnitude'", "mission": "__visualization__"}}
 ], "summary": "Fetched ACE and Wind magnetic field data, computed magnitudes, and plotted them together."}}"""
 
 

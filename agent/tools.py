@@ -11,7 +11,7 @@ Categories:
 - "data_ops_compute": data transformation, statistics (custom_operation, describe_data)
 - "data_export": save_data (CSV export — orchestrator only, not given to sub-agents)
 - "data_extraction": unstructured-to-structured data conversion (store_dataframe)
-- "visualization": plot_data, style_plot, manage_plot (declarative visualization tools)
+- "visualization": update_plot_spec, manage_plot (declarative visualization tools)
 - "conversation": ask_clarification
 - "routing": delegate_to_mission, delegate_to_visualization, delegate_to_data_ops, delegate_to_data_extraction
 """
@@ -166,7 +166,7 @@ Do NOT guess - ask instead.""",
         "category": "data_ops_fetch",
         "name": "fetch_data",
         "description": """Fetch timeseries data from CDAWeb into memory for Python-side operations.
-Use this instead of plot_data when the user wants to compute on data (magnitude, averages, differences, etc.).
+Use this to pull data before computing on it (magnitude, averages, differences, etc.) or plotting it.
 
 The data is stored in memory with a label like 'AC_H2_MFI.BGSEc' for later reference by compute and plot tools.""",
         "parameters": {
@@ -223,7 +223,7 @@ xarray operations (DataArray sources — check storage_type in fetch_data respon
 - Slice 3D to 2D: `result = da_EFLUX_VS_PA_E.isel(dim1=0)` (keeps as DataArray, can plot as spectrogram)
 - Average over a dim: `result = da_EFLUX_VS_PA_E.mean(dim='dim1')` (reduces to 2D DataArray)
 - Convert to DataFrame: `result = da_EFLUX_VS_PA_E.isel(dim1=0).to_pandas()` (also valid)
-- For spectrogram: fetch a 2D variable (size=[N]) and plot directly with `plot_data(plot_type="spectrogram")`
+- For spectrogram: fetch a 2D variable (size=[N]) and plot directly with `update_plot_spec(spec={"labels": "LABEL", "plot_type": "spectrogram"})`
 - For 3D variables (size=[M, N]): use `custom_operation` to slice/average to 2D first, then plot as spectrogram
 
 Single-source operations (one-element array):
@@ -532,201 +532,6 @@ If no filename is given, one is auto-generated from the label.""",
     },
 
     # --- Visualization ---
-    {
-        "category": "visualization",
-        "name": "plot_data",
-        "description": """Create a fresh plot from in-memory timeseries data. Use labels from list_fetched_data.
-Supports single-panel overlay (default) or multi-panel layout via the panels parameter.
-For spectrograms, set plot_type="spectrogram".""",
-        "parameters": {
-            "type": "object",
-            "properties": {
-                "labels": {
-                    "type": "string",
-                    "description": "Comma-separated labels of data to plot (e.g., 'Bmag' or 'ACE_Bmag,PSP_Bmag')"
-                },
-                "panels": {
-                    "type": "array",
-                    "items": {"type": "array", "items": {"type": "string"}},
-                    "description": "Panel layout as list of label lists, e.g. [['A','B'], ['C']] for 2 panels. Omit for single-panel overlay."
-                },
-                "panel_types": {
-                    "type": "array",
-                    "items": {"type": "string", "enum": ["line", "spectrogram"]},
-                    "description": "Per-panel plot type, parallel to panels array. E.g. ['spectrogram', 'line', 'line']. Omit to use plot_type for all panels."
-                },
-                "title": {
-                    "type": "string",
-                    "description": "Optional plot title"
-                },
-                "plot_type": {
-                    "type": "string",
-                    "enum": ["line", "spectrogram"],
-                    "description": "Default plot type for all panels: 'line' (default) or 'spectrogram'. Override per-panel with panel_types."
-                },
-                "colorscale": {
-                    "type": "string",
-                    "description": "Plotly colorscale for spectrograms (e.g., Viridis, Jet, Plasma)"
-                },
-                "log_y": {
-                    "type": "boolean",
-                    "description": "Log scale on y-axis (spectrogram)"
-                },
-                "log_z": {
-                    "type": "boolean",
-                    "description": "Log scale on color axis (spectrogram intensity)"
-                },
-                "z_min": {
-                    "type": "number",
-                    "description": "Min value for spectrogram color scale"
-                },
-                "z_max": {
-                    "type": "number",
-                    "description": "Max value for spectrogram color scale"
-                },
-                "columns": {
-                    "type": "integer",
-                    "description": "Number of columns for grid layout (default 1). Use 2 for side-by-side epoch comparison."
-                },
-                "column_titles": {
-                    "type": "array",
-                    "items": {"type": "string"},
-                    "description": "Column header labels (e.g. ['Jan 2020', 'Oct 2024']). Length must match columns."
-                }
-            },
-            "required": ["labels"]
-        }
-    },
-    {
-        "category": "visualization",
-        "name": "style_plot",
-        "description": """Apply aesthetic changes to the current plot. All parameters are optional — pass only what you want to change.
-Use this for titles, axis labels, log scale, colors, line styles, canvas size, annotations, themes, and legend visibility.""",
-        "parameters": {
-            "type": "object",
-            "properties": {
-                "title": {
-                    "type": "string",
-                    "description": "Plot title"
-                },
-                "x_label": {
-                    "type": "string",
-                    "description": "X-axis label"
-                },
-                "y_label": {
-                    "type": "string",
-                    "description": "Y-axis label (applies to all panels)"
-                },
-                "trace_colors": {
-                    "type": "object",
-                    "description": "Map trace label -> color, e.g. {'ACE Bmag': 'red'}"
-                },
-                "line_styles": {
-                    "type": "object",
-                    "description": "Map trace label -> {width, dash, mode}"
-                },
-                "log_scale": {
-                    "description": "Set y-axis to log scale. String 'y' (all panels log) or 'linear' (all panels linear), or an object mapping panel numbers to 'log'/'linear' for per-panel control, e.g. {'4': 'log', '5': 'log'}"
-                },
-                "x_range": {
-                    "type": "array",
-                    "items": {"type": "string"},
-                    "description": "X-axis range [min, max]"
-                },
-                "y_range": {
-                    "type": "array",
-                    "items": {"type": "number"},
-                    "description": "Y-axis range [min, max]"
-                },
-                "legend": {
-                    "type": "boolean",
-                    "description": "Show (true) or hide (false) legend"
-                },
-                "font_size": {
-                    "type": "integer",
-                    "description": "Global font size in points"
-                },
-                "canvas_size": {
-                    "type": "object",
-                    "description": "Canvas dimensions: {width: int, height: int}"
-                },
-                "annotations": {
-                    "type": "array",
-                    "items": {"type": "object"},
-                    "description": "List of annotations: [{text, x, y}, ...]"
-                },
-                "colorscale": {
-                    "type": "string",
-                    "description": "Plotly colorscale for heatmap traces"
-                },
-                "theme": {
-                    "type": "string",
-                    "description": "Plotly template name (e.g., 'plotly_dark', 'plotly_white')"
-                },
-                "vlines": {
-                    "type": "array",
-                    "items": {
-                        "type": "object",
-                        "properties": {
-                            "x": {
-                                "type": "string",
-                                "description": "Timestamp string for the vertical line position (required)"
-                            },
-                            "label": {
-                                "type": "string",
-                                "description": "Text label displayed at the top of the line"
-                            },
-                            "color": {
-                                "type": "string",
-                                "description": "Line color (default: 'red')"
-                            },
-                            "dash": {
-                                "type": "string",
-                                "description": "Line dash style: 'solid', 'dash', 'dot', 'dashdot'"
-                            },
-                            "width": {
-                                "type": "number",
-                                "description": "Line width in pixels (default: 1.5)"
-                            }
-                        },
-                        "required": ["x"]
-                    },
-                    "description": "Vertical lines: [{x, label, color, dash, width}, ...]. x is a timestamp string."
-                },
-                "vrects": {
-                    "type": "array",
-                    "items": {
-                        "type": "object",
-                        "properties": {
-                            "x0": {
-                                "type": "string",
-                                "description": "Start timestamp (required)"
-                            },
-                            "x1": {
-                                "type": "string",
-                                "description": "End timestamp (required)"
-                            },
-                            "label": {
-                                "type": "string",
-                                "description": "Text label centered above the highlighted region"
-                            },
-                            "color": {
-                                "type": "string",
-                                "description": "Fill color (default: semi-transparent light blue)"
-                            },
-                            "opacity": {
-                                "type": "number",
-                                "description": "Fill opacity 0-1 (default: 0.3)"
-                            }
-                        },
-                        "required": ["x0", "x1"]
-                    },
-                    "description": "Highlighted time ranges: [{x0, x1, label, color, opacity}, ...]. x0/x1 are timestamp strings."
-                }
-            },
-            "required": []
-        }
-    },
     {
         "category": "visualization",
         "name": "update_plot_spec",
@@ -1143,9 +948,9 @@ If the user requests modifications (e.g., 'run my ACE pipeline but with red line
     {
         "category": "pipeline",
         "name": "render_spec",
-        "description": """Render a plot from a unified plot specification. Used by the pipeline system to combine plot_data + style_plot into a single step.
+        "description": """Render a plot from a unified plot specification. Used by the pipeline system for deterministic replay.
 
-The spec is a single JSON object containing all layout fields (from plot_data) and aesthetic fields (from style_plot). Same spec = same plot, always.
+The spec is a single JSON object containing all layout and aesthetic fields. Same spec = same plot, always.
 
 Layout fields: labels, panels, panel_types, title, plot_type, colorscale, log_y, log_z, z_min, z_max, columns, column_titles.
 Style fields: x_label, y_label, trace_colors, line_styles, log_scale, x_range, y_range, legend, font_size, canvas_size, annotations, theme, vlines, vrects.

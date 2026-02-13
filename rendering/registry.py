@@ -1,7 +1,7 @@
 """
 Tool registry for visualization operations.
 
-Describes the three declarative visualization tools as structured data.
+Describes the two declarative visualization tools as structured data.
 The VisualizationAgent sub-agent uses this registry to understand what
 operations are available and validate arguments before dispatching to
 PlotlyRenderer.
@@ -13,75 +13,6 @@ Adding a new capability:
 """
 
 TOOLS = [
-    {
-        "name": "plot_data",
-        "description": "Create a fresh plot from in-memory timeseries. Supports single-panel overlay or multi-panel layout. Use labels from list_fetched_data.",
-        "parameters": [
-            {"name": "labels", "type": "string", "required": True,
-             "description": "Comma-separated labels of data to plot (e.g., 'Bmag' or 'ACE_Bmag,PSP_Bmag')"},
-            {"name": "panels", "type": "array", "required": False,
-             "description": "Panel layout as list of label lists, e.g. [['A','B'], ['C']] for 2 panels. Omit for single-panel overlay."},
-            {"name": "panel_types", "type": "array", "required": False,
-             "description": "Per-panel plot type, parallel to panels array. E.g. ['spectrogram', 'line', 'line']. Omit to use plot_type for all panels."},
-            {"name": "title", "type": "string", "required": False, "default": "",
-             "description": "Optional plot title"},
-            {"name": "plot_type", "type": "string", "required": False, "default": "line",
-             "enum": ["line", "spectrogram"],
-             "description": "Default plot type for all panels: 'line' (default) or 'spectrogram'. Override per-panel with panel_types."},
-            {"name": "colorscale", "type": "string", "required": False, "default": "Viridis",
-             "description": "Plotly colorscale for spectrograms (e.g., Viridis, Jet, Plasma)"},
-            {"name": "log_y", "type": "boolean", "required": False, "default": False,
-             "description": "Log scale on y-axis (spectrogram)"},
-            {"name": "log_z", "type": "boolean", "required": False, "default": False,
-             "description": "Log scale on color axis (spectrogram intensity)"},
-            {"name": "z_min", "type": "number", "required": False,
-             "description": "Min value for spectrogram color scale"},
-            {"name": "z_max", "type": "number", "required": False,
-             "description": "Max value for spectrogram color scale"},
-            {"name": "columns", "type": "integer", "required": False, "default": 1,
-             "description": "Number of columns for grid layout. Use 2 for side-by-side comparison of different time periods."},
-            {"name": "column_titles", "type": "array", "required": False,
-             "description": "Column header labels, e.g. ['Jan 2020', 'Oct 2024']. Length must match columns."},
-        ],
-    },
-    {
-        "name": "style_plot",
-        "description": "Apply aesthetic changes to the current plot. All parameters are optional — pass only what you want to change.",
-        "parameters": [
-            {"name": "title", "type": "string", "required": False,
-             "description": "Plot title"},
-            {"name": "x_label", "type": "string", "required": False,
-             "description": "X-axis label"},
-            {"name": "y_label", "type": "string", "required": False,
-             "description": "Y-axis label (string for all panels, or JSON object {panel_num: label})"},
-            {"name": "trace_colors", "type": "object", "required": False,
-             "description": "Map trace label -> color, e.g. {'ACE Bmag': 'red', 'PSP Bmag': 'blue'}"},
-            {"name": "line_styles", "type": "object", "required": False,
-             "description": "Map trace label -> {width, dash, mode}, e.g. {'ACE Bmag': {'width': 2, 'dash': 'dot'}}"},
-            {"name": "log_scale", "type": "string or object", "required": False,
-             "description": "Set y-axis scale. String 'y' (all panels log) or 'linear' (all panels linear), or a dict mapping panel numbers to 'log'/'linear' for per-panel control, e.g. {'4': 'log', '5': 'log'}"},
-            {"name": "x_range", "type": "array", "required": False,
-             "description": "X-axis range [min, max]"},
-            {"name": "y_range", "type": "array", "required": False,
-             "description": "Y-axis range [min, max] (or JSON object {panel_num: [min, max]})"},
-            {"name": "legend", "type": "boolean", "required": False,
-             "description": "Show (true) or hide (false) legend"},
-            {"name": "font_size", "type": "integer", "required": False,
-             "description": "Global font size in points"},
-            {"name": "canvas_size", "type": "object", "required": False,
-             "description": "Canvas dimensions: {width: int, height: int}"},
-            {"name": "annotations", "type": "array", "required": False,
-             "description": "List of annotations: [{text, x, y}, ...]"},
-            {"name": "colorscale", "type": "string", "required": False,
-             "description": "Plotly colorscale for heatmap traces (e.g., Viridis, Jet)"},
-            {"name": "theme", "type": "string", "required": False,
-             "description": "Plotly template name (e.g., 'plotly_dark', 'plotly_white')"},
-            {"name": "vlines", "type": "array", "required": False,
-             "description": "Vertical lines: [{x, label, color, dash, width}, ...]. x is a timestamp string. color defaults to 'red'. dash defaults to 'solid'; use 'dash' or 'dot' when helpful to distinguish from data traces."},
-            {"name": "vrects", "type": "array", "required": False,
-             "description": "Highlighted time ranges (like axvspan): [{x0, x1, label, color, opacity}, ...]. x0/x1 are timestamp strings. color defaults to semi-transparent light blue. opacity defaults to 0.3."},
-        ],
-    },
     {
         "name": "update_plot_spec",
         "description": "Create or update the plot via a single unified specification. Layout changes trigger a full re-render; style-only changes are applied in-place.",

@@ -736,73 +736,12 @@ class OrchestratorAgent:
             self._renderer._current_plot_spec = dict(new_spec)
             return result
 
-    def _handle_plot_data(self, tool_args: dict) -> dict:
-        """Handle the plot_data tool call."""
-        store = get_store()
-        panels = tool_args.get("panels")
-
-        # When panels are provided, use them as the authoritative label source
-        # (the LLM often dumps ALL store labels into 'labels', including
-        # 0-point entries that aren't actually being plotted).
-        if panels:
-            panel_labels = list(dict.fromkeys(          # dedupe, preserve order
-                label for panel in panels for label in panel
-            ))
-        else:
-            labels_str = tool_args.get("labels", "")
-            if not labels_str:
-                return {"status": "error", "message": "Missing 'labels' parameter"}
-            panel_labels = [l.strip() for l in labels_str.split(",")]
-
-        entries = []
-        for label in panel_labels:
-            entry, _ = self._resolve_entry(store, label)
-            if entry is None:
-                return {"status": "error", "message": f"Label '{label}' not found in memory"}
-            entries.append(entry)
-
-        # Auto-split into panels by units when panels not explicitly provided
-        panels = tool_args.get("panels")
-        if panels is None and len(entries) > 1:
-            unit_groups: dict[str, list[str]] = {}
-            for entry in entries:
-                unit_key = (entry.units or "").strip() or "_dimensionless_"
-                unit_groups.setdefault(unit_key, []).append(entry.label)
-            if len(unit_groups) > 1:
-                panels = list(unit_groups.values())
-                self.logger.debug(
-                    f"[PlotReview] Auto-split into {len(panels)} panels by units: "
-                    + ", ".join(
-                        f"{k}: {v}" for k, v in unit_groups.items()
-                    )
-                )
-
-        try:
-            result = self._renderer.plot_data(
-                entries=entries,
-                panels=panels,
-                title=tool_args.get("title", ""),
-                plot_type=tool_args.get("plot_type", "line"),
-                panel_types=tool_args.get("panel_types"),
-                colorscale=tool_args.get("colorscale", "Viridis"),
-                log_y=tool_args.get("log_y", False),
-                log_z=tool_args.get("log_z", False),
-                z_min=tool_args.get("z_min"),
-                z_max=tool_args.get("z_max"),
-                columns=tool_args.get("columns", 1),
-                column_titles=tool_args.get("column_titles"),
-            )
-        except Exception as e:
-            return {"status": "error", "message": str(e)}
-
-        review = result.get("review", {})
-        for w in review.get("warnings", []):
-            self.logger.debug(f"[PlotReview] {w}")
-
-        return result
-
     def _handle_style_plot(self, tool_args: dict) -> dict:
-        """Handle the style_plot tool call."""
+        """Apply style changes to the current plot (internal helper).
+
+        Not exposed as an LLM tool — called by _handle_update_plot_spec
+        for restyle-only spec changes and by _handle_render_spec.
+        """
         import ast
         # Parse y_label dict string: "{1: 'B (nT)', 2: '...'}" -> dict
         y_label = tool_args.get("y_label")
@@ -1038,12 +977,6 @@ class OrchestratorAgent:
 
         elif tool_name == "update_plot_spec":
             return self._handle_update_plot_spec(tool_args)
-
-        elif tool_name == "plot_data":
-            return self._handle_plot_data(tool_args)
-
-        elif tool_name == "style_plot":
-            return self._handle_style_plot(tool_args)
 
         elif tool_name == "manage_plot":
             return self._handle_manage_plot(tool_args)
@@ -1954,7 +1887,7 @@ class OrchestratorAgent:
                 critical=sd.get("critical", True),
             ))
 
-        # Merge consecutive plot_data + style_plot into render_spec
+        # Merge consecutive plot_data + style_plot into render_spec (backward compat)
         steps = merge_plot_steps(steps)
 
         # Build variables — auto-detect $TIME_RANGE if not provided
@@ -2044,18 +1977,17 @@ class OrchestratorAgent:
             context = pipeline.to_llm_context()
 
             # Detect whether pipeline has render_spec steps (unified spec)
-            has_render_spec = any(s.tool_name == "render_spec" for s in pipeline.steps)
+            has_render_spec = any(s.tool_name in ("render_spec", "update_plot_spec") for s in pipeline.steps)
             if has_render_spec:
                 style_guidance = (
-                    "This pipeline uses render_spec (unified plot spec). "
+                    "This pipeline uses a unified plot spec. "
                     "For style-only changes (colors, labels, scale, etc.), "
-                    "use style_plot — it modifies the existing figure without re-rendering. "
-                    "Do NOT re-fetch data or call render_spec again unless the modification "
-                    "specifically requires changing the plot structure (adding/removing panels or traces)."
+                    "use update_plot_spec — it detects style-only changes and applies them in-place. "
+                    "Do NOT re-fetch data unless the modification specifically requires it."
                 )
             else:
                 style_guidance = (
-                    "For style changes, use style_plot. "
+                    "For style changes, use update_plot_spec. "
                     "For adding new computations, use custom_operation then add traces with manage_plot."
                 )
 
@@ -2100,7 +2032,7 @@ class OrchestratorAgent:
         if not labels_str:
             return {"status": "error", "message": "spec.labels is required"}
 
-        # Resolve labels from the store (same logic as _handle_plot_data)
+        # Resolve labels from the store
         store = get_store()
         panels = spec.get("panels")
         if panels:
@@ -2444,7 +2376,7 @@ class OrchestratorAgent:
         special_missions = {"__visualization__", "__data_ops__", "__data_extraction__"}
 
         if task.mission == "__visualization__":
-            # Set renderer time range from plan so plot_data auto-applies it
+            # Set renderer time range from plan so visualization auto-applies it
             if self._plan_time_range:
                 self._renderer.set_time_range(self._plan_time_range)
 
@@ -2456,7 +2388,7 @@ class OrchestratorAgent:
                 self._handle_export_task(task)
             else:
                 # Plot tasks: ensure instruction includes actual labels
-                has_tool_ref = "update_plot_spec" in instr_lower or "plot_data" in instr_lower
+                has_tool_ref = "update_plot_spec" in instr_lower
                 if not has_tool_ref and entries:
                     all_labels = ",".join(e["label"] for e in entries)
                     task.instruction = (

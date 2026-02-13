@@ -224,7 +224,7 @@ class TestPipelineRecorder:
     def test_records_recordable_tools(self):
         rec = PipelineRecorder()
         rec.record("fetch_data", {"dataset_id": "AC"}, {"status": "success"})
-        rec.record("plot_data", {"labels": "AC"}, {"status": "success"})
+        rec.record("update_plot_spec", {"spec": {"labels": "AC"}}, {"status": "success"})
         assert len(rec) == 2
 
     def test_ignores_non_recordable_tools(self):

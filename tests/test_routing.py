@@ -21,10 +21,8 @@ class TestToolCategoryFiltering:
 
     def test_no_filter_returns_all_tools(self):
         all_tools = get_tool_schemas()
-        assert len(all_tools) == 35
+        assert len(all_tools) == 33
         names = {t["name"] for t in all_tools}
-        assert "plot_data" in names
-        assert "style_plot" in names
         assert "update_plot_spec" in names
         assert "manage_plot" in names
         assert "fetch_data" in names
@@ -34,6 +32,9 @@ class TestToolCategoryFiltering:
         assert "delegate_to_data_extraction" in names
         assert "get_dataset_docs" in names
         assert "read_document" in names
+        # Removed tools
+        assert "plot_data" not in names
+        assert "style_plot" not in names
 
     def test_mission_categories_exclude_visualization_and_routing(self):
         mission_tools = get_tool_schemas(categories=MISSION_TOOL_CATEGORIES, extra_names=MISSION_EXTRA_TOOLS)
@@ -61,7 +62,7 @@ class TestToolCategoryFiltering:
     def test_visualization_category_only(self):
         viz_tools = get_tool_schemas(categories=VIZ_TOOL_CATEGORIES)
         names = {t["name"] for t in viz_tools}
-        assert names == {"plot_data", "style_plot", "update_plot_spec", "manage_plot"}
+        assert names == {"update_plot_spec", "manage_plot"}
 
     def test_visualization_with_extras(self):
         tools = get_tool_schemas(
@@ -69,7 +70,7 @@ class TestToolCategoryFiltering:
             extra_names=VIZ_EXTRA_TOOLS,
         )
         names = {t["name"] for t in tools}
-        assert names == {"plot_data", "style_plot", "update_plot_spec", "manage_plot", "list_fetched_data"}
+        assert names == {"update_plot_spec", "manage_plot", "list_fetched_data"}
 
     def test_orchestrator_categories(self):
         orch_tools = get_tool_schemas(categories=ORCHESTRATOR_CATEGORIES, extra_names=ORCHESTRATOR_EXTRA_TOOLS)

@@ -458,12 +458,12 @@ class TestBuildVisualizationPrompt:
         prompt = build_visualization_prompt()
         assert "Vector data" in prompt
 
-    def test_describes_two_tools(self):
+    def test_describes_three_tools(self):
         prompt = build_visualization_prompt()
-        assert "two tools" in prompt
+        assert "three tools" in prompt
         assert "update_plot_spec" in prompt
+        assert "manage_plot" in prompt
         assert "list_fetched_data" in prompt
-        assert "manage_plot" not in prompt
 
     def test_no_deleted_method_references(self):
         """Deleted registry methods should not appear in the prompt."""

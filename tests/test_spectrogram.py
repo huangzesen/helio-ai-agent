@@ -298,23 +298,21 @@ class TestPlotSpectrogram:
 
 
 class TestRegistryPlotSpectrogram:
-    def test_spectrogram_via_plot_data(self):
-        """Spectrograms are handled via plot_data with plot_type='spectrogram'."""
-        method = get_method("plot_data")
+    def test_update_plot_spec_exists(self):
+        """Spectrograms are handled via update_plot_spec with plot_type in spec."""
+        method = get_method("update_plot_spec")
         assert method is not None
         param_names = [p["name"] for p in method["parameters"]]
-        assert "plot_type" in param_names
-        pt = next(p for p in method["parameters"] if p["name"] == "plot_type")
-        assert "spectrogram" in pt["enum"]
+        assert "spec" in param_names
 
     def test_validate_required_args(self):
-        """Missing required 'labels' should produce an error."""
-        errors = validate_args("plot_data", {})
-        assert any("labels" in e for e in errors)
+        """Missing required 'spec' should produce an error."""
+        errors = validate_args("update_plot_spec", {})
+        assert any("spec" in e for e in errors)
 
     def test_validate_valid_args(self):
         """Valid args should pass validation."""
-        errors = validate_args("plot_data", {"labels": "test_spec"})
+        errors = validate_args("update_plot_spec", {"spec": {"labels": "test_spec"}})
         assert errors == []
 
 

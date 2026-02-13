@@ -30,12 +30,12 @@ class TestRegistryStructure:
         names = [t["name"] for t in TOOLS]
         assert len(names) == len(set(names)), f"Duplicate tool names: {[n for n in names if names.count(n) > 1]}"
 
-    def test_tool_count_is_4(self):
-        assert len(TOOLS) == 4
+    def test_tool_count_is_2(self):
+        assert len(TOOLS) == 2
 
     def test_tool_names(self):
         names = {t["name"] for t in TOOLS}
-        assert names == {"plot_data", "style_plot", "update_plot_spec", "manage_plot"}
+        assert names == {"update_plot_spec", "manage_plot"}
 
     def test_parameters_have_required_fields(self):
         for t in TOOLS:
@@ -45,13 +45,13 @@ class TestRegistryStructure:
                 assert "required" in p, f"{t['name']}.{p['name']}: missing 'required'"
                 assert "description" in p, f"{t['name']}.{p['name']}: missing 'description'"
 
-    def test_plot_data_has_labels_param(self):
-        t = get_method("plot_data")
+    def test_update_plot_spec_has_spec_param(self):
+        t = get_method("update_plot_spec")
         assert t is not None
         param_names = [p["name"] for p in t["parameters"]]
-        assert "labels" in param_names
-        labels_param = next(p for p in t["parameters"] if p["name"] == "labels")
-        assert labels_param["required"] is True
+        assert "spec" in param_names
+        spec_param = next(p for p in t["parameters"] if p["name"] == "spec")
+        assert spec_param["required"] is True
 
     def test_manage_plot_has_action_param(self):
         t = get_method("manage_plot")
@@ -72,21 +72,26 @@ class TestRegistryStructure:
         assert fmt_param["default"] == "png"
         assert set(fmt_param["enum"]) == {"png", "pdf"}
 
-    def test_style_plot_all_optional(self):
-        t = get_method("style_plot")
+    def test_update_plot_spec_spec_is_required(self):
+        t = get_method("update_plot_spec")
         assert t is not None
-        for p in t["parameters"]:
-            assert p["required"] is False, f"style_plot param '{p['name']}' should be optional"
+        spec_param = next(p for p in t["parameters"] if p["name"] == "spec")
+        assert spec_param["required"] is True
 
 
 class TestGetMethod:
     def test_known_tool(self):
-        t = get_method("plot_data")
+        t = get_method("update_plot_spec")
         assert t is not None
-        assert t["name"] == "plot_data"
+        assert t["name"] == "update_plot_spec"
 
     def test_unknown_tool(self):
         assert get_method("nonexistent") is None
+
+    def test_removed_tools_not_found(self):
+        """Removed legacy tools should not exist in the registry."""
+        assert get_method("plot_data") is None
+        assert get_method("style_plot") is None
 
     def test_all_tools_retrievable(self):
         for t in TOOLS:
@@ -102,11 +107,11 @@ class TestGetMethod:
 
 class TestValidateArgs:
     def test_missing_required_param(self):
-        errors = validate_args("plot_data", {})
-        assert any("labels" in e for e in errors)
+        errors = validate_args("update_plot_spec", {})
+        assert any("spec" in e for e in errors)
 
     def test_valid_args(self):
-        errors = validate_args("plot_data", {"labels": "ACE_Bmag"})
+        errors = validate_args("update_plot_spec", {"spec": {"labels": "ACE_Bmag"}})
         assert errors == []
 
     def test_unknown_tool(self):
@@ -129,16 +134,11 @@ class TestValidateArgs:
         errors = validate_args("manage_plot", {"action": "export", "format": "invalid"})
         assert any("Invalid value" in e for e in errors)
 
-    def test_style_plot_no_required_params(self):
+    def test_removed_tools_return_unknown(self):
+        errors = validate_args("plot_data", {})
+        assert any("Unknown tool" in e for e in errors)
         errors = validate_args("style_plot", {})
-        assert errors == []
-
-    def test_style_plot_log_scale_accepts_strings(self):
-        # log_scale is "string or object" — no enum validation (accepts dicts too)
-        errors = validate_args("style_plot", {"log_scale": "y"})
-        assert errors == []
-        errors = validate_args("style_plot", {"log_scale": "linear"})
-        assert errors == []
+        assert any("Unknown tool" in e for e in errors)
 
 
 class TestRenderMethodCatalog:
@@ -159,18 +159,14 @@ class TestRenderMethodCatalog:
         result = render_method_catalog()
         assert "`png`" in result
         assert "`pdf`" in result
-        assert "`line`" in result
-        assert "`spectrogram`" in result
 
     def test_descriptions_included(self):
         result = render_method_catalog()
-        assert "fresh plot" in result
-        assert "aesthetic" in result.lower()
+        assert "unified specification" in result
         assert "Structural operations" in result
 
     def test_examples_section(self):
         result = render_method_catalog()
         assert "## Examples" in result
-        assert "plot_data" in result
-        assert "style_plot" in result
+        assert "update_plot_spec" in result
         assert "manage_plot" in result
