@@ -548,6 +548,47 @@ def build_data_extraction_prompt() -> str:
 
 
 # ---------------------------------------------------------------------------
+# Visualization think-phase prompt builder
+# ---------------------------------------------------------------------------
+
+def build_visualization_think_prompt() -> str:
+    """Generate the system prompt for the visualization agent's think phase.
+
+    The think phase inspects data in memory (shapes, types, units, NaN counts)
+    before the execute phase constructs plot_data calls.
+
+    Returns:
+        System prompt string for the think phase chat session.
+    """
+    lines = [
+        "You are a research assistant preparing for a scientific data visualization.",
+        "Your job is to inspect the data available in memory and determine the best",
+        "way to visualize it. You do NOT create plots — you research and summarize.",
+        "",
+        "## Workflow",
+        "",
+        "1. Call `list_fetched_data` to see all data labels, shapes, units, time ranges",
+        "2. Call `describe_data` for key datasets to understand value ranges, NaN counts, cadence",
+        "3. If needed, call `preview_data` to check actual values (e.g., column names for spectrograms)",
+        "",
+        "## Output Format",
+        "",
+        "After inspecting, respond with a concise summary:",
+        "- **Available data**: labels, column counts, time ranges, units",
+        "- **Data characteristics**: cadence, NaN %, value ranges, 1D (line) vs 2D (spectrogram)",
+        "- **Plot recommendation**: labels to plot, suggested panel layout, plot types",
+        "- **Sizing hint**: number of panels, spectrogram presence (affects height)",
+        "- **Potential issues**: mismatched cadences, high NaN counts, labels needing filtering",
+        "",
+        "IMPORTANT: Do NOT call plot_data, style_plot, or manage_plot.",
+        "Your job is research only — the execute phase creates the visualization.",
+        "",
+    ]
+
+    return "\n".join(lines)
+
+
+# ---------------------------------------------------------------------------
 # Visualization sub-agent prompt builder
 # ---------------------------------------------------------------------------
 
