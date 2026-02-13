@@ -22,8 +22,13 @@ from knowledge.metadata_client import get_dataset_info
 
 logger = logging.getLogger("helio-agent")
 
+from agent.logging import tagged
+
 CDAWEB_REST_BASE = "https://cdaweb.gsfc.nasa.gov/WS/cdasr/1/dataviews/sp_phys"
 CACHE_DIR = Path(__file__).resolve().parent.parent / "cdaweb_data"
+
+_WARN_THRESHOLD_BYTES = 500 * 1024 * 1024   # 500 MB
+_BLOCK_THRESHOLD_BYTES = 1024 * 1024 * 1024  # 1 GB
 
 
 # CDF variable data types to skip (epoch/time and character/metadata types)
@@ -70,6 +75,7 @@ def fetch_cdf_data(
     parameter_id: str,
     time_min: str,
     time_max: str,
+    force: bool = False,
 ) -> dict:
     """Fetch timeseries data by downloading CDF files from CDAWeb.
 
@@ -108,6 +114,24 @@ def fetch_cdf_data(
     file_list = _get_cdf_file_list(dataset_id, time_min, time_max)
     logger.debug(f"[CDF] Found {len(file_list)} files for {dataset_id} "
                  f"({time_min} to {time_max})")
+
+    # Check download size before proceeding
+    download_bytes, total_bytes, n_cached, n_to_download = _check_download_size(
+        file_list, CACHE_DIR
+    )
+
+    if download_bytes > _BLOCK_THRESHOLD_BYTES and not force:
+        raise ValueError(
+            f"Download size {download_bytes / 1e6:.0f} MB ({n_to_download} files) exceeds 1 GB limit. "
+            f"Ask the user to confirm this large download. If they agree, retry with force_large_download=true."
+        )
+
+    if download_bytes > _WARN_THRESHOLD_BYTES:
+        logger.warning(
+            f"[CDF] Large download: {download_bytes / 1e6:.0f} MB ({n_to_download} files) for {dataset_id}. "
+            f"Consider narrowing the time range.",
+            extra=tagged("progress"),
+        )
 
     # Download and read CDF files (parallel when enabled and multiple files)
     from config import PARALLEL_FETCH, PARALLEL_MAX_WORKERS
@@ -390,6 +414,59 @@ def _iso_to_cdaweb_time(iso_time: str) -> str:
     return t
 
 
+def _url_to_local_path(url: str, cache_base: Path) -> Path:
+    """Resolve a CDAWeb CDF URL to its local cache path.
+
+    Args:
+        url: Full URL to the CDF file.
+        cache_base: Local directory for cached files.
+
+    Returns:
+        Path where the file would be cached locally.
+    """
+    parsed = urlparse(url)
+    path = parsed.path  # e.g., /sp_phys/data/ace/mag/.../file.cdf
+
+    marker = "sp_phys/data/"
+    idx = path.find(marker)
+    if idx >= 0:
+        rel_path = path[idx + len(marker):]
+    else:
+        rel_path = Path(parsed.path).name
+
+    return cache_base / rel_path
+
+
+def _check_download_size(
+    file_list: list[dict], cache_dir: Path
+) -> tuple[int, int, int, int]:
+    """Calculate download size, excluding cached files.
+
+    Args:
+        file_list: List of dicts with 'url' and 'size' keys from _get_cdf_file_list().
+        cache_dir: Local cache directory.
+
+    Returns:
+        Tuple of (download_bytes, total_bytes, n_cached, n_to_download).
+    """
+    download_bytes = 0
+    total_bytes = 0
+    n_cached = 0
+    n_to_download = 0
+
+    for fi in file_list:
+        size = fi.get("size", 0)
+        total_bytes += size
+        local_path = _url_to_local_path(fi["url"], cache_dir)
+        if local_path.exists() and local_path.stat().st_size > 0:
+            n_cached += 1
+        else:
+            download_bytes += size
+            n_to_download += 1
+
+    return download_bytes, total_bytes, n_cached, n_to_download
+
+
 def _download_cdf_file(url: str, cache_base: Path) -> Path:
     """Download a CDF file, using local cache if available.
 
@@ -402,20 +479,7 @@ def _download_cdf_file(url: str, cache_base: Path) -> Path:
     Returns:
         Path to the local CDF file.
     """
-    # Extract relative path from URL
-    parsed = urlparse(url)
-    path = parsed.path  # e.g., /sp_phys/data/ace/mag/.../file.cdf
-
-    # Find the part after 'sp_phys/data/'
-    marker = "sp_phys/data/"
-    idx = path.find(marker)
-    if idx >= 0:
-        rel_path = path[idx + len(marker):]
-    else:
-        # Fallback: use filename only
-        rel_path = Path(parsed.path).name
-
-    local_path = cache_base / rel_path
+    local_path = _url_to_local_path(url, cache_base)
 
     # Skip download if cached
     if local_path.exists() and local_path.stat().st_size > 0:

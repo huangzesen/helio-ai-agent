@@ -17,6 +17,7 @@ def fetch_data(
     parameter_id: str,
     time_min: str,
     time_max: str,
+    force: bool = False,
 ) -> dict:
     """Fetch timeseries data from CDAWeb via CDF file download.
 
@@ -25,6 +26,7 @@ def fetch_data(
         parameter_id: Parameter name (e.g., "BGSEc").
         time_min: ISO start time (e.g., "2024-01-15T00:00:00Z").
         time_max: ISO end time (e.g., "2024-01-16T00:00:00Z").
+        force: If True, bypass the 1 GB download size limit.
 
     Returns:
         Dict with keys: data (DataFrame), units, description, fill_value.
@@ -34,4 +36,4 @@ def fetch_data(
         requests.HTTPError: If a download fails.
     """
     from data_ops.fetch_cdf import fetch_cdf_data
-    return fetch_cdf_data(dataset_id, parameter_id, time_min, time_max)
+    return fetch_cdf_data(dataset_id, parameter_id, time_min, time_max, force=force)

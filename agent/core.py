@@ -1065,6 +1065,7 @@ class OrchestratorAgent:
                     parameter_id=tool_args["parameter_id"],
                     time_min=fetch_start.strftime("%Y-%m-%dT%H:%M:%SZ"),
                     time_max=fetch_end.strftime("%Y-%m-%dT%H:%M:%SZ"),
+                    force=tool_args.get("force_large_download", False),
                 )
             except Exception as e:
                 return {"status": "error", "message": str(e)}
