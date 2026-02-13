@@ -8,7 +8,8 @@ Provides three public methods dispatched by agent/core.py:
 
 Also provides a stateless entry point:
 - build_figure_from_spec() — creates a fresh go.Figure from a spec dict
-  containing _meta (data/grid layout) and operations (ordered style ops).
+  containing _meta (data/grid layout), layout (raw Plotly JSON), and
+  traces (per-trace patches matched by label).
 
 State is kept in a mutable go.Figure that accumulates traces / layout
 changes across calls (legacy API). The stateless builder is the preferred
@@ -384,14 +385,15 @@ def build_figure_from_spec(
     color_state: ColorState | None = None,
     time_range: str | None = None,
 ) -> RenderResult | dict:
-    """Build a fresh go.Figure from an operation-based spec.
+    """Build a fresh go.Figure from a spec dict.
 
     This is the main stateless entry point for the rendering pipeline.
     It reads ``_meta`` to create the subplot grid and traces, then applies
-    each operation in ``spec["operations"]`` via the operation registry.
+    ``layout`` (raw Plotly JSON) and ``traces`` (per-trace patches matched
+    by label) directly to the figure.
 
     The spec can contain either:
-    - The new operation-based format: ``_meta`` + ``operations``
+    - The new format: ``_meta`` + ``layout`` + ``traces``
     - The legacy flat format (labels, panels, title, etc.)
 
     Args:
@@ -414,13 +416,13 @@ def build_figure_from_spec(
     if color_state is None:
         color_state = ColorState()
 
-    # Determine if this is the new operation-based format or legacy
+    # Determine if this is the new format (_meta present) or legacy
     meta = spec.get("_meta", {})
-    operations = spec.get("operations", [])
 
     if meta:
-        # New format: _meta + operations
-        return _build_from_meta(meta, operations, entries, color_state, time_range)
+        layout = spec.get("layout", {})
+        traces = spec.get("traces", {})
+        return _build_from_meta(meta, layout, traces, entries, color_state, time_range)
     else:
         # Legacy format: flat spec with labels, panels, etc.
         return _build_from_legacy(spec, entries, color_state, time_range)
@@ -428,12 +430,13 @@ def build_figure_from_spec(
 
 def _build_from_meta(
     meta: dict,
-    operations: list[dict],
+    layout: dict,
+    traces: dict,
     entries: list[DataEntry],
     color_state: ColorState,
     time_range: str | None,
 ) -> RenderResult | dict:
-    """Build figure from _meta + operations format."""
+    """Build figure from _meta + layout/traces format."""
     panels = meta.get("panels")
     panel_types = meta.get("panel_types")
     columns = max(meta.get("columns", 1), 1)
@@ -558,13 +561,17 @@ def _build_from_meta(
         if len(parts) == 2:
             fig.update_xaxes(range=[parts[0].strip(), parts[1].strip()])
 
-    # Apply operations
-    if operations:
-        from rendering.operations import get_default_registry
-        registry = get_default_registry()
-        trace_label_map = {label: i for i, label in enumerate(trace_labels)}
-        for op_dict in operations:
-            registry.resolve(op_dict, fig, trace_label_map)
+    # Apply layout passthrough (raw Plotly JSON)
+    if layout:
+        fig.update_layout(**layout)
+
+    # Apply per-trace patches matched by label
+    if traces:
+        for trace_selector, patch in traces.items():
+            for i, label in enumerate(trace_labels):
+                if label == trace_selector or trace_selector in label or label in trace_selector:
+                    if i < len(fig.data):
+                        fig.data[i].update(**patch)
 
     return RenderResult(
         figure=fig,
@@ -576,6 +583,16 @@ def _build_from_meta(
     )
 
 
+def _panel_to_axis_key(panel: int, axis_prefix: str = "yaxis") -> str:
+    """Map a 1-indexed panel number to a Plotly axis key.
+
+    panel=1 -> 'yaxis', panel=2 -> 'yaxis2', panel=3 -> 'yaxis3', etc.
+    """
+    if panel <= 0:
+        raise ValueError(f"Panel must be >= 1, got {panel}")
+    return axis_prefix if panel == 1 else f"{axis_prefix}{panel}"
+
+
 def _build_from_legacy(
     spec: dict,
     entries: list[DataEntry],
@@ -584,7 +601,7 @@ def _build_from_legacy(
 ) -> RenderResult | dict:
     """Build figure from the legacy flat spec format (for backward compat).
 
-    Converts the flat spec into _meta + operations and delegates.
+    Converts the flat spec into _meta + layout/traces dicts and delegates.
     """
     # Build _meta from flat spec
     meta: dict = {}
@@ -595,121 +612,148 @@ def _build_from_legacy(
     if "columns" in spec:
         meta["columns"] = spec["columns"]
 
-    # Build operations from style fields
-    operations: list[dict] = []
+    # Build layout dict from style fields
+    layout: dict = {}
+    traces_patch: dict = {}
 
     if spec.get("title"):
-        operations.append({"op": "set_title", "text": spec["title"]})
+        layout["title"] = {"text": spec["title"]}
     if spec.get("x_label"):
-        operations.append({"op": "set_x_label", "text": spec["x_label"]})
+        layout["xaxis"] = layout.get("xaxis", {})
+        layout["xaxis"]["title"] = {"text": spec["x_label"]}
     if spec.get("y_label"):
         y_label = spec["y_label"]
         if isinstance(y_label, dict):
             for panel_str, label_text in y_label.items():
-                operations.append({
-                    "op": "set_y_label",
-                    "panel": int(panel_str),
-                    "text": str(label_text),
-                })
+                axis_key = _panel_to_axis_key(int(panel_str))
+                layout[axis_key] = layout.get(axis_key, {})
+                layout[axis_key]["title"] = {"text": str(label_text)}
         else:
-            operations.append({"op": "set_y_label", "panel": 1, "text": str(y_label)})
+            layout["yaxis"] = layout.get("yaxis", {})
+            layout["yaxis"]["title"] = {"text": str(y_label)}
     if spec.get("theme"):
-        operations.append({"op": "set_theme", "theme": spec["theme"]})
+        layout["template"] = spec["theme"]
     if spec.get("font_size"):
-        operations.append({"op": "set_font_size", "size": spec["font_size"]})
+        layout["font"] = layout.get("font", {})
+        layout["font"]["size"] = spec["font_size"]
     if spec.get("canvas_size"):
         cs = spec["canvas_size"]
-        operations.append({
-            "op": "set_canvas_size",
-            "width": cs.get("width", _DEFAULT_WIDTH),
-            "height": cs.get("height", _PANEL_HEIGHT),
-        })
+        layout["width"] = cs.get("width", _DEFAULT_WIDTH)
+        layout["height"] = cs.get("height", _PANEL_HEIGHT)
     if "legend" in spec:
-        operations.append({"op": "set_legend", "show": spec["legend"]})
+        layout["showlegend"] = spec["legend"]
     if spec.get("x_range"):
-        operations.append({"op": "set_x_range", "range": spec["x_range"]})
+        layout["xaxis"] = layout.get("xaxis", {})
+        layout["xaxis"]["range"] = spec["x_range"]
     if spec.get("y_range"):
         y_range = spec["y_range"]
         if isinstance(y_range, dict):
             for panel_str, rng in y_range.items():
-                operations.append({
-                    "op": "set_y_range",
-                    "panel": int(panel_str),
-                    "range": rng,
-                })
+                axis_key = _panel_to_axis_key(int(panel_str))
+                layout[axis_key] = layout.get(axis_key, {})
+                layout[axis_key]["range"] = rng
         elif isinstance(y_range, list) and len(y_range) == 2:
-            operations.append({"op": "set_y_range", "panel": 1, "range": y_range})
+            layout["yaxis"] = layout.get("yaxis", {})
+            layout["yaxis"]["range"] = y_range
     if spec.get("log_scale"):
         log_scale = spec["log_scale"]
         if isinstance(log_scale, dict):
             for panel_str, scale_type in log_scale.items():
-                operations.append({
-                    "op": "set_y_scale",
-                    "panel": int(panel_str),
-                    "scale": scale_type,
-                })
+                axis_key = _panel_to_axis_key(int(panel_str))
+                layout[axis_key] = layout.get(axis_key, {})
+                layout[axis_key]["type"] = scale_type
         elif log_scale == "y":
-            operations.append({"op": "set_y_scale", "panel": 1, "scale": "log"})
+            layout["yaxis"] = layout.get("yaxis", {})
+            layout["yaxis"]["type"] = "log"
         elif log_scale == "linear":
-            operations.append({"op": "set_y_scale", "panel": 1, "scale": "linear"})
+            layout["yaxis"] = layout.get("yaxis", {})
+            layout["yaxis"]["type"] = "linear"
     if spec.get("trace_colors"):
         for trace_label, color in spec["trace_colors"].items():
-            operations.append({
-                "op": "set_trace_color",
-                "trace": trace_label,
-                "color": color,
-            })
+            traces_patch[trace_label] = traces_patch.get(trace_label, {})
+            traces_patch[trace_label]["line"] = {"color": color}
     if spec.get("line_styles"):
         for trace_label, style_dict in spec["line_styles"].items():
-            op = {"op": "set_line_style", "trace": trace_label}
+            traces_patch[trace_label] = traces_patch.get(trace_label, {})
+            line = traces_patch[trace_label].get("line", {})
             if "width" in style_dict:
-                op["width"] = style_dict["width"]
+                line["width"] = style_dict["width"]
             if "dash" in style_dict:
-                op["dash"] = style_dict["dash"]
-            operations.append(op)
+                line["dash"] = style_dict["dash"]
+            traces_patch[trace_label]["line"] = line
     if spec.get("vlines"):
+        shapes = list(layout.get("shapes", []))
+        annotations = list(layout.get("annotations", []))
         for vl in spec["vlines"]:
             if vl.get("x") is not None:
-                operations.append({
-                    "op": "add_vline",
-                    "x": vl["x"],
-                    "color": vl.get("color", "red"),
-                    "width": vl.get("width", 1.5),
-                    "dash": vl.get("dash", "solid"),
-                    "label": vl.get("label", ""),
+                shapes.append({
+                    "type": "line",
+                    "x0": vl["x"], "x1": vl["x"],
+                    "y0": 0, "y1": 1,
+                    "xref": "x", "yref": "paper",
+                    "line": {
+                        "color": vl.get("color", "red"),
+                        "width": vl.get("width", 1.5),
+                        "dash": vl.get("dash", "solid"),
+                    },
                 })
+                label = vl.get("label", "")
+                if label:
+                    annotations.append({
+                        "x": vl["x"], "y": 1.02,
+                        "xref": "x", "yref": "paper",
+                        "text": label, "showarrow": False,
+                        "font": {"size": 11, "color": vl.get("color", "red")},
+                    })
+        layout["shapes"] = shapes
+        if annotations:
+            layout["annotations"] = annotations
     if spec.get("vrects"):
+        shapes = list(layout.get("shapes", []))
+        annotations = list(layout.get("annotations", []))
         for vr in spec["vrects"]:
             if vr.get("x0") is not None and vr.get("x1") is not None:
-                operations.append({
-                    "op": "add_vrect",
-                    "x0": vr["x0"],
-                    "x1": vr["x1"],
-                    "color": vr.get("color", "rgba(135,206,250,0.3)"),
+                shapes.append({
+                    "type": "rect",
+                    "x0": vr["x0"], "x1": vr["x1"],
+                    "y0": 0, "y1": 1,
+                    "xref": "x", "yref": "paper",
+                    "fillcolor": vr.get("color", "rgba(135,206,250,0.3)"),
                     "opacity": vr.get("opacity", 0.3),
-                    "label": vr.get("label", ""),
+                    "line": {"width": 0},
+                    "layer": "below",
                 })
+                label = vr.get("label", "")
+                if label:
+                    annotations.append({
+                        "x": vr["x0"], "y": 1.02,
+                        "xref": "x", "yref": "paper",
+                        "text": label, "showarrow": False,
+                        "font": {"size": 11},
+                    })
+        layout["shapes"] = shapes
+        if annotations:
+            layout["annotations"] = annotations
     if spec.get("annotations"):
+        annotations = list(layout.get("annotations", []))
         for ann in spec["annotations"]:
-            operations.append({
-                "op": "add_annotation",
+            annotations.append({
                 "text": ann.get("text", ""),
                 "x": ann.get("x"),
                 "y": ann.get("y"),
                 "showarrow": ann.get("showarrow", True),
             })
+        layout["annotations"] = annotations
 
     # Carry over spectrogram params into meta if present
-    # (for legacy specs that use plot_type="spectrogram")
     if spec.get("plot_type"):
-        # Not an operation — handle via panel_types
         if not meta.get("panel_types"):
             n_panels = len(meta["panels"]) if "panels" in meta else 1
             meta["panel_types"] = [spec["plot_type"]] * n_panels
 
     effective_time_range = time_range or spec.get("time_range")
 
-    return _build_from_meta(meta, operations, entries, color_state, effective_time_range)
+    return _build_from_meta(meta, layout, traces_patch, entries, color_state, effective_time_range)
 
 
 def _dispatch_traces_static(

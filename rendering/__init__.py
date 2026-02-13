@@ -6,7 +6,6 @@ from .plotly_renderer import (
     RenderResult,
     build_figure_from_spec,
 )
-from .operations import OperationRegistry, get_default_registry
 from .registry import TOOLS, get_method, validate_args, render_method_catalog
 
 __all__ = [
@@ -14,8 +13,6 @@ __all__ = [
     "ColorState",
     "RenderResult",
     "build_figure_from_spec",
-    "OperationRegistry",
-    "get_default_registry",
     "TOOLS",
     "get_method",
     "validate_args",
