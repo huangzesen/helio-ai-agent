@@ -8,7 +8,7 @@
   "llm_provider": "gemini",
   "_comment_llm_base_url": "Custom API endpoint for OpenAI-compatible providers (e.g. 'https://openrouter.ai/api/v1'). Only used with 'openai' provider.",
   "llm_base_url": null,
-  "_comment_api_keys": "API key is ALWAYS read from .env (never from this file). Set LLM_API_KEY in .env — works for all providers.",
+  "_comment_api_keys": "API key is ALWAYS read from .env (never from this file). Set LLM_API_KEY in .env — works for all providers. For web search with non-Gemini providers, also set TAVILY_API_KEY in .env.",
 
   "_comment_models": "Any model string accepted by the provider's API. For Gemini: gemini-2.5-flash, gemini-3-flash-preview, etc. For OpenRouter: minimax/minimax-m1, etc. Gradio --model flag overrides 'model' at runtime.",
   "model": "gemini-2.5-flash",

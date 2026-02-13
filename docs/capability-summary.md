@@ -140,7 +140,7 @@ agent/core.py  OrchestratorAgent  (LLM-driven orchestrator)
 | `get_data_availability` | Check available time range for a dataset (local cache / CDAS REST) |
 | `get_dataset_docs` | Fetch CDAWeb documentation for a dataset (instrument info, coordinates, PI contact) |
 | `search_full_catalog` | Search full CDAWeb catalog (2000+ datasets, CDAS REST primary) by keyword |
-| `google_search` | Web search via Google Search grounding (isolated Gemini API call) |
+| `google_search` | Web search — Gemini uses built-in Google Search grounding; non-Gemini providers use Tavily fallback |
 
 ### Visualization
 | Tool | Purpose |
@@ -421,9 +421,10 @@ All times are UTC. Outputs `TimeRange` objects with `start`/`end` datetimes.
 - Two refresh paths: `--refresh` (lightweight time-range update) and `--refresh-full` (destructive rebuild)
 - Shows progress via tqdm in terminal, logger-based progress in Gradio live log
 
-### Google Search Grounding
-- `google_search` tool provides web search via Google Search grounding API
-- Implemented as a custom function tool that makes an isolated Gemini API call with only GoogleSearch configured (Gemini API does not support google_search + function_declarations in the same call)
+### Web Search (`google_search` tool)
+- **Gemini provider**: Uses built-in Google Search grounding API via an isolated Gemini API call (Gemini API does not support google_search + function_declarations in the same call)
+- **Non-Gemini providers** (OpenAI, Anthropic, OpenRouter, etc.): Falls back to Tavily web search (`TAVILY_API_KEY` env var required; `tavily-python` package)
+- **No search backend available**: Warning logged, error returned to LLM — agent continues without search
 - Returns grounded text with source URLs
 - Search results can be turned into plottable datasets via the `store_dataframe` tool (google_search → delegate_to_data_extraction → store_dataframe → plot)
 
@@ -432,6 +433,7 @@ All times are UTC. Outputs `TimeRange` objects with `start`/`end` datetimes.
 **`.env`** at project root (secret only):
 ```
 GOOGLE_API_KEY=<gemini-api-key>
+TAVILY_API_KEY=<tavily-api-key>  # Optional — enables web search for non-Gemini providers
 ```
 
 **`~/.helio-agent/config.json`** (user-editable, all optional — defaults shown):
@@ -564,5 +566,5 @@ gradio>=4.44.0          # Browser-based chat UI
 matplotlib>=3.7.0       # Legacy plotting (unused in main pipeline)
 tqdm>=4.60.0            # Progress bars for bootstrap/data downloads
 pytest>=7.0.0           # Test framework
-# Future (Phase 2-3): openai>=1.0.0, anthropic>=0.40.0
+tavily-python>=0.5.0    # Tavily web search (fallback for non-Gemini providers)
 ```

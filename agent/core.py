@@ -403,12 +403,10 @@ class OrchestratorAgent:
                 self.logger.debug(f"[Search] Queries: {meta.web_search_queries}")
 
     def _google_search(self, query: str) -> dict:
-        """Execute a Google Search query via a separate LLM API call.
+        """Execute a web search query.
 
-        The generateContent API does not support combining google_search with
-        function_declarations in the same request.  This method makes an
-        isolated call with only the GoogleSearch tool so Gemini can ground its
-        response in real web results.
+        Routes to Gemini grounded search (built-in Google Search) when using a
+        Gemini adapter, otherwise falls back to Tavily web search.
 
         Args:
             query: The search query string.
@@ -416,10 +414,19 @@ class OrchestratorAgent:
         Returns:
             Dict with status, answer text, and source URLs.
         """
-        try:
-            if not hasattr(self.adapter, "google_search"):
-                return {"status": "error", "message": "Google Search not supported by current LLM provider"}
+        if hasattr(self.adapter, "google_search"):
+            return self._gemini_grounded_search(query)
+        return self._tavily_search(query)
 
+    def _gemini_grounded_search(self, query: str) -> dict:
+        """Execute a Google Search query via Gemini's grounding API.
+
+        The generateContent API does not support combining google_search with
+        function_declarations in the same request.  This method makes an
+        isolated call with only the GoogleSearch tool so Gemini can ground its
+        response in real web results.
+        """
+        try:
             response = self.adapter.google_search(
                 query=query,
                 model=get_active_model(self.model_name),
@@ -447,6 +454,55 @@ class OrchestratorAgent:
             return {
                 "status": "error",
                 "message": f"Google Search failed: {e}",
+            }
+
+    def _tavily_search(self, query: str) -> dict:
+        """Execute a web search query via Tavily API.
+
+        Used as a fallback when the LLM provider does not have built-in web
+        search (i.e. any non-Gemini provider).
+        """
+        try:
+            from tavily import TavilyClient  # lazy import
+        except ImportError:
+            self.logger.warning("[Search] Web search unavailable — tavily-python not installed")
+            return {
+                "status": "error",
+                "message": "Web search unavailable: tavily-python is not installed. "
+                           "Install it with: pip install tavily-python",
+            }
+
+        import os
+        api_key = os.environ.get("TAVILY_API_KEY", "")
+        if not api_key:
+            self.logger.warning("[Search] Web search unavailable — TAVILY_API_KEY not set")
+            return {
+                "status": "error",
+                "message": "Web search unavailable: TAVILY_API_KEY environment variable not set.",
+            }
+
+        try:
+            client = TavilyClient(api_key=api_key)
+            result = client.search(query, include_answer="basic")
+
+            answer = result.get("answer", "")
+            sources = result.get("results", [])
+
+            # Format sources
+            sources_text = ""
+            if sources:
+                source_lines = [f"- [{s.get('title', 'Source')}]({s['url']})" for s in sources if s.get("url")]
+                if source_lines:
+                    sources_text = "\n\nSources:\n" + "\n".join(source_lines)
+
+            return {
+                "status": "success",
+                "answer": (answer or "") + sources_text,
+            }
+        except Exception as e:
+            return {
+                "status": "error",
+                "message": f"Tavily search failed: {e}",
             }
 
     def get_token_usage(self) -> dict:
