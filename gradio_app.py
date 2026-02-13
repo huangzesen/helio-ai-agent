@@ -1901,7 +1901,7 @@ def main():
         _agent.web_mode = True  # Suppress auto-open of exported files
     except Exception as e:
         print(f"Error initializing agent: {e}")
-        print("Make sure .env has GOOGLE_API_KEY set.")
+        print("Make sure .env has LLM_API_KEY set.")
         sys.exit(1)
     print(f"Agent ready (model: {_agent.model_name})")
 

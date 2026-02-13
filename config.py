@@ -7,6 +7,7 @@ from dotenv import load_dotenv
 load_dotenv()
 
 # Secret — stays in .env
+# Legacy alias — prefer LLM_API_KEY for all providers
 GOOGLE_API_KEY = os.getenv("GOOGLE_API_KEY")
 
 # User config — loaded from ~/.helio-agent/config.json (primary)
@@ -82,32 +83,22 @@ def _reset_data_dir() -> None:
 
 # ---- LLM provider config ------------------------------------------------------
 LLM_PROVIDER = get("llm_provider", "gemini")  # "gemini", "openai", "anthropic"
-LLM_API_KEY = get("llm_api_key")              # provider API key (overrides per-provider keys)
 LLM_BASE_URL = get("llm_base_url")            # for OpenAI-compatible endpoints
 
 
-def get_api_key(provider: str | None = None) -> str | None:
-    """Return the API key for the given (or configured) LLM provider.
+LLM_API_KEY = os.getenv("LLM_API_KEY") or GOOGLE_API_KEY
 
-    Resolution order: LLM_API_KEY config > provider-specific env var > GOOGLE_API_KEY.
-    """
-    if LLM_API_KEY:
-        return LLM_API_KEY
-    prov = (provider or LLM_PROVIDER).lower()
-    if prov == "gemini":
-        return GOOGLE_API_KEY
-    if prov == "openai":
-        return os.getenv("OPENAI_API_KEY")
-    if prov == "anthropic":
-        return os.getenv("ANTHROPIC_API_KEY")
-    return GOOGLE_API_KEY
+
+def get_api_key(provider: str | None = None) -> str | None:
+    """Return the LLM API key. Reads LLM_API_KEY from .env, falls back to GOOGLE_API_KEY."""
+    return LLM_API_KEY
 
 
 # Flat aliases for backward compatibility (existing code does `from config import GEMINI_MODEL`)
-GEMINI_MODEL = get("model", "gemini-3-flash-preview")
-GEMINI_SUB_AGENT_MODEL = get("sub_agent_model", "gemini-3-flash-preview")
+GEMINI_MODEL = get("model", "gemini-2.5-flash")
+GEMINI_SUB_AGENT_MODEL = get("sub_agent_model", "gemini-2.5-flash")
 GEMINI_PLANNER_MODEL = get("planner_model", GEMINI_MODEL)
-GEMINI_FALLBACK_MODEL = get("fallback_model", "gemini-3-flash-preview")
+GEMINI_FALLBACK_MODEL = get("fallback_model", "gemini-2.5-flash")
 DATA_BACKEND = get("data_backend", "cdf")  # "cdf" only
 CATALOG_SEARCH_METHOD = get("catalog_search_method", "semantic")  # "semantic" or "substring"
 PARALLEL_FETCH = get("parallel_fetch", True)

@@ -212,8 +212,8 @@ def main():
         print(f"Error initializing agent: {e}")
         print()
         print("Troubleshooting:")
-        print("  1. Make sure GOOGLE_API_KEY is set in .env file")
-        print("  2. Check that google-genai is installed")
+        print("  1. Make sure LLM_API_KEY is set in .env file")
+        print("  2. Check that the required SDK is installed (google-genai, openai, or anthropic)")
         sys.exit(1)
 
     # Single command mode (non-interactive)

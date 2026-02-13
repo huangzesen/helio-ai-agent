@@ -146,8 +146,11 @@ class GeminiAdapter(LLMAdapter):
         # Build GenerateContentConfig
         config_kwargs: dict[str, Any] = {
             "system_instruction": system_prompt,
-            "thinking_config": _thinking_config(thinking),
         }
+
+        # Only send thinking_config for models that support it (preview models)
+        if "preview" in model:
+            config_kwargs["thinking_config"] = _thinking_config(thinking)
 
         # Tools
         fds = _build_function_declarations(tools)

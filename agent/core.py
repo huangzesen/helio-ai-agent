@@ -12,8 +12,9 @@ import threading
 from concurrent.futures import Future, ThreadPoolExecutor, as_completed
 from typing import Optional
 
-from config import GOOGLE_API_KEY, GEMINI_MODEL, GEMINI_SUB_AGENT_MODEL, GEMINI_PLANNER_MODEL, GEMINI_FALLBACK_MODEL, get_data_dir
-from .llm import LLMAdapter, GeminiAdapter, LLMResponse, FunctionSchema
+from config import GEMINI_MODEL, GEMINI_SUB_AGENT_MODEL, GEMINI_PLANNER_MODEL, GEMINI_FALLBACK_MODEL, get_data_dir
+from config import LLM_PROVIDER, LLM_BASE_URL, get_api_key
+from .llm import LLMAdapter, GeminiAdapter, OpenAIAdapter, AnthropicAdapter, LLMResponse, FunctionSchema
 from .tools import get_tool_schemas
 from .prompts import get_system_prompt, format_tool_result
 from .time_utils import parse_time_range, TimeRangeError
@@ -61,6 +62,18 @@ DEFAULT_MODEL = GEMINI_MODEL
 SUB_AGENT_MODEL = GEMINI_SUB_AGENT_MODEL
 
 
+def _create_adapter() -> LLMAdapter:
+    """Create the LLM adapter based on config (llm_provider, llm_base_url, etc.)."""
+    provider = LLM_PROVIDER.lower()
+    api_key = get_api_key(provider)
+    if provider == "openai":
+        return OpenAIAdapter(api_key=api_key, base_url=LLM_BASE_URL)
+    elif provider == "anthropic":
+        return AnthropicAdapter(api_key=api_key)
+    else:
+        return GeminiAdapter(api_key=api_key)
+
+
 def _sanitize_for_json(obj):
     """Recursively replace NaN/Inf floats with None for JSON safety.
 
@@ -101,7 +114,7 @@ class OrchestratorAgent:
         self.logger.info("Initializing OrchestratorAgent")
 
         # Initialize LLM adapter (wraps all provider SDK calls)
-        self.adapter: LLMAdapter = GeminiAdapter(api_key=GOOGLE_API_KEY)
+        self.adapter: LLMAdapter = _create_adapter()
 
         # Build tool schemas for the orchestrator
         self._tool_schemas = [
