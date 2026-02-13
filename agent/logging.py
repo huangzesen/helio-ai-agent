@@ -291,7 +291,7 @@ def log_error(
     """
     logger = get_logger()
 
-    # Build detailed message
+    # Build detailed message for the file log
     lines = [message]
 
     if context:
@@ -306,7 +306,13 @@ def log_error(
         lines.append(traceback.format_exc())
 
     full_message = "\n".join(lines)
-    logger.error(full_message, extra=tagged("error"))
+
+    # Full details to file log only (no tag → not shown in Gradio)
+    logger.error(full_message)
+
+    # Short summary to Gradio live-log (truncate long messages)
+    short = message if len(message) <= 200 else message[:200] + "..."
+    logger.error(short, extra=tagged("error"))
 
 
 def log_tool_call(tool_name: str, tool_args: dict) -> None:

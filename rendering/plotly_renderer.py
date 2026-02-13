@@ -254,7 +254,7 @@ class PlotlyRenderer:
             parent_label = ".".join(parts[:i])
             col_name = ".".join(parts[i:])
             parent = entry_map.get(parent_label)
-            if parent is not None and col_name in parent.data.columns:
+            if parent is not None and not parent.is_xarray and col_name in parent.data.columns:
                 return DataEntry(
                     label=label,
                     data=parent.data[[col_name]],
@@ -289,7 +289,11 @@ class PlotlyRenderer:
             display_name = entry.description or entry.label
             # Use pandas index (Timestamps with .isoformat()) not numpy
             # datetime64 (which .tolist() converts to nanosecond ints).
-            time_list = [t.isoformat() for t in entry.data.index]
+            if entry.is_xarray:
+                import pandas as pd
+                time_list = [pd.Timestamp(t).isoformat() for t in entry.data.coords["time"].values]
+            else:
+                time_list = [t.isoformat() for t in entry.data.index]
 
             # Decompose vectors into scalar components
             if entry.values.ndim == 2 and entry.values.shape[1] > 1:
@@ -351,19 +355,48 @@ class PlotlyRenderer:
     ) -> str:
         """Add a spectrogram heatmap trace to a specific panel cell.
 
+        Handles both DataFrame entries (time x columns) and xarray DataArray
+        entries (2D: time x bins, or 3D+: averaged over middle dims).
+
         Returns the trace label.
         """
-        times = [t.isoformat() for t in entry.data.index]
-
         meta = entry.metadata or {}
-        bin_values = meta.get("bin_values")
-        if bin_values is None:
-            try:
-                bin_values = [float(c) for c in entry.data.columns]
-            except (ValueError, TypeError):
-                bin_values = list(range(len(entry.data.columns)))
 
-        z_values = entry.data.values.astype(float)
+        if entry.is_xarray:
+            import pandas as pd
+            da = entry.data
+            # Convert time coordinates to isoformat strings
+            times = [pd.Timestamp(t).isoformat() for t in da.coords["time"].values]
+
+            # Find the non-time dimension(s) for bin values
+            non_time_dims = [d for d in da.dims if d != "time"]
+            if non_time_dims:
+                last_dim = non_time_dims[-1]
+                if last_dim in da.coords:
+                    bin_values = [float(v) for v in da.coords[last_dim].values]
+                else:
+                    bin_values = list(range(da.sizes[last_dim]))
+            else:
+                bin_values = [0]
+
+            z_values = da.values.astype(float)
+            # If 3D+, average over middle dims to get (time, bins)
+            if z_values.ndim > 2:
+                # Axes between time (0) and last non-time dim (-1)
+                middle_axes = tuple(range(1, z_values.ndim - 1))
+                z_values = np.nanmean(z_values, axis=middle_axes)
+        else:
+            # DataFrame path
+            times = [t.isoformat() for t in entry.data.index]
+
+            bin_values = meta.get("bin_values")
+            if bin_values is None:
+                try:
+                    bin_values = [float(c) for c in entry.data.columns]
+                except (ValueError, TypeError):
+                    bin_values = list(range(len(entry.data.columns)))
+
+            z_values = entry.data.values.astype(float)
         if log_z:
             z_values = np.where(z_values > 0, np.log10(z_values), np.nan)
 

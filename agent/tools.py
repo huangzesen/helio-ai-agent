@@ -201,16 +201,26 @@ The data is stored in memory with a label like 'AC_H2_MFI.BGSEc' for later refer
     {
         "category": "data_ops_compute",
         "name": "custom_operation",
-        "description": """Apply a pandas/numpy operation to an in-memory timeseries. This is the universal compute tool — use it for ALL data transformations after fetching data with fetch_data.
+        "description": """Apply a pandas/numpy/xarray/scipy/pywt operation to in-memory data. This is the universal compute tool — use it for ALL data transformations after fetching data with fetch_data.
 
 The pandas_code must:
-- Assign the result to `result` (must be a DataFrame or Series with DatetimeIndex)
-- Use only sandbox variables, `pd` (pandas), and `np` (numpy) — no imports, no file I/O
+- Assign the result to `result` (DataFrame/Series with DatetimeIndex, or xarray DataArray with 'time' dim)
+- Use only sandbox variables, `pd` (pandas), `np` (numpy), `xr` (xarray), `scipy` (full scipy), and `pywt` (PyWavelets) — no imports, no file I/O
 
 Each source label becomes a named variable in the sandbox:
-- Variable name: `df_<SUFFIX>` where SUFFIX is the part after the last '.' (e.g., 'DATASET.BR' → df_BR)
-- If label has no '.', the full label is used as suffix (e.g., 'Bmag' → df_Bmag)
-- The first source is also aliased as `df` for backward compatibility
+- 2D data (DataFrame): `df_<SUFFIX>` where SUFFIX is the part after the last '.' (e.g., 'DATASET.BR' → df_BR)
+- 3D+ data (xarray DataArray): `da_<SUFFIX>` (e.g., 'DATASET.EFLUX_VS_PA_E' → da_EFLUX_VS_PA_E)
+- If label has no '.', the full label is used as suffix
+- The first DataFrame source is also aliased as `df` for backward compatibility
+
+The result can be a DataFrame (with DatetimeIndex) OR an xarray DataArray (with 'time' dim). DataArray results are stored as-is — useful for intermediate xarray→xarray operations or for 2D spectrograms.
+
+xarray operations (DataArray sources — check storage_type in fetch_data response):
+- Slice 3D to 2D: `result = da_EFLUX_VS_PA_E.isel(dim1=0)` (keeps as DataArray, can plot as spectrogram)
+- Average over a dim: `result = da_EFLUX_VS_PA_E.mean(dim='dim1')` (reduces to 2D DataArray)
+- Convert to DataFrame: `result = da_EFLUX_VS_PA_E.isel(dim1=0).to_pandas()` (also valid)
+- For spectrogram: fetch a 2D variable (size=[N]) and plot directly with `plot_data(plot_type="spectrogram")`
+- For 3D variables (size=[M, N]): use `custom_operation` to slice/average to 2D first, then plot as spectrogram
 
 Single-source operations (one-element array):
 - Magnitude: `result = df.pow(2).sum(axis=1, skipna=False).pow(0.5).to_frame('magnitude')`
@@ -236,6 +246,18 @@ Multi-source operations (multiple labels):
   source_labels=['DATASET_HOURLY.Bmag', 'DATASET_DAILY.density']
   Code: `density_hr = df_density.resample('1h').interpolate(); merged = pd.concat([df_Bmag, density_hr], axis=1); result = merged.dropna()`
 
+Signal processing (scipy + pywt):
+- Butterworth bandpass filter:
+  `vals = df.iloc[:,0].values; b, a = scipy.signal.butter(4, [0.01, 0.1], btype='band', fs=1.0/60); filtered = scipy.signal.filtfilt(b, a, vals); result = pd.DataFrame({'filtered': filtered}, index=df.index)`
+- Power spectrogram:
+  `vals = df.iloc[:,0].dropna().values; dt = df.index.to_series().diff().dt.total_seconds().median(); fs = 1.0/dt; f, t_seg, Sxx = scipy.signal.spectrogram(vals, fs=fs, nperseg=256, noverlap=128); times = pd.to_datetime(df.index[0]) + pd.to_timedelta(t_seg, unit='s'); result = pd.DataFrame(Sxx.T, index=times, columns=[str(freq) for freq in f])`
+- Wavelet decomposition:
+  `coeffs = pywt.wavedec(df.iloc[:,0].values, 'db4', level=5); approx = coeffs[0]; result = pd.DataFrame({'approx': np.interp(np.linspace(0, 1, len(df)), np.linspace(0, 1, len(approx)), approx)}, index=df.index)`
+- FFT:
+  `vals = df.iloc[:,0].dropna().values; fft_vals = scipy.fft.rfft(vals); freqs = scipy.fft.rfftfreq(len(vals), d=60.0); result = pd.DataFrame({'amplitude': np.abs(fft_vals), 'frequency': freqs}).set_index(pd.date_range(df.index[0], periods=len(freqs), freq='s'))`
+
+Use `search_function_docs` and `get_function_docs` to look up unfamiliar scipy/pywt APIs before writing code.
+
 Do NOT call this tool when the request cannot be expressed as a pandas/numpy operation (e.g., "email me the data", "upload to server"). Instead, explain to the user what is and isn't possible.""",
         "parameters": {
             "type": "object",
@@ -243,11 +265,11 @@ Do NOT call this tool when the request cannot be expressed as a pandas/numpy ope
                 "source_labels": {
                     "type": "array",
                     "items": {"type": "string"},
-                    "description": "Labels of source timeseries in memory. Each becomes a sandbox variable: df_<SUFFIX> where SUFFIX is the part after the last '.' (e.g., 'DATASET.BR' → df_BR). First label also available as 'df'. For single-source ops, pass one-element array."
+                    "description": "Labels of source timeseries in memory. Each becomes a sandbox variable: df_<SUFFIX> (DataFrame) or da_<SUFFIX> (xarray DataArray) where SUFFIX is the part after the last '.'. First DataFrame also available as 'df'. For single-source ops, pass one-element array."
                 },
                 "pandas_code": {
                     "type": "string",
-                    "description": "Python code using df (DataFrame), pd (pandas), np (numpy). Must assign to 'result'."
+                    "description": "Python code using df/da_ variables, pd (pandas), np (numpy), xr (xarray), scipy (full scipy), pywt (PyWavelets). Must assign to 'result'."
                 },
                 "output_label": {
                     "type": "string",
@@ -322,7 +344,9 @@ Examples:
     {
         "category": "data_ops_compute",
         "name": "compute_spectrogram",
-        "description": """Compute a spectrogram (2D time-frequency or time-energy data) from an in-memory timeseries. Use this when the user wants a spectrogram, power spectral density over time, dynamic spectrum, or frequency-time plot.
+        "description": """DEPRECATED: Use `custom_operation` instead — it now has full scipy and pywt in the sandbox.
+
+Compute a spectrogram (2D time-frequency or time-energy data) from an in-memory timeseries. Use this when the user wants a spectrogram, power spectral density over time, dynamic spectrum, or frequency-time plot.
 
 The python_code must:
 - Operate on `df` (a pandas DataFrame with DatetimeIndex)
@@ -378,6 +402,51 @@ Guidelines:
                 }
             },
             "required": ["source_label", "python_code", "output_label", "description"]
+        }
+    },
+
+    # --- Function Documentation Tools ---
+    {
+        "category": "function_docs",
+        "name": "search_function_docs",
+        "description": """Search the scientific computing function catalog by keyword. Use this to find functions for signal processing, spectral analysis, filtering, interpolation, wavelets, statistics, etc.
+
+Returns function names, sandbox call syntax, and one-line summaries.
+
+Cataloged libraries: scipy.signal, scipy.fft, scipy.interpolate, scipy.stats, scipy.integrate, pywt (PyWavelets).""",
+        "parameters": {
+            "type": "object",
+            "properties": {
+                "query": {
+                    "type": "string",
+                    "description": "Search keyword (e.g., 'bandpass filter', 'spectrogram', 'wavelet', 'interpolate')"
+                },
+                "package": {
+                    "type": "string",
+                    "enum": ["scipy.signal", "scipy.fft", "scipy.interpolate", "scipy.stats", "scipy.integrate", "pywt"],
+                    "description": "Optional: restrict search to a specific package"
+                }
+            },
+            "required": ["query"]
+        }
+    },
+    {
+        "category": "function_docs",
+        "name": "get_function_docs",
+        "description": """Get the full docstring and signature for a specific function. Use this after search_function_docs to understand function parameters, return values, and usage examples before writing code.""",
+        "parameters": {
+            "type": "object",
+            "properties": {
+                "package": {
+                    "type": "string",
+                    "description": "Package path (e.g., 'scipy.signal', 'pywt')"
+                },
+                "function_name": {
+                    "type": "string",
+                    "description": "Function name (e.g., 'butter', 'cwt', 'spectrogram')"
+                }
+            },
+            "required": ["package", "function_name"]
         }
     },
 

@@ -315,7 +315,8 @@ def build_data_ops_prompt() -> str:
         "You are a data transformation and analysis specialist for scientific spacecraft data.",
         "",
         "Your job is to transform, analyze, and describe in-memory timeseries data.",
-        "You have access to `list_fetched_data`, `custom_operation`, and `describe_data` tools.",
+        "You have access to `list_fetched_data`, `custom_operation`, `describe_data`,",
+        "`search_function_docs`, and `get_function_docs` tools.",
         "",
         "## Workflow",
         "",
@@ -344,26 +345,12 @@ def build_data_ops_prompt() -> str:
         "",
         "## Spectrogram Computation",
         "",
-        "Use `compute_spectrogram` to compute spectrograms from timeseries data.",
-        "The code has access to `df`, `pd`, `np`, and `signal` (scipy.signal).",
+        "Use `custom_operation` with `scipy.signal.spectrogram()` to compute spectrograms.",
+        "`compute_spectrogram` is deprecated — `custom_operation` now has full scipy in the sandbox.",
         "",
-        "Common patterns:",
-        "- **Power spectrogram (scipy)**:",
-        "  ```",
-        "  vals = df.iloc[:, 0].dropna().values",
-        "  dt = df.index.to_series().diff().dt.total_seconds().median()",
-        "  fs = 1.0 / dt",
-        "  f, t_seg, Sxx = signal.spectrogram(vals, fs=fs, nperseg=256, noverlap=128)",
-        "  times = pd.to_datetime(df.index[0]) + pd.to_timedelta(t_seg, unit='s')",
-        "  result = pd.DataFrame(Sxx.T, index=times, columns=[str(freq) for freq in f])",
-        "  ```",
-        "- **Rolling FFT (multi-window)**:",
-        "  Use overlapping windows with np.fft.rfft for custom time-frequency analysis.",
-        "",
-        "Guidelines:",
+        "For spectrogram results:",
         "- Column names MUST be string representations of bin values (e.g., '0.001', '0.5', '10.0')",
         "- Result must have DatetimeIndex (time window centers)",
-        "- Set bin_label (e.g., 'Frequency (Hz)') and value_label (e.g., 'PSD (nT²/Hz)')",
         "- Choose nperseg based on data cadence and desired frequency resolution",
         "",
         "## Multi-Source Operations",
@@ -383,11 +370,25 @@ def build_data_ops_prompt() -> str:
         "- Check `source_info` in the result to verify cadences and NaN percentages",
         "- If you see warnings about NaN-to-zero, rewrite your code with `skipna=False`",
         "",
+        "## Signal Processing & Advanced Operations",
+        "",
+        "The sandbox has full `scipy` and `pywt` (PyWavelets) available. Use `search_function_docs`",
+        "and `get_function_docs` to look up APIs before writing code.",
+        "",
+        "Examples:",
+        "- **Butterworth bandpass filter**:",
+        "  `vals = df.iloc[:,0].values; b, a = scipy.signal.butter(4, [0.01, 0.1], btype='band', fs=1.0/60); filtered = scipy.signal.filtfilt(b, a, vals); result = pd.DataFrame({'filtered': filtered}, index=df.index)`",
+        "- **Power spectrogram**:",
+        "  `vals = df.iloc[:,0].dropna().values; dt = df.index.to_series().diff().dt.total_seconds().median(); fs = 1.0/dt; f, t_seg, Sxx = scipy.signal.spectrogram(vals, fs=fs, nperseg=256, noverlap=128); times = pd.to_datetime(df.index[0]) + pd.to_timedelta(t_seg, unit='s'); result = pd.DataFrame(Sxx.T, index=times, columns=[str(freq) for freq in f])`",
+        "- **Wavelet decomposition**:",
+        "  `coeffs = pywt.wavedec(df.iloc[:,0].values, 'db4', level=5); ...`",
+        "- **Interpolation**:",
+        "  `from_func = scipy.interpolate.interp1d(np.arange(len(vals)), vals, kind='cubic'); ...`",
+        "",
         "## Code Guidelines",
         "",
         "- Always assign to `result` — must be DataFrame/Series with DatetimeIndex",
-        "- Use sandbox variables (`df`, `df_SUFFIX`), `pd` (pandas), `np` (numpy) only — no imports, no file I/O",
-        "- For spectrograms: also `signal` (scipy.signal) is available",
+        "- Use sandbox variables (`df`, `df_SUFFIX`), `pd` (pandas), `np` (numpy), `scipy`, `pywt` — no imports, no file I/O",
         "- Handle NaN carefully: use `skipna=False` for aggregations that should preserve gaps (magnitude, sum-of-squares); use `.dropna()` or `.fillna()` only when you explicitly want to remove or replace missing values",
         "- Use descriptive output_label names (e.g., 'ACE_Bmag', 'velocity_smooth')",
         "",
@@ -404,6 +405,63 @@ def build_data_ops_prompt() -> str:
         "Do NOT attempt to fetch new data — fetching is handled by mission agents.",
         "Do NOT attempt to plot data — plotting is handled by the visualization agent.",
         "Do NOT attempt to create DataFrames from text — that is handled by the DataExtraction agent.",
+        "",
+    ]
+
+    return "\n".join(lines)
+
+
+# ---------------------------------------------------------------------------
+# DataOps think-phase prompt builder
+# ---------------------------------------------------------------------------
+
+def build_data_ops_think_prompt() -> str:
+    """Generate the system prompt for the DataOps agent's think phase.
+
+    The think phase researches data structure and available functions before
+    the execute phase writes computation code.
+
+    Returns:
+        System prompt string for the think phase chat session.
+    """
+    from .function_catalog import get_function_index_summary
+
+    index_summary = get_function_index_summary()
+
+    lines = [
+        "You are a research assistant preparing for a scientific data computation.",
+        "",
+        "Your job is to explore the data in memory and research the right functions",
+        "to use, then summarize your findings. You do NOT write computation code.",
+        "",
+        "## Available Libraries in the Computation Sandbox",
+        "",
+        "- `pd` (pandas) — DataFrames, time series operations",
+        "- `np` (numpy) — array math, FFT, linear algebra",
+        "- `xr` (xarray) — multi-dimensional arrays",
+        "- `scipy` (full scipy) — signal processing, FFT, interpolation, statistics, integration",
+        "- `pywt` (PyWavelets) — wavelet transforms (CWT, DWT, packets)",
+        "",
+        f"## {index_summary}",
+        "",
+        "## Workflow",
+        "",
+        "1. Call `list_fetched_data` to see what data is in memory",
+        "2. Call `describe_data` or `preview_data` to understand data structure, cadence, and values",
+        "3. Call `search_function_docs` to find relevant functions for the computation",
+        "4. Call `get_function_docs` for the most promising functions to understand parameters and usage",
+        "5. Summarize your findings",
+        "",
+        "## Output Format",
+        "",
+        "After researching, respond with a concise summary:",
+        "- **Data context**: what data is available, its shape, cadence, units, and any issues (NaN, gaps)",
+        "- **Recommended functions**: which scipy/pywt/pandas functions to use, with correct call syntax",
+        "- **Code hints**: key parameters, expected input/output shapes, gotchas",
+        "- **Caveats**: NaN handling, edge effects, sampling rate requirements",
+        "",
+        "IMPORTANT: Do NOT write computation code or call custom_operation.",
+        "Your job is research only — the execute phase writes the code.",
         "",
     ]
 

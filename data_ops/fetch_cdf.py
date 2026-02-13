@@ -14,6 +14,7 @@ import cdflib
 import numpy as np
 import pandas as pd
 import requests
+import xarray as xr
 
 import logging
 
@@ -124,7 +125,7 @@ def fetch_cdf_data(
                 pool.submit(_download_and_read, fi["url"], parameter_id, CACHE_DIR): idx
                 for idx, fi in enumerate(file_list)
             }
-            results_by_idx: dict[int, tuple[Path, pd.DataFrame]] = {}
+            results_by_idx: dict[int, tuple[Path, pd.DataFrame | xr.DataArray]] = {}
             for future in as_completed(futures):
                 idx = futures[future]
                 results_by_idx[idx] = future.result()
@@ -134,7 +135,7 @@ def fetch_cdf_data(
             results_by_idx[idx] = _download_and_read(fi["url"], parameter_id, CACHE_DIR)
 
     for idx in range(len(file_list)):
-        local_path, df = results_by_idx[idx]
+        local_path, data = results_by_idx[idx]
         # Extract metadata from the first CDF file.
         # Always read FILLVAL/VALIDMIN/VALIDMAX from CDF (ground truth)
         # since cached fill values may have different precision (float32 vs float64).
@@ -170,7 +171,7 @@ def fetch_cdf_data(
                         pass
             except Exception:
                 pass
-        frames.append(df)
+        frames.append(data)
 
     if not frames:
         raise ValueError(
@@ -178,7 +179,38 @@ def fetch_cdf_data(
             f"in range {time_min} to {time_max}"
         )
 
-    # Concatenate and trim to requested time range
+    # Branch: xarray DataArray (3D+) vs pandas DataFrame (1D/2D)
+    is_xarray = isinstance(frames[0], xr.DataArray)
+
+    if is_xarray:
+        data = _postprocess_xarray(frames, parameter_id, time_min, time_max,
+                                   fill_value, validmin, validmax)
+    else:
+        data = _postprocess_dataframe(frames, time_min, time_max,
+                                      fill_value, validmin, validmax)
+
+    n_time = data.sizes["time"] if is_xarray else len(data)
+    shape_info = (f"{dict(data.sizes)}" if is_xarray
+                  else f"{len(data)} rows, {len(data.columns)} columns")
+    logger.debug(f"[CDF] {dataset_id}/{parameter_id}: {shape_info}")
+
+    return {
+        "data": data,
+        "units": units,
+        "description": description,
+        "fill_value": fill_value,
+    }
+
+
+def _postprocess_dataframe(
+    frames: list[pd.DataFrame],
+    time_min: str,
+    time_max: str,
+    fill_value: float | None,
+    validmin: float | None,
+    validmax: float | None,
+) -> pd.DataFrame:
+    """Concatenate, clean, and trim DataFrame results from CDF files."""
     df = pd.concat(frames)
     df.sort_index(inplace=True)
 
@@ -192,8 +224,7 @@ def fetch_cdf_data(
 
     if len(df) == 0:
         raise ValueError(
-            f"No data rows for {dataset_id}/{parameter_id} "
-            f"in range {time_min} to {time_max}"
+            f"No data rows in range {time_min} to {time_max}"
         )
 
     # Ensure float64 dtype (CDF often stores float32)
@@ -201,9 +232,6 @@ def fetch_cdf_data(
         df[col] = pd.to_numeric(df[col], errors="coerce").astype(np.float64)
 
     # Replace fill values with NaN.
-    # CDF files store fill values as float32 but data is promoted to float64,
-    # so exact equality can fail (e.g., metadata says 999.99 but CDF float32
-    # becomes 999.989990234375 in float64). Always use np.isclose.
     if fill_value is not None:
         try:
             fill_f = float(fill_value)
@@ -215,8 +243,6 @@ def fetch_cdf_data(
             pass
 
     # Replace out-of-range values with NaN using CDF VALIDMIN/VALIDMAX.
-    # Many datasets (e.g., OMNI) use sentinel values like 9999.99 or 99999.9
-    # that exceed VALIDMAX but aren't marked as FILLVAL.
     if validmin is not None or validmax is not None:
         for col in df.columns:
             if validmin is not None:
@@ -224,24 +250,64 @@ def fetch_cdf_data(
             if validmax is not None:
                 df.loc[df[col] > validmax, col] = np.nan
 
-    logger.debug(f"[CDF] {dataset_id}/{parameter_id}: {len(df)} rows, "
-                 f"{len(df.columns)} columns")
+    return df
 
-    return {
-        "data": df,
-        "units": units,
-        "description": description,
-        "fill_value": fill_value,
-    }
+
+def _postprocess_xarray(
+    frames: list[xr.DataArray],
+    parameter_id: str,
+    time_min: str,
+    time_max: str,
+    fill_value: float | None,
+    validmin: float | None,
+    validmax: float | None,
+) -> xr.DataArray:
+    """Concatenate, clean, and trim xarray DataArray results from CDF files."""
+    da = xr.concat(frames, dim="time")
+    da = da.sortby("time")
+
+    # Remove duplicate times
+    _, unique_idx = np.unique(da.coords["time"].values, return_index=True)
+    da = da.isel(time=unique_idx)
+
+    # Trim to requested time range
+    t_start = np.datetime64(time_min.rstrip("Z"))
+    t_stop = np.datetime64(time_max.rstrip("Z"))
+    da = da.sel(time=slice(t_start, t_stop))
+
+    if da.sizes["time"] == 0:
+        raise ValueError(
+            f"No data rows for {parameter_id} in range {time_min} to {time_max}"
+        )
+
+    # Ensure float64 dtype
+    da = da.astype(np.float64)
+
+    # Replace fill values with NaN
+    if fill_value is not None:
+        try:
+            fill_f = float(fill_value)
+            da = da.where(~np.isclose(da.values, fill_f, rtol=1e-6, equal_nan=False))
+        except (ValueError, TypeError):
+            pass
+
+    # Replace out-of-range values with NaN
+    if validmin is not None:
+        da = da.where(da >= validmin)
+    if validmax is not None:
+        da = da.where(da <= validmax)
+
+    da.name = parameter_id
+    return da
 
 
 def _download_and_read(
     url: str, parameter_id: str, cache_dir: Path
-) -> tuple[Path, pd.DataFrame]:
+) -> tuple[Path, pd.DataFrame | xr.DataArray]:
     """Download a CDF file and read one parameter. Thread-safe."""
     local_path = _download_cdf_file(url, cache_dir)
-    df = _read_cdf_parameter(local_path, parameter_id)
-    return local_path, df
+    data = _read_cdf_parameter(local_path, parameter_id)
+    return local_path, data
 
 
 def _find_parameter_meta(info: dict, parameter_id: str) -> dict:
@@ -372,7 +438,7 @@ def _download_cdf_file(url: str, cache_base: Path) -> Path:
 
 def _read_cdf_parameter(
     cdf_path: Path, parameter_id: str
-) -> pd.DataFrame:
+) -> pd.DataFrame | xr.DataArray:
     """Extract one parameter from a CDF file.
 
     Args:
@@ -380,8 +446,8 @@ def _read_cdf_parameter(
         parameter_id: CDF variable name to read.
 
     Returns:
-        DataFrame with DatetimeIndex named 'time' and integer column names
-        (1, 2, 3...) for vector components.
+        DataFrame with DatetimeIndex for 1D/2D data, or xarray DataArray
+        for 3D+ data.
     """
     cdf = cdflib.CDF(str(cdf_path))
     info = cdf.cdf_info()
@@ -401,18 +467,26 @@ def _read_cdf_parameter(
             f"Available: {all_vars}"
         ) from e
 
-    # Build DataFrame with integer column names
+    # Build DataFrame with integer column names (1D/2D) or DataArray (3D+)
     if param_data.ndim == 1:
         # Scalar parameter
         df = pd.DataFrame({1: param_data}, index=times)
-    else:
+        df.index.name = "time"
+        return df
+    elif param_data.ndim == 2:
         # Vector/multi-component parameter
-        ncols = param_data.shape[1] if param_data.ndim > 1 else 1
+        ncols = param_data.shape[1]
         columns = {i + 1: param_data[:, i] for i in range(ncols)}
         df = pd.DataFrame(columns, index=times)
-
-    df.index.name = "time"
-    return df
+        df.index.name = "time"
+        return df
+    else:
+        # 3D+ variable — return xarray DataArray
+        dims = ["time"] + [f"dim{i}" for i in range(1, param_data.ndim)]
+        coords = {"time": times}
+        da = xr.DataArray(param_data, dims=dims, coords=coords)
+        da.name = parameter_id
+        return da
 
 
 def _find_epoch_variable(cdf: cdflib.CDF, info) -> str:

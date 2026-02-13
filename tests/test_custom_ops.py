@@ -190,7 +190,7 @@ class TestExecuteCustomOperation:
     def test_non_dataframe_error(self):
         idx = _make_time(3)
         df = _make_df(np.ones(3), idx)
-        with pytest.raises(ValueError, match="DataFrame or Series"):
+        with pytest.raises(ValueError, match="DataFrame, Series, or xarray DataArray"):
             execute_custom_operation(df, "result = 42")
 
     def test_lost_index_error(self):
@@ -338,7 +338,7 @@ class TestExecuteDataframeCreation:
             execute_dataframe_creation("x = pd.DataFrame({'a': [1]})")
 
     def test_non_dataframe_result_error(self):
-        with pytest.raises(ValueError, match="DataFrame or Series"):
+        with pytest.raises(ValueError, match="DataFrame, Series, or xarray DataArray"):
             execute_dataframe_creation("result = 42")
 
     def test_missing_datetime_index_error(self):
@@ -518,3 +518,98 @@ class TestValidateResult:
         result_df = pd.DataFrame({"out": np.ones(105)}, index=idx_big)
         warnings = validate_result(result_df, {"df_A": src})
         assert not any("unexpected expansion" in w for w in warnings)
+
+
+# ── Sandbox Namespace Tests (scipy + pywt) ────────────────────────────────────
+
+
+class TestSandboxScipy:
+    def test_scipy_signal_detrend(self):
+        """scipy.signal.detrend available in sandbox."""
+        idx = _make_time(100)
+        df = _make_df(np.arange(100, dtype=float) + np.random.randn(100) * 0.1, idx)
+        code = (
+            "vals = np.array(df.iloc[:,0].values, copy=True)\n"
+            "detrended = scipy.signal.detrend(vals)\n"
+            "result = pd.DataFrame({'detrended': detrended}, index=df.index)"
+        )
+        result = execute_custom_operation(df, code)
+        assert isinstance(result, pd.DataFrame)
+        assert len(result) == 100
+        # Detrended data should have near-zero mean
+        assert abs(result["detrended"].mean()) < 1.0
+
+    def test_scipy_fft_rfft(self):
+        """scipy.fft available in sandbox."""
+        idx = _make_time(64)
+        vals = np.sin(2 * np.pi * np.arange(64) / 16)
+        df = _make_df(vals, idx)
+        code = (
+            "vals = np.array(df.iloc[:,0].values, copy=True)\n"
+            "fft_vals = scipy.fft.rfft(vals)\n"
+            "n_freq = len(fft_vals)\n"
+            "result = pd.DataFrame({'amplitude': np.abs(fft_vals)}, "
+            "index=df.index[:n_freq])"
+        )
+        result = execute_custom_operation(df, code)
+        assert isinstance(result, pd.DataFrame)
+        assert len(result) == 33  # rfft of N points returns N//2+1
+
+    def test_scipy_in_multi_source(self):
+        """scipy available in multi-source operations."""
+        idx = _make_time(50)
+        sources = {"df_A": _make_df(np.random.randn(50), idx)}
+        code = (
+            "vals = np.array(df.iloc[:,0].values, copy=True)\n"
+            "detrended = scipy.signal.detrend(vals)\n"
+            "result = pd.DataFrame({'x': detrended}, index=df.index)"
+        )
+        result = execute_multi_source_operation(sources, code)
+        assert isinstance(result, pd.DataFrame)
+        assert len(result) == 50
+
+
+class TestSandboxPywt:
+    def test_pywt_dwt(self):
+        """pywt.dwt available in sandbox."""
+        idx = _make_time(100)
+        df = _make_df(np.sin(2 * np.pi * np.arange(100) / 20), idx)
+        code = (
+            "vals = np.array(df.iloc[:,0].values, copy=True)\n"
+            "coeffs = pywt.dwt(vals, 'db1')\n"
+            "approx = coeffs[0]\n"
+            "result = pd.DataFrame({'approx': approx[:len(df)]}, index=df.index[:len(approx)])"
+        )
+        result = execute_custom_operation(df, code)
+        assert isinstance(result, pd.DataFrame)
+        assert len(result) > 0
+
+    def test_pywt_wavedec(self):
+        """pywt.wavedec available in sandbox."""
+        idx = _make_time(128)
+        df = _make_df(np.random.randn(128), idx)
+        code = (
+            "vals = np.array(df.iloc[:,0].values, copy=True)\n"
+            "coeffs = pywt.wavedec(vals, 'db4', level=3)\n"
+            "approx = coeffs[0]\n"
+            "result = pd.DataFrame({'approx': np.interp("
+            "np.linspace(0, 1, len(df)), np.linspace(0, 1, len(approx)), approx"
+            ")}, index=df.index)"
+        )
+        result = execute_custom_operation(df, code)
+        assert isinstance(result, pd.DataFrame)
+        assert len(result) == 128
+
+    def test_pywt_in_multi_source(self):
+        """pywt available in multi-source operations."""
+        idx = _make_time(64)
+        sources = {"df_A": _make_df(np.random.randn(64), idx)}
+        code = (
+            "vals = np.array(df.iloc[:,0].values, copy=True)\n"
+            "coeffs = pywt.dwt(vals, 'haar')\n"
+            "approx = coeffs[0]\n"
+            "result = pd.DataFrame({'approx': approx[:len(df)]}, index=df.index[:len(approx)])"
+        )
+        result = execute_multi_source_operation(sources, code)
+        assert isinstance(result, pd.DataFrame)
+        assert len(result) > 0

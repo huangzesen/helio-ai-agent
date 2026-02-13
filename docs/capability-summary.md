@@ -97,6 +97,7 @@ agent/core.py  OrchestratorAgent  (LLM-driven orchestrator)
   |       TaskStore               JSON persistence to ~/.helio-agent/tasks/
   |
   +---> knowledge/                Dataset discovery + prompt generation
+  |       function_catalog.py      Auto-generated searchable catalog of scipy/pywt functions (search + docstring retrieval)
   |       missions/*.json          Per-mission JSON files (52 total, all auto-generated from CDAWeb)
   |       mission_loader.py        Lazy-loading cache, routing table, dataset access
   |       mission_prefixes.py      Shared CDAWeb dataset ID prefix map (40+ missions)
@@ -129,7 +130,7 @@ agent/core.py  OrchestratorAgent  (LLM-driven orchestrator)
           stress_test.py            Stress testing
 ```
 
-## Tools (26 tool schemas)
+## Tools (28 tool schemas)
 
 ### Dataset Discovery
 | Tool | Purpose |
@@ -164,8 +165,8 @@ The LLM inspects this metadata within the existing tool loop and can self-correc
 |------|---------|
 | `fetch_data` | Pull data into memory via CDF download (label: `DATASET.PARAM`) |
 | `list_fetched_data` | Show all in-memory timeseries |
-| `custom_operation` | LLM-generated pandas/numpy code (AST-validated, sandboxed) — handles magnitude, arithmetic, smoothing, resampling, derivatives, and any other transformation |
-| `compute_spectrogram` | LLM-generated scipy.signal code to compute spectrograms from timeseries (AST-validated, sandboxed) |
+| `custom_operation` | LLM-generated pandas/numpy/scipy/pywt code (AST-validated, sandboxed) — handles magnitude, arithmetic, smoothing, resampling, derivatives, filtering, spectrograms, wavelets, and any other transformation |
+| `compute_spectrogram` | DEPRECATED — use `custom_operation` instead (which now has full scipy in the sandbox) |
 | `describe_data` | Statistical summary of in-memory data (min/max/mean/std/percentiles/NaN) |
 | `preview_data` | Preview actual values (first/last N rows) of in-memory timeseries for debugging or inspection |
 | `save_data` | Export in-memory timeseries to CSV file |
@@ -174,6 +175,12 @@ The LLM inspects this metadata within the existing tool loop and can self-correc
 | Tool | Purpose |
 |------|---------|
 | `store_dataframe` | Create a new DataFrame from scratch and store it in memory (event lists, catalogs, search results, manual data) |
+
+### Function Documentation
+| Tool | Purpose |
+|------|---------|
+| `search_function_docs` | Search scientific computing function catalog by keyword (scipy.signal, scipy.fft, scipy.interpolate, scipy.stats, scipy.integrate, pywt) |
+| `get_function_docs` | Get full docstring and signature for a specific function |
 
 ### Document Reading
 | Tool | Purpose |
@@ -216,7 +223,11 @@ The LLM inspects this metadata within the existing tool loop and can self-correc
 - See `docs/planning-workflow.md` for detailed flow
 
 ### DataOpsAgent (agent/data_ops_agent.py)
-- Sees tools: data_ops_compute (`custom_operation`, `describe_data`, `save_data`), conversation + `list_fetched_data` extra
+- Sees tools: data_ops_compute (`custom_operation`, `describe_data`, `save_data`), function_docs (`search_function_docs`, `get_function_docs`), conversation + `list_fetched_data` extra
+- **Two-phase compute**: Think phase (explore data + research function APIs) then Execute phase (write code with enriched context)
+- Think phase uses ephemeral chat with function_docs + data inspection tools (same pattern as PlannerAgent discovery)
+- Sandbox includes full `scipy` and `pywt` (PyWavelets) for signal processing, wavelets, filtering, interpolation, etc.
+- Function documentation catalog auto-generated from scipy submodules and pywt docstrings
 - Singleton, cached per session
 - System prompt with computation patterns and code guidelines
 - No fetch tools — operates on already-fetched data in memory
@@ -271,7 +282,7 @@ All times are UTC. Outputs `TimeRange` objects with `start`/`end` datetimes.
 ### Data Pipeline (`data_ops/`)
 - `DataEntry` wraps a `pd.DataFrame` (DatetimeIndex + float64 columns).
 - `DataStore` is a singleton dict keyed by label. The LLM chains tools automatically: fetch -> custom_operation -> plot.
-- `custom_ops.py`: AST-validated, sandboxed executor for LLM-generated pandas/numpy code. Replaces all hardcoded compute functions — the LLM writes the pandas code directly.
+- `custom_ops.py`: AST-validated, sandboxed executor for LLM-generated pandas/numpy/scipy/pywt code. Replaces all hardcoded compute functions — the LLM writes the code directly. Sandbox includes `pd`, `np`, `xr`, `scipy` (full scipy), and `pywt` (PyWavelets).
 - Data fetching uses the CDF backend exclusively — downloads CDF files from CDAWeb REST API, caches locally, reads with cdflib. Errors propagate directly for the agent to learn from.
 
 ### LLM Abstraction Layer (`agent/llm/`)
@@ -294,7 +305,7 @@ All times are UTC. Outputs `TimeRange` objects with `start`/`end` datetimes.
 - **DataOps sub-agent**: Data transformation specialist with `custom_operation`, `describe_data`, `save_data` + `list_fetched_data`. System prompt includes computation patterns and code guidelines. Singleton, cached per session.
 - **DataExtraction sub-agent**: Text-to-DataFrame specialist with `store_dataframe`, `read_document`, `ask_clarification` + `list_fetched_data`. System prompt includes extraction patterns and DataFrame creation guidelines. Singleton, cached per session.
 - **Visualization sub-agent**: Visualization specialist with `plot_data` + `style_plot` + `manage_plot` + `list_fetched_data` tools. System prompt includes the tool catalog with parameter descriptions and examples. Handles all plotting, customization, and export via declarative tools (no code generation).
-- **Tool separation**: Tools have a `category` field (`discovery`, `visualization`, `data_ops`, `data_ops_fetch`, `data_ops_compute`, `data_extraction`, `conversation`, `routing`, `document`). `get_tool_schemas(categories=..., extra_names=...)` filters tools by category. Orchestrator sees `["discovery", "conversation", "routing", "document"]` + `list_fetched_data` extra. MissionAgent sees `["discovery", "data_ops_fetch", "conversation"]` + `list_fetched_data` extra. DataOpsAgent sees `["data_ops_compute", "conversation"]` + `list_fetched_data` extra. DataExtractionAgent sees `["data_extraction", "document", "conversation"]` + `list_fetched_data` extra. VisualizationAgent sees `["visualization"]` (`plot_data` + `style_plot` + `manage_plot`) + `list_fetched_data` extra.
+- **Tool separation**: Tools have a `category` field (`discovery`, `visualization`, `data_ops`, `data_ops_fetch`, `data_ops_compute`, `data_extraction`, `function_docs`, `conversation`, `routing`, `document`). `get_tool_schemas(categories=..., extra_names=...)` filters tools by category. Orchestrator sees `["discovery", "conversation", "routing", "document"]` + `list_fetched_data` extra. MissionAgent sees `["discovery", "data_ops_fetch", "conversation"]` + `list_fetched_data` extra. DataOpsAgent sees `["data_ops_compute", "conversation"]` + `list_fetched_data`, `search_function_docs`, `get_function_docs` extras. DataExtractionAgent sees `["data_extraction", "document", "conversation"]` + `list_fetched_data` extra. VisualizationAgent sees `["visualization"]` (`plot_data` + `style_plot` + `manage_plot`) + `list_fetched_data` extra.
 - **Post-delegation flow**: After `delegate_to_mission` returns data labels, the orchestrator uses `delegate_to_data_ops` for computation, `delegate_to_data_extraction` for text-to-DataFrame conversion, and then `delegate_to_visualization` to visualize results.
 - **Slim orchestrator**: System prompt contains a routing table (mission names + capabilities) plus delegation instructions. No dataset IDs or analysis tips — those live in mission sub-agents.
 
@@ -559,6 +570,8 @@ python-dotenv>=1.0.0    # .env loading
 requests>=2.28.0        # HTTP calls (CDAS REST, Master CDF, CDF downloads)
 cdflib>=1.3.0           # CDF file reading (Master CDF metadata, data files)
 numpy>=1.24.0           # Array operations
+scipy>=1.10.0           # Signal processing, FFT, interpolation, statistics
+PyWavelets>=1.8.0       # Wavelet transforms (CWT, DWT, packets)
 pandas>=2.0.0           # DataFrame-based data pipeline
 plotly>=5.18.0          # Interactive scientific data visualization
 kaleido>=0.2.1          # Static image export for Plotly (PNG, PDF)

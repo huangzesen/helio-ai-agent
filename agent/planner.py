@@ -245,13 +245,26 @@ class PlannerAgent:
     def _parse_response(self, response: LLMResponse) -> Optional[dict]:
         """Parse JSON response from the LLM, normalizing mission fields.
 
-        The planning phase always uses JSON schema enforcement, so the
-        response text is guaranteed to be valid JSON.
+        The planning phase uses JSON schema enforcement, but some models
+        (e.g. via OpenRouter) may wrap JSON in markdown code fences or
+        return non-JSON text.  We strip common wrappers before parsing.
         """
         try:
             text = response.text
             if not text:
                 return None
+
+            # Strip markdown code fences (```json ... ``` or ``` ... ```)
+            stripped = text.strip()
+            if stripped.startswith("```"):
+                # Remove opening fence (with optional language tag)
+                first_newline = stripped.index("\n")
+                stripped = stripped[first_newline + 1:]
+                # Remove closing fence
+                if stripped.rstrip().endswith("```"):
+                    stripped = stripped.rstrip()[:-3].rstrip()
+                text = stripped
+
             data = json.loads(text)
 
             # Normalize mission "null"/"none" strings to None
@@ -261,8 +274,10 @@ class PlannerAgent:
                     task_data["mission"] = None
 
             return data
-        except (json.JSONDecodeError, AttributeError) as e:
+        except (json.JSONDecodeError, AttributeError, ValueError) as e:
             logger.warning(f"[PlannerAgent] Failed to parse response: {e}")
+            if text:
+                logger.debug(f"[PlannerAgent] Raw response text (first 500 chars): {text[:500]}")
             return None
 
     def _run_discovery(self, user_request: str) -> str:
@@ -315,7 +330,34 @@ class PlannerAgent:
         if self.verbose and text:
             logger.debug(f"[PlannerAgent] Discovery result: {text}")
 
-        logger.debug("[Discovery] Research complete", extra=tagged("progress"))
+        # Count verified datasets from tool results for progress reporting
+        verified_count = sum(
+            1 for entry in tool_results.get("list_parameters", [])
+            if entry["result"].get("status") != "error"
+        )
+        browse_count = sum(
+            len(entry["result"].get("datasets", []))
+            for entry in tool_results.get("browse_datasets", [])
+            if entry["result"].get("status") != "error"
+        )
+        if browse_count or verified_count:
+            logger.debug(
+                f"[Discovery] Found {browse_count} datasets, verified parameters for {verified_count}",
+                extra=tagged("progress"),
+            )
+        else:
+            logger.debug("[Discovery] Research complete", extra=tagged("progress"))
+
+        # Show discovery findings in Gradio live-log (compact summary)
+        if text:
+            # Truncate to first ~600 chars to keep the sidebar readable
+            preview = text[:600]
+            if len(text) > 600:
+                preview = preview.rsplit("\n", 1)[0] + "\n..."
+            logger.debug(
+                f"[Discovery] Research findings:\n{preview}",
+                extra=tagged("progress"),
+            )
 
         # Build a structured parameter reference from raw list_parameters results
         param_ref = self._build_parameter_reference(tool_results)

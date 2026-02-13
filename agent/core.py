@@ -1036,9 +1036,13 @@ class OrchestratorAgent:
             label = f"{tool_args['dataset_id']}.{tool_args['parameter_id']}"
             store = get_store()
             existing = store.get(label)
-            if existing is not None and len(existing.data) > 0:
-                existing_start = existing.data.index[0].to_pydatetime().replace(tzinfo=None)
-                existing_end = existing.data.index[-1].to_pydatetime().replace(tzinfo=None)
+            if existing is not None and len(existing.time) > 0:
+                if existing.is_xarray:
+                    existing_start = pd.Timestamp(existing.time[0]).to_pydatetime().replace(tzinfo=None)
+                    existing_end = pd.Timestamp(existing.time[-1]).to_pydatetime().replace(tzinfo=None)
+                else:
+                    existing_start = existing.data.index[0].to_pydatetime().replace(tzinfo=None)
+                    existing_end = existing.data.index[-1].to_pydatetime().replace(tzinfo=None)
                 fetch_start_naive = fetch_start.replace(tzinfo=None)
                 fetch_end_naive = fetch_end.replace(tzinfo=None)
                 if existing_start <= fetch_start_naive and existing_end >= fetch_end_naive:
@@ -1064,39 +1068,88 @@ class OrchestratorAgent:
                 )
             except Exception as e:
                 return {"status": "error", "message": str(e)}
-            # Detect all-NaN fetches (parameter has no real data in range)
-            df = result["data"]
-            numeric_cols = df.select_dtypes(include="number")
-            if len(df) > 0 and len(numeric_cols.columns) > 0 and numeric_cols.isna().all(axis=None):
-                return {
-                    "status": "error",
-                    "message": (
-                        f"Parameter '{tool_args['parameter_id']}' in dataset "
-                        f"'{tool_args['dataset_id']}' returned {len(df)} rows "
-                        f"but ALL values are fill/NaN — no real data available "
-                        f"for this parameter in the requested time range. "
-                        f"Try a different parameter or dataset."
-                    ),
-                }
 
-            # Check NaN percentage before storing
-            nan_total = numeric_cols.isna().sum().sum()
-            nan_pct = round(100 * nan_total / numeric_cols.size, 1) if numeric_cols.size > 0 else 0.0
+            import xarray as xr
+            fetched_data = result["data"]
+            is_xarray = isinstance(fetched_data, xr.DataArray)
 
-            from config import DATA_BACKEND
-            entry = DataEntry(
-                label=label,
-                data=df,
-                units=result["units"],
-                description=result["description"],
-                source=DATA_BACKEND,
-            )
-            store.put(entry)
-            self.logger.debug(f"[DataOps] Stored '{label}' ({len(entry.time)} points)", extra=tagged("data_fetched"))
-            response = {"status": "success", **entry.summary()}
+            if is_xarray:
+                # xarray DataArray (3D+ variable)
+                import numpy as np
+                n_time = fetched_data.sizes["time"]
+
+                # Detect all-NaN fetches
+                if n_time > 0 and np.all(np.isnan(fetched_data.values)):
+                    return {
+                        "status": "error",
+                        "message": (
+                            f"Parameter '{tool_args['parameter_id']}' in dataset "
+                            f"'{tool_args['dataset_id']}' returned {n_time} time steps "
+                            f"but ALL values are fill/NaN — no real data available "
+                            f"for this parameter in the requested time range. "
+                            f"Try a different parameter or dataset."
+                        ),
+                    }
+
+                # NaN percentage
+                total_cells = fetched_data.size
+                nan_total = int(np.isnan(fetched_data.values).sum())
+                nan_pct = round(100 * nan_total / total_cells, 1) if total_cells > 0 else 0.0
+
+                from config import DATA_BACKEND
+                entry = DataEntry(
+                    label=label,
+                    data=fetched_data,
+                    units=result["units"],
+                    description=result["description"],
+                    source=DATA_BACKEND,
+                )
+                store.put(entry)
+                self.logger.debug(f"[DataOps] Stored '{label}' (xarray {dict(fetched_data.sizes)})", extra=tagged("data_fetched"))
+                response = {"status": "success", **entry.summary()}
+                response["note"] = (
+                    f"This is a {fetched_data.ndim}D variable with dims {dict(fetched_data.sizes)}. "
+                    f"Use custom_operation with xarray syntax (da_{tool_args['parameter_id']}) "
+                    f"to slice/reduce it to a 2D DataFrame before plotting."
+                )
+
+                n_points = n_time
+            else:
+                # pandas DataFrame (1D/2D variable)
+                df = fetched_data
+                # Detect all-NaN fetches (parameter has no real data in range)
+                numeric_cols = df.select_dtypes(include="number")
+                if len(df) > 0 and len(numeric_cols.columns) > 0 and numeric_cols.isna().all(axis=None):
+                    return {
+                        "status": "error",
+                        "message": (
+                            f"Parameter '{tool_args['parameter_id']}' in dataset "
+                            f"'{tool_args['dataset_id']}' returned {len(df)} rows "
+                            f"but ALL values are fill/NaN — no real data available "
+                            f"for this parameter in the requested time range. "
+                            f"Try a different parameter or dataset."
+                        ),
+                    }
+
+                # Check NaN percentage before storing
+                nan_total = numeric_cols.isna().sum().sum()
+                nan_pct = round(100 * nan_total / numeric_cols.size, 1) if numeric_cols.size > 0 else 0.0
+
+                from config import DATA_BACKEND
+                entry = DataEntry(
+                    label=label,
+                    data=df,
+                    units=result["units"],
+                    description=result["description"],
+                    source=DATA_BACKEND,
+                )
+                store.put(entry)
+                self.logger.debug(f"[DataOps] Stored '{label}' ({len(entry.time)} points)", extra=tagged("data_fetched"))
+                response = {"status": "success", **entry.summary()}
+
+                n_points = len(df)
 
             # Warn about very large datasets that may cause slow operations
-            n_points = len(df)
             if n_points > 500_000:
                 response["size_warning"] = (
                     f"Very large dataset ({n_points:,} points). "
@@ -1125,6 +1178,9 @@ class OrchestratorAgent:
             return {"status": "success", "entries": entries, "count": len(entries)}
 
         elif tool_name == "custom_operation":
+            import numpy as np
+            import xarray as xr
+
             store = get_store()
             labels = tool_args.get("source_labels", [])
             if not labels:
@@ -1135,7 +1191,7 @@ class OrchestratorAgent:
                 return {"status": "error", "message": err}
 
             try:
-                result_df, warnings = run_multi_source_operation(sources, tool_args["pandas_code"])
+                op_result, warnings = run_multi_source_operation(sources, tool_args["pandas_code"])
             except (ValueError, RuntimeError) as e:
                 prefix = "Validation" if isinstance(e, ValueError) else "Execution"
                 return {
@@ -1150,7 +1206,7 @@ class OrchestratorAgent:
             desc = tool_args.get("description", f"Custom operation on {', '.join(labels)}")
             entry = DataEntry(
                 label=tool_args["output_label"],
-                data=result_df,
+                data=op_result,
                 units=units,
                 description=desc,
                 source="computed",
@@ -1161,14 +1217,20 @@ class OrchestratorAgent:
                 self.logger.debug(f"[DataOpsValidation] {w}")
 
             # Warn on empty or all-NaN results (P0-1 symptom)
-            if len(result_df) == 0:
+            is_xr_result = isinstance(op_result, xr.DataArray)
+            n_points = op_result.sizes["time"] if is_xr_result else len(op_result)
+            if n_points == 0:
                 warnings.append("Result has 0 data points — possible time range mismatch or all-NaN input")
                 self.logger.warning(f"[DataOps] custom_operation produced 0 points for '{tool_args['output_label']}'")
-            elif result_df.isna().all(axis=None):
+            elif is_xr_result:
+                if np.all(np.isnan(op_result.values)):
+                    warnings.append("Result is entirely NaN — check source data overlap and computation logic")
+                    self.logger.warning(f"[DataOps] custom_operation produced all-NaN for '{tool_args['output_label']}'")
+            elif op_result.isna().all(axis=None):
                 warnings.append("Result is entirely NaN — check source data overlap and computation logic")
                 self.logger.warning(f"[DataOps] custom_operation produced all-NaN for '{tool_args['output_label']}'")
 
-            self.logger.debug(f"[DataOps] Custom operation -> '{tool_args['output_label']}' ({len(result_df)} points)")
+            self.logger.debug(f"[DataOps] Custom operation -> '{tool_args['output_label']}' ({n_points} points)")
             result = {
                 "status": "success",
                 **entry.summary(),
@@ -1237,6 +1299,27 @@ class OrchestratorAgent:
             store.put(entry)
             self.logger.debug(f"[DataOps] Spectrogram -> '{tool_args['output_label']}' ({result_df.shape})")
             return {"status": "success", **entry.summary()}
+
+        # --- Function Documentation Tools ---
+
+        elif tool_name == "search_function_docs":
+            from knowledge.function_catalog import search_functions
+            query = tool_args["query"]
+            package = tool_args.get("package")
+            results = search_functions(query, package=package)
+            return {
+                "status": "success",
+                "query": query,
+                "count": len(results),
+                "functions": results,
+            }
+
+        elif tool_name == "get_function_docs":
+            from knowledge.function_catalog import get_function_docstring
+            result = get_function_docstring(tool_args["package"], tool_args["function_name"])
+            if "error" in result:
+                return {"status": "error", "message": result["error"]}
+            return {"status": "success", **result}
 
         # --- Describe & Export Tools ---
 
@@ -2088,6 +2171,26 @@ class OrchestratorAgent:
         store.save(plan)
 
         log_plan_event("created", plan.id, f"Dynamic plan for: {user_message[:50]}...")
+
+        # Surface plan summary in Gradio live log
+        plan_summary = response.get("summary") or response.get("reasoning", "")
+        if plan_summary:
+            if len(plan_summary) > 300:
+                plan_summary = plan_summary[:300] + "..."
+            self.logger.debug(f"[Planning] {plan_summary}", extra=tagged("progress"))
+
+        tasks_preview = response.get("tasks", [])
+        if tasks_preview:
+            task_lines = []
+            for i, t in enumerate(tasks_preview, 1):
+                desc = t.get("description", "?")
+                ds = t.get("candidate_datasets")
+                ds_str = f" ({', '.join(ds)})" if ds else ""
+                task_lines.append(f"  {i}. {desc}{ds_str}")
+            self.logger.debug(
+                "[Planning] Tasks:\n" + "\n".join(task_lines),
+                extra=tagged("progress"),
+            )
 
         round_num = 0
         while round_num < MAX_ROUNDS:

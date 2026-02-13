@@ -13,6 +13,7 @@ import gc
 
 import numpy as np
 import pandas as pd
+import xarray as xr
 
 
 # Builtins that are safe to use in custom operations
@@ -31,7 +32,7 @@ _DANGEROUS_BUILTINS = frozenset({
 })
 
 # Names allowed in the execution namespace
-_ALLOWED_NAMES = frozenset({"df", "pd", "np", "result"})
+_ALLOWED_NAMES = frozenset({"df", "pd", "np", "xr", "scipy", "pywt", "result"})
 
 
 def validate_pandas_code(code: str, require_result: bool = True) -> list[str]:
@@ -120,15 +121,22 @@ def _execute_in_sandbox(code: str, namespace: dict) -> object:
     return result
 
 
-def _validate_dataframe_result(result: object, datetime_index_hint: str = "") -> pd.DataFrame:
-    """Validate that the sandbox result is a DataFrame with DatetimeIndex.
+def _validate_result(
+    result: object, datetime_index_hint: str = ""
+) -> pd.DataFrame | xr.DataArray:
+    """Validate that the sandbox result is a DataFrame or xarray DataArray.
+
+    - Series → converted to single-column DataFrame
+    - xarray DataArray with ``time`` dim → returned as-is (any dimensionality)
+    - DataFrame without DatetimeIndex → error
+    - Other types → error
 
     Args:
         result: The value produced by sandbox execution.
         datetime_index_hint: Extra guidance appended to the DatetimeIndex error message.
 
     Returns:
-        Validated DataFrame.
+        Validated DataFrame or DataArray.
 
     Raises:
         ValueError: If result is None, wrong type, or missing DatetimeIndex.
@@ -139,9 +147,22 @@ def _validate_dataframe_result(result: object, datetime_index_hint: str = "") ->
     if isinstance(result, pd.Series):
         result = result.to_frame(name="value")
 
+    # xarray DataArray: accept if it has a time dimension
+    if isinstance(result, xr.DataArray):
+        if "time" in result.dims:
+            return result
+        dims = dict(result.sizes)
+        raise ValueError(
+            f"Result is an xarray DataArray with dims {dims} but no 'time' "
+            f"dimension. The result must have a 'time' dimension. "
+            f"Use .rename() if the time dimension has a different name, "
+            f"or convert to DataFrame with .to_pandas()."
+        )
+
     if not isinstance(result, pd.DataFrame):
         raise ValueError(
-            f"Result must be a DataFrame or Series, got {type(result).__name__}"
+            f"Result must be a DataFrame, Series, or xarray DataArray, "
+            f"got {type(result).__name__}"
         )
 
     if not isinstance(result.index, pd.DatetimeIndex):
@@ -155,58 +176,94 @@ def _validate_dataframe_result(result: object, datetime_index_hint: str = "") ->
     return result
 
 
-def execute_multi_source_operation(sources: dict[str, pd.DataFrame], code: str) -> pd.DataFrame:
-    """Execute validated pandas code with multiple source DataFrames.
+def execute_multi_source_operation(
+    sources: dict[str, pd.DataFrame | xr.DataArray], code: str
+) -> pd.DataFrame | xr.DataArray:
+    """Execute validated pandas/xarray code with multiple sources.
 
-    Each source is available in the sandbox by its key (e.g., 'df_BR').
-    The first source is also aliased as 'df' for backward compatibility.
+    Each source is available in the sandbox by its key:
+    - ``df_SUFFIX`` for pandas DataFrames
+    - ``da_SUFFIX`` for xarray DataArrays
+
+    The first DataFrame source is also aliased as ``df`` for backward
+    compatibility.  ``xr`` (xarray) is always available in the namespace.
 
     Args:
-        sources: Mapping of variable names to DataFrames (e.g., {'df_BR': df1, 'df_BT': df2}).
+        sources: Mapping of variable names to DataFrames or DataArrays.
         code: Validated Python code that assigns to 'result'.
 
     Returns:
-        Result DataFrame with DatetimeIndex.
+        Result DataFrame with DatetimeIndex, or xarray DataArray with time dim.
 
     Raises:
         RuntimeError: If code execution fails.
-        ValueError: If result is not a DataFrame/Series or loses DatetimeIndex.
+        ValueError: If result is not a valid type or missing time axis.
     """
-    namespace = {"pd": pd, "np": np, "result": None}
-    first_key = None
-    for key, df in sources.items():
-        df = df.copy()
-        if not isinstance(df.index, pd.DatetimeIndex):
-            df.index = pd.to_datetime(df.index)
-        namespace[key] = df
-        if first_key is None:
-            first_key = key
-            namespace["df"] = df
+    import scipy
+    import pywt
+    namespace = {"pd": pd, "np": np, "xr": xr, "scipy": scipy, "pywt": pywt, "result": None}
+    first_df_key = None
+    for key, data in sources.items():
+        if isinstance(data, xr.DataArray):
+            namespace[key] = data.copy()
+        else:
+            df = data.copy()
+            if not isinstance(df.index, pd.DatetimeIndex):
+                df.index = pd.to_datetime(df.index)
+            namespace[key] = df
+            if first_df_key is None:
+                first_df_key = key
+                namespace["df"] = df
 
     result = _execute_in_sandbox(code, namespace)
-    return _validate_dataframe_result(result)
+    return _validate_result(result)
 
 
-def validate_result(result_df: pd.DataFrame, sources: dict[str, pd.DataFrame]) -> list[str]:
+def validate_result(
+    result: pd.DataFrame | xr.DataArray,
+    sources: dict[str, pd.DataFrame | xr.DataArray],
+) -> list[str]:
     """Validate a computation result against its sources for common pitfalls.
 
-    Checks:
+    For DataFrame results, checks:
     1. NaN-to-zero: result has zeros where sources have NaN (skipna issue)
     2. Row count anomaly: result has significantly more rows than largest source
     3. Constant output: result is constant when sources are not
 
+    For DataArray results, only checks row count anomaly.
+
     Args:
-        result_df: The computation result.
-        sources: The source DataFrames used (keyed by sandbox variable name).
+        result: The computation result (DataFrame or DataArray).
+        sources: The source DataFrames/DataArrays used (keyed by sandbox variable name).
 
     Returns:
         List of warning strings. Empty list means no issues detected.
     """
     warnings = []
 
+    # For DataArray results, only do row-count check
+    if isinstance(result, xr.DataArray):
+        if sources:
+            def _source_len(s):
+                return s.sizes["time"] if isinstance(s, xr.DataArray) else len(s)
+            result_len = result.sizes["time"]
+            max_source_rows = max(_source_len(s) for s in sources.values())
+            if max_source_rows > 0 and result_len > max_source_rows * 1.1:
+                warnings.append(
+                    f"Result has {result_len} time steps vs largest source "
+                    f"{max_source_rows} — unexpected expansion"
+                )
+        return warnings
+
+    # DataFrame-specific checks below
+    result_df = result
+
+    # Separate DataFrame sources (skip DataArray sources for DataFrame-specific checks)
+    df_sources = {k: v for k, v in sources.items() if isinstance(v, pd.DataFrame)}
+
     # Check 1: NaN-to-zero — zeros in result coinciding with NaN in sources
     result_zeros = (result_df == 0.0)
-    for var_name, src_df in sources.items():
+    for var_name, src_df in df_sources.items():
         src_nan_times = src_df.index[src_df.isna().any(axis=1)]
         if len(src_nan_times) == 0:
             continue
@@ -222,7 +279,9 @@ def validate_result(result_df: pd.DataFrame, sources: dict[str, pd.DataFrame]) -
 
     # Check 2: Row count anomaly
     if sources:
-        max_source_rows = max(len(df) for df in sources.values())
+        def _source_len(s):
+            return s.sizes["time"] if isinstance(s, xr.DataArray) else len(s)
+        max_source_rows = max(_source_len(s) for s in sources.values())
         if max_source_rows > 0 and len(result_df) > max_source_rows * 1.1:
             warnings.append(
                 f"Result has {len(result_df)} rows vs largest source "
@@ -237,7 +296,7 @@ def validate_result(result_df: pd.DataFrame, sources: dict[str, pd.DataFrame]) -
         if col_data.std() == 0:
             # Check if any source is non-constant
             any_source_varies = any(
-                src_df.std().max() > 0 for src_df in sources.values()
+                src_df.std().max() > 0 for src_df in df_sources.values()
             )
             if any_source_varies:
                 warnings.append(
@@ -250,19 +309,19 @@ def validate_result(result_df: pd.DataFrame, sources: dict[str, pd.DataFrame]) -
 
 
 def run_multi_source_operation(
-    sources: dict[str, pd.DataFrame], code: str
-) -> tuple[pd.DataFrame, list[str]]:
+    sources: dict[str, pd.DataFrame | xr.DataArray], code: str
+) -> tuple[pd.DataFrame | xr.DataArray, list[str]]:
     """Validate code, execute with multiple sources, then validate result.
 
     Convenience function combining code validation, multi-source execution,
     and result validation.
 
     Args:
-        sources: Mapping of variable names to source DataFrames.
-        code: Python code that operates on named DataFrames and assigns to 'result'.
+        sources: Mapping of variable names to source DataFrames/DataArrays.
+        code: Python code that operates on named variables and assigns to 'result'.
 
     Returns:
-        Tuple of (result DataFrame, list of warning strings).
+        Tuple of (result DataFrame or DataArray, list of warning strings).
 
     Raises:
         ValueError: If code validation fails or result is invalid.
@@ -273,9 +332,9 @@ def run_multi_source_operation(
         raise ValueError(
             "Code validation failed:\n" + "\n".join(f"  - {v}" for v in violations)
         )
-    result_df = execute_multi_source_operation(sources, code)
-    warnings = validate_result(result_df, sources)
-    return result_df, warnings
+    result = execute_multi_source_operation(sources, code)
+    warnings = validate_result(result, sources)
+    return result, warnings
 
 
 def execute_custom_operation(df: pd.DataFrame, code: str) -> pd.DataFrame:
@@ -292,12 +351,14 @@ def execute_custom_operation(df: pd.DataFrame, code: str) -> pd.DataFrame:
         RuntimeError: If code execution fails.
         ValueError: If result is not a DataFrame/Series or loses DatetimeIndex.
     """
+    import scipy
+    import pywt
     df = df.copy()
     if not isinstance(df.index, pd.DatetimeIndex):
         df.index = pd.to_datetime(df.index)
 
-    result = _execute_in_sandbox(code, {"df": df, "pd": pd, "np": np, "result": None})
-    return _validate_dataframe_result(result)
+    result = _execute_in_sandbox(code, {"df": df, "pd": pd, "np": np, "xr": xr, "scipy": scipy, "pywt": pywt, "result": None})
+    return _validate_result(result)
 
 
 def run_custom_operation(df: pd.DataFrame, code: str) -> pd.DataFrame:
@@ -341,8 +402,8 @@ def execute_dataframe_creation(code: str) -> pd.DataFrame:
         RuntimeError: If code execution fails.
         ValueError: If result is not a DataFrame/Series or lacks DatetimeIndex.
     """
-    result = _execute_in_sandbox(code, {"pd": pd, "np": np, "result": None})
-    return _validate_dataframe_result(
+    result = _execute_in_sandbox(code, {"pd": pd, "np": np, "xr": xr, "result": None})
+    return _validate_result(
         result,
         datetime_index_hint=(
             "Use pd.to_datetime() on your date column and .set_index() to create one. "
@@ -378,9 +439,9 @@ def execute_spectrogram_computation(df: pd.DataFrame, code: str) -> pd.DataFrame
         df.index = pd.to_datetime(df.index)
 
     result = _execute_in_sandbox(
-        code, {"df": df, "pd": pd, "np": np, "signal": signal, "result": None}
+        code, {"df": df, "pd": pd, "np": np, "xr": xr, "signal": signal, "result": None}
     )
-    return _validate_dataframe_result(
+    return _validate_result(
         result,
         datetime_index_hint="Make sure your spectrogram output preserves datetime timestamps.",
     )

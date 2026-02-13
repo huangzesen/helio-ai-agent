@@ -334,7 +334,7 @@ class TestTier6Limitations:
         """Cannot return a single number — must be DataFrame/Series."""
         idx = _make_time(5)
         df = _make_df(np.arange(5, dtype=float), idx)
-        with pytest.raises(ValueError, match="DataFrame or Series"):
+        with pytest.raises(ValueError, match="DataFrame, Series, or xarray DataArray"):
             run_custom_operation(df, "result = df.mean().iloc[0]")
 
     def test_workaround_embed_second_dataset(self):
