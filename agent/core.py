@@ -9,6 +9,7 @@ The OrchestratorAgent routes requests to:
 import math
 import time
 import threading
+import pandas as pd
 from concurrent.futures import Future, ThreadPoolExecutor, as_completed
 from typing import Optional
 
@@ -1008,6 +1009,13 @@ class OrchestratorAgent:
             ds_validation = validate_dataset_id(tool_args["dataset_id"])
             if not ds_validation["valid"]:
                 return {"status": "error", "message": ds_validation["message"]}
+
+            # Pre-fetch validation: reject parameter IDs not in cached metadata
+            param_validation = validate_parameter_id(
+                tool_args["dataset_id"], tool_args["parameter_id"]
+            )
+            if not param_validation["valid"]:
+                return {"status": "error", "message": param_validation["message"]}
 
             try:
                 time_range = parse_time_range(tool_args["time_range"])

@@ -181,13 +181,16 @@ def list_parameters(dataset_id: str) -> list[dict]:
         if len(size) == 1 and size[0] <= 3:
             ptype = p.get("type", "")
             if ptype in ("double", "integer"):
-                params.append({
+                entry = {
                     "name": name,
                     "description": p.get("description", ""),
                     "units": p.get("units", ""),
                     "size": size,
                     "dataset_id": dataset_id,
-                })
+                }
+                if p.get("_note"):
+                    entry["note"] = p["_note"]
+                params.append(entry)
 
     return params
 
