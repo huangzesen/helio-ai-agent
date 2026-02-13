@@ -6,8 +6,13 @@ Provides three public methods dispatched by agent/core.py:
 - style() — apply aesthetics via key-value params (no code gen)
 - manage() — structural ops: export, reset, zoom, add/remove traces
 
+Also provides a stateless entry point:
+- build_figure_from_spec() — creates a fresh go.Figure from a spec dict
+  containing _meta (data/grid layout) and operations (ordered style ops).
+
 State is kept in a mutable go.Figure that accumulates traces / layout
-changes across calls.
+changes across calls (legacy API). The stateless builder is the preferred
+path for new code.
 """
 
 from __future__ import annotations
@@ -99,6 +104,642 @@ _PANEL_HEIGHT = 300  # px per subplot panel
 _DEFAULT_WIDTH = 1100  # px figure width
 
 _LEGEND_MAX_LINE = 30  # max chars per line in legend
+
+
+# ---------------------------------------------------------------------------
+# ColorState — extracted color assignment logic for stateless use
+# ---------------------------------------------------------------------------
+
+class ColorState:
+    """Tracks label-to-color assignments for stable coloring across renders.
+
+    This is the extracted, reusable version of PlotlyRenderer._next_color().
+    """
+
+    def __init__(
+        self,
+        label_colors: dict[str, str] | None = None,
+        color_index: int = 0,
+    ):
+        self.label_colors: dict[str, str] = dict(label_colors or {})
+        self.color_index: int = color_index
+
+    def next_color(self, label: str) -> str:
+        """Return a stable colour for *label*, assigning a new one if unseen."""
+        if label in self.label_colors:
+            return self.label_colors[label]
+        color = _DEFAULT_COLORS[self.color_index % len(_DEFAULT_COLORS)]
+        self.color_index += 1
+        self.label_colors[label] = color
+        return color
+
+    def to_dict(self) -> dict:
+        return {
+            "label_colors": dict(self.label_colors),
+            "color_index": self.color_index,
+        }
+
+    @classmethod
+    def from_dict(cls, d: dict) -> ColorState:
+        return cls(
+            label_colors=d.get("label_colors", {}),
+            color_index=d.get("color_index", 0),
+        )
+
+
+# ---------------------------------------------------------------------------
+# RenderResult — return type of build_figure_from_spec
+# ---------------------------------------------------------------------------
+
+class RenderResult:
+    """Result of a stateless build_figure_from_spec() call."""
+
+    __slots__ = ("figure", "color_state", "trace_labels", "trace_panels",
+                 "panel_count", "column_count")
+
+    def __init__(
+        self,
+        figure: go.Figure,
+        color_state: ColorState,
+        trace_labels: list[str],
+        trace_panels: list[tuple[int, int]],
+        panel_count: int,
+        column_count: int,
+    ):
+        self.figure = figure
+        self.color_state = color_state
+        self.trace_labels = trace_labels
+        self.trace_panels = trace_panels
+        self.panel_count = panel_count
+        self.column_count = column_count
+
+
+# ---------------------------------------------------------------------------
+# Stateless figure builder
+# ---------------------------------------------------------------------------
+
+def _scatter_cls_static(n_points: int):
+    """Return go.Scattergl for large datasets, go.Scatter otherwise."""
+    return go.Scattergl if n_points > _GL_THRESHOLD else go.Scatter
+
+
+def _add_line_traces_static(
+    entries: list[DataEntry],
+    row: int,
+    fig: go.Figure,
+    color_state: ColorState,
+    trace_labels: list[str],
+    trace_panels: list[tuple[int, int]],
+    col: int = 1,
+) -> list[str]:
+    """Add line traces — stateless version of PlotlyRenderer._add_line_traces."""
+    added_labels: list[str] = []
+
+    for entry in entries:
+        display_name = entry.description or entry.label
+        if entry.is_xarray:
+            import pandas as pd
+            time_list = [pd.Timestamp(t).isoformat() for t in entry.data.coords["time"].values]
+        else:
+            time_list = [t.isoformat() for t in entry.data.index]
+
+        if entry.values.ndim == 2 and entry.values.shape[1] > 1:
+            comp_names = ["x", "y", "z"]
+            for comp_col in range(entry.values.shape[1]):
+                comp = comp_names[comp_col] if comp_col < 3 else str(comp_col)
+                label = f"{display_name} ({comp})"
+                val_arr = entry.values[:, comp_col]
+                t_disp, v_disp = _downsample_minmax(time_list, val_arr, _MAX_DISPLAY_POINTS)
+                v_disp = [float(v) if np.isfinite(v) else None for v in v_disp]
+                Scatter = _scatter_cls_static(len(v_disp))
+                fig.add_trace(
+                    Scatter(
+                        x=t_disp, y=v_disp,
+                        name=_wrap_display_name(label),
+                        mode="lines",
+                        line=dict(color=color_state.next_color(label)),
+                    ),
+                    row=row, col=col,
+                )
+                trace_labels.append(label)
+                trace_panels.append((row, col))
+                added_labels.append(label)
+        else:
+            vals = entry.values.ravel() if entry.values.ndim > 1 else entry.values
+            t_disp, v_disp = _downsample_minmax(time_list, vals, _MAX_DISPLAY_POINTS)
+            v_disp = [float(v) if np.isfinite(v) else None for v in v_disp]
+            Scatter = _scatter_cls_static(len(v_disp))
+            fig.add_trace(
+                Scatter(
+                    x=t_disp, y=v_disp,
+                    name=_wrap_display_name(display_name),
+                    mode="lines",
+                    line=dict(color=color_state.next_color(display_name)),
+                ),
+                row=row, col=col,
+            )
+            trace_labels.append(display_name)
+            trace_panels.append((row, col))
+            added_labels.append(display_name)
+
+    return added_labels
+
+
+def _add_spectrogram_trace_static(
+    entry: DataEntry,
+    row: int,
+    fig: go.Figure,
+    trace_labels: list[str],
+    trace_panels: list[tuple[int, int]],
+    col: int = 1,
+    colorscale: str = "Viridis",
+    log_y: bool = False,
+    log_z: bool = False,
+    z_min: float | None = None,
+    z_max: float | None = None,
+) -> str:
+    """Add a spectrogram heatmap — stateless version of PlotlyRenderer._add_spectrogram_trace."""
+    meta = entry.metadata or {}
+
+    if entry.is_xarray:
+        import pandas as pd
+        da = entry.data
+        times = [pd.Timestamp(t).isoformat() for t in da.coords["time"].values]
+        non_time_dims = [d for d in da.dims if d != "time"]
+        if non_time_dims:
+            last_dim = non_time_dims[-1]
+            if last_dim in da.coords:
+                bin_values = [float(v) for v in da.coords[last_dim].values]
+            else:
+                bin_values = list(range(da.sizes[last_dim]))
+        else:
+            bin_values = [0]
+        z_values = da.values.astype(float)
+        if z_values.ndim > 2:
+            middle_axes = tuple(range(1, z_values.ndim - 1))
+            z_values = np.nanmean(z_values, axis=middle_axes)
+    else:
+        times = [t.isoformat() for t in entry.data.index]
+        bin_values = meta.get("bin_values")
+        if bin_values is None:
+            try:
+                bin_values = [float(c) for c in entry.data.columns]
+            except (ValueError, TypeError):
+                bin_values = list(range(len(entry.data.columns)))
+        z_values = entry.data.values.astype(float)
+
+    if log_z:
+        z_values = np.where(z_values > 0, np.log10(z_values), np.nan)
+
+    z_data = z_values.T.tolist()
+    bin_list = [float(b) for b in bin_values]
+
+    colorbar_title = meta.get("value_label", "")
+    if log_z and colorbar_title:
+        colorbar_title = f"log\u2081\u2080({colorbar_title})"
+    elif log_z:
+        colorbar_title = "log\u2081\u2080(intensity)"
+
+    label = entry.description or entry.label
+
+    subplot_ref = fig.get_subplot(row, col)
+    if subplot_ref and hasattr(subplot_ref, 'yaxis'):
+        domain = subplot_ref.yaxis.domain
+        cb_y = (domain[0] + domain[1]) / 2
+        cb_len = domain[1] - domain[0]
+    else:
+        cb_y = 0.5
+        cb_len = 1.0
+
+    colorbar_cfg = dict(y=cb_y, len=cb_len, yanchor="middle")
+    if colorbar_title:
+        colorbar_cfg["title"] = dict(text=colorbar_title)
+
+    heatmap = go.Heatmap(
+        x=times, y=bin_list, z=z_data,
+        colorscale=colorscale, colorbar=colorbar_cfg,
+        zmin=z_min, zmax=z_max, name=label,
+    )
+    fig.add_trace(heatmap, row=row, col=col)
+    trace_labels.append(label)
+    trace_panels.append((row, col))
+
+    fig.update_xaxes(type="date", row=row, col=col)
+    y_axis_title = meta.get("bin_label", "")
+    if y_axis_title:
+        fig.update_yaxes(title_text=y_axis_title, row=row, col=col)
+    if log_y:
+        fig.update_yaxes(type="log", row=row, col=col)
+
+    return label
+
+
+def _validate_spectrogram_entry_static(entry: DataEntry) -> str | None:
+    """Return error message if entry is unsuitable for spectrogram, else None."""
+    if entry.is_xarray:
+        non_time_dims = [d for d in entry.data.dims if d != "time"]
+        if not non_time_dims:
+            return (
+                f"Entry '{entry.label}' is scalar (no non-time dimensions). "
+                "Spectrograms require 2D data (time x bins). "
+                "Use panel_types to set this panel to 'line'."
+            )
+    else:
+        if len(entry.data.columns) <= 1:
+            return (
+                f"Entry '{entry.label}' is scalar (1 column). "
+                "Spectrograms require 2D data (time x bins). "
+                "Use panel_types to set this panel to 'line'."
+            )
+    return None
+
+
+def _resolve_column_sublabel_static(
+    label: str, entry_map: dict[str, DataEntry],
+) -> DataEntry | None:
+    """Try to resolve 'PARENT.column' by selecting a column from a parent entry."""
+    parts = label.split(".")
+    for i in range(len(parts) - 1, 0, -1):
+        parent_label = ".".join(parts[:i])
+        col_name = ".".join(parts[i:])
+        parent = entry_map.get(parent_label)
+        if parent is not None and not parent.is_xarray and col_name in parent.data.columns:
+            return DataEntry(
+                label=label,
+                data=parent.data[[col_name]],
+                units=parent.units,
+                description=(
+                    f"{parent.description} [{col_name}]"
+                    if parent.description else col_name
+                ),
+                source=parent.source,
+                metadata=parent.metadata,
+            )
+    return None
+
+
+def build_figure_from_spec(
+    spec: dict,
+    entries: list[DataEntry],
+    color_state: ColorState | None = None,
+    time_range: str | None = None,
+) -> RenderResult | dict:
+    """Build a fresh go.Figure from an operation-based spec.
+
+    This is the main stateless entry point for the rendering pipeline.
+    It reads ``_meta`` to create the subplot grid and traces, then applies
+    each operation in ``spec["operations"]`` via the operation registry.
+
+    The spec can contain either:
+    - The new operation-based format: ``_meta`` + ``operations``
+    - The legacy flat format (labels, panels, title, etc.)
+
+    Args:
+        spec: Plot specification dict.
+        entries: DataEntry objects referenced by the spec labels.
+        color_state: Optional ColorState for stable cross-render coloring.
+        time_range: Optional time range string to apply to x-axis.
+
+    Returns:
+        RenderResult on success, or a dict with status='error' on failure.
+    """
+    if not entries:
+        return {"status": "error", "message": "No entries to plot"}
+
+    for entry in entries:
+        if len(entry.time) == 0:
+            return {"status": "error",
+                    "message": f"Entry '{entry.label}' has no data points"}
+
+    if color_state is None:
+        color_state = ColorState()
+
+    # Determine if this is the new operation-based format or legacy
+    meta = spec.get("_meta", {})
+    operations = spec.get("operations", [])
+
+    if meta:
+        # New format: _meta + operations
+        return _build_from_meta(meta, operations, entries, color_state, time_range)
+    else:
+        # Legacy format: flat spec with labels, panels, etc.
+        return _build_from_legacy(spec, entries, color_state, time_range)
+
+
+def _build_from_meta(
+    meta: dict,
+    operations: list[dict],
+    entries: list[DataEntry],
+    color_state: ColorState,
+    time_range: str | None,
+) -> RenderResult | dict:
+    """Build figure from _meta + operations format."""
+    panels = meta.get("panels")
+    panel_types = meta.get("panel_types")
+    columns = max(meta.get("columns", 1), 1)
+
+    # Build entry map
+    entry_map: dict[str, DataEntry] = {}
+    for entry in entries:
+        entry_map[entry.label] = entry
+
+    # Determine panel layout
+    if panels:
+        n_panels = len(panels)
+    else:
+        n_panels = 1
+        panels = None
+
+    # Resolve effective per-panel types
+    default_type = "line"
+    if panel_types is not None and panels is not None:
+        if len(panel_types) != len(panels):
+            return {"status": "error",
+                    "message": f"panel_types length ({len(panel_types)}) "
+                               f"must match panels length ({len(panels)})"}
+        effective_types = list(panel_types)
+    else:
+        effective_types = [default_type] * n_panels
+
+    # Create subplot grid
+    subplot_kwargs: dict = dict(
+        rows=max(n_panels, 1), cols=columns, shared_xaxes=True,
+        vertical_spacing=0.06,
+    )
+    if columns > 1:
+        subplot_kwargs["horizontal_spacing"] = 0.08
+    fig = make_subplots(**subplot_kwargs)
+    width = _DEFAULT_WIDTH if columns == 1 else int(_DEFAULT_WIDTH * columns * 0.55)
+    fig.update_layout(
+        **_DEFAULT_LAYOUT,
+        width=width,
+        height=_PANEL_HEIGHT * max(n_panels, 1),
+        legend=dict(font=dict(size=11), tracegroupgap=2),
+    )
+
+    trace_labels: list[str] = []
+    trace_panels: list[tuple[int, int]] = []
+    all_trace_labels: list[str] = []
+
+    spectro_kwargs = {}  # can extend later from meta
+
+    if panels is not None:
+        for panel_idx, panel_labels in enumerate(panels):
+            row = panel_idx + 1
+            ptype = effective_types[panel_idx]
+            panel_entries = []
+            for lbl in panel_labels:
+                e = entry_map.get(lbl)
+                if e is None:
+                    e = _resolve_column_sublabel_static(lbl, entry_map)
+                if e is None:
+                    return {"status": "error",
+                            "message": f"Label '{lbl}' not found in provided entries"}
+                panel_entries.append(e)
+
+            if columns > 1:
+                n_entries = len(panel_entries)
+                per_col = max(1, (n_entries + columns - 1) // columns)
+                for col_idx in range(columns):
+                    start = col_idx * per_col
+                    end = min(start + per_col, n_entries)
+                    col_entries = panel_entries[start:end]
+                    if not col_entries:
+                        continue
+                    c = col_idx + 1
+                    result = _dispatch_traces_static(
+                        col_entries, row, fig, ptype, color_state,
+                        trace_labels, trace_panels, col=c, **spectro_kwargs,
+                    )
+                    if isinstance(result, dict):
+                        return result
+                    all_trace_labels.extend(result)
+            else:
+                result = _dispatch_traces_static(
+                    panel_entries, row, fig, ptype, color_state,
+                    trace_labels, trace_panels, **spectro_kwargs,
+                )
+                if isinstance(result, dict):
+                    return result
+                all_trace_labels.extend(result)
+    else:
+        ptype = effective_types[0]
+        if columns > 1:
+            n_entries = len(entries)
+            per_col = max(1, (n_entries + columns - 1) // columns)
+            for col_idx in range(columns):
+                start = col_idx * per_col
+                end = min(start + per_col, n_entries)
+                col_entries = entries[start:end]
+                if not col_entries:
+                    continue
+                c = col_idx + 1
+                result = _dispatch_traces_static(
+                    col_entries, 1, fig, ptype, color_state,
+                    trace_labels, trace_panels, col=c, **spectro_kwargs,
+                )
+                if isinstance(result, dict):
+                    return result
+                all_trace_labels.extend(result)
+        else:
+            result = _dispatch_traces_static(
+                entries, 1, fig, ptype, color_state,
+                trace_labels, trace_panels, **spectro_kwargs,
+            )
+            if isinstance(result, dict):
+                return result
+            all_trace_labels.extend(result)
+
+    fig.update_xaxes(type="date")
+
+    if time_range:
+        # Parse simple "start to end" format
+        parts = time_range.split(" to ")
+        if len(parts) == 2:
+            fig.update_xaxes(range=[parts[0].strip(), parts[1].strip()])
+
+    # Apply operations
+    if operations:
+        from rendering.operations import get_default_registry
+        registry = get_default_registry()
+        trace_label_map = {label: i for i, label in enumerate(trace_labels)}
+        for op_dict in operations:
+            registry.resolve(op_dict, fig, trace_label_map)
+
+    return RenderResult(
+        figure=fig,
+        color_state=color_state,
+        trace_labels=trace_labels,
+        trace_panels=trace_panels,
+        panel_count=max(n_panels, 1),
+        column_count=columns,
+    )
+
+
+def _build_from_legacy(
+    spec: dict,
+    entries: list[DataEntry],
+    color_state: ColorState,
+    time_range: str | None,
+) -> RenderResult | dict:
+    """Build figure from the legacy flat spec format (for backward compat).
+
+    Converts the flat spec into _meta + operations and delegates.
+    """
+    # Build _meta from flat spec
+    meta: dict = {}
+    if "panels" in spec:
+        meta["panels"] = spec["panels"]
+    if "panel_types" in spec:
+        meta["panel_types"] = spec["panel_types"]
+    if "columns" in spec:
+        meta["columns"] = spec["columns"]
+
+    # Build operations from style fields
+    operations: list[dict] = []
+
+    if spec.get("title"):
+        operations.append({"op": "set_title", "text": spec["title"]})
+    if spec.get("x_label"):
+        operations.append({"op": "set_x_label", "text": spec["x_label"]})
+    if spec.get("y_label"):
+        y_label = spec["y_label"]
+        if isinstance(y_label, dict):
+            for panel_str, label_text in y_label.items():
+                operations.append({
+                    "op": "set_y_label",
+                    "panel": int(panel_str),
+                    "text": str(label_text),
+                })
+        else:
+            operations.append({"op": "set_y_label", "panel": 1, "text": str(y_label)})
+    if spec.get("theme"):
+        operations.append({"op": "set_theme", "theme": spec["theme"]})
+    if spec.get("font_size"):
+        operations.append({"op": "set_font_size", "size": spec["font_size"]})
+    if spec.get("canvas_size"):
+        cs = spec["canvas_size"]
+        operations.append({
+            "op": "set_canvas_size",
+            "width": cs.get("width", _DEFAULT_WIDTH),
+            "height": cs.get("height", _PANEL_HEIGHT),
+        })
+    if "legend" in spec:
+        operations.append({"op": "set_legend", "show": spec["legend"]})
+    if spec.get("x_range"):
+        operations.append({"op": "set_x_range", "range": spec["x_range"]})
+    if spec.get("y_range"):
+        y_range = spec["y_range"]
+        if isinstance(y_range, dict):
+            for panel_str, rng in y_range.items():
+                operations.append({
+                    "op": "set_y_range",
+                    "panel": int(panel_str),
+                    "range": rng,
+                })
+        elif isinstance(y_range, list) and len(y_range) == 2:
+            operations.append({"op": "set_y_range", "panel": 1, "range": y_range})
+    if spec.get("log_scale"):
+        log_scale = spec["log_scale"]
+        if isinstance(log_scale, dict):
+            for panel_str, scale_type in log_scale.items():
+                operations.append({
+                    "op": "set_y_scale",
+                    "panel": int(panel_str),
+                    "scale": scale_type,
+                })
+        elif log_scale == "y":
+            operations.append({"op": "set_y_scale", "panel": 1, "scale": "log"})
+        elif log_scale == "linear":
+            operations.append({"op": "set_y_scale", "panel": 1, "scale": "linear"})
+    if spec.get("trace_colors"):
+        for trace_label, color in spec["trace_colors"].items():
+            operations.append({
+                "op": "set_trace_color",
+                "trace": trace_label,
+                "color": color,
+            })
+    if spec.get("line_styles"):
+        for trace_label, style_dict in spec["line_styles"].items():
+            op = {"op": "set_line_style", "trace": trace_label}
+            if "width" in style_dict:
+                op["width"] = style_dict["width"]
+            if "dash" in style_dict:
+                op["dash"] = style_dict["dash"]
+            operations.append(op)
+    if spec.get("vlines"):
+        for vl in spec["vlines"]:
+            if vl.get("x") is not None:
+                operations.append({
+                    "op": "add_vline",
+                    "x": vl["x"],
+                    "color": vl.get("color", "red"),
+                    "width": vl.get("width", 1.5),
+                    "dash": vl.get("dash", "solid"),
+                    "label": vl.get("label", ""),
+                })
+    if spec.get("vrects"):
+        for vr in spec["vrects"]:
+            if vr.get("x0") is not None and vr.get("x1") is not None:
+                operations.append({
+                    "op": "add_vrect",
+                    "x0": vr["x0"],
+                    "x1": vr["x1"],
+                    "color": vr.get("color", "rgba(135,206,250,0.3)"),
+                    "opacity": vr.get("opacity", 0.3),
+                    "label": vr.get("label", ""),
+                })
+    if spec.get("annotations"):
+        for ann in spec["annotations"]:
+            operations.append({
+                "op": "add_annotation",
+                "text": ann.get("text", ""),
+                "x": ann.get("x"),
+                "y": ann.get("y"),
+                "showarrow": ann.get("showarrow", True),
+            })
+
+    # Carry over spectrogram params into meta if present
+    # (for legacy specs that use plot_type="spectrogram")
+    if spec.get("plot_type"):
+        # Not an operation — handle via panel_types
+        if not meta.get("panel_types"):
+            n_panels = len(meta["panels"]) if "panels" in meta else 1
+            meta["panel_types"] = [spec["plot_type"]] * n_panels
+
+    effective_time_range = time_range or spec.get("time_range")
+
+    return _build_from_meta(meta, operations, entries, color_state, effective_time_range)
+
+
+def _dispatch_traces_static(
+    entries: list[DataEntry],
+    row: int,
+    fig: go.Figure,
+    panel_type: str,
+    color_state: ColorState,
+    trace_labels: list[str],
+    trace_panels: list[tuple[int, int]],
+    col: int = 1,
+    **spectro_kwargs,
+) -> list[str] | dict:
+    """Add traces for a panel — stateless version of _dispatch_panel_traces."""
+    if panel_type == "spectrogram":
+        labels: list[str] = []
+        for e in entries:
+            err = _validate_spectrogram_entry_static(e)
+            if err is not None:
+                return {"status": "error", "message": err}
+            label = _add_spectrogram_trace_static(
+                e, row, fig, trace_labels, trace_panels,
+                col=col, **spectro_kwargs,
+            )
+            labels.append(label)
+        return labels
+    else:
+        return _add_line_traces_static(
+            entries, row, fig, color_state, trace_labels, trace_panels, col=col,
+        )
 
 
 def _wrap_display_name(name: str, max_line: int = _LEGEND_MAX_LINE) -> str:
@@ -1339,16 +1980,13 @@ class PlotlyRenderer:
     def render_from_spec(self, spec: dict, entries: list[DataEntry]) -> dict:
         """Create a complete plot from a unified spec dict.
 
-        The spec merges all plot_data layout fields and style_plot aesthetic
-        fields into a single JSON object.  Same spec = same plot, always.
+        Supports two spec formats:
+        1. **Operation-based** (new): ``_meta`` + ``operations`` list
+        2. **Legacy flat**: labels, panels, title, y_label, etc.
 
-        Spec fields (all optional except ``labels``):
-          From plot_data: labels, panels, panel_types, title, plot_type,
-                          colorscale, log_y, log_z, z_min, z_max, columns,
-                          column_titles
-          From style_plot: x_label, y_label, trace_colors, line_styles,
-                           log_scale, x_range, y_range, legend, font_size,
-                           canvas_size, annotations, theme, vlines, vrects
+        Both formats are routed through ``build_figure_from_spec()``, which
+        builds a fresh figure each time. The result is copied into this
+        renderer's stateful fields (bridge code for backward compat).
 
         Args:
             spec: Unified plot specification dict.
@@ -1358,40 +1996,39 @@ class PlotlyRenderer:
             Result dict with status, panels, traces, display — same shape
             as plot_data().
         """
-        # --- Step 1: create the figure via plot_data() ---
-        plot_kwargs: dict = {}
-        for key in (
-            "panels", "panel_types", "title", "plot_type",
-            "colorscale", "log_y", "log_z", "z_min", "z_max",
-            "columns", "column_titles",
-        ):
-            if key in spec:
-                plot_kwargs[key] = spec[key]
+        # Build a ColorState from our current label_colors
+        cs = ColorState(
+            label_colors=dict(self._label_colors),
+            color_index=self._color_index,
+        )
 
-        result = self.plot_data(entries=entries, **plot_kwargs)
-        if result.get("status") == "error":
-            return result
+        tr_str = (self._current_time_range.to_time_range_string()
+                  if self._current_time_range else None)
 
-        # --- Step 2: apply styling via style() ---
-        style_kwargs: dict = {}
-        for key in (
-            "title", "x_label", "y_label", "trace_colors", "line_styles",
-            "log_scale", "x_range", "y_range", "legend", "font_size",
-            "canvas_size", "annotations", "colorscale", "theme",
-            "vlines", "vrects",
-        ):
-            if key in spec:
-                style_kwargs[key] = spec[key]
+        build_result = build_figure_from_spec(spec, entries, color_state=cs,
+                                              time_range=tr_str)
 
-        if style_kwargs:
-            style_result = self.style(**style_kwargs)
-            # Merge warnings from style into the plot result
-            if style_result.get("warnings"):
-                result.setdefault("warnings", []).extend(style_result["warnings"])
+        if isinstance(build_result, dict):
+            return build_result  # error dict
 
-        # Store the full spec for spec-based diffing
+        # Copy stateless result into our stateful fields (bridge)
+        self._figure = build_result.figure
+        self._panel_count = build_result.panel_count
+        self._column_count = build_result.column_count
+        self._trace_labels = build_result.trace_labels
+        self._trace_panels = build_result.trace_panels
+        self._label_colors = build_result.color_state.label_colors
+        self._color_index = build_result.color_state.color_index
         self._current_plot_spec = dict(spec)
 
+        result = {
+            "status": "success",
+            "panels": build_result.panel_count,
+            "columns": build_result.column_count,
+            "traces": list(build_result.trace_labels),
+            "display": "plotly",
+        }
+        result["review"] = self._build_review_metadata()
         return result
 
     # ------------------------------------------------------------------
