@@ -37,7 +37,7 @@ from .logging import (
 from .memory_agent import MemoryAgent
 from .loop_guard import LoopGuard, make_call_key
 from .model_fallback import activate_fallback, get_active_model, is_quota_error
-from .base_agent import _GEMINI_WARN_INTERVAL, _GEMINI_RETRY_TIMEOUT, _GEMINI_MAX_RETRIES
+from .base_agent import _LLM_WARN_INTERVAL, _LLM_RETRY_TIMEOUT, _LLM_MAX_RETRIES
 from rendering.registry import get_method
 from rendering.plotly_renderer import PlotlyRenderer
 from knowledge.catalog import search_by_keywords
@@ -322,12 +322,12 @@ class OrchestratorAgent:
     def _send_with_timeout(self, chat, message) -> LLMResponse:
         """Send a message to the LLM with periodic warnings and retry on timeout.
 
-        - Warns every _GEMINI_WARN_INTERVAL seconds while waiting (10s, 20s, ...).
-        - After _GEMINI_RETRY_TIMEOUT seconds, abandons the call and retries.
-        - Retries up to _GEMINI_MAX_RETRIES times before raising.
+        - Warns every _LLM_WARN_INTERVAL seconds while waiting (10s, 20s, ...).
+        - After _LLM_RETRY_TIMEOUT seconds, abandons the call and retries.
+        - Retries up to _LLM_MAX_RETRIES times before raising.
         """
         last_exc = None
-        for attempt in range(1 + _GEMINI_MAX_RETRIES):
+        for attempt in range(1 + _LLM_MAX_RETRIES):
             future: Future = self._timeout_pool.submit(
                 chat.send, message
             )
@@ -335,34 +335,34 @@ class OrchestratorAgent:
             try:
                 while True:
                     elapsed = time.monotonic() - t0
-                    remaining = _GEMINI_RETRY_TIMEOUT - elapsed
+                    remaining = _LLM_RETRY_TIMEOUT - elapsed
                     if remaining <= 0:
                         break
-                    wait = min(_GEMINI_WARN_INTERVAL, remaining)
+                    wait = min(_LLM_WARN_INTERVAL, remaining)
                     try:
                         return future.result(timeout=wait)
                     except TimeoutError:
                         elapsed = time.monotonic() - t0
-                        if elapsed >= _GEMINI_RETRY_TIMEOUT:
+                        if elapsed >= _LLM_RETRY_TIMEOUT:
                             break
                         self.logger.warning(
-                            f"[Orchestrator] Gemini API not responding "
+                            f"[Orchestrator] LLM API not responding "
                             f"after {elapsed:.0f}s (attempt {attempt + 1})..."
                         )
 
                 elapsed = time.monotonic() - t0
                 future.cancel()
                 last_exc = TimeoutError(
-                    f"Gemini API call timed out after {elapsed:.0f}s"
+                    f"LLM API call timed out after {elapsed:.0f}s"
                 )
-                if attempt < _GEMINI_MAX_RETRIES:
+                if attempt < _LLM_MAX_RETRIES:
                     self.logger.warning(
-                        f"[Orchestrator] Gemini API timed out after "
-                        f"{elapsed:.0f}s, retrying ({attempt + 1}/{_GEMINI_MAX_RETRIES})..."
+                        f"[Orchestrator] LLM API timed out after "
+                        f"{elapsed:.0f}s, retrying ({attempt + 1}/{_LLM_MAX_RETRIES})..."
                     )
                 else:
                     self.logger.error(
-                        f"[Orchestrator] Gemini API timed out after "
+                        f"[Orchestrator] LLM API timed out after "
                         f"{elapsed:.0f}s, no retries left"
                     )
             except Exception:
