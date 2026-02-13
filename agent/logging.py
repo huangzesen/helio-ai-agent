@@ -45,6 +45,7 @@ GRADIO_VISIBLE_TAGS = frozenset({
     "delegation_done",  # "[Router] X specialist finished"
     "plan_event",       # Plan created / completed / failed
     "plan_task",        # Plan task executing / round progress
+    "progress",         # Milestone updates during planning/discovery
     "data_fetched",     # "[DataOps] Stored 'label' (N points)"
     "thinking",         # "[Thinking] ..." (truncated preview)
     "error",            # log_error() — real errors with context/stack traces

@@ -2147,6 +2147,15 @@ class OrchestratorAgent:
                         all_candidates_invalid = True
                 new_tasks.append(task)
 
+            # Log validation summary (round 1 is the long one)
+            if round_num == 1:
+                valid_count = sum(1 for t in new_tasks if t.candidate_datasets)
+                total = len(new_tasks)
+                self.logger.debug(
+                    f"[Planning] Validated datasets for {valid_count}/{total} tasks",
+                    extra=tagged("progress"),
+                )
+
             # If any task has all-invalid candidates, re-prompt the planner
             if all_candidates_invalid:
                 invalid_ids = []
@@ -2186,6 +2195,10 @@ class OrchestratorAgent:
                 extra=tagged("plan_task"),
             )
             self.logger.debug(format_plan_for_display(plan), extra=tagged("plan_task"))
+            self.logger.debug(
+                f"[Plan] Executing {len(new_tasks)} task(s) (round {round_num})...",
+                extra=tagged("progress"),
+            )
 
             # Execute batch — partition into parallelizable fetch tasks and serial tasks
             special_missions = {"__visualization__", "__data_ops__", "__data_extraction__"}

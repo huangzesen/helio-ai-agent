@@ -14,7 +14,7 @@ from concurrent.futures import Future, ThreadPoolExecutor
 from typing import Optional
 
 from .llm import LLMAdapter, LLMResponse, FunctionSchema
-from .logging import get_logger, log_token_usage
+from .logging import get_logger, log_token_usage, tagged
 from .model_fallback import get_active_model
 from .base_agent import _LLM_WARN_INTERVAL, _LLM_RETRY_TIMEOUT, _LLM_MAX_RETRIES
 from .tasks import Task, TaskPlan, create_task, create_plan
@@ -289,8 +289,7 @@ class PlannerAgent:
             thinking="low",
         )
 
-        if self.verbose:
-            logger.debug(f"[PlannerAgent] Discovery phase for: {user_request}")
+        logger.debug("[Discovery] Researching datasets...", extra=tagged("progress"))
 
         self._last_tool_context = "discovery_initial"
         response = self._send_with_timeout(chat, user_request)
@@ -315,6 +314,8 @@ class PlannerAgent:
         text = extract_text_from_response(response)
         if self.verbose and text:
             logger.debug(f"[PlannerAgent] Discovery result: {text}")
+
+        logger.debug("[Discovery] Research complete", extra=tagged("progress"))
 
         # Build a structured parameter reference from raw list_parameters results
         param_ref = self._build_parameter_reference(tool_results)
@@ -494,8 +495,7 @@ class PlannerAgent:
             else:
                 planning_message = user_request
 
-            if self.verbose:
-                logger.debug(f"[PlannerAgent] Starting planning for: {user_request}")
+            logger.debug("[Planning] Decomposing request into tasks...", extra=tagged("progress"))
 
             self._last_tool_context = "planning_initial"
             response = self._send_with_timeout(self._chat, planning_message)
