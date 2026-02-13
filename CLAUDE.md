@@ -15,7 +15,7 @@ The system has four layers:
 1. **Agent layer** (`agent/`) — LLM with function calling (default: Gemini, via `agent/llm/` adapter layer). Five agent types:
    - `core.py` **OrchestratorAgent** — routes to sub-agents, handles data ops directly. Tools defined in `tools.py` (35 tool schemas). Includes pipeline tools for saving/replaying data workflows.
    - `mission_agent.py` **MissionAgent** — per-spacecraft data specialists (discovery + data_ops tools only).
-   - `visualization_agent.py` **VisualizationAgent** — visualization specialist using `update_plot_spec` (single unified spec tool) + `manage_plot`. The spec-based workflow diffs layout vs style fields to decide re-render or restyle.
+   - `visualization_agent.py` **VisualizationAgent** — visualization specialist using `update_plot_spec` (single unified spec tool) + `list_fetched_data`. The spec-based workflow diffs layout vs style fields to decide re-render or restyle. `manage_plot` is orchestrator-only.
    - `agent/llm/` — LLM abstraction layer. `base.py` defines abstract types (`LLMAdapter`, `ChatSession`, `LLMResponse`, `ToolCall`, `FunctionSchema`). Three adapters: `gemini_adapter.py` (Google Gemini), `openai_adapter.py` (OpenAI-compatible), `anthropic_adapter.py` (Anthropic Claude). Only the active adapter's SDK is imported.
 
 2. **Rendering** (`rendering/`) — Pure-Python Plotly renderer (`plotly_renderer.py`) and tool registry (`registry.py`). The `PlotlyRenderer` class provides interactive Plotly figures with vector decomposition, multi-panel subplots, WebGL for large datasets, and PNG/PDF export via kaleido. Tracks current plot spec for spec-based diffing. The `registry.py` describes 4 visualization tools (`plot_data`, `style_plot`, `update_plot_spec`, `manage_plot`).

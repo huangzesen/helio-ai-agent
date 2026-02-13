@@ -3,15 +3,15 @@ Visualization sub-agent with optional think phase.
 
 For plot-creation requests, runs a think phase to inspect data (shapes,
 types, units, NaN counts) before constructing update_plot_spec calls.
-Style and manage requests skip the think phase to avoid wasting tokens.
+Style requests skip the think phase to avoid wasting tokens.
 
 Owns visualization through two tools:
 - update_plot_spec — create/update plots via a single unified JSON spec
   (replaces the old plot_data + style_plot two-step workflow)
-- manage_plot — structural ops (reset, zoom, add/remove traces)
+- list_fetched_data — discover available data in memory
 
-The orchestrator delegates visualization requests here, keeping data
-operations in mission agents.
+manage_plot remains available to the orchestrator for export/reset but is
+not exposed to the viz agent — its actions overlap with the spec.
 """
 
 import re
@@ -29,12 +29,12 @@ from knowledge.prompt_builder import (
 )
 
 # Visualization agent gets its own tool category + list_fetched_data from data_ops
-# Only update_plot_spec and manage_plot are exposed; plot_data and style_plot are
-# internal primitives used by other agents and the pipeline system.
+# Only update_plot_spec is exposed; plot_data, style_plot, and manage_plot are
+# excluded (internal primitives / orchestrator-only).
 VIZ_TOOL_CATEGORIES = ["visualization"]
 VIZ_EXTRA_TOOLS = ["list_fetched_data"]
-# Tools to exclude from the viz agent (internal primitives)
-_VIZ_EXCLUDED_TOOLS = {"plot_data", "style_plot"}
+# Tools to exclude from the viz agent
+_VIZ_EXCLUDED_TOOLS = {"plot_data", "style_plot", "manage_plot"}
 
 # Think phase: data inspection only (no viz tools)
 VIZ_THINK_EXTRA_TOOLS = ["list_fetched_data", "describe_data", "preview_data"]
@@ -69,8 +69,8 @@ def _extract_labels_from_instruction(instruction: str) -> list[str]:
 class VisualizationAgent(BaseSubAgent):
     """An LLM session specialized for visualization.
 
-    Uses three declarative tools (plot_data, style_plot, manage_plot)
-    plus list_fetched_data to discover available data.
+    Uses two tools: update_plot_spec (create/update plots via unified spec)
+    and list_fetched_data (discover available data).
 
     For plot-creation requests via process_request(), runs an optional
     think phase to inspect data before the execute phase.
@@ -240,11 +240,9 @@ class VisualizationAgent(BaseSubAgent):
             f"Your FIRST call must be: "
             f"update_plot_spec(spec={{\"labels\": \"{labels_str}\"}})\n\n"
             "RULES:\n"
-            "- Do NOT call manage_plot(action='reset'), manage_plot(action='get_state'), or manage_plot(action='export').\n"
             "- Call update_plot_spec with the labels shown above.\n"
             "- After plotting, inspect review.sizing_recommendation and update the spec\n"
             "  with canvas_size if it differs from review.figure_size.\n"
-            "- Do NOT call manage_plot(action='set_time_range') unless the review shows a wrong time range.\n"
             "- Do NOT export the plot — exporting is handled by the orchestrator."
             + pitfall_section
         )

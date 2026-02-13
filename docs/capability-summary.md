@@ -41,7 +41,7 @@ agent/core.py  OrchestratorAgent  (LLM-driven orchestrator)
   +---> agent/visualization_agent.py  Visualization sub-agent (spec-based workflow)
   |       VisualizationAgent         Focused Gemini session for all visualization
   |       update_plot_spec()         Create/update plots via single unified JSON spec
-  |       manage_plot()              Structural ops: export, reset, zoom, add/remove traces
+  |       list_fetched_data()        Discover available data in memory
   |       process_request()          Full conversational mode (max 5 iter, duplicate detection)
   |       execute_task()             Forced function calling for plan tasks (max 3 iter)
   |                                  System prompt with spec field reference and examples
@@ -249,13 +249,13 @@ The LLM inspects this metadata within the existing tool loop and can self-correc
 - No fetch, compute, or plot tools — creates data from text only
 
 ### VisualizationAgent (agent/visualization_agent.py)
-- Sees tools: `update_plot_spec` + `manage_plot` + `list_fetched_data` (3 tools total)
+- Sees tools: `update_plot_spec` + `list_fetched_data` (2 tools total)
 - `update_plot_spec`: Single tool for creating and modifying plots via a unified JSON spec
   - Layout changes (labels, panels, panel_types, etc.) trigger full re-render via `render_from_spec()`
   - Style-only changes (title, colors, font, etc.) are applied in-place via `style()`
   - Orchestrator injects current spec into viz agent context for diffing
-- `manage_plot`: Structural ops (export, reset, zoom, add/remove traces)
-- `plot_data` and `style_plot` are excluded from the viz agent (internal primitives for pipeline/other agents)
+- `plot_data`, `style_plot`, and `manage_plot` are excluded from the viz agent (internal primitives / orchestrator-only)
+- `manage_plot` remains available to the orchestrator for export/reset
 
 ## Supported Spacecraft
 
@@ -316,8 +316,8 @@ All times are UTC. Outputs `TimeRange` objects with `start`/`end` datetimes.
 - **Mission sub-agents**: Each spacecraft has a data fetching specialist with rich system prompt (recommended datasets, analysis patterns). Agents are cached per session. Sub-agents have **fetch-only tools** (discovery, data_ops_fetch, conversation) — no compute, plot, or routing tools.
 - **DataOps sub-agent**: Data transformation specialist with `custom_operation`, `describe_data`, `save_data` + `list_fetched_data`. System prompt includes computation patterns and code guidelines. Singleton, cached per session.
 - **DataExtraction sub-agent**: Text-to-DataFrame specialist with `store_dataframe`, `read_document`, `ask_clarification` + `list_fetched_data`. System prompt includes extraction patterns and DataFrame creation guidelines. Singleton, cached per session.
-- **Visualization sub-agent**: Visualization specialist with `update_plot_spec` + `manage_plot` + `list_fetched_data` tools (`plot_data` and `style_plot` filtered out). Uses spec-based workflow: the orchestrator injects the current plot spec into the context, and the viz agent emits a complete desired spec via `update_plot_spec`. The handler diffs layout vs style fields to decide re-render or restyle.
-- **Tool separation**: Tools have a `category` field (`discovery`, `visualization`, `data_ops`, `data_ops_fetch`, `data_ops_compute`, `data_extraction`, `function_docs`, `conversation`, `routing`, `document`). `get_tool_schemas(categories=..., extra_names=...)` filters tools by category. Orchestrator sees `["discovery", "conversation", "routing", "document"]` + `list_fetched_data` extra. MissionAgent sees `["discovery", "data_ops_fetch", "conversation"]` + `list_fetched_data` extra. DataOpsAgent sees `["data_ops_compute", "conversation"]` + `list_fetched_data`, `search_function_docs`, `get_function_docs` extras. DataExtractionAgent sees `["data_extraction", "document", "conversation"]` + `list_fetched_data` extra. VisualizationAgent sees `["visualization"]` minus `plot_data`/`style_plot` → `update_plot_spec` + `manage_plot` + `list_fetched_data`.
+- **Visualization sub-agent**: Visualization specialist with `update_plot_spec` + `list_fetched_data` tools (`plot_data`, `style_plot`, and `manage_plot` filtered out). Uses spec-based workflow: the orchestrator injects the current plot spec into the context, and the viz agent emits a complete desired spec via `update_plot_spec`. The handler diffs layout vs style fields to decide re-render or restyle. `manage_plot` remains available to the orchestrator for export/reset.
+- **Tool separation**: Tools have a `category` field (`discovery`, `visualization`, `data_ops`, `data_ops_fetch`, `data_ops_compute`, `data_extraction`, `function_docs`, `conversation`, `routing`, `document`). `get_tool_schemas(categories=..., extra_names=...)` filters tools by category. Orchestrator sees `["discovery", "conversation", "routing", "document"]` + `list_fetched_data` extra. MissionAgent sees `["discovery", "data_ops_fetch", "conversation"]` + `list_fetched_data` extra. DataOpsAgent sees `["data_ops_compute", "conversation"]` + `list_fetched_data`, `search_function_docs`, `get_function_docs` extras. DataExtractionAgent sees `["data_extraction", "document", "conversation"]` + `list_fetched_data` extra. VisualizationAgent sees `["visualization"]` minus `plot_data`/`style_plot`/`manage_plot` → `update_plot_spec` + `list_fetched_data`.
 - **Post-delegation flow**: After `delegate_to_mission` returns data labels, the orchestrator uses `delegate_to_data_ops` for computation, `delegate_to_data_extraction` for text-to-DataFrame conversion, and then `delegate_to_visualization` to visualize results.
 - **Slim orchestrator**: System prompt contains a routing table (mission names + capabilities) plus delegation instructions. No dataset IDs or analysis tips — those live in mission sub-agents.
 
