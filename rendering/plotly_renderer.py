@@ -272,6 +272,53 @@ class PlotlyRenderer:
     # Internal helpers (used by plot_data)
     # ------------------------------------------------------------------
 
+    @staticmethod
+    def _validate_spectrogram_entry(entry: DataEntry) -> str | None:
+        """Return error message if entry is unsuitable for spectrogram, else None."""
+        if entry.is_xarray:
+            non_time_dims = [d for d in entry.data.dims if d != "time"]
+            if not non_time_dims:
+                return (
+                    f"Entry '{entry.label}' is scalar (no non-time dimensions). "
+                    "Spectrograms require 2D data (time x bins). "
+                    "Use panel_types to set this panel to 'line'."
+                )
+        else:
+            if len(entry.data.columns) <= 1:
+                return (
+                    f"Entry '{entry.label}' is scalar (1 column). "
+                    "Spectrograms require 2D data (time x bins). "
+                    "Use panel_types to set this panel to 'line'."
+                )
+        return None
+
+    def _dispatch_panel_traces(
+        self,
+        entries: list[DataEntry],
+        row: int,
+        fig: go.Figure,
+        panel_type: str,
+        col: int = 1,
+        **spectro_kwargs,
+    ) -> list[str] | dict:
+        """Add traces for a single panel cell, dispatching by panel_type.
+
+        Returns list of trace labels on success, or an error dict.
+        """
+        if panel_type == "spectrogram":
+            labels: list[str] = []
+            for e in entries:
+                err = self._validate_spectrogram_entry(e)
+                if err is not None:
+                    return {"status": "error", "message": err}
+                label = self._add_spectrogram_trace(
+                    e, row, fig, col=col, **spectro_kwargs,
+                )
+                labels.append(label)
+            return labels
+        else:
+            return self._add_line_traces(entries, row, fig, col=col)
+
     def _add_line_traces(
         self,
         entries: list[DataEntry],
@@ -449,6 +496,7 @@ class PlotlyRenderer:
         panels: list[list[str]] | None = None,
         title: str = "",
         plot_type: str = "line",
+        panel_types: list[str] | None = None,
         colorscale: str = "Viridis",
         log_y: bool = False,
         log_z: bool = False,
@@ -464,7 +512,10 @@ class PlotlyRenderer:
             panels: Panel layout, e.g. [["A","B"], ["C"]] for 2-panel.
                     None = overlay all in one panel.
             title: Plot title.
-            plot_type: "line" (default) or "spectrogram".
+            plot_type: Default plot type: "line" or "spectrogram".
+            panel_types: Per-panel plot type, parallel to panels array.
+                         E.g. ["spectrogram", "line", "line"]. Omit to use
+                         plot_type for all panels.
             colorscale: Plotly colorscale for spectrogram.
             log_y: Log scale on y-axis (spectrogram).
             log_z: Log scale on z-axis (spectrogram).
@@ -486,6 +537,22 @@ class PlotlyRenderer:
                         "message": f"Entry '{entry.label}' has no data points"}
 
         columns = max(columns, 1)
+
+        # Resolve effective per-panel types
+        if panel_types is not None and panels is not None:
+            if len(panel_types) != len(panels):
+                return {"status": "error",
+                        "message": f"panel_types length ({len(panel_types)}) "
+                                   f"must match panels length ({len(panels)})"}
+            effective_types = list(panel_types)
+        else:
+            n = len(panels) if panels is not None else 1
+            effective_types = [plot_type] * n
+
+        spectro_kwargs = dict(
+            colorscale=colorscale, log_y=log_y, log_z=log_z,
+            z_min=z_min, z_max=z_max,
+        )
 
         # Build label -> entry lookup
         entry_map: dict[str, DataEntry] = {}
@@ -510,6 +577,8 @@ class PlotlyRenderer:
 
             for panel_idx, panel_labels in enumerate(panels):
                 row = panel_idx + 1  # 1-based
+                ptype = effective_types[panel_idx]
+
                 # Resolve entries for this row
                 panel_entries = []
                 for lbl in panel_labels:
@@ -532,31 +601,24 @@ class PlotlyRenderer:
                         if not col_entries:
                             continue
                         c = col_idx + 1  # 1-based
-                        if plot_type == "spectrogram":
-                            for e in col_entries:
-                                label = self._add_spectrogram_trace(
-                                    e, row, fig, col=c,
-                                    colorscale=colorscale, log_y=log_y, log_z=log_z,
-                                    z_min=z_min, z_max=z_max,
-                                )
-                                all_trace_labels.append(label)
-                        else:
-                            added = self._add_line_traces(col_entries, row, fig, col=c)
-                            all_trace_labels.extend(added)
+                        result = self._dispatch_panel_traces(
+                            col_entries, row, fig, ptype, col=c,
+                            **spectro_kwargs,
+                        )
+                        if isinstance(result, dict):
+                            return result  # error
+                        all_trace_labels.extend(result)
                 else:
-                    if plot_type == "spectrogram":
-                        for e in panel_entries:
-                            label = self._add_spectrogram_trace(
-                                e, row, fig,
-                                colorscale=colorscale, log_y=log_y, log_z=log_z,
-                                z_min=z_min, z_max=z_max,
-                            )
-                            all_trace_labels.append(label)
-                    else:
-                        added = self._add_line_traces(panel_entries, row, fig)
-                        all_trace_labels.extend(added)
+                    result = self._dispatch_panel_traces(
+                        panel_entries, row, fig, ptype,
+                        **spectro_kwargs,
+                    )
+                    if isinstance(result, dict):
+                        return result  # error
+                    all_trace_labels.extend(result)
         else:
             # Overlay mode — all in row 1
+            ptype = effective_types[0]
             fig = self._ensure_figure(rows=1, cols=columns,
                                       column_titles=column_titles)
 
@@ -571,29 +633,21 @@ class PlotlyRenderer:
                     if not col_entries:
                         continue
                     c = col_idx + 1
-                    if plot_type == "spectrogram":
-                        for e in col_entries:
-                            label = self._add_spectrogram_trace(
-                                e, 1, fig, col=c,
-                                colorscale=colorscale, log_y=log_y, log_z=log_z,
-                                z_min=z_min, z_max=z_max,
-                            )
-                            all_trace_labels.append(label)
-                    else:
-                        added = self._add_line_traces(col_entries, 1, fig, col=c)
-                        all_trace_labels.extend(added)
+                    result = self._dispatch_panel_traces(
+                        col_entries, 1, fig, ptype, col=c,
+                        **spectro_kwargs,
+                    )
+                    if isinstance(result, dict):
+                        return result  # error
+                    all_trace_labels.extend(result)
             else:
-                if plot_type == "spectrogram":
-                    for e in entries:
-                        label = self._add_spectrogram_trace(
-                            e, 1, fig,
-                            colorscale=colorscale, log_y=log_y, log_z=log_z,
-                            z_min=z_min, z_max=z_max,
-                        )
-                        all_trace_labels.append(label)
-                else:
-                    added = self._add_line_traces(entries, 1, fig)
-                    all_trace_labels.extend(added)
+                result = self._dispatch_panel_traces(
+                    entries, 1, fig, ptype,
+                    **spectro_kwargs,
+                )
+                if isinstance(result, dict):
+                    return result  # error
+                all_trace_labels.extend(result)
 
         # Ensure the x-axis is rendered as formatted dates
         fig.update_xaxes(type="date")

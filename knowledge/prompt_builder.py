@@ -583,6 +583,10 @@ def build_visualization_prompt(gui_mode: bool = False) -> str:
         "- Overlay: `plot_data(labels=\"ACE_Bmag,PSP_Bmag\", title=\"Comparison\")`",
         "- Multi-panel: `plot_data(labels=\"Bmag,Density\", panels=[[\"Bmag\"], [\"Density\"]])`",
         "- Spectrogram: `plot_data(labels=\"ACE_Bmag_spectrogram\", plot_type=\"spectrogram\")`",
+        "- Mixed panels: `plot_data(labels=\"PAD,Br,Bmag\", panels=[[\"PAD\"],[\"Br\"],[\"Bmag\"]], panel_types=[\"spectrogram\",\"line\",\"line\"])`",
+        "",
+        "**Important:** When mixing spectrograms with line data, use `panel_types` to set each panel's type. "
+        "Do NOT use global `plot_type=\"spectrogram\"` when some panels contain scalar (1-column) data.",
         "",
         "## Grid Layout (Side-by-Side Comparison)",
         "",

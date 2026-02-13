@@ -279,6 +279,18 @@ class TestPlotSpectrogram:
         result = renderer.plot_data([entry], plot_type="spectrogram")
         assert result["status"] == "error"
 
+    def test_scalar_rejected_as_spectrogram(self):
+        """Scalar (1-column) entry with plot_type='spectrogram' returns error."""
+        renderer = PlotlyRenderer()
+        idx = pd.date_range("2024-01-01", periods=100, freq="min")
+        df = pd.DataFrame({"value": np.random.randn(100)}, index=idx)
+        entry = DataEntry(label="scalar_data", data=df, units="nT",
+                          description="Scalar timeseries")
+        result = renderer.plot_data([entry], plot_type="spectrogram")
+        assert result["status"] == "error"
+        assert "scalar" in result["message"].lower()
+        assert "panel_types" in result["message"]
+
 
 # ---------------------------------------------------------------------------
 # Registry tests

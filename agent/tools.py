@@ -550,6 +550,11 @@ For spectrograms, set plot_type="spectrogram".""",
                     "items": {"type": "array", "items": {"type": "string"}},
                     "description": "Panel layout as list of label lists, e.g. [['A','B'], ['C']] for 2 panels. Omit for single-panel overlay."
                 },
+                "panel_types": {
+                    "type": "array",
+                    "items": {"type": "string", "enum": ["line", "spectrogram"]},
+                    "description": "Per-panel plot type, parallel to panels array. E.g. ['spectrogram', 'line', 'line']. Omit to use plot_type for all panels."
+                },
                 "title": {
                     "type": "string",
                     "description": "Optional plot title"
@@ -557,7 +562,7 @@ For spectrograms, set plot_type="spectrogram".""",
                 "plot_type": {
                     "type": "string",
                     "enum": ["line", "spectrogram"],
-                    "description": "Plot type: 'line' (default) or 'spectrogram'"
+                    "description": "Default plot type for all panels: 'line' (default) or 'spectrogram'. Override per-panel with panel_types."
                 },
                 "colorscale": {
                     "type": "string",

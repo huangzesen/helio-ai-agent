@@ -739,6 +739,7 @@ class OrchestratorAgent:
                 panels=panels,
                 title=tool_args.get("title", ""),
                 plot_type=tool_args.get("plot_type", "line"),
+                panel_types=tool_args.get("panel_types"),
                 colorscale=tool_args.get("colorscale", "Viridis"),
                 log_y=tool_args.get("log_y", False),
                 log_z=tool_args.get("log_z", False),
@@ -1069,6 +1070,23 @@ class OrchestratorAgent:
                 )
             except Exception as e:
                 return {"status": "error", "message": str(e)}
+
+            # Large download needs user permission
+            if isinstance(result, dict) and result.get("status") == "confirmation_required":
+                return {
+                    "status": "clarification_needed",
+                    "question": result["message"],
+                    "options": [
+                        "Yes, proceed with the download",
+                        "No, try a shorter time range",
+                        "Other (please specify)",
+                    ],
+                    "context": (
+                        f"Dataset {result['dataset_id']}: {result['download_mb']} MB "
+                        f"across {result['n_files']} files to download "
+                        f"({result['n_cached']} already cached)."
+                    ),
+                }
 
             import xarray as xr
             fetched_data = result["data"]

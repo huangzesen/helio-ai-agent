@@ -662,3 +662,86 @@ class TestSerializationGrid:
         r2.restore_state(state)
         assert r2._column_count == 1
         assert r2._trace_panels == [(1, 1), (2, 1)]
+
+
+# ---------------------------------------------------------------------------
+# Per-panel plot types
+# ---------------------------------------------------------------------------
+
+def _make_spectrogram_entry(label: str, n_times: int = 50, n_bins: int = 20) -> DataEntry:
+    """Create a synthetic spectrogram DataEntry for testing."""
+    rng = pd.date_range("2024-01-01", periods=n_times, freq="10min")
+    bins = np.linspace(0.001, 0.5, n_bins)
+    data = np.random.rand(n_times, n_bins)
+    df = pd.DataFrame(data, index=rng, columns=[str(b) for b in bins])
+    return DataEntry(
+        label=label, data=df, units="nT",
+        description=f"{label} spectrogram",
+        metadata={"type": "spectrogram", "bin_label": "Frequency (Hz)",
+                  "value_label": "PSD", "bin_values": bins.tolist()},
+    )
+
+
+class TestPerPanelType:
+    def test_mixed_panel_types(self, renderer):
+        """Spectrogram panel 1, line panel 2 — correct trace types."""
+        spec = _make_spectrogram_entry("SPEC")
+        line = _make_entry("LINE", n=50)
+        result = renderer.plot_data(
+            [spec, line],
+            panels=[["SPEC"], ["LINE"]],
+            panel_types=["spectrogram", "line"],
+        )
+        assert result["status"] == "success"
+        assert result["panels"] == 2
+        fig = renderer.get_figure()
+        # First trace should be Heatmap, second should be Scatter
+        assert "heatmap" in fig.data[0].type.lower()
+        assert "scatter" in fig.data[1].type.lower()
+
+    def test_panel_types_length_mismatch(self, renderer):
+        """Wrong length panel_types returns error."""
+        spec = _make_spectrogram_entry("SPEC")
+        line = _make_entry("LINE", n=50)
+        result = renderer.plot_data(
+            [spec, line],
+            panels=[["SPEC"], ["LINE"]],
+            panel_types=["spectrogram"],  # only 1 for 2 panels
+        )
+        assert result["status"] == "error"
+        assert "panel_types length" in result["message"]
+
+    def test_spectrogram_on_scalar_returns_error(self, renderer):
+        """1-column entry + spectrogram type returns descriptive error."""
+        scalar = _make_entry("SCALAR", n=50, ncols=1)
+        result = renderer.plot_data(
+            [scalar],
+            panels=[["SCALAR"]],
+            panel_types=["spectrogram"],
+        )
+        assert result["status"] == "error"
+        assert "scalar" in result["message"].lower()
+        assert "panel_types" in result["message"]
+
+    def test_global_plot_type_still_works(self, renderer):
+        """Backward compat: global plot_type=spectrogram without panel_types."""
+        spec = _make_spectrogram_entry("SPEC")
+        result = renderer.plot_data([spec], plot_type="spectrogram")
+        assert result["status"] == "success"
+        fig = renderer.get_figure()
+        assert "heatmap" in fig.data[0].type.lower()
+
+    def test_panel_types_overrides_global(self, renderer):
+        """panel_types wins over global plot_type."""
+        spec = _make_spectrogram_entry("SPEC")
+        line = _make_entry("LINE", n=50)
+        result = renderer.plot_data(
+            [spec, line],
+            panels=[["SPEC"], ["LINE"]],
+            plot_type="spectrogram",  # global says spectrogram
+            panel_types=["spectrogram", "line"],  # override panel 2 to line
+        )
+        assert result["status"] == "success"
+        fig = renderer.get_figure()
+        assert "heatmap" in fig.data[0].type.lower()
+        assert "scatter" in fig.data[1].type.lower()
