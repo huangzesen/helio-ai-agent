@@ -80,8 +80,27 @@ def _parse_response(raw) -> LLMResponse:
     )
 
 
-def _thinking_config(level: str) -> types.ThinkingConfig:
-    """Build a Gemini ThinkingConfig from a normalized level string."""
+def _supports_thinking(model: str) -> bool:
+    """Return True if the model supports thinking config (Gemini 3+)."""
+    # Match model names like "gemini-3-flash-preview", "gemini-3-pro", etc.
+    # Gemini 2.x (including 2.5-flash-preview) does NOT support thinking.
+    parts = model.lower().replace("models/", "").split("-")
+    if len(parts) >= 2 and parts[0] == "gemini":
+        try:
+            major = int(parts[1].split(".")[0])
+            return major >= 3
+        except (ValueError, IndexError):
+            pass
+    return False
+
+
+def _thinking_config(level: str) -> types.ThinkingConfig | None:
+    """Build a Gemini ThinkingConfig from a normalized level string.
+
+    Returns None if thinking is disabled ("off").
+    """
+    if level == "off":
+        return None
     level_upper = level.upper() if level != "default" else "LOW"
     return types.ThinkingConfig(include_thoughts=True, thinking_level=level_upper)
 
@@ -148,9 +167,18 @@ class GeminiAdapter(LLMAdapter):
             "system_instruction": system_prompt,
         }
 
-        # Only send thinking_config for models that support it (preview models)
-        if "preview" in model:
-            config_kwargs["thinking_config"] = _thinking_config(thinking)
+        # Only send thinking_config for Gemini 3+ models.
+        # Per-call `thinking` param indicates the tier: "high" = smart model
+        # (orchestrator/planner), "low" = sub-agent. Config overrides per tier.
+        if _supports_thinking(model):
+            from config import GEMINI_THINKING_MODEL, GEMINI_THINKING_SUB_AGENT
+            if thinking in ("high", "default"):
+                effective = GEMINI_THINKING_MODEL
+            else:
+                effective = GEMINI_THINKING_SUB_AGENT
+            tc = _thinking_config(effective)
+            if tc is not None:
+                config_kwargs["thinking_config"] = tc
 
         # Tools
         fds = _build_function_declarations(tools)

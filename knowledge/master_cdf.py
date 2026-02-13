@@ -153,12 +153,15 @@ def extract_metadata(cdf_path: Path) -> dict:
             continue
 
         # Check VAR_TYPE — skip support/metadata variables
+        # Accept "data" and "ignore_data" (the latter is used for real
+        # multidimensional variables whose master CDF VAR_TYPE differs
+        # from what older/newer data CDF versions use).
         try:
             attrs = cdf.varattsget(var_name)
             var_type = attrs.get("VAR_TYPE", "")
             if isinstance(var_type, np.ndarray):
                 var_type = str(var_type)
-            if var_type and var_type.lower() != "data":
+            if var_type and var_type.lower() not in ("data", "ignore_data"):
                 continue
         except Exception:
             pass  # If no attributes, include the variable

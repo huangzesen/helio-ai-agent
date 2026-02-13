@@ -103,3 +103,10 @@ DATA_BACKEND = get("data_backend", "cdf")  # "cdf" only
 CATALOG_SEARCH_METHOD = get("catalog_search_method", "semantic")  # "semantic" or "substring"
 PARALLEL_FETCH = get("parallel_fetch", True)
 PARALLEL_MAX_WORKERS = get("parallel_max_workers", 4)
+
+# ---- Gemini-specific settings ------------------------------------------------
+# Thinking levels for Gemini 3+ models. Ignored for Gemini < 3.
+# "model" = orchestrator + planner (smart tier), "sub_agent" = mission/viz agents.
+# Values: "off", "low", "high".
+GEMINI_THINKING_MODEL = get("gemini.thinking_model", "high")
+GEMINI_THINKING_SUB_AGENT = get("gemini.thinking_sub_agent", "low")

@@ -458,12 +458,27 @@ class PlotlyRenderer:
 
         label = entry.description or entry.label
 
+        # Constrain colorbar to the panel's y-domain so it doesn't span
+        # the full figure height in multi-panel layouts.
+        subplot_ref = fig.get_subplot(row, col)
+        if subplot_ref and hasattr(subplot_ref, 'yaxis'):
+            domain = subplot_ref.yaxis.domain
+            cb_y = (domain[0] + domain[1]) / 2
+            cb_len = domain[1] - domain[0]
+        else:
+            cb_y = 0.5
+            cb_len = 1.0
+
+        colorbar_cfg = dict(y=cb_y, len=cb_len, yanchor="middle")
+        if colorbar_title:
+            colorbar_cfg["title"] = dict(text=colorbar_title)
+
         heatmap = go.Heatmap(
             x=times,
             y=bin_list,
             z=z_data,
             colorscale=colorscale,
-            colorbar=dict(title=dict(text=colorbar_title)) if colorbar_title else None,
+            colorbar=colorbar_cfg,
             zmin=z_min,
             zmax=z_max,
             name=label,

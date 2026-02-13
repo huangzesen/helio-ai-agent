@@ -37,11 +37,13 @@ _SKIP_TYPES = _EPOCH_TYPES | {"CDF_CHAR", "CDF_UCHAR"}
 
 
 def list_cdf_variables(dataset_id: str) -> list[dict]:
-    """List data variables from a Master CDF skeleton file.
+    """List data variables for a CDAWeb dataset.
 
-    Downloads the lightweight Master CDF file (~10-100 KB) and extracts
-    variable metadata. No data download needed — Master CDFs contain
-    variable definitions and attributes only.
+    Uses the metadata resolution chain (local cache → Master CDF).
+    Note: master CDF metadata may not perfectly match actual data CDF files
+    (CDF versions can diverge). If a parameter listed here is missing from
+    data files, fetch_cdf_data will return an error with the actual available
+    variables so the agent can self-correct.
 
     Args:
         dataset_id: CDAWeb dataset ID (e.g., "AC_H2_MFI").
@@ -49,10 +51,7 @@ def list_cdf_variables(dataset_id: str) -> list[dict]:
     Returns:
         List of dicts with keys: name, description, units, size.
     """
-    from knowledge.master_cdf import download_master_cdf, extract_metadata
-
-    cdf_path = download_master_cdf(dataset_id)
-    info = extract_metadata(cdf_path)
+    info = get_dataset_info(dataset_id)
 
     result = []
     for param in info.get("parameters", []):
@@ -121,10 +120,19 @@ def fetch_cdf_data(
     )
 
     if download_bytes > _BLOCK_THRESHOLD_BYTES and not force:
-        raise ValueError(
-            f"Download size {download_bytes / 1e6:.0f} MB ({n_to_download} files) exceeds 1 GB limit. "
-            f"Ask the user to confirm this large download. If they agree, retry with force_large_download=true."
-        )
+        size_mb = download_bytes / 1e6
+        return {
+            "status": "confirmation_required",
+            "download_mb": round(size_mb),
+            "n_files": n_to_download,
+            "n_cached": n_cached,
+            "dataset_id": dataset_id,
+            "message": (
+                f"This request requires downloading {size_mb:.0f} MB "
+                f"({n_to_download} files) from CDAWeb. "
+                f"Do you want to proceed?"
+            ),
+        }
 
     if download_bytes > _WARN_THRESHOLD_BYTES:
         logger.warning(
@@ -164,6 +172,10 @@ def fetch_cdf_data(
         # Always read FILLVAL/VALIDMIN/VALIDMAX from CDF (ground truth)
         # since cached fill values may have different precision (float32 vs float64).
         if not frames:
+            # Sync cached metadata with actual data CDF variables.
+            # Runs once per dataset — cheap since file is already downloaded.
+            _sync_metadata_with_data_cdf(dataset_id, local_path)
+
             try:
                 cdf = cdflib.CDF(str(local_path))
                 attrs = cdf.varattsget(parameter_id)
@@ -334,6 +346,134 @@ def _download_and_read(
     return local_path, data
 
 
+def _sync_metadata_with_data_cdf(dataset_id: str, cdf_path: Path) -> None:
+    """Compare data CDF variables against cached metadata and update if needed.
+
+    Called once per fetch on the first data CDF file.  If the data CDF contains
+    variables not in the cached metadata (or vice versa), updates the local
+    metadata JSON with ``_validated`` annotations so discrepancies are visible
+    to the LLM and future fetches.
+
+    This is cheap — the CDF is already downloaded, we just read its variable list.
+    """
+    from knowledge.metadata_client import _find_local_cache
+    import json as _json
+
+    cache_path = _find_local_cache(dataset_id)
+    if cache_path is None:
+        logger.debug(f"[CDF] Metadata sync skipped for {dataset_id}: no local cache")
+        return
+
+    try:
+        cached_info = _json.loads(cache_path.read_text(encoding="utf-8"))
+    except (ValueError, OSError) as exc:
+        logger.debug(f"[CDF] Metadata sync skipped for {dataset_id}: "
+                     f"cache read failed: {exc}")
+        return
+
+    # Already validated — skip
+    if cached_info.get("_validated"):
+        logger.debug(f"[CDF] Metadata sync skipped for {dataset_id}: already validated")
+        return
+
+    logger.debug(f"[CDF] Metadata sync: comparing {dataset_id} against {cdf_path.name}")
+
+    try:
+        data_cdf = cdflib.CDF(str(cdf_path))
+        data_info = data_cdf.cdf_info()
+        data_vars = set(data_info.zVariables) | set(data_info.rVariables)
+    except Exception as exc:
+        logger.warning(f"[CDF] Metadata sync failed for {dataset_id}: "
+                       f"could not read data CDF: {exc}")
+        return
+
+    cached_names = {
+        p.get("name") for p in cached_info.get("parameters", [])
+        if p.get("name", "").lower() != "time"
+    }
+
+    data_only = data_vars - cached_names
+    master_only = cached_names - data_vars
+
+    if not data_only and not master_only:
+        logger.debug(f"[CDF] Metadata sync for {dataset_id}: perfect match "
+                     f"({len(cached_names)} variables)")
+        cached_info["_validated"] = True
+        try:
+            cache_path.write_text(
+                _json.dumps(cached_info, indent=2, ensure_ascii=False) + "\n",
+                encoding="utf-8",
+            )
+        except OSError:
+            pass
+        return
+
+    # Log discrepancies at WARNING so they're visible in normal mode
+    if master_only:
+        logger.warning(
+            f"[CDF] Metadata sync for {dataset_id}: {len(master_only)} vars in "
+            f"master CDF but NOT in data CDF: {', '.join(sorted(master_only))}"
+        )
+    if data_only:
+        logger.warning(
+            f"[CDF] Metadata sync for {dataset_id}: {len(data_only)} vars in "
+            f"data CDF but NOT in master CDF: {', '.join(sorted(data_only))}"
+        )
+
+    # Annotate existing parameters
+    for param in cached_info.get("parameters", []):
+        name = param.get("name", "")
+        if name.lower() == "time":
+            continue
+        if name in master_only:
+            param["_note"] = "in master CDF but not found in data CDF"
+        elif name in data_vars:
+            # Exists in both — confirmed
+            pass
+
+    # Add data-only variables to cached metadata
+    added_count = 0
+    for var_name in sorted(data_only):
+        # Skip epoch/time and metadata types
+        try:
+            var_inq = data_cdf.varinq(var_name)
+            if var_inq.Data_Type_Description in _SKIP_TYPES:
+                continue
+        except Exception:
+            continue
+        cached_info.setdefault("parameters", []).append({
+            "name": var_name,
+            "type": "",
+            "units": "",
+            "description": "",
+            "_note": "found in data CDF but not in master CDF",
+        })
+        added_count += 1
+
+    cached_info["_validated"] = True
+
+    logger.info(
+        f"[CDF] Metadata sync for {dataset_id}: updated cache — "
+        f"{len(master_only)} master-only annotated, "
+        f"{added_count} data-only added, "
+        f"{len(cached_names & data_vars)} confirmed"
+    )
+
+    # Invalidate in-memory cache so next get_dataset_info() picks up changes
+    from knowledge.metadata_client import _info_cache
+    _info_cache.pop(dataset_id, None)
+
+    try:
+        cache_path.write_text(
+            _json.dumps(cached_info, indent=2, ensure_ascii=False) + "\n",
+            encoding="utf-8",
+        )
+        logger.debug(f"[CDF] Metadata cache updated: {cache_path}")
+    except OSError as exc:
+        logger.warning(f"[CDF] Failed to write updated metadata cache "
+                       f"for {dataset_id}: {exc}")
+
+
 def _find_parameter_meta(info: dict, parameter_id: str) -> dict:
     """Find metadata for a specific parameter in metadata info."""
     for p in info.get("parameters", []):
@@ -487,7 +627,7 @@ def _download_cdf_file(url: str, cache_base: Path) -> Path:
         return local_path
 
     # Download
-    logger.info(f"[CDF] Downloading: {Path(rel_path).name}")
+    logger.info(f"[CDF] Downloading: {local_path.name}")
     local_path.parent.mkdir(parents=True, exist_ok=True)
 
     resp = requests.get(url, timeout=120)

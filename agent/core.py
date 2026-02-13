@@ -1788,8 +1788,9 @@ class OrchestratorAgent:
             self._track_usage(response)
 
             # Process tool calls with loop guard
-            guard = LoopGuard(max_total_calls=10, max_iterations=5)
+            guard = LoopGuard(max_total_calls=20, max_iterations=10)
             last_stop_reason = None
+            had_successful_tool = False
 
             while True:
                 stop_reason = guard.check_iteration()
@@ -1831,7 +1832,9 @@ class OrchestratorAgent:
                     task.tool_calls.append(tool_name)
                     result = self._execute_tool_safe(tool_name, tool_args)
 
-                    if result.get("status") == "error":
+                    if result.get("status") == "success":
+                        had_successful_tool = True
+                    elif result.get("status") == "error":
                         self.logger.warning(f"[Tool Result: ERROR] {result.get('message', '')}")
 
                     function_responses.append(
@@ -1860,9 +1863,17 @@ class OrchestratorAgent:
             result_text = response.text or "Done."
 
             if last_stop_reason:
-                task.status = TaskStatus.FAILED
-                task.error = f"Task stopped by loop guard: {last_stop_reason}"
-                result_text += f" [STOPPED: {last_stop_reason}]"
+                if last_stop_reason == "cancelled by user":
+                    task.status = TaskStatus.FAILED
+                    task.error = "Task cancelled by user"
+                    result_text += " [CANCELLED]"
+                elif had_successful_tool:
+                    task.status = TaskStatus.COMPLETED
+                    result_text += " [loop guard stopped extra calls]"
+                else:
+                    task.status = TaskStatus.FAILED
+                    task.error = f"Task stopped by loop guard: {last_stop_reason}"
+                    result_text += f" [STOPPED: {last_stop_reason}]"
             else:
                 task.status = TaskStatus.COMPLETED
 

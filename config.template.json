@@ -18,6 +18,12 @@
   "_comment_fallback_model": "All agents switch to this model for the rest of the session when any model hits quota/rate limits (HTTP 429).",
   "fallback_model": "gemini-2.5-flash",
 
+  "_comment_gemini": "Gemini-specific settings. thinking_model = orchestrator + planner (smart tier). thinking_sub_agent = mission/viz/data agents. Values: 'off', 'low', 'high'. Ignored for Gemini < 3.",
+  "gemini": {
+    "thinking_model": "high",
+    "thinking_sub_agent": "low"
+  },
+
   "_comment_data_backend": "Data backend. Only 'cdf' (CDAWeb REST + cdflib) is supported.",
   "data_backend": "cdf",
 

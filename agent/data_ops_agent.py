@@ -93,7 +93,7 @@ class DataOpsAgent(BaseSubAgent):
             model=get_active_model(self.model_name),
             system_prompt=think_prompt,
             tools=self._think_tool_schemas,
-            thinking="low",
+            thinking="high",
         )
 
         self._last_tool_context = "think_initial"

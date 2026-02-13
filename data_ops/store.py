@@ -179,7 +179,16 @@ class DataStore:
                 safe = _UNSAFE_CHARS.sub("_", label)
                 if entry.is_xarray:
                     filename = f"{safe}.nc"
-                    entry.data.to_netcdf(dir_path / filename)
+                    # Scipy NetCDF3 engine only supports int32; datetime64[ns]
+                    # needs int64.  Encode time as float64 seconds-since-epoch
+                    # so the round-trip works without netCDF4/h5netcdf.
+                    encoding = {}
+                    if "time" in entry.data.dims:
+                        encoding["time"] = {
+                            "units": "seconds since 1970-01-01",
+                            "dtype": "float64",
+                        }
+                    entry.data.to_netcdf(dir_path / filename, encoding=encoding)
                     fmt = "netcdf"
                 else:
                     filename = f"{safe}.pkl"

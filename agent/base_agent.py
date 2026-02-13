@@ -549,6 +549,25 @@ class BaseSubAgent:
 
             return result_text
 
+        except TimeoutError as e:
+            # If tools already succeeded (data fetched / plot saved),
+            # mark as completed — the timeout only lost the LLM's summary.
+            if had_successful_tool:
+                task.status = TaskStatus.COMPLETED
+                if not task.result and task.tool_results:
+                    task.result = self._build_outcome_summary(task.tool_results)
+                task.result = (task.result or "Done.") + " [LLM follow-up timed out]"
+                self.logger.warning(
+                    f"[{self.agent_name}] Completed with timeout: {task.description}"
+                )
+                return task.result
+            else:
+                task.status = TaskStatus.FAILED
+                task.error = str(e)
+                ctx = self._get_error_context(task=task.description)
+                log_error(f"{self.agent_name} task failed", exc=e, context=ctx)
+                self.logger.warning(f"[{self.agent_name}] Failed: {task.description} - {e}")
+                return f"Error: {e}"
         except Exception as e:
             task.status = TaskStatus.FAILED
             task.error = str(e)
