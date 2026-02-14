@@ -558,7 +558,9 @@ class ChatPage(param.Parameterized):
             if usage["api_calls"] > 0:
                 lines.append(f"Input: {usage['input_tokens']:,}")
                 lines.append(f"Output: {usage['output_tokens']:,}")
-                lines.append(f"Thinking: {usage.get('thinking_tokens', 0):,}")
+                thinking = usage.get('thinking_tokens', 0)
+                if thinking:
+                    lines.append(f"Thinking: {thinking:,}")
                 lines.append(f"Total: {usage['total_tokens']:,}")
                 lines.append(f"API calls: {usage['api_calls']}")
 
