@@ -527,14 +527,8 @@ class ChatPage(param.Parameterized):
         entries = store.list_entries()
 
         lines = []
-        lines.append(f"Data in RAM: {mem_str} ({n_entries} entries)")
-        if entries:
-            for e in entries:
-                pts = f"{e['num_points']:,}" if e.get("num_points") else "?"
-                lines.append(f"  {e['label']}  ({pts} pts)")
 
         if _agent is not None:
-            lines.append("")
             lines.append(f"Model: {_agent.model_name}")
             sid = _agent.get_session_id()
             if sid:
@@ -592,6 +586,13 @@ class ChatPage(param.Parameterized):
                             for r in rows:
                                 t = r["input"] + r["output"] + r["thinking"]
                                 lines.append(f"    {r['agent']}: {t:,} ({r['calls']} calls)")
+
+        lines.append("")
+        lines.append(f"Data in RAM: {mem_str} ({n_entries} entries)")
+        if entries:
+            for e in entries:
+                pts = f"{e['num_points']:,}" if e.get("num_points") else "?"
+                lines.append(f"  {e['label']}  ({pts} pts)")
 
         content = html_mod.escape("\n".join(lines))
         return (
