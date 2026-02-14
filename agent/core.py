@@ -724,6 +724,14 @@ class OrchestratorAgent:
         except Exception as e:
             return {"status": "error", "message": str(e)}
 
+        if result.get("status") == "success":
+            get_operations_log().record(
+                tool="render_plotly_json",
+                args={"figure_json": fig_json},
+                inputs=list(entry_map.keys()),
+                outputs=[],
+            )
+
         return result
 
     def _handle_manage_plot(self, tool_args: dict) -> dict:
@@ -733,6 +741,12 @@ class OrchestratorAgent:
             return {"status": "error", "message": "action is required"}
 
         if action == "reset":
+            get_operations_log().record(
+                tool="manage_plot",
+                args={"action": "reset"},
+                inputs=[],
+                outputs=[],
+            )
             return self._renderer.reset()
 
         elif action == "get_state":
@@ -742,6 +756,14 @@ class OrchestratorAgent:
             filename = tool_args.get("filename", "output.png")
             fmt = tool_args.get("format", "png")
             result = self._renderer.export(filename, format=fmt)
+
+            if result.get("status") == "success":
+                get_operations_log().record(
+                    tool="manage_plot",
+                    args={"action": "export", "filename": filename, "format": fmt},
+                    inputs=[],
+                    outputs=[],
+                )
 
             # Auto-open the exported file in default viewer (skip in GUI mode)
             if result.get("status") == "success" and not self.gui_mode and not self.web_mode:
