@@ -106,6 +106,126 @@ class OperationsLog:
                     pass
         return max_id
 
+    def get_pipeline(self, final_labels: set[str]) -> list[dict]:
+        """Extract the minimal ordered operation chain to reproduce *final_labels*.
+
+        Args:
+            final_labels: Labels present in the DataStore (the desired outputs).
+
+        Returns:
+            Filtered, chronologically ordered list of operation records.
+        """
+        with self._lock:
+            records = list(self._records)
+
+        if not final_labels or not records:
+            return []
+
+        # Build index: for each label, the last successful producer record.
+        # Skip noise records (dedup fetches, manage_plot resets) so they
+        # can't shadow a real producer and then get filtered out later.
+        last_producer: dict[str, dict] = {}
+        for rec in records:
+            if rec["status"] != "success":
+                continue
+            if rec["tool"] == "fetch_data" and rec["args"].get("already_loaded"):
+                continue
+            if rec["tool"] == "manage_plot" and rec["args"].get("action") == "reset":
+                continue
+            for label in rec["outputs"]:
+                last_producer[label] = rec
+
+        # Transitively resolve all required labels
+        selected_ids: set[str] = set()
+        queue = list(final_labels)
+        visited: set[str] = set()
+        while queue:
+            label = queue.pop()
+            if label in visited:
+                continue
+            visited.add(label)
+            rec = last_producer.get(label)
+            if rec is None:
+                continue
+            selected_ids.add(rec["id"])
+            for inp in rec["inputs"]:
+                if inp not in visited:
+                    queue.append(inp)
+
+        # Include the last successful render_plotly_json
+        for rec in reversed(records):
+            if rec["tool"] == "render_plotly_json" and rec["status"] == "success":
+                selected_ids.add(rec["id"])
+                for inp in rec["inputs"]:
+                    if inp not in visited:
+                        queue.append(inp)
+                # Resolve any new inputs from the render
+                while queue:
+                    label = queue.pop()
+                    if label in visited:
+                        continue
+                    visited.add(label)
+                    prod = last_producer.get(label)
+                    if prod is None:
+                        continue
+                    selected_ids.add(prod["id"])
+                    for inp in prod["inputs"]:
+                        if inp not in visited:
+                            queue.append(inp)
+                break
+
+        # Filter: chronological order, only selected
+        pipeline = [rec for rec in records if rec["id"] in selected_ids]
+
+        return pipeline
+
+    def get_pipeline_mermaid(self, final_labels: set[str]) -> str:
+        """Return a Mermaid flowchart string for the pipeline.
+
+        Args:
+            final_labels: Labels present in the DataStore (the desired outputs).
+
+        Returns:
+            Mermaid ``graph TD`` source text, or empty string if pipeline is empty.
+        """
+        pipeline = self.get_pipeline(final_labels)
+        if not pipeline:
+            return ""
+
+        _TOOL_DISPLAY = {
+            "fetch_data": "fetch",
+            "custom_operation": "compute",
+            "store_dataframe": "create",
+            "render_plotly_json": "plot",
+            "manage_plot": "export",
+        }
+
+        # Build a lookup: label -> id of the record that produced it
+        label_producer: dict[str, str] = {}
+        for rec in pipeline:
+            for label in rec["outputs"]:
+                label_producer[label] = rec["id"]
+
+        lines = ["graph TD"]
+        for rec in pipeline:
+            rid = rec["id"]
+            tool_short = _TOOL_DISPLAY.get(rec["tool"], rec["tool"])
+            outputs = ", ".join(rec["outputs"]) if rec["outputs"] else ""
+            # Node label: tool name + outputs (or tool name alone for render/export)
+            if outputs:
+                node_label = f"{tool_short}\\n{outputs}"
+            else:
+                node_label = tool_short
+            lines.append(f'    {rid}["{node_label}"]')
+
+            # Edges from input producers to this node
+            for inp in rec["inputs"]:
+                src = label_producer.get(inp)
+                if src:
+                    lines.append(f"    {src} -->|{inp}| {rid}")
+
+        return "\n".join(lines)
+
     def clear(self) -> None:
         """Reset records and counter."""
         with self._lock:

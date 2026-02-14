@@ -181,6 +181,275 @@ class TestOperationsLog:
         assert len(set(ids)) == len(ids)
 
 
+class TestGetPipeline:
+    """Tests for OperationsLog.get_pipeline()."""
+
+    def test_basic_chain(self):
+        """fetch → compute → render produces correct pipeline."""
+        log = OperationsLog()
+        log.record(tool="fetch_data", args={"dataset_id": "AC_H2_MFI"}, outputs=["Bx"])
+        log.record(
+            tool="custom_operation",
+            args={"code": "mag = ..."},
+            inputs=["Bx"],
+            outputs=["Bmag"],
+        )
+        log.record(
+            tool="render_plotly_json",
+            args={"figure": {}},
+            inputs=["Bmag"],
+            outputs=[],
+        )
+        pipeline = log.get_pipeline({"Bx", "Bmag"})
+        tools = [r["tool"] for r in pipeline]
+        assert tools == ["fetch_data", "custom_operation", "render_plotly_json"]
+
+    def test_superseded_computation_keeps_last(self):
+        """When a label is produced twice, only the last producer is kept."""
+        log = OperationsLog()
+        log.record(tool="fetch_data", args={}, outputs=["Bx"])
+        log.record(
+            tool="custom_operation",
+            args={"code": "wrong"},
+            inputs=["Bx"],
+            outputs=["Bmag"],
+        )
+        log.record(
+            tool="custom_operation",
+            args={"code": "correct"},
+            inputs=["Bx"],
+            outputs=["Bmag"],
+        )
+        pipeline = log.get_pipeline({"Bx", "Bmag"})
+        # Should have fetch + last custom_operation only
+        assert len(pipeline) == 2
+        assert pipeline[0]["tool"] == "fetch_data"
+        assert pipeline[1]["args"]["code"] == "correct"
+
+    def test_dedup_skips_excluded(self):
+        """fetch_data with already_loaded=true is skipped; real fetch is used."""
+        log = OperationsLog()
+        log.record(tool="fetch_data", args={"dataset_id": "AC_H2_MFI"}, outputs=["Bx"])
+        log.record(
+            tool="fetch_data",
+            args={"dataset_id": "AC_H2_MFI", "already_loaded": True},
+            outputs=["Bx"],
+        )
+        pipeline = log.get_pipeline({"Bx"})
+        # The dedup record is ignored during producer selection, so the
+        # real fetch (op_001) is the last producer and appears in the pipeline.
+        assert len(pipeline) == 1
+        assert pipeline[0]["tool"] == "fetch_data"
+        assert pipeline[0]["args"].get("already_loaded") is None
+
+    def test_error_records_excluded(self):
+        """Error records are never included in the pipeline."""
+        log = OperationsLog()
+        log.record(tool="fetch_data", args={}, outputs=["Bx"])
+        log.record(
+            tool="custom_operation",
+            args={"code": "bad"},
+            inputs=["Bx"],
+            outputs=[],
+            status="error",
+            error="Execution error",
+        )
+        log.record(
+            tool="custom_operation",
+            args={"code": "good"},
+            inputs=["Bx"],
+            outputs=["Bmag"],
+        )
+        pipeline = log.get_pipeline({"Bx", "Bmag"})
+        assert len(pipeline) == 2
+        assert all(r["status"] == "success" for r in pipeline)
+
+    def test_transitive_input_resolution(self):
+        """A → B → C: requesting C pulls in A and B."""
+        log = OperationsLog()
+        log.record(tool="fetch_data", args={}, outputs=["A"])
+        log.record(
+            tool="custom_operation", args={"code": "B = f(A)"}, inputs=["A"], outputs=["B"]
+        )
+        log.record(
+            tool="custom_operation", args={"code": "C = f(B)"}, inputs=["B"], outputs=["C"]
+        )
+        pipeline = log.get_pipeline({"C"})
+        tools = [r["tool"] for r in pipeline]
+        assert tools == ["fetch_data", "custom_operation", "custom_operation"]
+        assert pipeline[0]["outputs"] == ["A"]
+        assert pipeline[1]["outputs"] == ["B"]
+        assert pipeline[2]["outputs"] == ["C"]
+
+    def test_render_plotly_json_included(self):
+        """The last successful render_plotly_json is included even if not a label producer."""
+        log = OperationsLog()
+        log.record(tool="fetch_data", args={}, outputs=["Bx"])
+        log.record(
+            tool="render_plotly_json",
+            args={"figure": {"data": []}},
+            inputs=["Bx"],
+            outputs=[],
+        )
+        pipeline = log.get_pipeline({"Bx"})
+        tools = [r["tool"] for r in pipeline]
+        assert "render_plotly_json" in tools
+
+    def test_only_last_render_included(self):
+        """Multiple render_plotly_json calls — only the last successful one is kept."""
+        log = OperationsLog()
+        log.record(tool="fetch_data", args={}, outputs=["Bx"])
+        log.record(
+            tool="render_plotly_json",
+            args={"figure": {"version": 1}},
+            inputs=["Bx"],
+            outputs=[],
+        )
+        log.record(
+            tool="render_plotly_json",
+            args={"figure": {"version": 2}},
+            inputs=["Bx"],
+            outputs=[],
+        )
+        pipeline = log.get_pipeline({"Bx"})
+        renders = [r for r in pipeline if r["tool"] == "render_plotly_json"]
+        assert len(renders) == 1
+        assert renders[0]["args"]["figure"]["version"] == 2
+
+    def test_empty_labels_returns_empty(self):
+        """Empty final_labels produces an empty pipeline."""
+        log = OperationsLog()
+        log.record(tool="fetch_data", args={}, outputs=["Bx"])
+        assert log.get_pipeline(set()) == []
+
+    def test_empty_log_returns_empty(self):
+        """Empty log produces an empty pipeline regardless of labels."""
+        log = OperationsLog()
+        assert log.get_pipeline({"Bx"}) == []
+
+    def test_manage_plot_reset_excluded(self):
+        """manage_plot with action=reset is excluded from pipeline."""
+        log = OperationsLog()
+        log.record(tool="fetch_data", args={}, outputs=["Bx"])
+        log.record(
+            tool="manage_plot",
+            args={"action": "reset"},
+            inputs=[],
+            outputs=[],
+        )
+        log.record(
+            tool="render_plotly_json",
+            args={"figure": {}},
+            inputs=["Bx"],
+            outputs=[],
+        )
+        pipeline = log.get_pipeline({"Bx"})
+        tools = [r["tool"] for r in pipeline]
+        assert "manage_plot" not in tools
+
+    def test_render_inputs_resolved_transitively(self):
+        """render_plotly_json inputs trigger transitive resolution."""
+        log = OperationsLog()
+        log.record(tool="fetch_data", args={}, outputs=["A"])
+        log.record(
+            tool="custom_operation", args={}, inputs=["A"], outputs=["B"]
+        )
+        # Final labels don't include A or B, but render needs B
+        log.record(
+            tool="render_plotly_json",
+            args={"figure": {}},
+            inputs=["B"],
+            outputs=[],
+        )
+        # Only ask for labels that aren't produced by render
+        pipeline = log.get_pipeline({"A"})
+        # Should include fetch(A), compute(B), render — because render references B
+        tools = [r["tool"] for r in pipeline]
+        assert "fetch_data" in tools
+        assert "custom_operation" in tools
+        assert "render_plotly_json" in tools
+
+    def test_dedup_does_not_shadow_real_fetch(self):
+        """A dedup fetch after the real fetch must not drop the real one."""
+        log = OperationsLog()
+        log.record(tool="fetch_data", args={"dataset_id": "X"}, outputs=["Bx"])
+        log.record(
+            tool="fetch_data",
+            args={"dataset_id": "X", "already_loaded": True},
+            outputs=["Bx"],
+        )
+        log.record(
+            tool="custom_operation",
+            args={"code": "mag"},
+            inputs=["Bx"],
+            outputs=["Bmag"],
+        )
+        pipeline = log.get_pipeline({"Bx", "Bmag"})
+        tools = [r["tool"] for r in pipeline]
+        assert tools == ["fetch_data", "custom_operation"]
+        # The fetch in the pipeline is the real one, not the dedup
+        assert pipeline[0]["args"].get("already_loaded") is None
+
+    def test_chronological_order_preserved(self):
+        """Pipeline records are in the same order as the original log."""
+        log = OperationsLog()
+        log.record(tool="fetch_data", args={}, outputs=["A"])
+        log.record(tool="fetch_data", args={}, outputs=["B"])
+        log.record(
+            tool="custom_operation", args={}, inputs=["A", "B"], outputs=["C"]
+        )
+        pipeline = log.get_pipeline({"A", "B", "C"})
+        ids = [r["id"] for r in pipeline]
+        assert ids == sorted(ids)
+
+
+class TestGetPipelineMermaid:
+    """Tests for OperationsLog.get_pipeline_mermaid()."""
+
+    def test_basic_flowchart(self):
+        """fetch → compute → render produces valid Mermaid with edges."""
+        log = OperationsLog()
+        log.record(tool="fetch_data", args={}, outputs=["Bx"])
+        log.record(
+            tool="custom_operation", args={}, inputs=["Bx"], outputs=["Bmag"]
+        )
+        log.record(
+            tool="render_plotly_json", args={}, inputs=["Bmag"], outputs=[]
+        )
+        mermaid = log.get_pipeline_mermaid({"Bx", "Bmag"})
+        assert mermaid.startswith("graph TD")
+        # Nodes present
+        assert 'op_001["fetch\\nBx"]' in mermaid
+        assert 'op_002["compute\\nBmag"]' in mermaid
+        assert 'op_003["plot"]' in mermaid
+        # Edges present
+        assert "op_001 -->|Bx| op_002" in mermaid
+        assert "op_002 -->|Bmag| op_003" in mermaid
+
+    def test_empty_pipeline_returns_empty_string(self):
+        log = OperationsLog()
+        assert log.get_pipeline_mermaid(set()) == ""
+
+    def test_multiple_outputs(self):
+        """A record with multiple outputs shows them comma-separated."""
+        log = OperationsLog()
+        log.record(tool="fetch_data", args={}, outputs=["Bx", "By", "Bz"])
+        mermaid = log.get_pipeline_mermaid({"Bx", "By", "Bz"})
+        assert "Bx, By, Bz" in mermaid
+
+    def test_multiple_inputs(self):
+        """A record with multiple inputs gets an edge from each producer."""
+        log = OperationsLog()
+        log.record(tool="fetch_data", args={}, outputs=["A"])
+        log.record(tool="fetch_data", args={}, outputs=["B"])
+        log.record(
+            tool="custom_operation", args={}, inputs=["A", "B"], outputs=["C"]
+        )
+        mermaid = log.get_pipeline_mermaid({"A", "B", "C"})
+        assert "op_001 -->|A| op_003" in mermaid
+        assert "op_002 -->|B| op_003" in mermaid
+
+
 class TestSingleton:
     """Tests for the module-level singleton helpers."""
 
