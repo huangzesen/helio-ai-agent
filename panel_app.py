@@ -337,6 +337,7 @@ CUSTOM_CSS = """
     margin: 0.5rem 0;
 }
 
+
 """
 
 
@@ -397,38 +398,23 @@ class ChatPage(param.Parameterized):
         # --- Follow-up pills ---
         self.followup_row = pn.Row(sizing_mode="stretch_width", visible=False)
 
-        # --- Log panel (terminal-style) ---
+        # --- Right sidebar: stats + log (uses template's right_sidebar) ---
         self._log_lines: list[str] = []
         self._log_handler = None
         self._saved_log_level = logging.WARNING
         self._log_start_time = 0.0
         self._log_running = False
         self._log_periodic_cb = None
-        self._log_prev_count = 0  # track last rendered line count
-        self.log_terminal = pn.pane.HTML(
-            self._render_terminal_html(),
-            sizing_mode="stretch_both",
-            min_height=200,
-        )
+        self._log_prev_count = 0
         self.stats_pane = pn.pane.HTML(
             self._render_stats_html(),
             sizing_mode="stretch_width",
         )
-        self.log_panel = pn.Column(
-            self.log_terminal,
-            self.stats_pane,
+        self.log_terminal = pn.pane.HTML(
+            self._render_terminal_html(),
             sizing_mode="stretch_both",
-            min_width=350,
-            max_width=500,
-            visible=False,
+            min_height=300,
         )
-        self.log_toggle_btn = pn.widgets.Toggle(
-            name="Log",
-            button_type="default",
-            value=False,
-            width=60,
-        )
-        self.log_toggle_btn.param.watch(self._on_log_toggle, "value")
 
         # --- Session sidebar widgets ---
         self.new_session_btn = pn.widgets.Button(
@@ -492,9 +478,7 @@ class ChatPage(param.Parameterized):
                 logger.setLevel(logging.DEBUG)
             logger.addHandler(self._log_handler)
 
-            # Auto-open log panel and start periodic refresh
-            self.log_panel.visible = True
-            self.log_toggle_btn.value = True
+            # Start periodic refresh
             self._log_start_time = t0
             self._log_running = True
             self._refresh_log_panel()
@@ -555,7 +539,7 @@ class ChatPage(param.Parameterized):
             usage = _agent.get_token_usage()
             if usage["api_calls"] > 0:
                 lines.append("")
-                lines.append("Token Usage")
+                lines.append("Token Usage (Total)")
                 lines.append(f"  Input:    {usage['input_tokens']:>10,}")
                 lines.append(f"  Output:   {usage['output_tokens']:>10,}")
                 thinking = usage.get("thinking_tokens", 0)
@@ -564,23 +548,51 @@ class ChatPage(param.Parameterized):
                 lines.append(f"  Total:    {usage['total_tokens']:>10,}")
                 lines.append(f"  API calls: {usage['api_calls']}")
 
-                # Per-agent breakdown
+                # Per-agent breakdown grouped by category
                 breakdown = _agent.get_token_usage_breakdown()
-                if len(breakdown) > 1:
-                    lines.append("")
-                    lines.append("Per-Agent Breakdown")
+                if breakdown:
+                    # Group: Orchestrator, Planner, DataOps/DataExtraction, Viz, Missions
+                    groups = {
+                        "Orchestrator": [],
+                        "Planner": [],
+                        "Data": [],
+                        "Visualization": [],
+                        "Missions": [],
+                    }
                     for row in breakdown:
-                        total = row["input"] + row["output"] + row["thinking"]
-                        lines.append(
-                            f"  {row['agent']:<20s} "
-                            f"{total:>8,} tok  "
-                            f"{row['calls']:>2} calls"
-                        )
+                        name = row["agent"]
+                        if name == "Orchestrator":
+                            groups["Orchestrator"].append(row)
+                        elif name == "Planner":
+                            groups["Planner"].append(row)
+                        elif name in ("DataOps", "DataExtraction"):
+                            groups["Data"].append(row)
+                        elif name == "Visualization":
+                            groups["Visualization"].append(row)
+                        elif name.startswith("Mission/"):
+                            groups["Missions"].append(row)
+
+                    for group_name, rows in groups.items():
+                        if not rows:
+                            continue
+                        group_in = sum(r["input"] for r in rows)
+                        group_out = sum(r["output"] for r in rows)
+                        group_think = sum(r["thinking"] for r in rows)
+                        group_total = group_in + group_out + group_think
+                        group_calls = sum(r["calls"] for r in rows)
+                        lines.append("")
+                        lines.append(f"{group_name}")
+                        lines.append(f"  In/Out/Think: {group_in:,} / {group_out:,} / {group_think:,}")
+                        lines.append(f"  Total: {group_total:,}  ({group_calls} calls)")
+                        if group_name == "Missions" and len(rows) > 1:
+                            for r in rows:
+                                t = r["input"] + r["output"] + r["thinking"]
+                                lines.append(f"    {r['agent']}: {t:,} ({r['calls']} calls)")
 
         content = html_mod.escape("\n".join(lines))
         return (
             f'<div style="padding:6px 8px;background:#1a1a1a;border-radius:6px;'
-            f'margin-top:4px;">'
+            f'margin-top:4px;height:100%;overflow-y:auto;">'
             f'<pre style="margin:0;font-family:Menlo,Consolas,monospace;'
             f'font-size:0.72rem;line-height:1.4;color:#888;">{content}</pre>'
             f'</div>'
@@ -689,10 +701,6 @@ class ChatPage(param.Parameterized):
             f'{status_html}'
             f'</div>'
         )
-
-    def _on_log_toggle(self, event):
-        """Toggle the log panel visible/hidden."""
-        self.log_panel.visible = event.new
 
     def _refresh_log_panel(self, status: str = ""):
         """Update the terminal log content."""
@@ -862,7 +870,6 @@ class ChatPage(param.Parameterized):
 
         header_row = pn.Row(
             header_html,
-            self.log_toggle_btn,
             sizing_mode="stretch_width",
         )
 
@@ -895,11 +902,14 @@ class ChatPage(param.Parameterized):
             min_width=500,
         )
 
-        # --- Main area: center + log panel side by side ---
-        main_area = pn.Row(
-            center_col,
-            self.log_panel,
-            sizing_mode="stretch_both",
+        # --- Right sidebar content: stats + log ---
+        right_sidebar_content = pn.Column(
+            pn.pane.Markdown("### Session Stats", margin=(0, 0, 5, 0)),
+            self.stats_pane,
+            pn.layout.Divider(),
+            pn.pane.Markdown("### Activity Log", margin=(0, 0, 5, 0)),
+            self.log_terminal,
+            sizing_mode="stretch_width",
         )
 
         # --- Left sidebar: Sessions ---
@@ -917,11 +927,14 @@ class ChatPage(param.Parameterized):
         template = pn.template.FastListTemplate(
             title="Helio AI Agent",
             sidebar=[sidebar_content],
-            main=[main_area],
+            main=[center_col],
+            right_sidebar=[right_sidebar_content],
             accent_base_color="#00b8d9",
             header_background="#0097b2",
             sidebar_width=280,
             collapsed_sidebar=True,
+            right_sidebar_width=300,
+            collapsed_right_sidebar=True,
             theme="default",
             theme_toggle=True,
             raw_css=[CUSTOM_CSS],
