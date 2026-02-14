@@ -700,7 +700,16 @@ class OrchestratorAgent:
         fig_json = tool_args.get("figure_json", {})
         data_traces = fig_json.get("data", [])
         if not data_traces:
-            return {"status": "error", "message": "figure_json.data is required (array of traces)"}
+            return {
+                "status": "error",
+                "message": (
+                    "figure_json.data is required and must be a non-empty array of traces. "
+                    "Each trace needs at least a 'data_label' key. Example: "
+                    'render_plotly_json(figure_json={"data": [{"type": "scatter", '
+                    '"data_label": "DATASET.Parameter"}], "layout": {}}). '
+                    "Call list_fetched_data first to discover available labels."
+                ),
+            }
 
         # Collect all data_label values and resolve entries
         store = get_store()

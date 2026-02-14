@@ -1,9 +1,10 @@
 """
 Visualization sub-agent with optional think phase.
 
-For plot-creation requests, runs a think phase to inspect data (shapes,
-types, units, NaN counts) before constructing render_plotly_json calls.
-Style requests skip the think phase to avoid wasting tokens.
+Both entry points (process_request and execute_task) run a think→execute
+pattern for plot-creation requests: inspect data shapes, types, units, and
+NaN counts before constructing render_plotly_json calls.  Style/manage
+requests skip the think phase to avoid wasting tokens.
 
 Owns all visualization through three tools:
 - render_plotly_json — create/update plots via Plotly figure JSON with data_label placeholders
@@ -68,9 +69,14 @@ class VisualizationAgent(BaseSubAgent):
     figure JSON with data_label placeholders), manage_plot (export, reset,
     zoom, add/remove traces), and list_fetched_data (discover available data).
 
-    For plot-creation requests via process_request(), runs an optional
-    think phase to inspect data before the execute phase.
+    For plot-creation requests (both process_request and execute_task),
+    runs a think phase to inspect data before the execute phase.
     """
+
+    # Disable forced tool calling: render_plotly_json requires complex nested
+    # JSON that the LLM emits as empty {} under forced-calling mode (mode="ANY").
+    # The task prompt already provides explicit instructions and examples.
+    _force_tool_call_in_tasks = False
 
     def __init__(
         self,
@@ -231,6 +237,56 @@ class VisualizationAgent(BaseSubAgent):
         think_context = self._run_think_phase(retry_request)
         enriched = self._build_enriched_message(user_message, think_context)
         return super().process_request(enriched)
+
+    def execute_task(self, task: Task) -> str:
+        """Execute a visualization task with think→execute pattern.
+
+        For plot-creation tasks, runs the think phase to inspect data
+        before delegating to the base execute_task loop.  Style/manage
+        tasks skip the think phase.
+
+        On render_plotly_json errors, retries once with error feedback
+        (matching process_request behavior).
+        """
+        if not self._needs_think_phase(task.instruction):
+            self.logger.debug("[Viz] Skipping think phase for task (style/manage)")
+            return super().execute_task(task)
+
+        # Think phase: inspect data
+        think_context = self._run_think_phase(task.instruction)
+        task.instruction = self._build_enriched_message(
+            task.instruction, think_context
+        )
+
+        # Execute phase (via base class)
+        result = super().execute_task(task)
+
+        # Check for render errors that warrant a retry
+        render_errors = [
+            tr.get("message", str(tr))
+            for tr in task.tool_results
+            if tr.get("tool") == "render_plotly_json"
+            and tr.get("status") == "error"
+        ]
+        if not render_errors:
+            return result
+
+        # Retry: re-run think phase with error context, then execute again
+        self.logger.debug("[Viz] Task render failed, retrying with error feedback")
+        error_feedback = "\n".join(f"- {e}" for e in render_errors)
+        retry_request = (
+            f"{task.instruction}\n\n"
+            f"## Previous Attempt Failed\n"
+            f"Errors:\n{error_feedback}\n\n"
+            f"Re-inspect the data and provide corrected recommendations."
+        )
+        think_context = self._run_think_phase(retry_request)
+        task.instruction = self._build_enriched_message(
+            task.instruction, think_context
+        )
+
+        # super().execute_task() resets tool_calls/tool_results/status at top
+        return super().execute_task(task)
 
     def _get_task_prompt(self, task: Task) -> str:
         """Build an explicit task prompt with concrete label values.
