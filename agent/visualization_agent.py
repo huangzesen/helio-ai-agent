@@ -210,10 +210,14 @@ class VisualizationAgent(BaseSubAgent):
         _execute_plan_task) and constructs the exact render_plotly_json call
         so Gemini Flash sees the precise command to execute.
 
+        When a current figure_json is embedded in the instruction (canvas
+        exists), instructs the LLM to modify it instead of starting fresh.
+
         Note: Export tasks are handled directly by the orchestrator and
         never reach this method.
         """
         labels = _extract_labels_from_instruction(task.instruction)
+        has_canvas = "Current figure_json" in task.instruction
 
         pitfall_section = ""
         if self._pitfalls:
@@ -224,29 +228,43 @@ class VisualizationAgent(BaseSubAgent):
 
         no_labels = not labels
 
-        if labels:
-            # Build a simple Plotly JSON example with the extracted labels
-            traces_example = ", ".join(
-                f'{{"type": "scatter", "data_label": "{lbl}"}}'
-                for lbl in labels
-            )
-            first_call = (
-                f'render_plotly_json(figure_json={{"data": [{traces_example}], '
-                f'"layout": {{}}}})'
+        if has_canvas:
+            # Canvas exists — instruct LLM to modify the provided figure_json
+            task_prompt = (
+                f"Execute this task: {task.instruction}\n\n"
+                "A figure_json is provided above. Modify it to fulfil the request "
+                "and pass the full modified JSON to render_plotly_json.\n"
+                "If modification is too complex, call manage_plot(action=\"reset\") "
+                "first, then create a new figure_json from scratch.\n\n"
+                "RULES:\n"
+                "- Prefer modifying the existing figure_json over rebuilding.\n"
+                "- Use manage_plot for export, reset, or other structural operations if needed."
+                + pitfall_section
             )
         else:
-            first_call = "render_plotly_json with the appropriate labels"
+            # No canvas — build from scratch
+            if labels:
+                traces_example = ", ".join(
+                    f'{{"type": "scatter", "data_label": "{lbl}"}}'
+                    for lbl in labels
+                )
+                first_call = (
+                    f'render_plotly_json(figure_json={{"data": [{traces_example}], '
+                    f'"layout": {{}}}})'
+                )
+            else:
+                first_call = "render_plotly_json with the appropriate labels"
 
-        task_prompt = (
-            f"Execute this task: {task.instruction}\n\n"
-            f"Your FIRST call must be: {first_call}\n\n"
-            "RULES:\n"
-            "- Call render_plotly_json with the labels shown above.\n"
-            "- Use manage_plot for export, reset, zoom, or trace operations if needed."
-            + pitfall_section
-        )
+            task_prompt = (
+                f"Execute this task: {task.instruction}\n\n"
+                f"Your FIRST call must be: {first_call}\n\n"
+                "RULES:\n"
+                "- Call render_plotly_json with the labels shown above.\n"
+                "- Use manage_plot for export, reset, zoom, or trace operations if needed."
+                + pitfall_section
+            )
 
-        if no_labels:
-            task_prompt += "\n\nNote: Labels were not pre-extracted. Call list_fetched_data first to discover available labels.\n"
+            if no_labels:
+                task_prompt += "\n\nNote: Labels were not pre-extracted. Call list_fetched_data first to discover available labels.\n"
 
         return task_prompt

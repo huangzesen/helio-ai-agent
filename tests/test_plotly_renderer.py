@@ -470,3 +470,90 @@ class TestRenderPlotlyJson:
         assert len(result["trace_info"]) == 1
         assert result["trace_info"][0]["name"] == "Mag"
         assert result["trace_info"][0]["points"] == 50
+
+
+# ---------------------------------------------------------------------------
+# _last_fig_json tracking
+# ---------------------------------------------------------------------------
+
+class TestLastFigJson:
+    """Tests for _last_fig_json storage, retrieval, reset, and persistence."""
+
+    def test_stored_after_render(self, renderer):
+        """_last_fig_json is stored after a successful render."""
+        fig_json = {
+            "data": [{"type": "scatter", "data_label": "x"}],
+            "layout": {"title": {"text": "Test"}},
+        }
+        entry = _make_entry("x", n=10)
+        renderer.render_plotly_json(fig_json, {"x": entry})
+        assert renderer._last_fig_json is not None
+        assert renderer._last_fig_json == fig_json
+
+    def test_not_stored_on_error(self, renderer):
+        """_last_fig_json is NOT updated when render fails."""
+        # First render succeeds
+        entry = _make_entry("a", n=10)
+        good_json = {"data": [{"type": "scatter", "data_label": "a"}], "layout": {}}
+        renderer.render_plotly_json(good_json, {"a": entry})
+        assert renderer._last_fig_json == good_json
+
+        # Second render fails (missing label)
+        bad_json = {"data": [{"type": "scatter", "data_label": "MISSING"}], "layout": {}}
+        result = renderer.render_plotly_json(bad_json, {})
+        assert result["status"] == "error"
+        # _last_fig_json still points to the good render
+        assert renderer._last_fig_json == good_json
+
+    def test_in_get_current_state(self, renderer):
+        """get_current_state includes figure_json when present."""
+        fig_json = {
+            "data": [{"type": "scatter", "data_label": "x"}],
+            "layout": {},
+        }
+        entry = _make_entry("x", n=10)
+        renderer.render_plotly_json(fig_json, {"x": entry})
+        state = renderer.get_current_state()
+        assert "figure_json" in state
+        assert state["figure_json"] == fig_json
+
+    def test_not_in_get_current_state_when_empty(self, renderer):
+        """get_current_state omits figure_json when nothing rendered."""
+        state = renderer.get_current_state()
+        assert "figure_json" not in state
+
+    def test_cleared_on_reset(self, renderer):
+        """_last_fig_json is cleared after reset."""
+        fig_json = {
+            "data": [{"type": "scatter", "data_label": "x"}],
+            "layout": {},
+        }
+        entry = _make_entry("x", n=10)
+        renderer.render_plotly_json(fig_json, {"x": entry})
+        assert renderer._last_fig_json is not None
+
+        renderer.reset()
+        assert renderer._last_fig_json is None
+        state = renderer.get_current_state()
+        assert "figure_json" not in state
+
+    def test_save_restore_roundtrip(self, renderer):
+        """_last_fig_json round-trips through save_state/restore_state."""
+        fig_json = {
+            "data": [{"type": "scatter", "data_label": "x"}],
+            "layout": {"title": {"text": "Roundtrip"}},
+        }
+        entry = _make_entry("x", n=10)
+        renderer.render_plotly_json(fig_json, {"x": entry})
+
+        saved = renderer.save_state()
+        assert saved is not None
+        assert "last_fig_json" in saved
+        assert saved["last_fig_json"] == fig_json
+
+        # Restore into a fresh renderer
+        renderer2 = PlotlyRenderer(verbose=False)
+        renderer2.restore_state(saved)
+        assert renderer2._last_fig_json == fig_json
+        state = renderer2.get_current_state()
+        assert state["figure_json"] == fig_json

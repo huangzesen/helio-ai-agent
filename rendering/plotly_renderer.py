@@ -276,6 +276,7 @@ class PlotlyRenderer:
         self._figure: Optional[go.Figure] = None
         self._panel_count: int = 0
         self._trace_labels: list[str] = []
+        self._last_fig_json: dict | None = None
 
     # ------------------------------------------------------------------
     # Helpers
@@ -339,15 +340,19 @@ class PlotlyRenderer:
         self._figure = None
         self._panel_count = 0
         self._trace_labels.clear()
+        self._last_fig_json = None
         return {"status": "success", "message": "Canvas reset."}
 
     def get_current_state(self) -> dict:
-        return {
+        state = {
             "uri": None,
             "panel_count": self._panel_count,
             "has_plot": self._figure is not None and len(self._figure.data) > 0,
             "traces": list(self._trace_labels),
         }
+        if self._last_fig_json is not None:
+            state["figure_json"] = self._last_fig_json
+        return state
 
     # ------------------------------------------------------------------
     # Public API: render_plotly_json
@@ -380,6 +385,7 @@ class PlotlyRenderer:
         self._figure = build_result.figure
         self._panel_count = build_result.panel_count
         self._trace_labels = build_result.trace_labels
+        self._last_fig_json = fig_json
 
         # Build basic trace info for the LLM
         trace_info = []
@@ -422,11 +428,14 @@ class PlotlyRenderer:
         """
         if self._figure is None:
             return None
-        return {
+        state = {
             "figure_json": self._figure.to_json(),
             "panel_count": self._panel_count,
             "trace_labels": list(self._trace_labels),
         }
+        if self._last_fig_json is not None:
+            state["last_fig_json"] = self._last_fig_json
+        return state
 
     def restore_state(self, state: dict) -> None:
         """Restore renderer state from a dict produced by save_state()."""
@@ -439,3 +448,4 @@ class PlotlyRenderer:
         self._figure = pio.from_json(fig_json)
         self._panel_count = state.get("panel_count", 0)
         self._trace_labels = state.get("trace_labels", [])
+        self._last_fig_json = state.get("last_fig_json")
