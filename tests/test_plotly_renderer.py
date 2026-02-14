@@ -323,6 +323,126 @@ class TestFillFigureData:
         # xaxis should NOT have a time range set
         assert result.figure.layout.xaxis.range is None
 
+    def test_3row_2col_panel_skeleton(self):
+        """3-row × 2-column grid layout with 6 timeseries panels.
+
+        Verifies that fill_figure_data correctly processes a complex grid
+        layout: 6 independent y-axes with domain splits, 2 x-axis columns,
+        proper anchoring, and matched time axes within each column.
+        """
+        # 6 distinct timeseries entries
+        labels = ["Bmag_L", "Np_L", "Vsw_L", "Bmag_R", "Np_R", "Vsw_R"]
+        descs = ["B (left)", "density (left)", "speed (left)",
+                 "B (right)", "density (right)", "speed (right)"]
+        entries = {}
+        for lbl, desc in zip(labels, descs):
+            entries[lbl] = _make_entry(lbl, n=30, desc=desc)
+
+        # Domain math: 3 rows with 0.05 spacing
+        # Row height h = (1 - 0.05*2) / 3 = 0.3
+        h = 0.3
+        gap = 0.05
+        col_gap = 0.1
+        # Left column x-domain: [0, 0.45], right: [0.55, 1]
+        left_x = [0, 0.45]
+        right_x = [0.55, 1]
+        # Row domains (top to bottom):
+        row1 = [1 - h, 1]           # [0.7, 1.0]
+        row2 = [1 - 2*h - gap, 1 - h - gap]  # [0.35, 0.65]
+        row3 = [0, h]               # [0.0, 0.3]
+
+        fig_json = {
+            "data": [
+                # Left column (panels 1, 2, 3)
+                {"type": "scatter", "data_label": "Bmag_L", "xaxis": "x", "yaxis": "y"},
+                {"type": "scatter", "data_label": "Np_L", "xaxis": "x2", "yaxis": "y2"},
+                {"type": "scatter", "data_label": "Vsw_L", "xaxis": "x3", "yaxis": "y3"},
+                # Right column (panels 4, 5, 6)
+                {"type": "scatter", "data_label": "Bmag_R", "xaxis": "x4", "yaxis": "y4"},
+                {"type": "scatter", "data_label": "Np_R", "xaxis": "x5", "yaxis": "y5"},
+                {"type": "scatter", "data_label": "Vsw_R", "xaxis": "x6", "yaxis": "y6"},
+            ],
+            "layout": {
+                # Left column x-axes
+                "xaxis":  {"domain": left_x, "anchor": "y"},
+                "xaxis2": {"domain": left_x, "anchor": "y2", "matches": "x"},
+                "xaxis3": {"domain": left_x, "anchor": "y3", "matches": "x"},
+                # Right column x-axes
+                "xaxis4": {"domain": right_x, "anchor": "y4"},
+                "xaxis5": {"domain": right_x, "anchor": "y5", "matches": "x4"},
+                "xaxis6": {"domain": right_x, "anchor": "y6", "matches": "x4"},
+                # Y-axes with row domains
+                "yaxis":  {"domain": row1, "anchor": "x", "title": {"text": "B (nT)"}},
+                "yaxis2": {"domain": row2, "anchor": "x2", "title": {"text": "n (cm⁻³)"}},
+                "yaxis3": {"domain": row3, "anchor": "x3", "title": {"text": "V (km/s)"}},
+                "yaxis4": {"domain": row1, "anchor": "x4", "title": {"text": "B (nT)"}},
+                "yaxis5": {"domain": row2, "anchor": "x5", "title": {"text": "n (cm⁻³)"}},
+                "yaxis6": {"domain": row3, "anchor": "x6", "title": {"text": "V (km/s)"}},
+                "title": {"text": "Solar Wind: Two Epochs"},
+            },
+        }
+
+        result = fill_figure_data(fig_json, entries)
+        fig = result.figure
+
+        # --- Panel count: 6 yaxes detected ---
+        assert result.panel_count == 6
+
+        # --- All 6 traces populated with correct data ---
+        assert len(fig.data) == 6
+        for i, trace in enumerate(fig.data):
+            assert len(trace.x) == 30, f"trace {i} x length"
+            assert len(trace.y) == 30, f"trace {i} y length"
+
+        # --- Trace labels match descriptions ---
+        assert result.trace_labels == descs
+
+        # --- Layout: verify all 6 y-axis domains ---
+        # Use pytest.approx for floating-point domain values
+        assert list(fig.layout.yaxis.domain) == pytest.approx(row1)
+        assert list(fig.layout.yaxis2.domain) == pytest.approx(row2)
+        assert list(fig.layout.yaxis3.domain) == pytest.approx(row3)
+        assert list(fig.layout.yaxis4.domain) == pytest.approx(row1)
+        assert list(fig.layout.yaxis5.domain) == pytest.approx(row2)
+        assert list(fig.layout.yaxis6.domain) == pytest.approx(row3)
+
+        # --- Layout: verify x-axis domains for two columns ---
+        assert list(fig.layout.xaxis.domain) == left_x
+        assert list(fig.layout.xaxis2.domain) == left_x
+        assert list(fig.layout.xaxis3.domain) == left_x
+        assert list(fig.layout.xaxis4.domain) == right_x
+        assert list(fig.layout.xaxis5.domain) == right_x
+        assert list(fig.layout.xaxis6.domain) == right_x
+
+        # --- Layout: axis anchoring preserved ---
+        assert fig.layout.yaxis.anchor == "x"
+        assert fig.layout.yaxis4.anchor == "x4"
+        assert fig.layout.xaxis2.anchor == "y2"
+        assert fig.layout.xaxis5.anchor == "y5"
+
+        # --- Layout: matched time axes within columns ---
+        assert fig.layout.xaxis2.matches == "x"
+        assert fig.layout.xaxis3.matches == "x"
+        assert fig.layout.xaxis5.matches == "x4"
+        assert fig.layout.xaxis6.matches == "x4"
+
+        # --- Layout: y-axis titles preserved ---
+        assert fig.layout.yaxis.title.text == "B (nT)"
+        assert fig.layout.yaxis2.title.text == "n (cm⁻³)"
+        assert fig.layout.yaxis3.title.text == "V (km/s)"
+        assert fig.layout.yaxis4.title.text == "B (nT)"
+
+        # --- Sizing: 6 x-axes detected → multi-column width, 6-panel height ---
+        # n_columns = count of xaxis* keys = 6; n_panels = count of yaxis* keys = 6
+        assert fig.layout.height == 300 * 6  # _PANEL_HEIGHT * n_panels
+        assert fig.layout.width == int(1100 * 6 * 0.55)  # n_columns * scaling
+
+        # --- x data is ISO 8601 datetime strings (timeseries) ---
+        assert "2024-01-01" in fig.data[0].x[0]
+
+        # --- Title preserved ---
+        assert fig.layout.title.text == "Solar Wind: Two Epochs"
+
 
 # ---------------------------------------------------------------------------
 # PlotlyRenderer.render_plotly_json (stateful wrapper)

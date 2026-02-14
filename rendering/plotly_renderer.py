@@ -78,6 +78,19 @@ def _extract_index_data(entry: DataEntry) -> tuple[list, bool]:
     return list(idx), False
 
 
+def _update_axis_range(
+    ranges: dict[str, list[str]], ax_key: str, x_min: str, x_max: str,
+) -> None:
+    """Expand the tracked [min, max] range for a given axis key."""
+    if ax_key not in ranges:
+        ranges[ax_key] = [x_min, x_max]
+    else:
+        if x_min < ranges[ax_key][0]:
+            ranges[ax_key][0] = x_min
+        if x_max > ranges[ax_key][1]:
+            ranges[ax_key][1] = x_max
+
+
 # ---------------------------------------------------------------------------
 # Fill function — resolves data_label placeholders in Plotly JSON
 # ---------------------------------------------------------------------------
@@ -117,6 +130,11 @@ def fill_figure_data(
     filled_traces: list[dict] = []
     trace_labels: list[str] = []
     has_datetime_x = False
+    # Track which x-axes carry datetime data (for setting type: "date")
+    datetime_xaxes: set[str] = set()
+    # Track x-data range per datetime axis (for explicit range on auto-ranged axes)
+    # Maps layout key ("xaxis", "xaxis2") → [min_iso, max_iso]
+    datetime_xaxis_ranges: dict[str, list[str]] = {}
 
     for trace_dict in raw_traces:
         trace = dict(trace_dict)  # shallow copy
@@ -139,6 +157,14 @@ def fill_figure_data(
         if is_heatmap:
             _fill_heatmap_trace(trace, entry)
             has_datetime_x = True  # spectrograms are always time-based
+            # Map trace xaxis ref ("x", "x2") → layout key ("xaxis", "xaxis2")
+            xref = trace.get("xaxis", "x")
+            ax_key = "xaxis" + xref[1:]  # "x" → "xaxis", "x2" → "xaxis2"
+            datetime_xaxes.add(ax_key)
+            # Track heatmap x range
+            x_vals = trace.get("x", [])
+            if x_vals:
+                _update_axis_range(datetime_xaxis_ranges, ax_key, x_vals[0], x_vals[-1])
         else:
             # Reject multi-column data — LLM must emit one trace per column
             if entry.values.ndim == 2 and entry.values.shape[1] > 1:
@@ -153,6 +179,12 @@ def fill_figure_data(
             x_data, is_dt = _extract_index_data(entry)
             if is_dt:
                 has_datetime_x = True
+                xref = trace.get("xaxis", "x")
+                ax_key = "xaxis" + xref[1:]
+                datetime_xaxes.add(ax_key)
+                # Track data range for this axis
+                if x_data:
+                    _update_axis_range(datetime_xaxis_ranges, ax_key, x_data[0], x_data[-1])
             trace["x"] = x_data
             trace["y"] = [float(v) if np.isfinite(v) else None for v in vals]
             trace.setdefault("mode", "lines")
@@ -180,6 +212,21 @@ def fill_figure_data(
     )
     # Merge defaults under layout (user layout wins)
     merged_layout = {**defaults, **layout}
+
+    # Ensure x-axes with datetime traces have type: "date" set explicitly.
+    # Without this, Plotly can misinterpret ISO 8601 strings in static export
+    # when no range is set (e.g., per-column zoom where one column has a range
+    # and the other relies on auto-range).
+    #
+    # Also set explicit range on datetime axes that don't already have one.
+    # This works around a kaleido bug where `matches` + auto-range + datetime
+    # produces wrong date scales in static export (e.g., "Jan 2000" instead of
+    # "Jan 2024").
+    for key in datetime_xaxes:
+        if key in merged_layout and isinstance(merged_layout[key], dict):
+            merged_layout[key].setdefault("type", "date")
+            if key in datetime_xaxis_ranges and "range" not in merged_layout[key]:
+                merged_layout[key]["range"] = datetime_xaxis_ranges[key]
 
     # Apply time range constraint only when traces used datetime indices
     if time_range and has_datetime_x:
