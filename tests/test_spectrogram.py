@@ -122,13 +122,12 @@ result = pd.DataFrame({'PSD': Pxx}, index=pd.date_range(df.index[0], periods=len
         with pytest.raises(ValueError, match="must be a DataFrame"):
             execute_spectrogram_computation(df, code)
 
-    def test_result_with_numeric_index_accepted(self):
-        """Result with numeric index is accepted (no DatetimeIndex required)."""
+    def test_result_with_numeric_index_rejected(self):
+        """Spectrograms always require DatetimeIndex — numeric index is rejected."""
         df = _make_timeseries(n=100)
         code = "result = pd.DataFrame({'a': [1.0, 2.0, 3.0]})"
-        result = execute_spectrogram_computation(df, code)
-        assert isinstance(result, pd.DataFrame)
-        assert len(result) == 3
+        with pytest.raises(ValueError, match="DatetimeIndex"):
+            execute_spectrogram_computation(df, code)
 
 
 # ---------------------------------------------------------------------------

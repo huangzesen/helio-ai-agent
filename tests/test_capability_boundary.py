@@ -12,7 +12,7 @@ import numpy as np
 import pandas as pd
 import pytest
 
-from data_ops.custom_ops import run_custom_operation
+from data_ops.custom_ops import run_custom_operation, execute_multi_source_operation
 
 
 def _make_time(n=100, start="2024-01-01", cadence_s=60):
@@ -323,13 +323,25 @@ class TestTier6Limitations:
         with pytest.raises(ValueError, match="validation failed"):
             run_custom_operation(df, "from sklearn.linear_model import LinearRegression\nresult = df")
 
-    def test_result_with_numeric_index_accepted(self):
-        """Operations that produce a numeric index are accepted."""
+    def test_result_with_numeric_index_accepted_legacy(self):
+        """Legacy single-source path accepts numeric index (no enforcement)."""
         idx = _make_time(5)
         df = _make_df(np.arange(5, dtype=float), idx)
         result = run_custom_operation(df, "result = pd.DataFrame({'a': df.values.squeeze()})")
         assert isinstance(result, pd.DataFrame)
         assert len(result) == 5
+
+    def test_timeseries_mode_rejects_lost_index(self):
+        """When source_timeseries flags all sources as timeseries, losing
+        DatetimeIndex raises ValueError."""
+        idx = _make_time(5)
+        sources = {"df_A": _make_df(np.arange(5, dtype=float), idx)}
+        with pytest.raises(ValueError, match="DatetimeIndex"):
+            execute_multi_source_operation(
+                sources,
+                "result = pd.DataFrame({'a': df.values.squeeze()})",
+                source_timeseries={"df_A": True},
+            )
 
     def test_cannot_return_scalar(self):
         """Cannot return a single number — must be DataFrame/Series."""

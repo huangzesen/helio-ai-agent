@@ -1137,8 +1137,20 @@ class OrchestratorAgent:
             has_df_alias = any(not isinstance(v, xr.DataArray) for v in sources.values())
             df_extra = ["df"] if has_df_alias else []
 
+            # Build source_timeseries map: variable name → is_timeseries flag
+            source_ts = {}
+            for label in labels:
+                entry = store.get(label)
+                if entry is not None:
+                    suffix = label.rsplit(".", 1)[-1]
+                    prefix = "da" if entry.is_xarray else "df"
+                    var_name = f"{prefix}_{suffix}"
+                    source_ts[var_name] = entry.is_timeseries
+
             try:
-                op_result, warnings = run_multi_source_operation(sources, tool_args["pandas_code"])
+                op_result, warnings = run_multi_source_operation(
+                    sources, tool_args["pandas_code"], source_timeseries=source_ts,
+                )
             except (ValueError, RuntimeError) as e:
                 prefix = "Validation" if isinstance(e, ValueError) else "Execution"
                 return {
@@ -1151,12 +1163,18 @@ class OrchestratorAgent:
             first_entry = store.get(labels[0])
             units = tool_args.get("units", first_entry.units if first_entry else "")
             desc = tool_args.get("description", f"Custom operation on {', '.join(labels)}")
+            # Result is timeseries if it has a DatetimeIndex (or time dim for xarray)
+            if isinstance(op_result, xr.DataArray):
+                result_is_ts = "time" in op_result.dims
+            else:
+                result_is_ts = isinstance(op_result.index, pd.DatetimeIndex)
             entry = DataEntry(
                 label=tool_args["output_label"],
                 data=op_result,
                 units=units,
                 description=desc,
                 source="computed",
+                is_timeseries=result_is_ts,
             )
             store.put(entry)
 
@@ -1201,6 +1219,7 @@ class OrchestratorAgent:
                 units=tool_args.get("units", ""),
                 description=tool_args.get("description", "Created from code"),
                 source="created",
+                is_timeseries=isinstance(result_df.index, pd.DatetimeIndex),
             )
             store = get_store()
             store.put(entry)
@@ -1242,6 +1261,7 @@ class OrchestratorAgent:
                 description=tool_args.get("description", "Spectrogram"),
                 source="computed",
                 metadata=metadata,
+                is_timeseries=True,
             )
             store.put(entry)
             self.logger.debug(f"[DataOps] Spectrogram -> '{tool_args['output_label']}' ({result_df.shape})")

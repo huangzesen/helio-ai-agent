@@ -194,7 +194,11 @@ class TestExecuteCustomOperation:
             execute_custom_operation(df, "result = 42")
 
     def test_numeric_index_accepted(self):
-        """A result with numeric index (not DatetimeIndex) is accepted."""
+        """A result with numeric index (not DatetimeIndex) is accepted.
+
+        execute_custom_operation uses the legacy single-source path which
+        does NOT enforce DatetimeIndex on the result (require_timeseries=False).
+        """
         idx = _make_time(3)
         df = _make_df(np.ones(3), idx)
         result = execute_custom_operation(df, "result = pd.DataFrame({'a': [1.0, 2.0, 3.0]})")
@@ -619,3 +623,87 @@ class TestSandboxPywt:
         result = execute_multi_source_operation(sources, code)
         assert isinstance(result, pd.DataFrame)
         assert len(result) > 0
+
+
+# ── Timeseries Mode Tests ─────────────────────────────────────────────────
+
+
+class TestTimeseriesMode:
+    """Tests for the per-DataEntry timeseries vs general-data mode."""
+
+    def test_require_timeseries_rejects_numeric_index(self):
+        """When all sources are timeseries, result must have DatetimeIndex."""
+        idx = _make_time(3)
+        sources = {"df_A": _make_df(np.ones(3), idx)}
+        source_ts = {"df_A": True}
+        with pytest.raises(ValueError, match="DatetimeIndex"):
+            execute_multi_source_operation(
+                sources,
+                "result = pd.DataFrame({'a': [1.0, 2.0, 3.0]})",
+                source_timeseries=source_ts,
+            )
+
+    def test_non_timeseries_source_accepts_numeric_index(self):
+        """When source is non-timeseries, numeric index is accepted."""
+        df = pd.DataFrame({"a": [1.0, 2.0, 3.0]})
+        sources = {"df_A": df}
+        source_ts = {"df_A": False}
+        result = execute_multi_source_operation(
+            sources,
+            "result = df * 2",
+            source_timeseries=source_ts,
+        )
+        assert isinstance(result, pd.DataFrame)
+        assert not isinstance(result.index, pd.DatetimeIndex)
+        np.testing.assert_allclose(result["a"].values, [2.0, 4.0, 6.0])
+
+    def test_mixed_sources_accepts_any_index(self):
+        """Mixed timeseries + non-timeseries sources → no DatetimeIndex required."""
+        idx = _make_time(3)
+        ts_df = _make_df(np.array([1.0, 2.0, 3.0]), idx)
+        non_ts_df = pd.DataFrame({"b": [10.0, 20.0, 30.0]})
+        sources = {"df_ts": ts_df, "df_nonts": non_ts_df}
+        source_ts = {"df_ts": True, "df_nonts": False}
+        result = execute_multi_source_operation(
+            sources,
+            "result = pd.DataFrame({'sum': df_ts.values.squeeze() + df_nonts['b'].values})",
+            source_timeseries=source_ts,
+        )
+        assert isinstance(result, pd.DataFrame)
+
+    def test_all_timeseries_preserves_datetime(self):
+        """When all sources are timeseries, result with DatetimeIndex is accepted."""
+        idx = _make_time(3)
+        sources = {"df_A": _make_df(np.array([1.0, 2.0, 3.0]), idx)}
+        source_ts = {"df_A": True}
+        result = execute_multi_source_operation(
+            sources,
+            "result = df * 2",
+            source_timeseries=source_ts,
+        )
+        assert isinstance(result.index, pd.DatetimeIndex)
+        np.testing.assert_allclose(result.values.squeeze(), [2.0, 4.0, 6.0])
+
+    def test_run_multi_source_passes_source_timeseries(self):
+        """run_multi_source_operation propagates source_timeseries correctly."""
+        df = pd.DataFrame({"a": [1.0, 2.0]})
+        sources = {"df_A": df}
+        source_ts = {"df_A": False}
+        result_df, warnings = run_multi_source_operation(
+            sources, "result = df * 3", source_timeseries=source_ts,
+        )
+        assert isinstance(result_df, pd.DataFrame)
+        np.testing.assert_allclose(result_df["a"].values, [3.0, 6.0])
+
+    def test_no_datetime_coercion_for_non_timeseries(self):
+        """Non-timeseries sources should NOT have pd.to_datetime() applied."""
+        # String index that would fail pd.to_datetime()
+        df = pd.DataFrame({"val": [1.0, 2.0]}, index=["event_a", "event_b"])
+        sources = {"df_A": df}
+        source_ts = {"df_A": False}
+        result = execute_multi_source_operation(
+            sources,
+            "result = df * 10",
+            source_timeseries=source_ts,
+        )
+        assert list(result.index) == ["event_a", "event_b"]

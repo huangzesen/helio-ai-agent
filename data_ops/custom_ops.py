@@ -121,22 +121,26 @@ def _execute_in_sandbox(code: str, namespace: dict) -> object:
     return result
 
 
-def _validate_result(result: object) -> pd.DataFrame | xr.DataArray:
+def _validate_result(
+    result: object, require_timeseries: bool = False,
+) -> pd.DataFrame | xr.DataArray:
     """Validate that the sandbox result is a DataFrame or xarray DataArray.
 
     - Series → converted to single-column DataFrame
     - xarray DataArray with ``time`` dim → returned as-is (any dimensionality)
-    - DataFrame with any index type (DatetimeIndex, numeric, string) → accepted
+    - DataFrame → accepted; if ``require_timeseries`` is True, must have DatetimeIndex
     - Other types → error
 
     Args:
         result: The value produced by sandbox execution.
+        require_timeseries: If True, enforce that DataFrame results have a
+            DatetimeIndex. Used when all source data is timeseries.
 
     Returns:
         Validated DataFrame or DataArray.
 
     Raises:
-        ValueError: If result is None or wrong type.
+        ValueError: If result is None, wrong type, or fails timeseries check.
     """
     if result is None:
         raise ValueError("Code did not assign a value to 'result'")
@@ -162,11 +166,20 @@ def _validate_result(result: object) -> pd.DataFrame | xr.DataArray:
             f"got {type(result).__name__}"
         )
 
+    if require_timeseries and not isinstance(result.index, pd.DatetimeIndex):
+        raise ValueError(
+            f"Result must have a DatetimeIndex (got {type(result.index).__name__}). "
+            f"All source data is timeseries, so the result should preserve "
+            f"the time axis. Use df.index for the time values."
+        )
+
     return result
 
 
 def execute_multi_source_operation(
-    sources: dict[str, pd.DataFrame | xr.DataArray], code: str
+    sources: dict[str, pd.DataFrame | xr.DataArray],
+    code: str,
+    source_timeseries: dict[str, bool] | None = None,
 ) -> pd.DataFrame | xr.DataArray:
     """Execute validated pandas/xarray code with multiple sources.
 
@@ -180,9 +193,12 @@ def execute_multi_source_operation(
     Args:
         sources: Mapping of variable names to DataFrames or DataArrays.
         code: Validated Python code that assigns to 'result'.
+        source_timeseries: Optional map of variable name → is_timeseries flag.
+            When provided, only coerce to DatetimeIndex for timeseries sources.
+            When None, all DataFrame sources are coerced (backward compat).
 
     Returns:
-        Result DataFrame with DatetimeIndex, or xarray DataArray with time dim.
+        Result DataFrame or xarray DataArray.
 
     Raises:
         RuntimeError: If code execution fails.
@@ -197,15 +213,22 @@ def execute_multi_source_operation(
             namespace[key] = data.copy()
         else:
             df = data.copy()
-            if not isinstance(df.index, pd.DatetimeIndex):
+            # Only coerce to DatetimeIndex for timeseries sources
+            is_ts = source_timeseries.get(key, True) if source_timeseries else True
+            if is_ts and not isinstance(df.index, pd.DatetimeIndex):
                 df.index = pd.to_datetime(df.index)
             namespace[key] = df
             if first_df_key is None:
                 first_df_key = key
                 namespace["df"] = df
 
+    # Enforce DatetimeIndex on result only when all sources are timeseries
+    if source_timeseries is not None:
+        all_ts = all(source_timeseries.get(k, True) for k in sources)
+    else:
+        all_ts = True  # backward compat: assume timeseries
     result = _execute_in_sandbox(code, namespace)
-    return _validate_result(result)
+    return _validate_result(result, require_timeseries=all_ts)
 
 
 def validate_result(
@@ -298,7 +321,9 @@ def validate_result(
 
 
 def run_multi_source_operation(
-    sources: dict[str, pd.DataFrame | xr.DataArray], code: str
+    sources: dict[str, pd.DataFrame | xr.DataArray],
+    code: str,
+    source_timeseries: dict[str, bool] | None = None,
 ) -> tuple[pd.DataFrame | xr.DataArray, list[str]]:
     """Validate code, execute with multiple sources, then validate result.
 
@@ -308,6 +333,8 @@ def run_multi_source_operation(
     Args:
         sources: Mapping of variable names to source DataFrames/DataArrays.
         code: Python code that operates on named variables and assigns to 'result'.
+        source_timeseries: Optional map of variable name → is_timeseries flag.
+            Passed through to ``execute_multi_source_operation``.
 
     Returns:
         Tuple of (result DataFrame or DataArray, list of warning strings).
@@ -321,7 +348,7 @@ def run_multi_source_operation(
         raise ValueError(
             "Code validation failed:\n" + "\n".join(f"  - {v}" for v in violations)
         )
-    result = execute_multi_source_operation(sources, code)
+    result = execute_multi_source_operation(sources, code, source_timeseries=source_timeseries)
     warnings = validate_result(result, sources)
     return result, warnings
 
@@ -424,7 +451,7 @@ def execute_spectrogram_computation(df: pd.DataFrame, code: str) -> pd.DataFrame
     result = _execute_in_sandbox(
         code, {"df": df, "pd": pd, "np": np, "xr": xr, "signal": signal, "result": None}
     )
-    return _validate_result(result)
+    return _validate_result(result, require_timeseries=True)
 
 
 def run_spectrogram_computation(df: pd.DataFrame, code: str) -> pd.DataFrame:

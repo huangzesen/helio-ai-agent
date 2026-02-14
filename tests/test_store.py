@@ -84,6 +84,40 @@ class TestDataEntry:
         assert v.shape == (5, 3)
 
 
+    def test_summary_non_timeseries(self):
+        """Non-timeseries entry uses index_min/index_max instead of time_min/time_max."""
+        df = pd.DataFrame({"flux": [1.0, 2.0, 3.0]}, index=[10, 20, 30])
+        entry = DataEntry(
+            label="events",
+            data=df,
+            units="",
+            description="Event catalog",
+            source="created",
+            is_timeseries=False,
+        )
+        s = entry.summary()
+        assert s["label"] == "events"
+        assert s["num_points"] == 3
+        assert "time_min" not in s
+        assert "time_max" not in s
+        assert s["index_min"] == "10"
+        assert s["index_max"] == "30"
+
+    def test_summary_non_timeseries_empty(self):
+        """Empty non-timeseries entry should have None index_min/index_max."""
+        df = pd.DataFrame({"val": pd.Series(dtype=float)})
+        entry = DataEntry(label="empty_nt", data=df, is_timeseries=False)
+        s = entry.summary()
+        assert s["index_min"] is None
+        assert s["index_max"] is None
+        assert "time_min" not in s
+
+    def test_is_timeseries_default_true(self):
+        """is_timeseries defaults to True."""
+        entry = _make_entry("A")
+        assert entry.is_timeseries is True
+
+
 class TestDataStore:
     def test_put_and_get(self):
         store = DataStore()
@@ -212,6 +246,49 @@ class TestDescribeSources:
         store = DataStore()
         info = describe_sources(store, ["NONEXISTENT"])
         assert info == {}
+
+    def test_non_timeseries_summary(self):
+        """Non-timeseries entries use index_range instead of time_range/cadence."""
+        store = DataStore()
+        df = pd.DataFrame({"flux": [1.0, 2.0, 3.0]}, index=[10, 20, 30])
+        entry = DataEntry(label="EVENTS.catalog", data=df, is_timeseries=False)
+        store.put(entry)
+        info = describe_sources(store, ["EVENTS.catalog"])
+        assert "df_catalog" in info
+        summary = info["df_catalog"]
+        assert "time_range" not in summary
+        assert "cadence" not in summary
+        assert summary["index_range"] == ["10", "30"]
+
+
+# ---------------------------------------------------------------------------
+# Persistence tests
+# ---------------------------------------------------------------------------
+
+
+class TestPersistence:
+    def test_is_timeseries_persists(self, tmp_path):
+        """is_timeseries flag should survive save/load cycle."""
+        store = DataStore()
+        # Timeseries entry
+        ts_entry = _make_entry("ts_data", n=5)
+        assert ts_entry.is_timeseries is True
+        store.put(ts_entry)
+        # Non-timeseries entry
+        df = pd.DataFrame({"val": [1.0, 2.0]}, index=[0, 1])
+        nt_entry = DataEntry(label="nt_data", data=df, is_timeseries=False)
+        store.put(nt_entry)
+
+        store.save_to_directory(tmp_path)
+
+        store2 = DataStore()
+        count = store2.load_from_directory(tmp_path)
+        assert count == 2
+
+        loaded_ts = store2.get("ts_data")
+        assert loaded_ts.is_timeseries is True
+        loaded_nt = store2.get("nt_data")
+        assert loaded_nt.is_timeseries is False
 
 
 # ---------------------------------------------------------------------------

@@ -1,7 +1,8 @@
 """
-In-memory timeseries store.
+In-memory data store.
 
-DataEntry holds a single timeseries as a pandas DataFrame (DatetimeIndex + value columns).
+DataEntry holds a single dataset as a pandas DataFrame or xarray DataArray.
+Timeseries entries have DatetimeIndex; general-data entries may have numeric/string indices.
 DataStore is a singleton dict-like container keyed by label strings.
 """
 
@@ -22,7 +23,7 @@ _UNSAFE_CHARS = re.compile(r'[/\\:*?"<>|]')
 
 @dataclass
 class DataEntry:
-    """A single timeseries stored in memory.
+    """A single dataset stored in memory.
 
     Attributes:
         label: Unique identifier (e.g., "AC_H2_MFI.BGSEc" or "Bmag").
@@ -30,6 +31,8 @@ class DataEntry:
         units: Physical units string (e.g., "nT").
         description: Human-readable description.
         source: Origin — "cdf" for fetched data, "computed" for derived data.
+        is_timeseries: True if this entry has a DatetimeIndex (default).
+            False for general-data entries (event catalogs, scatter data, etc.).
     """
 
     label: str
@@ -38,6 +41,7 @@ class DataEntry:
     description: str = ""
     source: str = "computed"
     metadata: dict | None = None
+    is_timeseries: bool = True
 
     @property
     def is_xarray(self) -> bool:
@@ -81,11 +85,23 @@ class DataEntry:
             "num_points": n,
             "shape": shape_desc,
             "units": self.units,
-            "time_min": str(self.data.index[0]) if n > 0 else None,
-            "time_max": str(self.data.index[-1]) if n > 0 else None,
             "description": self.description,
             "source": self.source,
         }
+        if n > 0:
+            if self.is_timeseries:
+                result["time_min"] = str(self.data.index[0])
+                result["time_max"] = str(self.data.index[-1])
+            else:
+                result["index_min"] = str(self.data.index[0])
+                result["index_max"] = str(self.data.index[-1])
+        else:
+            if self.is_timeseries:
+                result["time_min"] = None
+                result["time_max"] = None
+            else:
+                result["index_min"] = None
+                result["index_max"] = None
         if self.metadata:
             result["metadata"] = self.metadata
         return result
@@ -200,6 +216,7 @@ class DataStore:
                     "units": entry.units,
                     "description": entry.description,
                     "source": entry.source,
+                    "is_timeseries": entry.is_timeseries,
                 }
                 if entry.metadata is not None:
                     entry_meta["metadata"] = entry.metadata
@@ -239,6 +256,7 @@ class DataStore:
                 description=info.get("description", ""),
                 source=info.get("source", "computed"),
                 metadata=info.get("metadata"),
+                is_timeseries=info.get("is_timeseries", True),
             )
             self.put(entry)
             count += 1
@@ -359,24 +377,31 @@ def describe_sources(store: DataStore, labels: list[str]) -> dict:
             df = entry.data
             var_name = f"df_{suffix}"
 
-            cadence_str = ""
-            if len(df) > 1:
-                dt = pd.Series(df.index).diff().dropna().median()
-                cadence_str = str(dt)
-
             total_cells = df.size
             nan_pct = round(df.isna().sum().sum() / total_cells * 100, 1) if total_cells > 0 else 0.0
 
-            time_range = []
-            if len(df) > 0:
-                time_range = [str(df.index[0].date()), str(df.index[-1].date())]
-
-            result[var_name] = {
+            info = {
                 "label": label,
                 "columns": list(df.columns),
                 "points": len(df),
-                "cadence": cadence_str,
                 "nan_pct": nan_pct,
-                "time_range": time_range,
             }
+
+            if entry.is_timeseries:
+                cadence_str = ""
+                if len(df) > 1:
+                    dt = pd.Series(df.index).diff().dropna().median()
+                    cadence_str = str(dt)
+                info["cadence"] = cadence_str
+                if len(df) > 0:
+                    info["time_range"] = [str(df.index[0].date()), str(df.index[-1].date())]
+                else:
+                    info["time_range"] = []
+            else:
+                if len(df) > 0:
+                    info["index_range"] = [str(df.index[0]), str(df.index[-1])]
+                else:
+                    info["index_range"] = []
+
+            result[var_name] = info
     return result
