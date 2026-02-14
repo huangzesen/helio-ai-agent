@@ -87,6 +87,7 @@ class DataEntry:
             "units": self.units,
             "description": self.description,
             "source": self.source,
+            "is_timeseries": self.is_timeseries,
         }
         if n > 0:
             if self.is_timeseries:

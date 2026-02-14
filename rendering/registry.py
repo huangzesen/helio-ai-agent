@@ -22,7 +22,8 @@ TOOLS = [
                             "each with 'data_label' and standard Plotly trace properties) "
                             "and 'layout' (standard Plotly layout dict). "
                             "Each trace's 'data_label' fills x from the DataFrame index "
-                            "(timestamps for timeseries, numeric values for non-time data) "
+                            "(timestamps for timeseries entries where is_timeseries is true, "
+                            "raw index values for general data where is_timeseries is false) "
                             "and y from column values. "
                             "Multi-panel: define yaxis, yaxis2 with domains."},
         ],

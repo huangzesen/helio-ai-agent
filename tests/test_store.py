@@ -117,6 +117,19 @@ class TestDataEntry:
         entry = _make_entry("A")
         assert entry.is_timeseries is True
 
+    def test_summary_includes_is_timeseries_true(self):
+        """Timeseries summary dict includes is_timeseries: True."""
+        entry = _make_entry("Bmag", n=10)
+        s = entry.summary()
+        assert s["is_timeseries"] is True
+
+    def test_summary_includes_is_timeseries_false(self):
+        """Non-timeseries summary dict includes is_timeseries: False."""
+        df = pd.DataFrame({"flux": [1.0, 2.0]}, index=[10, 20])
+        entry = DataEntry(label="events", data=df, is_timeseries=False)
+        s = entry.summary()
+        assert s["is_timeseries"] is False
+
 
 class TestDataStore:
     def test_put_and_get(self):

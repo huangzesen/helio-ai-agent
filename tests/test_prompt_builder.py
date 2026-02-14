@@ -19,6 +19,7 @@ from knowledge.prompt_builder import (
     build_system_prompt,
     build_planner_agent_prompt,
     build_visualization_prompt,
+    build_visualization_think_prompt,
     build_discovery_prompt,
 )
 
@@ -464,6 +465,14 @@ class TestBuildVisualizationPrompt:
         assert "manage_plot" in prompt
         assert "list_fetched_data" in prompt
 
+    def test_has_timeseries_vs_general_data_section(self):
+        """Viz prompt should explain timeseries vs general-data handling."""
+        prompt = build_visualization_prompt()
+        assert "## Timeseries vs General Data" in prompt
+        assert "is_timeseries: true" in prompt
+        assert "is_timeseries: false" in prompt
+        assert "set_time_range" in prompt
+
     def test_no_deleted_method_references(self):
         """Deleted registry methods should not appear in the prompt."""
         prompt = build_visualization_prompt()
@@ -471,6 +480,15 @@ class TestBuildVisualizationPrompt:
         assert "set_color_table" not in prompt
         assert "save_session" not in prompt
         assert "load_session" not in prompt
+
+
+class TestBuildVisualizationThinkPrompt:
+    """Test the visualization agent's think phase prompt builder."""
+
+    def test_mentions_data_mode(self):
+        """Think prompt should ask about timeseries vs general-data."""
+        prompt = build_visualization_think_prompt()
+        assert "is_timeseries" in prompt
 
 
 class TestClassifyInstrumentType:
