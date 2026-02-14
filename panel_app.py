@@ -933,10 +933,10 @@ class ChatPage(param.Parameterized):
             header_background="#0097b2",
             sidebar_width=280,
             collapsed_sidebar=True,
-            right_sidebar_width=300,
+            right_sidebar_width=420,
             collapsed_right_sidebar=True,
             theme="default",
-            theme_toggle=True,
+            theme_toggle=False,
             raw_css=[CUSTOM_CSS],
         )
 
@@ -1371,7 +1371,7 @@ class DataPage(param.Parameterized):
             accent_base_color="#00b8d9",
             header_background="#0097b2",
             theme="default",
-            theme_toggle=True,
+            theme_toggle=False,
             raw_css=[CUSTOM_CSS],
         )
 
