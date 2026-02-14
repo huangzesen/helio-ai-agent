@@ -163,7 +163,7 @@ class TestRenderMethodCatalog:
     def test_descriptions_included(self):
         result = render_method_catalog()
         assert "unified specification" in result
-        assert "Structural operations" in result
+        assert "Imperative operations" in result
 
     def test_examples_section(self):
         result = render_method_catalog()

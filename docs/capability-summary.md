@@ -146,7 +146,7 @@ agent/core.py  OrchestratorAgent  (LLM-driven orchestrator)
 | Tool | Purpose |
 |------|---------|
 | `update_plot_spec` | Create or update plots via a single unified JSON spec. Layout changes trigger re-render; style-only changes are applied in-place. |
-| `manage_plot` | Structural operations: export (PNG/PDF), reset, zoom/time range, add/remove traces |
+| `manage_plot` | Imperative operations on the current figure: export (PNG/PDF), reset, zoom/time range, get state |
 
 The viz agent uses `update_plot_spec` and `manage_plot` for all visualization operations. The system diffs the new spec against the current one and decides whether to re-render (layout changed) or restyle in-place (only aesthetics changed). The tool registry (`rendering/registry.py`) describes both tools with their parameters and examples. `plot_data` and `style_plot` have been removed from the LLM-facing tool set (the Python methods remain as internal implementation).
 

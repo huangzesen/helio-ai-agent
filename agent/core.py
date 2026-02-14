@@ -819,23 +819,6 @@ class OrchestratorAgent:
 
             return result
 
-        elif action == "remove_trace":
-            label = tool_args.get("label")
-            if not label:
-                return {"status": "error", "message": "label is required for remove_trace"}
-            return self._renderer.manage("remove_trace", label=label)
-
-        elif action == "add_trace":
-            label = tool_args.get("label")
-            if not label:
-                return {"status": "error", "message": "label is required for add_trace"}
-            store = get_store()
-            entry = store.get(label)
-            if entry is None:
-                return {"status": "error", "message": f"Label '{label}' not found in memory"}
-            panel = int(tool_args.get("panel", 1))
-            return self._renderer.manage("add_trace", entry=entry, panel=panel)
-
         else:
             return {"status": "error", "message": f"Unknown action: {action}"}
 

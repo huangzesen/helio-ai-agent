@@ -84,8 +84,8 @@ OrchestratorAgent (HIGH thinking, Gemini 3 Pro)
 │
 ├── VisualizationAgent (LOW thinking, Gemini 3 Flash)
 │   ├─ Singleton (cached)
-│   ├─ Tools: plot_data, style_plot, manage_plot
-│   └─ Declarative key-value params (no code generation)
+│   ├─ Tools: update_plot_spec, manage_plot, list_fetched_data
+│   └─ Spec-based workflow (layout diff → re-render or restyle)
 │
 ├── PlannerAgent (HIGH thinking, Gemini 3 Pro)
 │   ├─ Two-phase: discovery (tools) → planning (JSON schema)
@@ -374,11 +374,10 @@ VisualizationAgent
 │  ├─ reset, get_state                         │
 │  ├─ set_time_range (zoom)                    │
 │  ├─ export (PNG/PDF via kaleido)             │
-│  ├─ remove_trace, add_trace                  │
 │  └─ auto-opens unless web_mode=True          │
 │                                              │
 │  Validation via registry.py:                 │
-│  └─ 3 tool schemas with typed parameters     │
+│  └─ 2 tool schemas with typed parameters     │
 │                                              │
 └──────────────────────────────────────────────┘
     │

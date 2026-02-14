@@ -28,10 +28,10 @@ TOOLS = [
     },
     {
         "name": "manage_plot",
-        "description": "Structural operations on the plot: export, reset, zoom, get state, add/remove traces.",
+        "description": "Imperative operations on the current figure: export, reset, zoom, get state.",
         "parameters": [
             {"name": "action", "type": "string", "required": True,
-             "enum": ["reset", "get_state", "set_time_range", "export", "remove_trace", "add_trace"],
+             "enum": ["reset", "get_state", "set_time_range", "export"],
              "description": "Action to perform"},
             {"name": "filename", "type": "string", "required": False,
              "description": "Output filename for export action"},
@@ -40,10 +40,6 @@ TOOLS = [
              "description": "Export format (default: png)"},
             {"name": "time_range", "type": "string", "required": False,
              "description": "Time range for set_time_range action (e.g., '2024-01-15 to 2024-01-20')"},
-            {"name": "label", "type": "string", "required": False,
-             "description": "Trace label for remove_trace or add_trace actions"},
-            {"name": "panel", "type": "integer", "required": False, "default": 1,
-             "description": "Target panel (1-based) for add_trace action"},
         ],
     },
 ]
@@ -134,7 +130,6 @@ def render_method_catalog() -> str:
         "- Zoom: `manage_plot(action=\"set_time_range\", time_range=\"2024-01-15 to 2024-01-20\")`",
         "- Reset: `manage_plot(action=\"reset\")`",
         "- Get state: `manage_plot(action=\"get_state\")`",
-        "- Remove trace: `manage_plot(action=\"remove_trace\", label=\"ACE Bmag\")`",
         "",
     ])
 

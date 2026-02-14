@@ -377,30 +377,6 @@ class TestManage:
         assert result["has_plot"] is False
         assert result["traces"] == []
 
-    def test_remove_trace(self, renderer):
-        e1 = _make_entry("A", n=10, desc="Alpha")
-        e2 = _make_entry("B", n=10, desc="Beta")
-        renderer.plot_data([e1, e2])
-        assert len(renderer.get_figure().data) == 2
-
-        result = renderer.manage("remove_trace", label="Alpha")
-        assert result["status"] == "success"
-        assert len(renderer.get_figure().data) == 1
-        assert renderer._trace_labels == ["Beta"]
-
-    def test_remove_trace_not_found(self, renderer):
-        renderer.plot_data([_make_entry("A", desc="Alpha")])
-        result = renderer.manage("remove_trace", label="Nonexistent")
-        assert result["status"] == "error"
-
-    def test_add_trace(self, renderer):
-        renderer.plot_data([_make_entry("A", n=10, desc="Alpha")])
-        e2 = _make_entry("B", n=10, desc="Beta")
-        result = renderer.manage("add_trace", entry=e2, panel=1)
-        assert result["status"] == "success"
-        assert len(renderer.get_figure().data) == 2
-        assert "Beta" in renderer._trace_labels
-
     def test_unknown_action(self, renderer):
         result = renderer.manage("nonexistent")
         assert result["status"] == "error"

@@ -563,14 +563,14 @@ fields you want in the final result, not just the changes.""",
     {
         "category": "visualization",
         "name": "manage_plot",
-        "description": """Structural operations on the plot: export, reset, zoom, get state, add/remove traces.
+        "description": """Imperative operations on the current figure: export, reset, zoom, get state.
 Use action parameter to select the operation.""",
         "parameters": {
             "type": "object",
             "properties": {
                 "action": {
                     "type": "string",
-                    "enum": ["reset", "get_state", "set_time_range", "export", "remove_trace", "add_trace"],
+                    "enum": ["reset", "get_state", "set_time_range", "export"],
                     "description": "Action to perform"
                 },
                 "filename": {
@@ -585,14 +585,6 @@ Use action parameter to select the operation.""",
                 "time_range": {
                     "type": "string",
                     "description": "Time range for set_time_range action (e.g., '2024-01-15 to 2024-01-20')"
-                },
-                "label": {
-                    "type": "string",
-                    "description": "Trace label for remove_trace or add_trace actions"
-                },
-                "panel": {
-                    "type": "integer",
-                    "description": "Target panel (1-based) for add_trace action"
                 }
             },
             "required": ["action"]

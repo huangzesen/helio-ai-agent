@@ -1205,7 +1205,7 @@ class PlotlyRenderer:
 
         Args:
             action: One of "reset", "get_state", "set_time_range",
-                    "export", "remove_trace", "add_trace".
+                    "export".
             **kwargs: Action-specific parameters.
 
         Returns:
@@ -1227,19 +1227,6 @@ class PlotlyRenderer:
             filename = kwargs.get("filename", "output.png")
             fmt = kwargs.get("format", "png")
             return self.export(filename, format=fmt)
-
-        elif action == "remove_trace":
-            label = kwargs.get("label")
-            if label is None:
-                return {"status": "error", "message": "label is required"}
-            return self._remove_trace(label)
-
-        elif action == "add_trace":
-            entry = kwargs.get("entry")
-            panel = kwargs.get("panel", 1)
-            if entry is None:
-                return {"status": "error", "message": "entry is required"}
-            return self._add_trace_to_existing(entry, panel)
 
         else:
             return {"status": "error", "message": f"Unknown action: {action}"}
