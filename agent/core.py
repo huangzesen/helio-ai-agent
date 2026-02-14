@@ -707,6 +707,41 @@ class OrchestratorAgent:
             return {"status": "error", "message": "spec.labels is required"}
         return self._handle_render_spec({"spec": new_spec})
 
+    def _handle_render_plotly_json(self, tool_args: dict) -> dict:
+        """Handle render_plotly_json: fill data_label placeholders and render."""
+        fig_json = tool_args.get("figure_json", {})
+        data_traces = fig_json.get("data", [])
+        if not data_traces:
+            return {"status": "error", "message": "figure_json.data is required (array of traces)"}
+
+        # Collect all data_label values and resolve entries
+        store = get_store()
+        entry_map: dict = {}
+        for trace in data_traces:
+            label = trace.get("data_label")
+            if label and label not in entry_map:
+                entry, _ = self._resolve_entry(store, label)
+                if entry is None:
+                    return {"status": "error", "message": f"data_label '{label}' not found in memory"}
+                entry_map[label] = entry
+
+        # Validate non-empty data
+        for label, entry in entry_map.items():
+            if len(entry.data) == 0:
+                return {"status": "error",
+                        "message": f"Entry '{label}' has no data points"}
+
+        try:
+            result = self._renderer.render_plotly_json(fig_json, entry_map)
+        except Exception as e:
+            return {"status": "error", "message": str(e)}
+
+        review = result.get("review", {})
+        for w in review.get("warnings", []):
+            self.logger.debug(f"[PlotReview] {w}")
+
+        return result
+
     def _handle_manage_plot(self, tool_args: dict) -> dict:
         """Handle the manage_plot tool call."""
         action = tool_args.get("action")
@@ -893,6 +928,9 @@ class OrchestratorAgent:
             }
 
         # --- Visualization (declarative tools) ---
+
+        elif tool_name == "render_plotly_json":
+            return self._handle_render_plotly_json(tool_args)
 
         elif tool_name == "update_plot_spec":
             return self._handle_update_plot_spec(tool_args)
@@ -1895,19 +1933,19 @@ class OrchestratorAgent:
             # LLM-mediated mode: pipeline already executed, now apply modifications
             context = pipeline.to_llm_context()
 
-            # Detect whether pipeline has render_spec steps (unified spec)
-            has_render_spec = any(s.tool_name in ("render_spec", "update_plot_spec") for s in pipeline.steps)
+            # Detect whether pipeline has render_spec/visualization steps
+            has_render_spec = any(s.tool_name in ("render_spec", "update_plot_spec", "render_plotly_json") for s in pipeline.steps)
             if has_render_spec:
                 style_guidance = (
-                    "This pipeline uses a unified plot spec. "
+                    "This pipeline uses a plot spec. "
                     "For style-only changes (colors, labels, scale, etc.), "
-                    "use update_plot_spec — it detects style-only changes and applies them in-place. "
+                    "use render_plotly_json — generate the complete Plotly figure JSON. "
                     "Do NOT re-fetch data unless the modification specifically requires it."
                 )
             else:
                 style_guidance = (
-                    "For style changes, use update_plot_spec. "
-                    "For adding new computations, use custom_operation then add traces with manage_plot."
+                    "For style changes, use render_plotly_json to generate the Plotly figure JSON. "
+                    "For adding new computations, use custom_operation then plot with render_plotly_json."
                 )
 
             mod_prompt = (
@@ -2307,11 +2345,12 @@ class OrchestratorAgent:
                 self._handle_export_task(task)
             else:
                 # Plot tasks: ensure instruction includes actual labels
-                has_tool_ref = "update_plot_spec" in instr_lower
+                has_tool_ref = ("render_plotly_json" in instr_lower or
+                                "update_plot_spec" in instr_lower)
                 if not has_tool_ref and entries:
                     all_labels = ",".join(e["label"] for e in entries)
                     task.instruction = (
-                        f"Use update_plot_spec to plot {all_labels}. "
+                        f"Use render_plotly_json to plot {all_labels}. "
                         f"Original request: {task.instruction}"
                     )
 

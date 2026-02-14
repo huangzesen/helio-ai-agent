@@ -30,12 +30,12 @@ class TestRegistryStructure:
         names = [t["name"] for t in TOOLS]
         assert len(names) == len(set(names)), f"Duplicate tool names: {[n for n in names if names.count(n) > 1]}"
 
-    def test_tool_count_is_2(self):
-        assert len(TOOLS) == 2
+    def test_tool_count(self):
+        assert len(TOOLS) == 3  # render_plotly_json, update_plot_spec (legacy), manage_plot
 
     def test_tool_names(self):
         names = {t["name"] for t in TOOLS}
-        assert names == {"update_plot_spec", "manage_plot"}
+        assert names == {"render_plotly_json", "update_plot_spec", "manage_plot"}
 
     def test_parameters_have_required_fields(self):
         for t in TOOLS:
@@ -44,6 +44,14 @@ class TestRegistryStructure:
                 assert "type" in p, f"{t['name']}.{p.get('name', '?')}: missing 'type'"
                 assert "required" in p, f"{t['name']}.{p['name']}: missing 'required'"
                 assert "description" in p, f"{t['name']}.{p['name']}: missing 'description'"
+
+    def test_render_plotly_json_has_figure_json_param(self):
+        t = get_method("render_plotly_json")
+        assert t is not None
+        param_names = [p["name"] for p in t["parameters"]]
+        assert "figure_json" in param_names
+        param = next(p for p in t["parameters"] if p["name"] == "figure_json")
+        assert param["required"] is True
 
     def test_update_plot_spec_has_spec_param(self):
         t = get_method("update_plot_spec")
@@ -72,15 +80,14 @@ class TestRegistryStructure:
         assert fmt_param["default"] == "png"
         assert set(fmt_param["enum"]) == {"png", "pdf"}
 
-    def test_update_plot_spec_spec_is_required(self):
-        t = get_method("update_plot_spec")
-        assert t is not None
-        spec_param = next(p for p in t["parameters"] if p["name"] == "spec")
-        assert spec_param["required"] is True
-
 
 class TestGetMethod:
     def test_known_tool(self):
+        t = get_method("render_plotly_json")
+        assert t is not None
+        assert t["name"] == "render_plotly_json"
+
+    def test_legacy_tool(self):
         t = get_method("update_plot_spec")
         assert t is not None
         assert t["name"] == "update_plot_spec"
@@ -107,10 +114,20 @@ class TestGetMethod:
 
 class TestValidateArgs:
     def test_missing_required_param(self):
+        errors = validate_args("render_plotly_json", {})
+        assert any("figure_json" in e for e in errors)
+
+    def test_valid_args(self):
+        errors = validate_args("render_plotly_json", {
+            "figure_json": {"data": [{"data_label": "X"}], "layout": {}}
+        })
+        assert errors == []
+
+    def test_legacy_missing_required_param(self):
         errors = validate_args("update_plot_spec", {})
         assert any("spec" in e for e in errors)
 
-    def test_valid_args(self):
+    def test_legacy_valid_args(self):
         errors = validate_args("update_plot_spec", {"spec": {"labels": "ACE_Bmag"}})
         assert errors == []
 
@@ -162,11 +179,11 @@ class TestRenderMethodCatalog:
 
     def test_descriptions_included(self):
         result = render_method_catalog()
-        assert "unified specification" in result
+        assert "data_label" in result
         assert "Imperative operations" in result
 
     def test_examples_section(self):
         result = render_method_catalog()
         assert "## Examples" in result
-        assert "update_plot_spec" in result
+        assert "render_plotly_json" in result
         assert "manage_plot" in result

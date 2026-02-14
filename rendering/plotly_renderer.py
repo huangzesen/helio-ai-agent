@@ -445,6 +445,270 @@ def _resolve_column_sublabel(
     return None
 
 
+# ---------------------------------------------------------------------------
+# Fill function — resolves data_label placeholders in Plotly JSON
+# ---------------------------------------------------------------------------
+
+def fill_figure_data(
+    fig_json: dict,
+    entries: dict[str, DataEntry],
+    color_state: ColorState,
+    time_range: str | None = None,
+) -> RenderResult:
+    """Fill data_label placeholders in a Plotly figure JSON with actual data.
+
+    The LLM generates a Plotly figure JSON where each trace has a ``data_label``
+    field instead of actual x/y/z arrays.  This function resolves those
+    placeholders by looking up the corresponding DataEntry objects, extracting
+    time and value arrays, and populating the trace dicts.
+
+    Handles:
+    - Time extraction (DatetimeIndex/xarray → ISO 8601 strings)
+    - Vector decomposition (2D data → expand 1 stub into N traces)
+    - Downsampling via min-max decimation for large traces
+    - NaN → None conversion (Plotly requirement)
+    - Scatter → Scattergl promotion for >100K points
+    - Spectrogram/heatmap data population (x=times, y=bins, z=values)
+    - Colorbar positioning from yaxis domain in layout
+
+    Args:
+        fig_json: Plotly figure dict with ``data`` and ``layout`` keys.
+            Each trace in ``data`` must have a ``data_label`` field.
+        entries: Mapping of label → DataEntry for all referenced labels.
+        color_state: ColorState for stable cross-render coloring.
+        time_range: Optional time range string (``"start to end"``).
+
+    Returns:
+        RenderResult with the constructed go.Figure and metadata.
+    """
+    layout = fig_json.get("layout", {})
+    raw_traces = fig_json.get("data", [])
+
+    filled_traces: list[dict] = []
+    trace_labels: list[str] = []
+    trace_panels: list[tuple[int, int]] = []
+
+    for trace_dict in raw_traces:
+        trace = dict(trace_dict)  # shallow copy
+        label = trace.pop("data_label", None)
+        if label is None:
+            # Trace without data_label — pass through as-is (e.g., shapes)
+            filled_traces.append(trace)
+            continue
+
+        # Resolve entry
+        entry = entries.get(label)
+        if entry is None:
+            entry = _resolve_column_sublabel(label, entries)
+        if entry is None:
+            raise ValueError(f"data_label '{label}' not found in provided entries")
+
+        trace_type = trace.get("type", "scatter").lower()
+        is_heatmap = trace_type in ("heatmap", "heatmapgl")
+
+        # Determine axis indices for panel tracking
+        xaxis_ref = trace.get("xaxis", "x")
+        yaxis_ref = trace.get("yaxis", "y")
+        # "x" → 1, "x2" → 2, etc.
+        row = int(yaxis_ref[1:]) if len(yaxis_ref) > 1 else 1
+        col = int(xaxis_ref[1:]) if len(xaxis_ref) > 1 else 1
+
+        if is_heatmap:
+            _fill_heatmap_trace(trace, entry, layout, trace_type)
+            display_name = trace.get("name") or entry.description or entry.label
+            trace["name"] = display_name
+            filled_traces.append(trace)
+            trace_labels.append(display_name)
+            trace_panels.append((row, col))
+        else:
+            # Scalar or vector data → line/scatter traces
+            expanded = _fill_scatter_traces(trace, entry, color_state)
+            for t, name in expanded:
+                filled_traces.append(t)
+                trace_labels.append(name)
+                trace_panels.append((row, col))
+
+    # Apply default layout settings
+    n_panels = _count_panels(layout)
+    n_columns = _count_columns(layout)
+    width = (_DEFAULT_WIDTH if n_columns == 1
+             else int(_DEFAULT_WIDTH * n_columns * 0.55))
+    height = _PANEL_HEIGHT * max(n_panels, 1)
+
+    defaults = dict(
+        **_DEFAULT_LAYOUT,
+        width=width,
+        height=height,
+        legend=dict(font=dict(size=11), tracegroupgap=2),
+    )
+    # Merge defaults under layout (user layout wins)
+    merged_layout = {**defaults, **layout}
+
+    # Apply time range constraint
+    if time_range:
+        parts = time_range.split(" to ")
+        if len(parts) == 2:
+            start, end = parts[0].strip(), parts[1].strip()
+            # Apply to all xaxes
+            for key in list(merged_layout.keys()):
+                if key.startswith("xaxis"):
+                    ax = merged_layout[key]
+                    if isinstance(ax, dict):
+                        ax.setdefault("range", [start, end])
+
+    fig = go.Figure({"data": filled_traces, "layout": merged_layout})
+
+    return RenderResult(
+        figure=fig,
+        color_state=color_state,
+        trace_labels=trace_labels,
+        trace_panels=trace_panels,
+        panel_count=max(n_panels, 1),
+        column_count=max(n_columns, 1),
+    )
+
+
+def _fill_heatmap_trace(
+    trace: dict,
+    entry: DataEntry,
+    layout: dict,
+    trace_type: str,
+) -> None:
+    """Populate a heatmap trace dict with data from a DataEntry."""
+    meta = entry.metadata or {}
+    times = _extract_x_data(entry)
+
+    if entry.is_xarray:
+        da = entry.data
+        non_time_dims = [d for d in da.dims if d != "time"]
+        if non_time_dims:
+            last_dim = non_time_dims[-1]
+            if last_dim in da.coords:
+                bin_values = [float(v) for v in da.coords[last_dim].values]
+            else:
+                bin_values = list(range(da.sizes[last_dim]))
+        else:
+            bin_values = [0]
+        z_values = da.values.astype(float)
+        if z_values.ndim > 2:
+            middle_axes = tuple(range(1, z_values.ndim - 1))
+            z_values = np.nanmean(z_values, axis=middle_axes)
+    else:
+        bin_values = meta.get("bin_values")
+        if bin_values is None:
+            try:
+                bin_values = [float(c) for c in entry.data.columns]
+            except (ValueError, TypeError):
+                bin_values = list(range(len(entry.data.columns)))
+        z_values = entry.data.values.astype(float)
+
+    trace["x"] = times
+    trace["y"] = [float(b) for b in bin_values]
+    trace["z"] = z_values.T.tolist()
+
+    # Colorbar positioning from yaxis domain
+    yaxis_ref = trace.get("yaxis", "y")
+    yaxis_key = "yaxis" if yaxis_ref == "y" else f"yaxis{yaxis_ref[1:]}"
+    yaxis_layout = layout.get(yaxis_key, {})
+    domain = yaxis_layout.get("domain", [0, 1])
+    cb_y = (domain[0] + domain[1]) / 2
+    cb_len = domain[1] - domain[0]
+    colorbar_cfg = dict(y=cb_y, len=cb_len, yanchor="middle")
+    colorbar_title = meta.get("value_label", "")
+    if colorbar_title:
+        colorbar_cfg["title"] = dict(text=colorbar_title)
+    trace.setdefault("colorbar", colorbar_cfg)
+
+
+def _fill_scatter_traces(
+    trace_template: dict,
+    entry: DataEntry,
+    color_state: ColorState,
+) -> list[tuple[dict, str]]:
+    """Expand a scatter trace stub into one or more populated traces.
+
+    For vector data (2D, ncols > 1), creates one trace per component
+    with ``(x)``, ``(y)``, ``(z)`` suffixes.
+
+    Returns list of ``(trace_dict, display_name)`` tuples.
+    """
+    display_name = trace_template.get("name") or entry.description or entry.label
+    time_list = _extract_x_data(entry)
+    results: list[tuple[dict, str]] = []
+
+    if entry.values.ndim == 2 and entry.values.shape[1] > 1:
+        comp_names = ["x", "y", "z"]
+        for comp_col in range(entry.values.shape[1]):
+            comp = comp_names[comp_col] if comp_col < 3 else str(comp_col)
+            label = f"{display_name} ({comp})"
+            val_arr = entry.values[:, comp_col]
+            t_disp, v_disp = _downsample_minmax(time_list, val_arr, _MAX_DISPLAY_POINTS)
+            v_disp = [float(v) if np.isfinite(v) else None for v in v_disp]
+
+            trace = dict(trace_template)
+            n_points = len(v_disp)
+            # Promote to scattergl for large datasets
+            if n_points > _GL_THRESHOLD and trace.get("type", "scatter") == "scatter":
+                trace["type"] = "scattergl"
+            trace["x"] = t_disp
+            trace["y"] = v_disp
+            trace["name"] = _wrap_display_name(label)
+            # Apply color: prefer explicit, then ColorState
+            if "line" not in trace or "color" not in trace.get("line", {}):
+                trace.setdefault("line", {})["color"] = color_state.next_color(label)
+            else:
+                # Register the explicit color in state for stability
+                color_state.label_colors[label] = trace["line"]["color"]
+
+            trace.setdefault("mode", "lines")
+            results.append((trace, label))
+    else:
+        vals = entry.values.ravel() if entry.values.ndim > 1 else entry.values
+        t_disp, v_disp = _downsample_minmax(time_list, vals, _MAX_DISPLAY_POINTS)
+        v_disp = [float(v) if np.isfinite(v) else None for v in v_disp]
+
+        trace = dict(trace_template)
+        n_points = len(v_disp)
+        if n_points > _GL_THRESHOLD and trace.get("type", "scatter") == "scatter":
+            trace["type"] = "scattergl"
+        trace["x"] = t_disp
+        trace["y"] = v_disp
+        trace["name"] = _wrap_display_name(display_name)
+        if "line" not in trace or "color" not in trace.get("line", {}):
+            trace.setdefault("line", {})["color"] = color_state.next_color(display_name)
+        else:
+            color_state.label_colors[display_name] = trace["line"]["color"]
+
+        trace.setdefault("mode", "lines")
+        results.append((trace, display_name))
+
+    return results
+
+
+def _count_panels(layout: dict) -> int:
+    """Count the number of y-axis panels in a layout dict."""
+    count = 0
+    for key in layout:
+        if key.startswith("yaxis"):
+            count += 1
+    return max(count, 1)
+
+
+def _count_columns(layout: dict) -> int:
+    """Count the number of x-axis columns in a layout dict."""
+    count = 0
+    for key in layout:
+        if key.startswith("xaxis"):
+            count += 1
+    # Heuristic: if xaxes have different domains, they're columns
+    # For simple cases, just count unique x-axis domains
+    return max(count, 1)
+
+
+# ---------------------------------------------------------------------------
+# Legacy stateless figure builder (kept for backward compatibility / pipeline)
+# ---------------------------------------------------------------------------
+
 def build_figure_from_spec(
     spec: dict,
     entries: list[DataEntry],
@@ -1275,6 +1539,61 @@ class PlotlyRenderer:
         self._label_colors = build_result.color_state.label_colors
         self._color_index = build_result.color_state.color_index
         self._current_plot_spec = dict(spec)
+
+        result = {
+            "status": "success",
+            "panels": build_result.panel_count,
+            "columns": build_result.column_count,
+            "traces": list(build_result.trace_labels),
+            "display": "plotly",
+        }
+        result["review"] = self._build_review_metadata()
+        return result
+
+    # ------------------------------------------------------------------
+    # Public API: render_plotly_json (new Plotly JSON pipeline)
+    # ------------------------------------------------------------------
+
+    def render_plotly_json(
+        self,
+        fig_json: dict,
+        entries: dict[str, DataEntry],
+    ) -> dict:
+        """Create a plot from LLM-generated Plotly figure JSON.
+
+        The LLM produces a Plotly figure dict with ``data_label`` placeholders
+        in each trace.  This method resolves them via ``fill_figure_data()``,
+        copies the result into renderer state, and returns review metadata.
+
+        Args:
+            fig_json: Plotly figure dict (``data`` + ``layout``).
+            entries: Mapping of label → DataEntry for all referenced labels.
+
+        Returns:
+            Result dict with status, panels, traces, display, review.
+        """
+        cs = ColorState(
+            label_colors=dict(self._label_colors),
+            color_index=self._color_index,
+        )
+
+        tr_str = (self._current_time_range.to_time_range_string()
+                  if self._current_time_range else None)
+
+        try:
+            build_result = fill_figure_data(fig_json, entries, cs, time_range=tr_str)
+        except (ValueError, KeyError) as e:
+            return {"status": "error", "message": str(e)}
+
+        # Copy into stateful fields
+        self._figure = build_result.figure
+        self._panel_count = build_result.panel_count
+        self._column_count = build_result.column_count
+        self._trace_labels = build_result.trace_labels
+        self._trace_panels = build_result.trace_panels
+        self._label_colors = build_result.color_state.label_colors
+        self._color_index = build_result.color_state.color_index
+        self._current_plot_spec = dict(fig_json)
 
         result = {
             "status": "success",

@@ -11,7 +11,7 @@ Categories:
 - "data_ops_compute": data transformation, statistics (custom_operation, describe_data)
 - "data_export": save_data (CSV export — orchestrator only, not given to sub-agents)
 - "data_extraction": unstructured-to-structured data conversion (store_dataframe)
-- "visualization": update_plot_spec, manage_plot (declarative visualization tools)
+- "visualization": render_plotly_json, manage_plot (declarative visualization tools)
 - "conversation": ask_clarification
 - "routing": delegate_to_mission, delegate_to_visualization, delegate_to_data_ops, delegate_to_data_extraction
 """
@@ -223,7 +223,7 @@ xarray operations (DataArray sources — check storage_type in fetch_data respon
 - Slice 3D to 2D: `result = da_EFLUX_VS_PA_E.isel(dim1=0)` (keeps as DataArray, can plot as spectrogram)
 - Average over a dim: `result = da_EFLUX_VS_PA_E.mean(dim='dim1')` (reduces to 2D DataArray)
 - Convert to DataFrame: `result = da_EFLUX_VS_PA_E.isel(dim1=0).to_pandas()` (also valid)
-- For spectrogram: fetch a 2D variable (size=[N]) and plot directly with `update_plot_spec(spec={"labels": "LABEL", "plot_type": "spectrogram"})`
+- For spectrogram: fetch a 2D variable (size=[N]) and plot as heatmap with `render_plotly_json`
 - For 3D variables (size=[M, N]): use `custom_operation` to slice/average to 2D first, then plot as spectrogram
 
 Single-source operations (one-element array):
@@ -534,31 +534,72 @@ If no filename is given, one is auto-generated from the label.""",
     # --- Visualization ---
     {
         "category": "visualization",
-        "name": "update_plot_spec",
-        "description": """Create or update the plot by providing the complete plot specification.
+        "name": "render_plotly_json",
+        "description": """Create or update the plot by providing a Plotly figure JSON.
 
-The spec is a single JSON object containing all layout and style fields. The system compares
-the new spec to the current one and decides whether to re-render (layout changed) or just
-restyle (only aesthetics changed). Creating a new plot = updating an empty spec.
+You generate a standard Plotly figure dict with `data` (array of traces) and `layout`.
+Instead of providing actual data arrays (x, y, z), put a `data_label` field in each
+trace dict. The system resolves each label to real data from memory and fills in x/y/z.
 
-Layout fields (trigger re-render when changed): labels, panels, panel_types (line, spectrogram,
-scatter, bar, histogram, box, violin), plot_type, columns, column_titles, shared_xaxes,
-colorscale, log_y, z_min, z_max.
+## Trace stubs
 
-Style fields (applied in-place): title, x_label, y_label, trace_colors, line_styles,
-log_scale, x_range, y_range, legend, font_size, canvas_size, annotations, theme, vlines, vrects.
+Each trace in `data` needs:
+- `data_label` (string, required): label of the data in memory (from list_fetched_data)
+- `type` (string): Plotly trace type — "scatter" (default), "heatmap", "bar", etc.
+- All other Plotly trace properties are passed through as-is (mode, line, marker, etc.)
+- `xaxis` and `yaxis` (strings): axis references like "x", "x2", "y", "y2" for multi-panel
+- Vector data (3-column) is auto-decomposed into (x), (y), (z) component traces
 
-You receive the current spec in your context. Output the full desired spec — include ALL
-fields you want in the final result, not just the changes.""",
+## Layout
+
+Standard Plotly layout dict. For multi-panel plots, define multiple yaxes with domains:
+- `yaxis`: {"domain": [0.55, 1], "title": {"text": "nT"}}
+- `yaxis2`: {"domain": [0, 0.45], "title": {"text": "Hz"}}
+- `xaxis`: {"domain": [0, 1], "anchor": "y"}
+- `xaxis2`: {"domain": [0, 1], "anchor": "y2", "matches": "x"}
+
+Shapes, annotations, and all standard Plotly layout properties work directly.
+
+## Automatic processing
+
+The system automatically handles:
+- DatetimeIndex → ISO 8601 strings for x-axis
+- Vector data (n,3) → 3 separate component traces with color assignment
+- Large datasets (>5000 pts) → min-max downsampling
+- Very large datasets (>100K pts) → WebGL (scattergl)
+- NaN values → None (Plotly requirement)
+- Heatmap colorbar positioning from yaxis domain
+
+## Example: single panel
+
+```json
+{"data": [{"type": "scatter", "data_label": "ACE_Bmag", "mode": "lines", "line": {"color": "red"}}],
+ "layout": {"title": {"text": "ACE Magnetic Field"}, "yaxis": {"title": {"text": "nT"}}}}
+```
+
+## Example: two panels
+
+```json
+{"data": [
+    {"type": "scatter", "data_label": "ACE_Bmag", "xaxis": "x", "yaxis": "y"},
+    {"type": "scatter", "data_label": "ACE_density", "xaxis": "x2", "yaxis": "y2"}
+  ],
+ "layout": {
+    "xaxis":  {"domain": [0, 1], "anchor": "y"},
+    "xaxis2": {"domain": [0, 1], "anchor": "y2", "matches": "x"},
+    "yaxis":  {"domain": [0.55, 1], "anchor": "x", "title": {"text": "B (nT)"}},
+    "yaxis2": {"domain": [0, 0.45], "anchor": "x2", "title": {"text": "n (cm⁻³)"}}
+  }}
+```""",
         "parameters": {
             "type": "object",
             "properties": {
-                "spec": {
+                "figure_json": {
                     "type": "object",
-                    "description": "Complete plot specification. All fields optional except 'labels' (comma-separated data labels from list_fetched_data). See tool description for full field list."
+                    "description": "Plotly figure dict with 'data' (array of trace stubs with data_label) and 'layout'."
                 }
             },
-            "required": ["spec"]
+            "required": ["figure_json"]
         }
     },
     {

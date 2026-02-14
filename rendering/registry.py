@@ -1,7 +1,7 @@
 """
 Tool registry for visualization operations.
 
-Describes the two declarative visualization tools as structured data.
+Describes the visualization tools as structured data.
 The VisualizationAgent sub-agent uses this registry to understand what
 operations are available and validate arguments before dispatching to
 PlotlyRenderer.
@@ -14,8 +14,19 @@ Adding a new capability:
 
 TOOLS = [
     {
+        "name": "render_plotly_json",
+        "description": "Create or update the plot by providing a Plotly figure JSON with data_label placeholders. The system fills in actual data arrays from memory.",
+        "parameters": [
+            {"name": "figure_json", "type": "object", "required": True,
+             "description": "Plotly figure dict with 'data' (array of trace stubs, "
+                            "each with 'data_label' and standard Plotly trace properties) "
+                            "and 'layout' (standard Plotly layout dict). "
+                            "Multi-panel: define yaxis, yaxis2 with domains."},
+        ],
+    },
+    {
         "name": "update_plot_spec",
-        "description": "Create or update the plot via a single unified specification. Layout changes trigger a full re-render; style-only changes are applied in-place.",
+        "description": "(Legacy) Create or update the plot via a semantic specification. Prefer render_plotly_json for new plots.",
         "parameters": [
             {"name": "spec", "type": "object", "required": True,
              "description": "Complete plot specification. Must include 'labels' (comma-separated). "
@@ -54,7 +65,7 @@ def get_method(name: str) -> dict | None:
     """Look up a tool by name.
 
     Args:
-        name: Tool name (e.g., 'plot_data')
+        name: Tool name (e.g., 'render_plotly_json')
 
     Returns:
         Tool definition dict, or None if not found.
@@ -125,10 +136,9 @@ def render_method_catalog() -> str:
     lines.extend([
         "## Examples",
         "",
-        "- New plot via spec: `update_plot_spec(spec={\"labels\": \"ACE_Bmag,PSP_Bmag\", \"title\": \"Comparison\"})`",
-        "- Multi-panel spec: `update_plot_spec(spec={\"labels\": \"Bmag,Density\", \"panels\": [[\"Bmag\"], [\"Density\"]], \"y_label\": {\"1\": \"nT\", \"2\": \"cm^-3\"}})`",
-        "- Style change via spec: `update_plot_spec(spec={\"labels\": \"ACE_Bmag\", \"title\": \"New Title\", \"trace_colors\": {\"ACE Bmag\": \"red\"}})`",
-        "- Spectrogram spec: `update_plot_spec(spec={\"labels\": \"ACE_spec\", \"plot_type\": \"spectrogram\", \"colorscale\": \"Jet\"})`",
+        '- New plot: `render_plotly_json(figure_json={"data": [{"type": "scatter", "data_label": "ACE_Bmag"}], "layout": {"title": {"text": "ACE B"}}})`',
+        '- Multi-panel: define yaxis/yaxis2 domains in layout, use xaxis/yaxis refs in traces',
+        '- Spectrogram: `{"type": "heatmap", "data_label": "ACE_spec", "colorscale": "Viridis"}`',
         "- Zoom: `manage_plot(action=\"set_time_range\", time_range=\"2024-01-15 to 2024-01-20\")`",
         "- Reset: `manage_plot(action=\"reset\")`",
         "- Get state: `manage_plot(action=\"get_state\")`",

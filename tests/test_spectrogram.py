@@ -306,22 +306,29 @@ class TestPlotSpectrogram:
 
 
 class TestRegistryPlotSpectrogram:
-    def test_update_plot_spec_exists(self):
-        """Spectrograms are handled via update_plot_spec with plot_type in spec."""
-        method = get_method("update_plot_spec")
+    def test_render_plotly_json_exists(self):
+        """Spectrograms are handled via render_plotly_json with heatmap trace type."""
+        method = get_method("render_plotly_json")
         assert method is not None
         param_names = [p["name"] for p in method["parameters"]]
-        assert "spec" in param_names
+        assert "figure_json" in param_names
 
     def test_validate_required_args(self):
-        """Missing required 'spec' should produce an error."""
-        errors = validate_args("update_plot_spec", {})
-        assert any("spec" in e for e in errors)
+        """Missing required 'figure_json' should produce an error."""
+        errors = validate_args("render_plotly_json", {})
+        assert any("figure_json" in e for e in errors)
 
     def test_validate_valid_args(self):
         """Valid args should pass validation."""
-        errors = validate_args("update_plot_spec", {"spec": {"labels": "test_spec"}})
+        errors = validate_args("render_plotly_json", {
+            "figure_json": {"data": [{"data_label": "test_spec", "type": "heatmap"}], "layout": {}}
+        })
         assert errors == []
+
+    def test_legacy_update_plot_spec_exists(self):
+        """Legacy update_plot_spec still exists in registry."""
+        method = get_method("update_plot_spec")
+        assert method is not None
 
 
 # ---------------------------------------------------------------------------

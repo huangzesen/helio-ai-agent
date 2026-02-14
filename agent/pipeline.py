@@ -30,8 +30,8 @@ logger = get_logger()
 # Tools worth recording in a pipeline (data-producing + visualization)
 RECORDABLE_TOOLS = {
     "fetch_data", "custom_operation", "compute_spectrogram",
-    "store_dataframe", "update_plot_spec", "manage_plot",
-    "render_spec",
+    "store_dataframe", "render_plotly_json", "update_plot_spec",
+    "manage_plot", "render_spec",
 }
 
 

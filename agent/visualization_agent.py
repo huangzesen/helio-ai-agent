@@ -2,12 +2,11 @@
 Visualization sub-agent with optional think phase.
 
 For plot-creation requests, runs a think phase to inspect data (shapes,
-types, units, NaN counts) before constructing update_plot_spec calls.
+types, units, NaN counts) before constructing render_plotly_json calls.
 Style requests skip the think phase to avoid wasting tokens.
 
 Owns all visualization through three tools:
-- update_plot_spec — create/update plots via a single unified JSON spec
-  (replaces the old plot_data + style_plot two-step workflow)
+- render_plotly_json — create/update plots via Plotly figure JSON with data_label placeholders
 - manage_plot — export, reset, zoom, get state, add/remove traces
 - list_fetched_data — discover available data in memory
 """
@@ -27,8 +26,8 @@ from knowledge.prompt_builder import (
 )
 
 # Visualization agent gets its own tool category + list_fetched_data from data_ops
-# update_plot_spec and manage_plot are exposed; plot_data and style_plot are
-# excluded (legacy primitives superseded by update_plot_spec).
+# render_plotly_json and manage_plot are exposed; plot_data and style_plot are
+# excluded (legacy primitives superseded by render_plotly_json).
 VIZ_TOOL_CATEGORIES = ["visualization"]
 VIZ_EXTRA_TOOLS = ["list_fetched_data", "manage_plot"]
 
@@ -65,9 +64,9 @@ def _extract_labels_from_instruction(instruction: str) -> list[str]:
 class VisualizationAgent(BaseSubAgent):
     """An LLM session specialized for visualization.
 
-    Uses three tools: update_plot_spec (create/update plots via unified spec),
-    manage_plot (export, reset, zoom, add/remove traces), and
-    list_fetched_data (discover available data).
+    Uses three tools: render_plotly_json (create/update plots via Plotly
+    figure JSON with data_label placeholders), manage_plot (export, reset,
+    zoom, add/remove traces), and list_fetched_data (discover available data).
 
     For plot-creation requests via process_request(), runs an optional
     think phase to inspect data before the execute phase.
@@ -194,7 +193,7 @@ class VisualizationAgent(BaseSubAgent):
                 enriched = (
                     f"{user_message}\n\n"
                     f"## Data Inspection Findings\n{think_context}\n\n"
-                    f"Now create the visualization using update_plot_spec."
+                    f"Now create the visualization using render_plotly_json."
                 )
             else:
                 enriched = user_message
@@ -208,14 +207,13 @@ class VisualizationAgent(BaseSubAgent):
         """Build an explicit task prompt with concrete label values.
 
         Extracts actual data labels from the instruction (injected by
-        _execute_plan_task) and constructs the exact update_plot_spec call
+        _execute_plan_task) and constructs the exact render_plotly_json call
         so Gemini Flash sees the precise command to execute.
 
         Note: Export tasks are handled directly by the orchestrator and
         never reach this method.
         """
         labels = _extract_labels_from_instruction(task.instruction)
-        labels_str = ",".join(labels) if labels else "LABEL1,LABEL2"
 
         pitfall_section = ""
         if self._pitfalls:
@@ -226,14 +224,26 @@ class VisualizationAgent(BaseSubAgent):
 
         no_labels = not labels
 
+        if labels:
+            # Build a simple Plotly JSON example with the extracted labels
+            traces_example = ", ".join(
+                f'{{"type": "scatter", "data_label": "{lbl}"}}'
+                for lbl in labels
+            )
+            first_call = (
+                f'render_plotly_json(figure_json={{"data": [{traces_example}], '
+                f'"layout": {{}}}})'
+            )
+        else:
+            first_call = "render_plotly_json with the appropriate labels"
+
         task_prompt = (
             f"Execute this task: {task.instruction}\n\n"
-            f"Your FIRST call must be: "
-            f"update_plot_spec(spec={{\"labels\": \"{labels_str}\"}})\n\n"
+            f"Your FIRST call must be: {first_call}\n\n"
             "RULES:\n"
-            "- Call update_plot_spec with the labels shown above.\n"
-            "- After plotting, inspect review.sizing_recommendation and update the spec\n"
-            "  with canvas_size if it differs from review.figure_size.\n"
+            "- Call render_plotly_json with the labels shown above.\n"
+            "- After plotting, inspect review.sizing_recommendation and adjust\n"
+            "  layout width/height if it differs from review.figure_size.\n"
             "- Use manage_plot for export, reset, zoom, or trace operations if needed."
             + pitfall_section
         )

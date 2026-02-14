@@ -418,12 +418,11 @@ class TestBuildVisualizationPrompt:
 
     def test_contains_spec_workflow(self):
         prompt = build_visualization_prompt()
-        assert "update_plot_spec" in prompt
+        assert "render_plotly_json" in prompt
 
     def test_contains_tool_usage_sections(self):
         prompt = build_visualization_prompt()
-        assert "## How update_plot_spec Works" in prompt
-        assert "## Spec Field Reference" in prompt
+        assert "## How render_plotly_json Works" in prompt
 
     def test_contains_workflow(self):
         prompt = build_visualization_prompt()
@@ -448,7 +447,7 @@ class TestBuildVisualizationPrompt:
 
     def test_has_spec_method_in_workflow(self):
         prompt = build_visualization_prompt()
-        assert "update_plot_spec" in prompt
+        assert "render_plotly_json" in prompt
 
     def test_has_panel_example(self):
         prompt = build_visualization_prompt()
@@ -461,7 +460,7 @@ class TestBuildVisualizationPrompt:
     def test_describes_three_tools(self):
         prompt = build_visualization_prompt()
         assert "three tools" in prompt
-        assert "update_plot_spec" in prompt
+        assert "render_plotly_json" in prompt
         assert "manage_plot" in prompt
         assert "list_fetched_data" in prompt
 

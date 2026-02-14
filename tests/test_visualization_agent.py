@@ -15,13 +15,13 @@ from agent.visualization_agent import (
 class TestVizAgentToolFiltering:
     """Test that VisualizationAgent gets the right tools."""
 
-    def test_viz_tools_include_update_plot_spec(self):
+    def test_viz_tools_include_render_plotly_json(self):
         tools = get_tool_schemas(
             categories=VIZ_TOOL_CATEGORIES,
             extra_names=VIZ_EXTRA_TOOLS,
         )
         names = {t["name"] for t in tools}
-        assert "update_plot_spec" in names
+        assert "render_plotly_json" in names
 
     def test_viz_tools_include_manage_plot(self):
         tools = get_tool_schemas(
@@ -44,7 +44,7 @@ class TestVizAgentToolFiltering:
             categories=VIZ_TOOL_CATEGORIES,
             extra_names=VIZ_EXTRA_TOOLS,
         )
-        assert len(tools) == 3  # update_plot_spec + manage_plot + list_fetched_data
+        assert len(tools) == 3  # render_plotly_json + manage_plot + list_fetched_data
 
     def test_viz_tools_exclude_routing(self):
         tools = get_tool_schemas(
