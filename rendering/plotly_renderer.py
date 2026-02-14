@@ -424,24 +424,15 @@ def build_figure_from_spec(
         if layout:
             result.figure.update_layout(**layout)
         if traces:
-            _apply_trace_patches(result.figure, result.trace_labels, traces)
+            for selector, patch in traces.items():
+                for i, label in enumerate(result.trace_labels):
+                    if label == selector or selector in label or label in selector:
+                        if i < len(result.figure.data):
+                            result.figure.data[i].update(**patch)
         return result
     else:
         # Semantic format: flat spec with labels, panels, title, etc.
         return _build_from_spec(spec, entries, color_state, time_range)
-
-
-def _apply_trace_patches(
-    fig: go.Figure,
-    trace_labels: list[str],
-    traces: dict,
-) -> None:
-    """Apply per-trace patches matched by label (commutative operation)."""
-    for selector, patch in traces.items():
-        for i, label in enumerate(trace_labels):
-            if label == selector or selector in label or label in selector:
-                if i < len(fig.data):
-                    fig.data[i].update(**patch)
 
 
 def _create_figure(
@@ -780,7 +771,11 @@ def _build_from_spec(
     if layout:
         result.figure.update_layout(**layout)
     if traces_patch:
-        _apply_trace_patches(result.figure, result.trace_labels, traces_patch)
+        for selector, patch in traces_patch.items():
+            for i, label in enumerate(result.trace_labels):
+                if label == selector or selector in label or label in selector:
+                    if i < len(result.figure.data):
+                        result.figure.data[i].update(**patch)
 
     return result
 
