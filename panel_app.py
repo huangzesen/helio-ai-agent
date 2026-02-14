@@ -470,8 +470,11 @@ class ChatPage(param.Parameterized):
         t0 = time.monotonic()
 
         if _verbose:
-            # Setup log capture
-            self._log_lines.clear()
+            # Setup log capture (append to existing log with separator)
+            if self._log_lines:
+                self._log_lines.append("")
+                self._log_lines.append(f"{'─' * 40}")
+                self._log_lines.append("")
             self._log_handler = _ListHandler(self._log_lines)
             logger = logging.getLogger("helio-agent")
             self._saved_log_level = logger.level
@@ -903,14 +906,14 @@ class ChatPage(param.Parameterized):
             min_width=500,
         )
 
-        # --- Right sidebar content: stats + log ---
+        # --- Right sidebar content: stats (fixed) + log (fills rest) ---
         right_sidebar_content = pn.Column(
             pn.pane.Markdown("### Session Stats", margin=(0, 0, 5, 0)),
             self.stats_pane,
             pn.layout.Divider(),
             pn.pane.Markdown("### Activity Log", margin=(0, 0, 5, 0)),
             self.log_terminal,
-            sizing_mode="stretch_width",
+            sizing_mode="stretch_both",
         )
 
         # --- Left sidebar: Sessions ---
