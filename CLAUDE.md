@@ -76,6 +76,45 @@ python gradio_app.py --model gemini-2.5-pro  # Override model
 
 The app displays interactive Plotly figures in the sidebar via `gr.Plot`. The agent's `web_mode` flag suppresses auto-opening exported files in the OS viewer.
 
+## MCP Server
+
+`mcp_server.py` exposes the agent as an MCP (Model Context Protocol) server over stdio transport. Any MCP-compatible client (Claude Desktop, Claude Code, Cursor, etc.) can connect and use helio-agent as a data/visualization specialist.
+
+```bash
+python mcp_server.py              # Start MCP server (stdio transport)
+python mcp_server.py -v           # With verbose logging
+python mcp_server.py -m MODEL     # Override LLM model
+```
+
+Three MCP tools are exposed:
+- **`chat(message)`** — Send a natural language message; returns text + PNG image when a plot is produced
+- **`reset_session()`** — Clear conversation history and data store
+- **`get_status()`** — Show model, token usage, data entries, plan status
+
+**Claude Desktop configuration** (`claude_desktop_config.json`):
+```json
+{
+  "mcpServers": {
+    "helio-agent": {
+      "command": "/path/to/helio-agent-mcp/venv/bin/python",
+      "args": ["/path/to/helio-agent-mcp/mcp_server.py"]
+    }
+  }
+}
+```
+
+**Claude Code configuration** (project `.mcp.json`):
+```json
+{
+  "mcpServers": {
+    "helio-agent": {
+      "command": "/path/to/helio-agent-mcp/venv/bin/python",
+      "args": ["/path/to/helio-agent-mcp/mcp_server.py"]
+    }
+  }
+}
+```
+
 ## Interactive Agent Testing
 
 Use `scripts/agent_server.py` to drive multi-turn conversations with the agent programmatically. It keeps an `OrchestratorAgent` alive in a background process and accepts commands over a TCP socket — this is the primary way to test interactive agent behavior without a human at the terminal.
