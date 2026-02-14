@@ -32,7 +32,6 @@ import pandas as pd
 import panel as pn
 import param
 
-from agent.logging import GRADIO_VISIBLE_TAGS
 
 
 # ---------------------------------------------------------------------------
@@ -49,20 +48,29 @@ _agent_lock = threading.Lock()
 # ---------------------------------------------------------------------------
 
 class _ListHandler(logging.Handler):
-    """Logging handler that filters log lines for UI display."""
+    """Logging handler that replicates terminal 'simple' console output.
+
+    Shows ALL log records (not just Gradio-curated tags):
+    - DEBUG/INFO: bare message (e.g. "  [Gemini] Sending...")
+    - WARNING+:   "[LEVEL] message"
+    Skips records marked with skip_file=True (Gradio-only preview snippets).
+    """
 
     def __init__(self, target_list: list):
         super().__init__(level=logging.DEBUG)
-        self.setFormatter(logging.Formatter("%(message)s"))
         self._target = target_list
 
     def emit(self, record: logging.LogRecord) -> None:
-        msg = self.format(record)
+        # Skip Gradio-only preview snippets (same as console handler)
+        if getattr(record, "skip_file", False):
+            return
+        msg = record.getMessage()
         if not msg.strip():
             return
-        tag = getattr(record, "log_tag", "")
-        if tag in GRADIO_VISIBLE_TAGS:
-            self._target.append(msg)
+        if record.levelno >= logging.WARNING:
+            self._target.append(f"[{record.levelname}] {msg}")
+        else:
+            self._target.append(f"  {msg}")
 
 
 # ---------------------------------------------------------------------------
@@ -328,6 +336,7 @@ CUSTOM_CSS = """
 .status-banner {
     margin: 0.5rem 0;
 }
+
 """
 
 
@@ -388,6 +397,33 @@ class ChatPage(param.Parameterized):
         # --- Follow-up pills ---
         self.followup_row = pn.Row(sizing_mode="stretch_width", visible=False)
 
+        # --- Log panel (terminal-style) ---
+        self._log_lines: list[str] = []
+        self._log_handler = None
+        self._saved_log_level = logging.WARNING
+        self._log_start_time = 0.0
+        self._log_running = False
+        self._log_periodic_cb = None
+        self.log_terminal = pn.pane.HTML(
+            self._render_terminal_html(),
+            sizing_mode="stretch_both",
+            min_height=200,
+        )
+        self.log_panel = pn.Column(
+            self.log_terminal,
+            sizing_mode="stretch_both",
+            min_width=350,
+            max_width=500,
+            visible=False,
+        )
+        self.log_toggle_btn = pn.widgets.Toggle(
+            name="Log",
+            button_type="default",
+            value=False,
+            width=60,
+        )
+        self.log_toggle_btn.param.watch(self._on_log_toggle, "value")
+
         # --- Session sidebar widgets ---
         self.new_session_btn = pn.widgets.Button(
             name="+ New Chat",
@@ -429,96 +465,56 @@ class ChatPage(param.Parameterized):
     # ----- Chat callback -----
 
     async def _chat_callback(self, contents: str, user: str, instance: pn.chat.ChatInterface):
-        """Process a user message through the agent."""
+        """Process a user message through the agent.
+
+        Uses run_in_executor so the event loop stays free for UI updates
+        (log panel toggle, periodic log refresh, etc.).
+        """
         if not contents or not contents.strip():
             return
 
         message = contents.strip()
+        t0 = time.monotonic()
 
         if _verbose:
-            # --- Verbose streaming mode ---
-            log_lines: list[str] = []
-            handler = _ListHandler(log_lines)
+            # Setup log capture
+            self._log_lines.clear()
+            self._log_handler = _ListHandler(self._log_lines)
             logger = logging.getLogger("helio-agent")
-            saved_level = logger.level
+            self._saved_log_level = logger.level
             if logger.getEffectiveLevel() > logging.DEBUG:
                 logger.setLevel(logging.DEBUG)
-            logger.addHandler(handler)
+            logger.addHandler(self._log_handler)
 
-            result_box: list = [None]
-            error_box: list = [None]
-            t0 = time.monotonic()
+            # Auto-open log panel and start periodic refresh
+            self.log_panel.visible = True
+            self.log_toggle_btn.value = True
+            self._log_start_time = t0
+            self._log_running = True
+            self._refresh_log_panel()
+            self._start_log_refresh()
 
-            def _run():
-                try:
-                    with _agent_lock:
-                        result_box[0] = _agent.process_message(message)
-                except Exception as exc:
-                    error_box[0] = exc
+        # Run agent in executor — event loop stays free for UI
+        loop = asyncio.get_event_loop()
+        try:
+            response = await loop.run_in_executor(_executor, _run_agent_sync, message)
+        except Exception as exc:
+            response = f"Error: {exc}"
 
-            thread = threading.Thread(target=_run, daemon=True)
-            thread.start()
+        elapsed = time.monotonic() - t0
 
-            # Immediate feedback before any log lines arrive
-            yield "*Working...*"
+        if _verbose:
+            # Stop log capture and periodic refresh
+            logger = logging.getLogger("helio-agent")
+            logger.removeHandler(self._log_handler)
+            logger.setLevel(self._saved_log_level)
+            self._log_running = False
+            self._stop_log_refresh()
+            self._refresh_log_panel()
 
-            prev_count = 0
-            while thread.is_alive():
-                thread.join(timeout=0.4)
-                elapsed = time.monotonic() - t0
-                if log_lines:
-                    tail = log_lines[-60:]
-                    log_text = "\n".join(tail)
-                    thinking = (
-                        f"*Working... ({elapsed:.1f}s)*\n\n"
-                        f"```\n{log_text}\n```"
-                    )
-                else:
-                    thinking = f"*Working... ({elapsed:.1f}s)*"
-                yield thinking
-
-            logger.removeHandler(handler)
-            logger.setLevel(saved_level)
-
-            elapsed = time.monotonic() - t0
-            if error_box[0] is not None:
-                response_text = f"Error: {error_box[0]}"
-            elif result_box[0]:
-                response_text = result_box[0]
-            else:
-                response_text = "Done."
-
-            verbose_text = "\n".join(log_lines)
-            if verbose_text:
-                full_response = (
-                    f"{response_text}\n\n"
-                    f"*{elapsed:.1f}s*\n\n"
-                    f"<details><summary>Activity Log ({len(log_lines)} events)</summary>\n\n"
-                    f"```\n{verbose_text}\n```\n\n</details>"
-                )
-            else:
-                full_response = f"{response_text}\n\n*{elapsed:.1f}s*"
-
-            self._refresh_sidebar()
-            self._update_followups()
-            yield full_response
-
-        else:
-            # --- Quiet mode ---
-            t0 = time.monotonic()
-
-            loop = asyncio.get_event_loop()
-            try:
-                response = await loop.run_in_executor(_executor, _run_agent_sync, message)
-            except Exception as exc:
-                response = f"Error: {exc}"
-
-            elapsed = time.monotonic() - t0
-            response_text = f"{response}\n\n*{elapsed:.1f}s*"
-
-            self._refresh_sidebar()
-            self._update_followups()
-            yield response_text
+        self._refresh_sidebar()
+        self._update_followups()
+        yield f"{response}\n\n*{elapsed:.1f}s*"
 
     # ----- Sidebar refresh -----
 
@@ -568,6 +564,82 @@ class ChatPage(param.Parameterized):
     def _on_followup_click(self, text: str):
         """Send a follow-up suggestion as a new message."""
         self.chat_interface.send(text, respond=True)
+
+    # ----- Log panel (terminal-style) -----
+
+    def _render_terminal_html(self) -> str:
+        """Render log lines as a plain terminal-style scrollable block."""
+        import html as html_mod
+        if not self._log_lines:
+            content = ""
+        else:
+            # Show last 500 lines, with truncation notice
+            tail = self._log_lines[-500:]
+            truncated = len(self._log_lines) - len(tail)
+            lines = []
+            if truncated:
+                lines.append(f"... ({truncated} earlier lines hidden)")
+            lines.extend(tail)
+            content = html_mod.escape("\n".join(lines))
+
+        # Status line
+        if self._log_running:
+            elapsed = time.monotonic() - self._log_start_time
+            status = f"Working... {elapsed:.1f}s"
+        elif self._log_lines:
+            status = f"{len(self._log_lines)} lines"
+        else:
+            status = ""
+
+        status_html = ""
+        if status:
+            status_html = (
+                f'<div style="padding:2px 8px;font-size:0.72rem;color:#888;'
+                f'border-top:1px solid #333;font-family:Menlo,Consolas,monospace;">'
+                f'{html_mod.escape(status)}</div>'
+            )
+
+        return (
+            f'<div style="display:flex;flex-direction:column;height:100%;'
+            f'background:#1a1a1a;border-radius:6px;overflow:hidden;">'
+            f'<div id="log-scroll" style="flex:1;overflow-y:auto;padding:6px 8px;">'
+            f'<pre style="margin:0;font-family:Menlo,Consolas,monospace;'
+            f'font-size:0.75rem;line-height:1.35;color:#ccc;'
+            f'white-space:pre-wrap;word-break:break-word;">{content}</pre>'
+            f'</div>'
+            f'{status_html}'
+            f'</div>'
+            f'<script>(function(){{var d=document.getElementById("log-scroll");'
+            f'if(d)d.scrollTop=d.scrollHeight;}})()</script>'
+        )
+
+    def _on_log_toggle(self, event):
+        """Toggle the log panel visible/hidden."""
+        self.log_panel.visible = event.new
+
+    def _refresh_log_panel(self, status: str = ""):
+        """Update the terminal log content."""
+        self.log_terminal.object = self._render_terminal_html()
+
+    def _start_log_refresh(self):
+        """Start periodic callback to update log panel every 500ms."""
+        self._stop_log_refresh()
+        self._log_periodic_cb = pn.state.add_periodic_callback(
+            self._periodic_log_update, period=500
+        )
+
+    def _stop_log_refresh(self):
+        """Stop the periodic log refresh callback."""
+        if self._log_periodic_cb is not None:
+            self._log_periodic_cb.stop()
+            self._log_periodic_cb = None
+
+    def _periodic_log_update(self):
+        """Called every 500ms to refresh the log panel while agent is running."""
+        if not self._log_running:
+            self._stop_log_refresh()
+            return
+        self._refresh_log_panel()
 
     # ----- Session management -----
 
@@ -695,7 +767,7 @@ class ChatPage(param.Parameterized):
     def build(self) -> pn.template.FastListTemplate:
         """Construct and return the chat page layout."""
 
-        # --- Header with "Open Data Tools" link ---
+        # --- Header with "Open Data Tools" link and Log toggle ---
         header_html = pn.pane.HTML(
             """
             <div class="helio-header">
@@ -707,6 +779,12 @@ class ChatPage(param.Parameterized):
                 </div>
             </div>
             """,
+            sizing_mode="stretch_width",
+        )
+
+        header_row = pn.Row(
+            header_html,
+            self.log_toggle_btn,
             sizing_mode="stretch_width",
         )
 
@@ -728,9 +806,9 @@ class ChatPage(param.Parameterized):
             sizing_mode="stretch_width",
         )
 
-        # --- Center column (full width) ---
+        # --- Center column ---
         center_col = pn.Column(
-            header_html,
+            header_row,
             self.plot_pane,
             self.chat_interface,
             self.followup_row,
@@ -739,8 +817,16 @@ class ChatPage(param.Parameterized):
             min_width=500,
         )
 
+        # --- Main area: center + log panel side by side ---
+        main_area = pn.Row(
+            center_col,
+            self.log_panel,
+            sizing_mode="stretch_both",
+        )
+
         # --- Left sidebar: Sessions ---
         sidebar_content = pn.Column(
+            pn.pane.Markdown("### Chat History", margin=(0, 0, 5, 0)),
             self.new_session_btn,
             self.normal_mode_col,
             self.manage_mode_col,
@@ -753,10 +839,11 @@ class ChatPage(param.Parameterized):
         template = pn.template.FastListTemplate(
             title="Helio AI Agent",
             sidebar=[sidebar_content],
-            main=[center_col],
+            main=[main_area],
             accent_base_color="#00b8d9",
             header_background="#0097b2",
             sidebar_width=280,
+            collapsed_sidebar=True,
             theme="default",
             theme_toggle=True,
             raw_css=[CUSTOM_CSS],
@@ -1264,9 +1351,21 @@ def main():
     # Start a session for auto-save
     _agent.start_session()
 
-    # Ensure Ctrl+C works reliably
-    signal.signal(signal.SIGINT, lambda *_: os._exit(0))
-    signal.signal(signal.SIGTERM, lambda *_: os._exit(0))
+    # Ensure Ctrl+C always kills the process.
+    # os._exit bypasses Tornado's cleanup which can hang on background threads.
+    def _force_exit(*_args):
+        print("\nShutting down...")
+        os._exit(0)
+
+    signal.signal(signal.SIGINT, _force_exit)
+    signal.signal(signal.SIGTERM, _force_exit)
+
+    # Re-install after Tornado starts (it may override signal handlers)
+    def _reinstall_signals():
+        signal.signal(signal.SIGINT, _force_exit)
+        signal.signal(signal.SIGTERM, _force_exit)
+
+    pn.state.execute(_reinstall_signals)
 
     # Serve two pages
     pn.serve(
