@@ -30,6 +30,13 @@ gradio_app.py  (browser-based chat UI, inline Plotly plots, data table sidebar)
   |  - Browse & Fetch sidebar (mission → dataset → parameter dropdowns, direct CDF fetch)
   |
   v
+mcp_server.py  (MCP server over stdio, for Claude Desktop / Claude Code / Cursor)
+  |  - Wraps same OrchestratorAgent as main.py / gradio_app.py
+  |  - Tools: chat (text + PNG image), reset_session, get_status
+  |  - Flags: --model, --verbose
+  |  - Lazy agent init, web_mode=True (suppresses auto-open)
+  |
+  v
 agent/core.py  OrchestratorAgent  (LLM-driven orchestrator)
   |  - Routes: fetch -> mission agents, compute -> DataOps agent, viz -> visualization agent
   |  - Complex multi-mission requests -> planner -> sub-agents
@@ -493,6 +500,16 @@ Features:
 - Example prompts for quick start
 - Verbose mode streams live debug logs in collapsible `<details>` blocks
 
+### MCP Server
+
+```bash
+python mcp_server.py              # Start MCP server (stdio transport)
+python mcp_server.py -v           # With verbose logging
+python mcp_server.py -m MODEL     # Override LLM model
+```
+
+Exposes the agent as three MCP tools (`chat`, `reset_session`, `get_status`) over stdio transport. Any MCP-compatible client can connect — Claude Desktop, Claude Code, Cursor, etc. The `chat` tool returns text plus a PNG image when a plot is produced.
+
 ### CLI Commands
 
 | Command | Description |
@@ -566,4 +583,5 @@ matplotlib>=3.7.0       # Legacy plotting (unused in main pipeline)
 tqdm>=4.60.0            # Progress bars for bootstrap/data downloads
 pytest>=7.0.0           # Test framework
 tavily-python>=0.5.0    # Tavily web search (fallback for non-Gemini providers)
+mcp>=1.26.0             # MCP server (stdio transport for Claude Desktop / Claude Code)
 ```
