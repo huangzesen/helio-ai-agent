@@ -2,9 +2,8 @@
 Plotly-based renderer for visualization.
 
 All figure construction flows through a single stateless builder:
-- build_figure_from_spec() — creates a fresh go.Figure from a spec dict
-  containing _meta (data/grid layout), layout (raw Plotly JSON), and
-  traces (per-trace patches matched by label).
+- build_figure_from_spec() — creates a fresh go.Figure from a semantic spec
+  dict with flat keys (panels, title, y_label, trace_colors, etc.).
 
 The PlotlyRenderer class is a thin stateful wrapper that delegates to
 build_figure_from_spec() and provides:
@@ -380,19 +379,14 @@ def build_figure_from_spec(
     color_state: ColorState | None = None,
     time_range: str | None = None,
 ) -> RenderResult | dict:
-    """Build a fresh go.Figure from a spec dict.
+    """Build a fresh go.Figure from a semantic spec dict.
 
     This is the main stateless entry point for the rendering pipeline.
-    It reads ``_meta`` to create the subplot grid and traces, then applies
-    ``layout`` (raw Plotly JSON) and ``traces`` (per-trace patches matched
-    by label) directly to the figure.
-
-    The spec can contain either:
-    - The new format: ``_meta`` + ``layout`` + ``traces``
-    - The legacy flat format (labels, panels, title, etc.)
+    The spec uses flat semantic keys (panels, title, y_label, trace_colors,
+    etc.) which are translated into Plotly JSON internally.
 
     Args:
-        spec: Plot specification dict.
+        spec: Plot specification dict with semantic keys.
         entries: DataEntry objects referenced by the spec labels.
         color_state: Optional ColorState for stable cross-render coloring.
         time_range: Optional time range string to apply to x-axis.
@@ -411,28 +405,7 @@ def build_figure_from_spec(
     if color_state is None:
         color_state = ColorState()
 
-    # Determine if this is the new format (_meta present) or legacy
-    meta = spec.get("_meta", {})
-
-    if meta:
-        # Raw path: _meta + layout + traces
-        layout = spec.get("layout", {})
-        traces = spec.get("traces", {})
-        result = _create_figure(meta, entries, color_state, time_range)
-        if isinstance(result, dict):
-            return result  # error dict
-        if layout:
-            result.figure.update_layout(**layout)
-        if traces:
-            for selector, patch in traces.items():
-                for i, label in enumerate(result.trace_labels):
-                    if label == selector or selector in label or label in selector:
-                        if i < len(result.figure.data):
-                            result.figure.data[i].update(**patch)
-        return result
-    else:
-        # Semantic format: flat spec with labels, panels, title, etc.
-        return _build_from_spec(spec, entries, color_state, time_range)
+    return _build_from_spec(spec, entries, color_state, time_range)
 
 
 def _create_figure(
@@ -609,7 +582,7 @@ def _build_from_spec(
     non-commutative work (subplot grid + traces), then applies commutative
     styling (layout + trace patches) on top.
     """
-    # Build _meta from flat spec
+    # Build grid/structure params for _create_figure
     meta: dict = {}
     if "panels" in spec:
         meta["panels"] = spec["panels"]
@@ -752,6 +725,16 @@ def _build_from_spec(
                 "showarrow": ann.get("showarrow", True),
             })
         layout["annotations"] = annotations
+    if spec.get("margin"):
+        layout["margin"] = spec["margin"]
+    if spec.get("trace_visibility"):
+        for trace_label, visible in spec["trace_visibility"].items():
+            traces_patch[trace_label] = traces_patch.get(trace_label, {})
+            traces_patch[trace_label]["visible"] = visible
+    if spec.get("trace_mode"):
+        for trace_label, mode in spec["trace_mode"].items():
+            traces_patch[trace_label] = traces_patch.get(trace_label, {})
+            traces_patch[trace_label]["mode"] = mode
 
     # Carry over spectrogram params into meta if present
     if spec.get("plot_type"):
@@ -1582,13 +1565,10 @@ class PlotlyRenderer:
     def render_from_spec(self, spec: dict, entries: list[DataEntry]) -> dict:
         """Create a complete plot from a unified spec dict.
 
-        Supports two spec formats:
-        1. **Operation-based** (new): ``_meta`` + ``operations`` list
-        2. **Legacy flat**: labels, panels, title, y_label, etc.
-
-        Both formats are routed through ``build_figure_from_spec()``, which
-        builds a fresh figure each time. The result is copied into this
-        renderer's stateful fields (bridge code for backward compat).
+        Uses the semantic spec format with flat keys (labels, panels, title,
+        y_label, trace_colors, etc.). Routed through
+        ``build_figure_from_spec()``, which builds a fresh figure each time.
+        The result is copied into this renderer's stateful fields.
 
         Args:
             spec: Unified plot specification dict.

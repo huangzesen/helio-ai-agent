@@ -1,8 +1,8 @@
 """
-Unit tests for direct Plotly JSON passthrough in build_figure_from_spec().
+Unit tests for build_figure_from_spec() semantic spec format.
 
-Tests the new spec format: _meta + layout (raw Plotly JSON) + traces (per-trace patches).
-Also tests legacy flat spec backward compatibility.
+Tests the semantic spec keys: panels, title, y_label, trace_colors,
+margin, trace_visibility, trace_mode, etc.
 
 No API key, no network — fast and self-contained.
 """
@@ -79,26 +79,20 @@ class TestColorState:
 
 
 # ---------------------------------------------------------------------------
-# build_figure_from_spec — layout passthrough
+# build_figure_from_spec — layout semantic fields
 # ---------------------------------------------------------------------------
 
-class TestLayoutPassthrough:
+class TestLayoutSemanticFields:
     def test_set_title(self):
         entry = _make_entry("A", n=50, desc="Alpha")
-        spec = {
-            "_meta": {"labels": ["A"], "panels": [["A"]]},
-            "layout": {"title": {"text": "My Title"}},
-        }
+        spec = {"panels": [["A"]], "title": "My Title"}
         result = build_figure_from_spec(spec, [entry])
         assert isinstance(result, RenderResult)
         assert result.figure.layout.title.text == "My Title"
 
     def test_set_y_label_panel_1(self):
         entry = _make_entry("A", n=50, desc="Alpha")
-        spec = {
-            "_meta": {"labels": ["A"], "panels": [["A"]]},
-            "layout": {"yaxis": {"title": {"text": "B (nT)"}}},
-        }
+        spec = {"panels": [["A"]], "y_label": "B (nT)"}
         result = build_figure_from_spec(spec, [entry])
         assert isinstance(result, RenderResult)
         assert result.figure.layout.yaxis.title.text == "B (nT)"
@@ -107,11 +101,8 @@ class TestLayoutPassthrough:
         e1 = _make_entry("A", n=30, desc="Alpha")
         e2 = _make_entry("B", n=30, desc="Beta")
         spec = {
-            "_meta": {"labels": ["A", "B"], "panels": [["A"], ["B"]]},
-            "layout": {
-                "yaxis": {"title": {"text": "B (nT)"}},
-                "yaxis2": {"title": {"text": "V (km/s)"}},
-            },
+            "panels": [["A"], ["B"]],
+            "y_label": {"1": "B (nT)", "2": "V (km/s)"},
         }
         result = build_figure_from_spec(spec, [e1, e2])
         assert isinstance(result, RenderResult)
@@ -120,30 +111,21 @@ class TestLayoutPassthrough:
 
     def test_set_theme(self):
         entry = _make_entry("A", n=50, desc="Alpha")
-        spec = {
-            "_meta": {"labels": ["A"], "panels": [["A"]]},
-            "layout": {"template": "plotly_dark"},
-        }
+        spec = {"panels": [["A"]], "theme": "plotly_dark"}
         result = build_figure_from_spec(spec, [entry])
         assert isinstance(result, RenderResult)
         assert result.figure.layout.template is not None
 
     def test_set_font_size(self):
         entry = _make_entry("A", n=50, desc="Alpha")
-        spec = {
-            "_meta": {"labels": ["A"], "panels": [["A"]]},
-            "layout": {"font": {"size": 18}},
-        }
+        spec = {"panels": [["A"]], "font_size": 18}
         result = build_figure_from_spec(spec, [entry])
         assert isinstance(result, RenderResult)
         assert result.figure.layout.font.size == 18
 
     def test_set_canvas_size(self):
         entry = _make_entry("A", n=50, desc="Alpha")
-        spec = {
-            "_meta": {"labels": ["A"], "panels": [["A"]]},
-            "layout": {"width": 1920, "height": 1080},
-        }
+        spec = {"panels": [["A"]], "canvas_size": {"width": 1920, "height": 1080}}
         result = build_figure_from_spec(spec, [entry])
         assert isinstance(result, RenderResult)
         assert result.figure.layout.width == 1920
@@ -151,20 +133,14 @@ class TestLayoutPassthrough:
 
     def test_set_legend(self):
         entry = _make_entry("A", n=50, desc="Alpha")
-        spec = {
-            "_meta": {"labels": ["A"], "panels": [["A"]]},
-            "layout": {"showlegend": False},
-        }
+        spec = {"panels": [["A"]], "legend": False}
         result = build_figure_from_spec(spec, [entry])
         assert isinstance(result, RenderResult)
         assert result.figure.layout.showlegend is False
 
     def test_set_x_range(self):
         entry = _make_entry("A", n=50, desc="Alpha")
-        spec = {
-            "_meta": {"labels": ["A"], "panels": [["A"]]},
-            "layout": {"xaxis": {"range": ["2024-01-01", "2024-01-10"]}},
-        }
+        spec = {"panels": [["A"]], "x_range": ["2024-01-01", "2024-01-10"]}
         result = build_figure_from_spec(spec, [entry])
         assert isinstance(result, RenderResult)
         assert tuple(result.figure.layout.xaxis.range) == ("2024-01-01", "2024-01-10")
@@ -174,8 +150,8 @@ class TestLayoutPassthrough:
         e2 = _make_entry("B", n=30, desc="Beta")
         e3 = _make_entry("C", n=30, desc="Gamma")
         spec = {
-            "_meta": {"labels": ["A", "B", "C"], "panels": [["A"], ["B"], ["C"]]},
-            "layout": {"yaxis3": {"range": [0, 100]}},
+            "panels": [["A"], ["B"], ["C"]],
+            "y_range": {"3": [0, 100]},
         }
         result = build_figure_from_spec(spec, [e1, e2, e3])
         assert isinstance(result, RenderResult)
@@ -185,8 +161,8 @@ class TestLayoutPassthrough:
         e1 = _make_entry("A", n=30, desc="Alpha")
         e2 = _make_entry("B", n=30, desc="Beta")
         spec = {
-            "_meta": {"labels": ["A", "B"], "panels": [["A"], ["B"]]},
-            "layout": {"yaxis2": {"type": "log"}},
+            "panels": [["A"], ["B"]],
+            "log_scale": {"2": "log"},
         }
         result = build_figure_from_spec(spec, [e1, e2])
         assert isinstance(result, RenderResult)
@@ -195,8 +171,8 @@ class TestLayoutPassthrough:
     def test_set_margin(self):
         entry = _make_entry("A", n=50, desc="Alpha")
         spec = {
-            "_meta": {"labels": ["A"], "panels": [["A"]]},
-            "layout": {"margin": {"l": 50, "r": 30, "t": 40, "b": 60}},
+            "panels": [["A"]],
+            "margin": {"l": 50, "r": 30, "t": 40, "b": 60},
         }
         result = build_figure_from_spec(spec, [entry])
         assert isinstance(result, RenderResult)
@@ -205,11 +181,9 @@ class TestLayoutPassthrough:
         assert result.figure.layout.margin.t == 40
         assert result.figure.layout.margin.b == 60
 
-    def test_empty_layout_is_fine(self):
+    def test_empty_spec_is_fine(self):
         entry = _make_entry("A", n=50, desc="Alpha")
-        spec = {
-            "_meta": {"labels": ["A"], "panels": [["A"]]},
-        }
+        spec = {"panels": [["A"]]}
         result = build_figure_from_spec(spec, [entry])
         assert isinstance(result, RenderResult)
         assert result.panel_count == 1
@@ -218,13 +192,10 @@ class TestLayoutPassthrough:
         e1 = _make_entry("A", n=30, desc="Alpha")
         e2 = _make_entry("B", n=30, desc="Beta")
         spec = {
-            "_meta": {"labels": ["A", "B"], "panels": [["A"], ["B"]]},
-            "layout": {
-                "title": {"text": "Multi-Field"},
-                "yaxis": {"title": {"text": "B (nT)"}},
-                "yaxis2": {"title": {"text": "V (km/s)"}},
-                "font": {"size": 14},
-            },
+            "panels": [["A"], ["B"]],
+            "title": "Multi-Field",
+            "y_label": {"1": "B (nT)", "2": "V (km/s)"},
+            "font_size": 14,
         }
         result = build_figure_from_spec(spec, [e1, e2])
         assert isinstance(result, RenderResult)
@@ -235,16 +206,13 @@ class TestLayoutPassthrough:
 
 
 # ---------------------------------------------------------------------------
-# build_figure_from_spec — traces passthrough
+# build_figure_from_spec — trace semantic fields
 # ---------------------------------------------------------------------------
 
-class TestTracesPassthrough:
+class TestTraceSemanticFields:
     def test_set_trace_color(self):
         entry = _make_entry("M", n=20, desc="Mag")
-        spec = {
-            "_meta": {"labels": ["M"], "panels": [["M"]]},
-            "traces": {"Mag": {"line": {"color": "blue"}}},
-        }
+        spec = {"panels": [["M"]], "trace_colors": {"Mag": "blue"}}
         result = build_figure_from_spec(spec, [entry])
         assert isinstance(result, RenderResult)
         assert result.figure.data[0].line.color == "blue"
@@ -252,8 +220,8 @@ class TestTracesPassthrough:
     def test_set_line_style(self):
         entry = _make_entry("M", n=20, desc="Mag")
         spec = {
-            "_meta": {"labels": ["M"], "panels": [["M"]]},
-            "traces": {"Mag": {"line": {"width": 3, "dash": "dot"}}},
+            "panels": [["M"]],
+            "line_styles": {"Mag": {"width": 3, "dash": "dot"}},
         }
         result = build_figure_from_spec(spec, [entry])
         assert isinstance(result, RenderResult)
@@ -264,8 +232,8 @@ class TestTracesPassthrough:
         e1 = _make_entry("A", n=20, desc="Alpha")
         e2 = _make_entry("B", n=20, desc="Beta")
         spec = {
-            "_meta": {"labels": ["A", "B"], "panels": [["A", "B"]]},
-            "traces": {"Alpha": {"visible": False}},
+            "panels": [["A", "B"]],
+            "trace_visibility": {"Alpha": False},
         }
         result = build_figure_from_spec(spec, [e1, e2])
         assert isinstance(result, RenderResult)
@@ -274,21 +242,15 @@ class TestTracesPassthrough:
 
     def test_set_trace_mode(self):
         entry = _make_entry("M", n=20, desc="Mag")
-        spec = {
-            "_meta": {"labels": ["M"], "panels": [["M"]]},
-            "traces": {"Mag": {"mode": "markers"}},
-        }
+        spec = {"panels": [["M"]], "trace_mode": {"Mag": "markers"}}
         result = build_figure_from_spec(spec, [entry])
         assert isinstance(result, RenderResult)
         assert result.figure.data[0].mode == "markers"
 
     def test_trace_not_found_no_error(self):
-        """Unknown trace label is silently ignored."""
+        """Unknown trace label in trace_colors is silently ignored."""
         entry = _make_entry("M", n=20, desc="Mag")
-        spec = {
-            "_meta": {"labels": ["M"], "panels": [["M"]]},
-            "traces": {"NonExistent": {"line": {"color": "red"}}},
-        }
+        spec = {"panels": [["M"]], "trace_colors": {"NonExistent": "red"}}
         result = build_figure_from_spec(spec, [entry])
         assert isinstance(result, RenderResult)
         # Original color unchanged (assigned by ColorState)
@@ -297,110 +259,26 @@ class TestTracesPassthrough:
     def test_trace_substring_match(self):
         """Traces matched by substring (trace label contains selector)."""
         entry = _make_entry("M", n=20, desc="Magnetic Field Bx")
-        spec = {
-            "_meta": {"labels": ["M"], "panels": [["M"]]},
-            "traces": {"Bx": {"line": {"color": "red"}}},
-        }
+        spec = {"panels": [["M"]], "trace_colors": {"Bx": "red"}}
         result = build_figure_from_spec(spec, [entry])
         assert isinstance(result, RenderResult)
         assert result.figure.data[0].line.color == "red"
 
-    def test_empty_traces_dict_is_fine(self):
+    def test_empty_spec_no_trace_patches(self):
         entry = _make_entry("A", n=50, desc="Alpha")
-        spec = {
-            "_meta": {"labels": ["A"], "panels": [["A"]]},
-            "traces": {},
-        }
+        spec = {"panels": [["A"]]}
         result = build_figure_from_spec(spec, [entry])
         assert isinstance(result, RenderResult)
 
 
 # ---------------------------------------------------------------------------
-# build_figure_from_spec — decorations via layout
-# ---------------------------------------------------------------------------
-
-class TestDecorationsViaLayout:
-    def test_vline_as_shapes(self):
-        entry = _make_entry("V", n=20, desc="Vdata")
-        spec = {
-            "_meta": {"labels": ["V"], "panels": [["V"]]},
-            "layout": {
-                "shapes": [{
-                    "type": "line",
-                    "x0": "2024-01-01T00:10:00", "x1": "2024-01-01T00:10:00",
-                    "y0": 0, "y1": 1,
-                    "xref": "x", "yref": "paper",
-                    "line": {"color": "red", "width": 2},
-                }],
-                "annotations": [{
-                    "x": "2024-01-01T00:10:00", "y": 1.02,
-                    "xref": "x", "yref": "paper",
-                    "text": "Event", "showarrow": False,
-                }],
-            },
-        }
-        result = build_figure_from_spec(spec, [entry])
-        assert isinstance(result, RenderResult)
-        assert len(result.figure.layout.shapes) == 1
-        shape = result.figure.layout.shapes[0]
-        assert shape.x0 == "2024-01-01T00:10:00"
-        assert shape.line.color == "red"
-        assert len(result.figure.layout.annotations) == 1
-        assert result.figure.layout.annotations[0].text == "Event"
-
-    def test_vrect_as_shapes(self):
-        entry = _make_entry("V", n=20, desc="Vdata")
-        spec = {
-            "_meta": {"labels": ["V"], "panels": [["V"]]},
-            "layout": {
-                "shapes": [{
-                    "type": "rect",
-                    "x0": "2024-01-10", "x1": "2024-01-15",
-                    "y0": 0, "y1": 1,
-                    "xref": "x", "yref": "paper",
-                    "fillcolor": "rgba(0,0,255,0.2)",
-                    "opacity": 0.5,
-                }],
-            },
-        }
-        result = build_figure_from_spec(spec, [entry])
-        assert isinstance(result, RenderResult)
-        assert len(result.figure.layout.shapes) == 1
-        shape = result.figure.layout.shapes[0]
-        assert shape.type == "rect"
-        assert shape.x0 == "2024-01-10"
-        assert shape.x1 == "2024-01-15"
-
-    def test_annotation_via_layout(self):
-        entry = _make_entry("A", n=20, desc="Alpha")
-        spec = {
-            "_meta": {"labels": ["A"], "panels": [["A"]]},
-            "layout": {
-                "annotations": [{
-                    "text": "Peak", "x": 1.5, "y": 3.5, "showarrow": True,
-                }],
-            },
-        }
-        result = build_figure_from_spec(spec, [entry])
-        assert isinstance(result, RenderResult)
-        assert len(result.figure.layout.annotations) == 1
-        ann = result.figure.layout.annotations[0]
-        assert ann.text == "Peak"
-        assert ann.x == 1.5
-        assert ann.showarrow is True
-
-
-# ---------------------------------------------------------------------------
-# build_figure_from_spec — _meta handling
+# build_figure_from_spec — core behavior
 # ---------------------------------------------------------------------------
 
 class TestBuildFigureFromSpec:
-    def test_basic_meta(self):
+    def test_basic_spec(self):
         entry = _make_entry("A", n=50, desc="Alpha")
-        spec = {
-            "_meta": {"labels": ["A"], "panels": [["A"]]},
-            "layout": {"title": {"text": "Test Plot"}},
-        }
+        spec = {"panels": [["A"]], "title": "Test Plot"}
         result = build_figure_from_spec(spec, [entry])
         assert isinstance(result, RenderResult)
         assert result.figure.layout.title.text == "Test Plot"
@@ -412,12 +290,9 @@ class TestBuildFigureFromSpec:
         e1 = _make_entry("A", n=30, desc="Alpha")
         e2 = _make_entry("B", n=30, desc="Beta")
         spec = {
-            "_meta": {"labels": ["A", "B"], "panels": [["A"], ["B"]]},
-            "layout": {
-                "title": {"text": "Multi-Panel"},
-                "yaxis": {"title": {"text": "B (nT)"}},
-                "yaxis2": {"title": {"text": "V (km/s)"}},
-            },
+            "panels": [["A"], ["B"]],
+            "title": "Multi-Panel",
+            "y_label": {"1": "B (nT)", "2": "V (km/s)"},
         }
         result = build_figure_from_spec(spec, [e1, e2])
         assert isinstance(result, RenderResult)
@@ -429,9 +304,7 @@ class TestBuildFigureFromSpec:
     def test_color_state_preserved(self):
         entry = _make_entry("A", n=20, desc="Alpha")
         cs = ColorState(label_colors={"Alpha": "#ff0000"}, color_index=5)
-        spec = {
-            "_meta": {"labels": ["A"], "panels": [["A"]]},
-        }
+        spec = {"panels": [["A"]]}
         result = build_figure_from_spec(spec, [entry], color_state=cs)
         assert isinstance(result, RenderResult)
         assert result.figure.data[0].line.color == "#ff0000"
@@ -439,9 +312,7 @@ class TestBuildFigureFromSpec:
 
     def test_time_range(self):
         entry = _make_entry("A", n=50, desc="Alpha")
-        spec = {
-            "_meta": {"labels": ["A"], "panels": [["A"]]},
-        }
+        spec = {"panels": [["A"]]}
         result = build_figure_from_spec(
             spec, [entry], time_range="2024-01-01 to 2024-01-03",
         )
@@ -451,7 +322,7 @@ class TestBuildFigureFromSpec:
         assert "2024-01-01" in str(xrange[0])
 
     def test_empty_entries_error(self):
-        spec = {"_meta": {"labels": ["A"], "panels": [["A"]]}}
+        spec = {"panels": [["A"]]}
         result = build_figure_from_spec(spec, [])
         assert isinstance(result, dict)
         assert result["status"] == "error"
@@ -462,16 +333,14 @@ class TestBuildFigureFromSpec:
             data=pd.DataFrame({"v": pd.Series(dtype=float)},
                               index=pd.DatetimeIndex([], name="time")),
         )
-        spec = {"_meta": {"labels": ["empty"], "panels": [["empty"]]}}
+        spec = {"panels": [["empty"]]}
         result = build_figure_from_spec(spec, [empty])
         assert isinstance(result, dict)
         assert result["status"] == "error"
 
     def test_label_not_found_error(self):
         entry = _make_entry("A", n=20, desc="Alpha")
-        spec = {
-            "_meta": {"labels": ["A", "MISSING"], "panels": [["A"], ["MISSING"]]},
-        }
+        spec = {"panels": [["A"], ["MISSING"]]}
         result = build_figure_from_spec(spec, [entry])
         assert isinstance(result, dict)
         assert result["status"] == "error"
@@ -479,7 +348,7 @@ class TestBuildFigureFromSpec:
 
     def test_vector_decomposition(self):
         entry = _make_entry("Bvec", n=30, ncols=3)
-        spec = {"_meta": {"labels": ["Bvec"], "panels": [["Bvec"]]}}
+        spec = {"panels": [["Bvec"]]}
         result = build_figure_from_spec(spec, [entry])
         assert isinstance(result, RenderResult)
         assert len(result.trace_labels) == 3
@@ -489,50 +358,43 @@ class TestBuildFigureFromSpec:
         """When panels is not specified, all entries overlay in one panel."""
         e1 = _make_entry("A", n=20, desc="Alpha")
         e2 = _make_entry("B", n=20, desc="Beta")
-        spec = {"_meta": {"labels": ["A", "B"]}}
+        spec = {}
         result = build_figure_from_spec(spec, [e1, e2])
         assert isinstance(result, RenderResult)
         assert result.panel_count == 1
         assert len(result.trace_labels) == 2
 
-
-# ---------------------------------------------------------------------------
-# build_figure_from_spec — legacy format backward compatibility
-# ---------------------------------------------------------------------------
-
-class TestBuildFigureFromSpecLegacy:
-    def test_legacy_flat_spec(self):
-        """Legacy flat spec (no _meta) still works via conversion."""
+    def test_flat_spec_with_labels(self):
         entry = _make_entry("A", n=50, desc="Alpha")
-        spec = {"labels": "A", "title": "Legacy Test"}
+        spec = {"labels": "A", "title": "Test"}
         result = build_figure_from_spec(spec, [entry])
         assert isinstance(result, RenderResult)
-        assert result.figure.layout.title.text == "Legacy Test"
+        assert result.figure.layout.title.text == "Test"
 
-    def test_legacy_with_panels(self):
+    def test_with_panels_and_labels(self):
         e1 = _make_entry("A", n=30, desc="Alpha")
         e2 = _make_entry("B", n=30, desc="Beta")
         spec = {
             "labels": "A,B",
             "panels": [["A"], ["B"]],
-            "title": "Legacy Panels",
+            "title": "Panels",
             "y_label": {"1": "nT", "2": "km/s"},
         }
         result = build_figure_from_spec(spec, [e1, e2])
         assert isinstance(result, RenderResult)
         assert result.panel_count == 2
-        assert result.figure.layout.title.text == "Legacy Panels"
+        assert result.figure.layout.title.text == "Panels"
         assert result.figure.layout.yaxis.title.text == "nT"
         assert result.figure.layout.yaxis2.title.text == "km/s"
 
-    def test_legacy_trace_colors(self):
+    def test_trace_colors(self):
         entry = _make_entry("M", n=20, desc="Mag")
         spec = {"labels": "M", "trace_colors": {"Mag": "red"}}
         result = build_figure_from_spec(spec, [entry])
         assert isinstance(result, RenderResult)
         assert result.figure.data[0].line.color == "red"
 
-    def test_legacy_vlines(self):
+    def test_vlines(self):
         entry = _make_entry("V", n=20, desc="Vdata")
         spec = {
             "labels": "V",
@@ -542,7 +404,7 @@ class TestBuildFigureFromSpecLegacy:
         assert isinstance(result, RenderResult)
         assert len(result.figure.layout.shapes) >= 1
 
-    def test_legacy_font_size_and_legend(self):
+    def test_font_size_and_legend(self):
         entry = _make_entry("X", n=20, desc="Xray")
         spec = {"labels": "X", "font_size": 18, "legend": False}
         result = build_figure_from_spec(spec, [entry])
@@ -550,7 +412,7 @@ class TestBuildFigureFromSpecLegacy:
         assert result.figure.layout.font.size == 18
         assert result.figure.layout.showlegend is False
 
-    def test_legacy_vrects(self):
+    def test_vrects(self):
         entry = _make_entry("V", n=20, desc="Vdata")
         spec = {
             "labels": "V",
@@ -563,7 +425,7 @@ class TestBuildFigureFromSpecLegacy:
         shape = result.figure.layout.shapes[0]
         assert shape.type == "rect"
 
-    def test_legacy_annotations(self):
+    def test_annotations(self):
         entry = _make_entry("A", n=20, desc="Alpha")
         spec = {
             "labels": "A",
@@ -574,14 +436,14 @@ class TestBuildFigureFromSpecLegacy:
         assert len(result.figure.layout.annotations) >= 1
         assert result.figure.layout.annotations[0].text == "Event"
 
-    def test_legacy_log_scale_y(self):
+    def test_log_scale_y(self):
         entry = _make_entry("A", n=20, desc="Alpha")
         spec = {"labels": "A", "log_scale": "y"}
         result = build_figure_from_spec(spec, [entry])
         assert isinstance(result, RenderResult)
         assert result.figure.layout.yaxis.type == "log"
 
-    def test_legacy_log_scale_dict(self):
+    def test_log_scale_dict(self):
         e1 = _make_entry("A", n=20, desc="Alpha")
         e2 = _make_entry("B", n=20, desc="Beta")
         spec = {
@@ -593,7 +455,7 @@ class TestBuildFigureFromSpecLegacy:
         assert isinstance(result, RenderResult)
         assert result.figure.layout.yaxis2.type == "log"
 
-    def test_legacy_canvas_size(self):
+    def test_canvas_size(self):
         entry = _make_entry("A", n=20, desc="Alpha")
         spec = {"labels": "A", "canvas_size": {"width": 1920, "height": 1080}}
         result = build_figure_from_spec(spec, [entry])
@@ -601,21 +463,21 @@ class TestBuildFigureFromSpecLegacy:
         assert result.figure.layout.width == 1920
         assert result.figure.layout.height == 1080
 
-    def test_legacy_x_range(self):
+    def test_x_range(self):
         entry = _make_entry("A", n=20, desc="Alpha")
         spec = {"labels": "A", "x_range": ["2024-01-01", "2024-01-10"]}
         result = build_figure_from_spec(spec, [entry])
         assert isinstance(result, RenderResult)
         assert tuple(result.figure.layout.xaxis.range) == ("2024-01-01", "2024-01-10")
 
-    def test_legacy_y_range_list(self):
+    def test_y_range_list(self):
         entry = _make_entry("A", n=20, desc="Alpha")
         spec = {"labels": "A", "y_range": [0, 100]}
         result = build_figure_from_spec(spec, [entry])
         assert isinstance(result, RenderResult)
         assert result.figure.layout.yaxis.range == (0, 100)
 
-    def test_legacy_y_range_dict(self):
+    def test_y_range_dict(self):
         e1 = _make_entry("A", n=20, desc="Alpha")
         e2 = _make_entry("B", n=20, desc="Beta")
         spec = {
@@ -627,7 +489,7 @@ class TestBuildFigureFromSpecLegacy:
         assert isinstance(result, RenderResult)
         assert result.figure.layout.yaxis2.range == (0, 50)
 
-    def test_legacy_line_styles(self):
+    def test_line_styles(self):
         entry = _make_entry("M", n=20, desc="Mag")
         spec = {
             "labels": "M",
@@ -638,26 +500,22 @@ class TestBuildFigureFromSpecLegacy:
         assert result.figure.data[0].line.width == 3
         assert result.figure.data[0].line.dash == "dot"
 
-    def test_legacy_theme(self):
+    def test_theme(self):
         entry = _make_entry("A", n=20, desc="Alpha")
         spec = {"labels": "A", "theme": "plotly_white"}
         result = build_figure_from_spec(spec, [entry])
         assert isinstance(result, RenderResult)
         assert result.figure.layout.template is not None
 
-
-# ---------------------------------------------------------------------------
-# Combined layout + traces
-# ---------------------------------------------------------------------------
-
-class TestCombinedLayoutTraces:
-    def test_layout_and_traces_together(self):
-        """Both layout and trace patches are applied."""
+    def test_combined_layout_and_traces(self):
+        """Both layout and trace style fields are applied together."""
         entry = _make_entry("M", n=20, desc="Mag")
         spec = {
-            "_meta": {"labels": ["M"], "panels": [["M"]]},
-            "layout": {"title": {"text": "Combined"}, "font": {"size": 16}},
-            "traces": {"Mag": {"line": {"color": "red", "width": 2}}},
+            "panels": [["M"]],
+            "title": "Combined",
+            "font_size": 16,
+            "trace_colors": {"Mag": "red"},
+            "line_styles": {"Mag": {"width": 2}},
         }
         result = build_figure_from_spec(spec, [entry])
         assert isinstance(result, RenderResult)
@@ -666,14 +524,14 @@ class TestCombinedLayoutTraces:
         assert result.figure.data[0].line.color == "red"
         assert result.figure.data[0].line.width == 2
 
-    def test_vector_trace_patches(self):
-        """Trace patches work with vector-decomposed trace labels like 'desc (x)'."""
+    def test_vector_trace_colors(self):
+        """Trace colors work with vector-decomposed trace labels like 'desc (x)'."""
         entry = _make_entry("Bvec", n=30, ncols=3, desc="B")
         spec = {
-            "_meta": {"labels": ["Bvec"], "panels": [["Bvec"]]},
-            "traces": {
-                "B (x)": {"line": {"color": "red"}},
-                "B (z)": {"line": {"color": "blue"}},
+            "panels": [["Bvec"]],
+            "trace_colors": {
+                "B (x)": "red",
+                "B (z)": "blue",
             },
         }
         result = build_figure_from_spec(spec, [entry])

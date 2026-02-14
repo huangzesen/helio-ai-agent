@@ -22,7 +22,8 @@ TOOLS = [
                             "Layout fields: panels, panel_types, plot_type, columns, column_titles, "
                             "colorscale, log_y, log_z, z_min, z_max. "
                             "Style fields: title, x_label, y_label, trace_colors, line_styles, "
-                            "log_scale, x_range, y_range, legend, font_size, canvas_size, "
+                            "trace_visibility, trace_mode, "
+                            "log_scale, x_range, y_range, legend, font_size, canvas_size, margin, "
                             "annotations, theme, vlines, vrects."},
         ],
     },
