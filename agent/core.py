@@ -723,10 +723,6 @@ class OrchestratorAgent:
         except Exception as e:
             return {"status": "error", "message": str(e)}
 
-        review = result.get("review", {})
-        for w in review.get("warnings", []):
-            self.logger.debug(f"[PlotReview] {w}")
-
         return result
 
     def _handle_manage_plot(self, tool_args: dict) -> dict:
@@ -1720,11 +1716,10 @@ class OrchestratorAgent:
             agent = self._get_or_create_viz_agent()
             full_request = f"{request}\n\nContext: {context}" if context else request
 
-            # Inject current plot spec so the viz agent can diff against it
-            import json as _json
-            current_spec = self._renderer.get_current_spec()
-            if current_spec:
-                full_request += f"\n\nCurrent plot spec:\n{_json.dumps(current_spec, indent=2)}"
+            # Inject current plot state so the viz agent knows what's displayed
+            state = self._renderer.get_current_state()
+            if state["has_plot"]:
+                full_request += f"\n\nCurrently displayed: {state['traces']}"
             else:
                 full_request += "\n\nNo plot currently displayed."
 
@@ -2122,11 +2117,10 @@ class OrchestratorAgent:
                         f"Original request: {task.instruction}"
                     )
 
-                # Inject current spec context for the viz agent
-                import json as _json
-                current_spec = self._renderer.get_current_spec()
-                if current_spec:
-                    task.instruction += f"\n\nCurrent plot spec:\n{_json.dumps(current_spec, indent=2)}"
+                # Inject current plot state for the viz agent
+                state = self._renderer.get_current_state()
+                if state["has_plot"]:
+                    task.instruction += f"\n\nCurrently displayed: {state['traces']}"
                 else:
                     task.instruction += "\n\nNo plot currently displayed."
 

@@ -242,8 +242,6 @@ class VisualizationAgent(BaseSubAgent):
             f"Your FIRST call must be: {first_call}\n\n"
             "RULES:\n"
             "- Call render_plotly_json with the labels shown above.\n"
-            "- After plotting, inspect review.sizing_recommendation and adjust\n"
-            "  layout width/height if it differs from review.figure_size.\n"
             "- Use manage_plot for export, reset, zoom, or trace operations if needed."
             + pitfall_section
         )

@@ -9,7 +9,7 @@ import pandas as pd
 import pytest
 
 from data_ops.store import DataEntry
-from rendering.plotly_renderer import PlotlyRenderer, fill_figure_data, ColorState, RenderResult
+from rendering.plotly_renderer import PlotlyRenderer, fill_figure_data, RenderResult
 
 
 # ---------------------------------------------------------------------------
@@ -55,7 +55,6 @@ class TestManage:
         assert result["status"] == "success"
         assert renderer.get_figure() is None
         assert renderer._trace_labels == []
-        assert renderer._trace_panels == []
 
     def test_get_state(self, renderer):
         _render_one(renderer, desc="Alpha")
@@ -136,7 +135,6 @@ class TestState:
         assert renderer.get_figure() is None
         assert renderer._panel_count == 0
         assert renderer._trace_labels == []
-        assert renderer._trace_panels == []
 
     def test_get_current_state_empty(self, renderer):
         state = renderer.get_current_state()
@@ -165,8 +163,7 @@ class TestFillFigureData:
             "data": [{"type": "scatter", "data_label": "mag", "mode": "lines"}],
             "layout": {"title": {"text": "Test"}},
         }
-        cs = ColorState()
-        result = fill_figure_data(fig_json, {"mag": entry}, cs)
+        result = fill_figure_data(fig_json, {"mag": entry})
         assert isinstance(result, RenderResult)
         fig = result.figure
         assert len(fig.data) == 1
@@ -175,41 +172,15 @@ class TestFillFigureData:
         assert fig.layout.title.text == "Test"
         assert result.trace_labels == ["Bmag"]
 
-    def test_vector_auto_expand(self):
-        """3-column entry auto-expands into 3 traces."""
+    def test_multi_column_raises_error(self):
+        """Multi-column entry raises ValueError with helpful message."""
         entry = _make_entry("Bvec", n=30, ncols=3, desc="B field")
         fig_json = {
             "data": [{"type": "scatter", "data_label": "Bvec"}],
             "layout": {},
         }
-        cs = ColorState()
-        result = fill_figure_data(fig_json, {"Bvec": entry}, cs)
-        assert len(result.figure.data) == 3
-        assert result.trace_labels == ["B field (x)", "B field (y)", "B field (z)"]
-
-    def test_explicit_color_preserved(self):
-        """Trace with explicit line color keeps it, no auto-assignment."""
-        entry = _make_entry("mag", n=20)
-        fig_json = {
-            "data": [{"type": "scatter", "data_label": "mag",
-                       "line": {"color": "red"}}],
-            "layout": {},
-        }
-        cs = ColorState()
-        result = fill_figure_data(fig_json, {"mag": entry}, cs)
-        assert result.figure.data[0].line.color == "red"
-
-    def test_auto_color_assignment(self):
-        """Trace without color gets one from ColorState."""
-        entry = _make_entry("mag", n=20, desc="Bmag")
-        fig_json = {
-            "data": [{"type": "scatter", "data_label": "mag"}],
-            "layout": {},
-        }
-        cs = ColorState()
-        result = fill_figure_data(fig_json, {"mag": entry}, cs)
-        assert result.figure.data[0].line.color is not None
-        assert "Bmag" in cs.label_colors
+        with pytest.raises(ValueError, match="has 3 columns"):
+            fill_figure_data(fig_json, {"Bvec": entry})
 
     def test_nan_to_none(self):
         """NaN values in data are converted to None for Plotly."""
@@ -221,8 +192,7 @@ class TestFillFigureData:
             "data": [{"type": "scatter", "data_label": "gappy"}],
             "layout": {},
         }
-        cs = ColorState()
-        result = fill_figure_data(fig_json, {"gappy": entry}, cs)
+        result = fill_figure_data(fig_json, {"gappy": entry})
         y_data = result.figure.data[0].y
         assert y_data[1] is None
         assert y_data[3] is None
@@ -245,8 +215,7 @@ class TestFillFigureData:
                        "colorscale": "Viridis"}],
             "layout": {"yaxis": {"domain": [0, 1]}},
         }
-        cs = ColorState()
-        result = fill_figure_data(fig_json, {"spec": entry}, cs)
+        result = fill_figure_data(fig_json, {"spec": entry})
         fig = result.figure
         assert len(fig.data) == 1
         trace = fig.data[0]
@@ -271,11 +240,9 @@ class TestFillFigureData:
                 "yaxis2": {"domain": [0, 0.45], "anchor": "x2", "title": {"text": "km/s"}},
             },
         }
-        cs = ColorState()
-        result = fill_figure_data(fig_json, {"A": e1, "B": e2}, cs)
+        result = fill_figure_data(fig_json, {"A": e1, "B": e2})
         assert result.panel_count == 2
         assert len(result.figure.data) == 2
-        assert result.trace_panels == [(1, 1), (2, 2)]
 
     def test_missing_data_label_error(self):
         """Missing data_label raises ValueError."""
@@ -283,9 +250,8 @@ class TestFillFigureData:
             "data": [{"type": "scatter", "data_label": "MISSING"}],
             "layout": {},
         }
-        cs = ColorState()
         with pytest.raises(ValueError, match="MISSING"):
-            fill_figure_data(fig_json, {}, cs)
+            fill_figure_data(fig_json, {})
 
     def test_time_range_applied(self):
         """Time range is applied to x-axes in layout."""
@@ -294,9 +260,8 @@ class TestFillFigureData:
             "data": [{"type": "scatter", "data_label": "mag"}],
             "layout": {"xaxis": {}},
         }
-        cs = ColorState()
         result = fill_figure_data(
-            fig_json, {"mag": entry}, cs,
+            fig_json, {"mag": entry},
             time_range="2024-01-01 to 2024-01-02",
         )
         xaxis_range = result.figure.layout.xaxis.range
@@ -310,10 +275,20 @@ class TestFillFigureData:
             "data": [{"type": "scatter", "data_label": "mag"}],
             "layout": {},
         }
-        cs = ColorState()
-        result = fill_figure_data(fig_json, {"mag": entry}, cs)
+        result = fill_figure_data(fig_json, {"mag": entry})
         assert result.figure.layout.paper_bgcolor == "white"
         assert result.figure.layout.plot_bgcolor == "white"
+
+    def test_explicit_color_preserved(self):
+        """Trace with explicit line color keeps it."""
+        entry = _make_entry("mag", n=20)
+        fig_json = {
+            "data": [{"type": "scatter", "data_label": "mag",
+                       "line": {"color": "red"}}],
+            "layout": {},
+        }
+        result = fill_figure_data(fig_json, {"mag": entry})
+        assert result.figure.data[0].line.color == "red"
 
 
 # ---------------------------------------------------------------------------
@@ -324,7 +299,7 @@ class TestRenderPlotlyJson:
     """Tests for the PlotlyRenderer.render_plotly_json method."""
 
     def test_basic_render(self, renderer):
-        """Basic render produces success result with review."""
+        """Basic render produces success result."""
         entry = _make_entry("mag", n=50, desc="Bmag")
         fig_json = {
             "data": [{"type": "scatter", "data_label": "mag"}],
@@ -333,21 +308,21 @@ class TestRenderPlotlyJson:
         result = renderer.render_plotly_json(fig_json, {"mag": entry})
         assert result["status"] == "success"
         assert result["traces"] == ["Bmag"]
-        assert "review" in result
+        assert "trace_info" in result
         fig = renderer.get_figure()
         assert fig is not None
         assert fig.layout.title.text == "Test"
 
-    def test_vector_render(self, renderer):
-        """Vector data renders into 3 component traces."""
+    def test_multi_column_error(self, renderer):
+        """Multi-column data returns error dict."""
         entry = _make_entry("B", n=30, ncols=3, desc="Bfield")
         fig_json = {
             "data": [{"type": "scatter", "data_label": "B"}],
             "layout": {},
         }
         result = renderer.render_plotly_json(fig_json, {"B": entry})
-        assert result["status"] == "success"
-        assert len(result["traces"]) == 3
+        assert result["status"] == "error"
+        assert "3 columns" in result["message"]
 
     def test_missing_label_error(self, renderer):
         """Missing data_label returns error dict."""
@@ -377,17 +352,15 @@ class TestRenderPlotlyJson:
         assert renderer._trace_labels == ["Xdata"]
         assert renderer.get_figure() is not None
 
-    def test_review_metadata(self, renderer):
-        """Review metadata is included in render result."""
+    def test_trace_info_included(self, renderer):
+        """Trace info with point counts is included in render result."""
         entry = _make_entry("mag", n=50, desc="Mag")
         fig_json = {
             "data": [{"type": "scatter", "data_label": "mag"}],
             "layout": {},
         }
         result = renderer.render_plotly_json(fig_json, {"mag": entry})
-        review = result["review"]
-        assert "trace_summary" in review
-        assert "warnings" in review
-        assert "hint" in review
-        assert len(review["trace_summary"]) == 1
-        assert review["trace_summary"][0]["name"] == "Mag"
+        assert "trace_info" in result
+        assert len(result["trace_info"]) == 1
+        assert result["trace_info"][0]["name"] == "Mag"
+        assert result["trace_info"][0]["points"] == 50

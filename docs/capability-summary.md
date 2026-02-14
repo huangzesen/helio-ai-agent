@@ -116,7 +116,7 @@ agent/core.py  OrchestratorAgent  (LLM-driven orchestrator)
   |       custom_ops.py             AST-validated sandboxed executor for LLM-generated pandas/numpy code
   |
   +---> rendering/                Plotly-based visualization engine
-  |       plotly_renderer.py        Interactive Plotly figures, multi-panel, WebGL, PNG/PDF export via kaleido
+  |       plotly_renderer.py        Fills data_label placeholders in LLM-generated Plotly JSON, multi-panel, PNG/PDF export via kaleido
   |       registry.py               Tool registry (2 declarative tools) — single source of truth for viz capabilities
   |
   +---> scripts/                  Tooling
@@ -149,14 +149,6 @@ agent/core.py  OrchestratorAgent  (LLM-driven orchestrator)
 | `manage_plot` | Imperative operations on the current figure: export (PNG/PDF), reset, zoom/time range, get state |
 
 The viz agent uses `render_plotly_json` and `manage_plot` for all visualization operations. The LLM provides a Plotly figure JSON with `data_label` placeholders in trace stubs, and the system resolves these against in-memory data. The tool registry (`rendering/registry.py`) describes both tools with their parameters and examples.
-
-### Plot Self-Review
-Every `render_plotly_json` render returns a `review` field with structured metadata for LLM self-assessment:
-- **`trace_summary`**: per-trace name, panel, point count, y-range, gap status
-- **`warnings`**: heuristic checks — cluttered panels (>6 traces), resolution mismatches (>10x point count difference), suspicious y-ranges (possible fill values), invisible traces (all NaN/missing data), empty panels
-- **`hint`**: one-line summary of panel layout and trace assignments
-
-The LLM inspects this metadata within the existing tool loop and can self-correct (resample, split panels, filter fill values) before responding to the user — no extra LLM call or image export needed.
 
 ### Data Operations (fetch -> custom_operation -> plot)
 | Tool | Purpose |
@@ -393,7 +385,7 @@ All times are UTC. Outputs `TimeRange` objects with `start`/`end` datetimes.
 ### Figure Sizing
 - Renderer sets explicit defaults: `autosize=False`, 300px per panel height, 1100px width
 - Prevents Plotly.js from recalculating dimensions on toolbar interactions (zoom, pan, reset)
-- `render_plotly_json` review metadata includes `figure_size` (current) and `sizing_recommendation` (suggested)
+- LLM can set explicit width/height in the layout JSON to override defaults
 
 ### Gradio Streaming
 - `gradio_app.py` streams live progress by default; use `--quiet` to disable

@@ -780,34 +780,6 @@ def build_visualization_prompt(gui_mode: bool = False) -> str:
         "- Go straight to `render_plotly_json` — do NOT call list_fetched_data or reset first",
         "- Data labels are provided in the instruction — use them directly",
         "",
-        "## Plot Self-Review",
-        "",
-        "After render_plotly_json succeeds, ALWAYS inspect the `review` field:",
-        "- `review.trace_summary`: each trace's name, panel, point count, y-range, gap status",
-        "- `review.warnings`: potential issues (cluttered panels, resolution mismatches, suspicious values)",
-        "- `review.hint`: overall plot structure summary",
-        "",
-        "If warnings indicate problems:",
-        "- Cluttered panel (>6 traces): re-issue with more panels",
-        "- Resolution mismatch: suggest resampling before re-plotting",
-        "- Suspicious y-range: check for fill values that need filtering",
-        "- Invisible traces / empty panel (all NaN): inform the user",
-        "",
-        "If no warnings, respond normally describing what was plotted.",
-        "",
-        "## Figure Sizing",
-        "",
-        "After rendering, the `review` field includes:",
-        "- `review.figure_size`: current dimensions {width, height} in pixels",
-        "- `review.sizing_recommendation`: suggested dimensions with reasoning",
-        "",
-        "Set explicit width/height in layout when the recommendation differs from defaults.",
-        "",
-        "Sizing guidelines:",
-        "- 1-3 panels (line): defaults (~300px/panel, 1100px wide)",
-        "- 4+ panels: ~250px per panel",
-        "- Spectrograms: ≥400px height, 1200px width",
-        "",
         "## Styling Rules",
         "",
         "- NEVER apply log scale on y-axis unless the user explicitly requests it.",
@@ -815,7 +787,7 @@ def build_visualization_prompt(gui_mode: bool = False) -> str:
         "",
         "## Notes",
         "",
-        "- Vector data (e.g., magnetic field Bx/By/Bz) is automatically decomposed into x/y/z components",
+        "- If data has multiple columns (e.g., magnetic field Bx/By/Bz), emit one trace per column",
         "- For spectrograms, use `type: heatmap` — the system fills x (times), y (bins), z (values)",
         "",
         "## Response Style",
@@ -893,11 +865,6 @@ When `delegate_to_mission` returns:
 - If the user asked to "show", "plot", or "display" data, use `delegate_to_visualization` with the labels the specialist reported
 - If the user asked to compute something (magnitude, smoothing, etc.), use `delegate_to_data_ops`
 - Always relay the specialist's findings to the user in your response
-
-When `delegate_to_visualization` returns and a plot was created:
-- The plot result includes a `review` field with trace details and warnings
-- If `review.warnings` is non-empty, consider addressing the issues before responding
-- Common fixes: resample high-resolution data, split cluttered panels, filter fill values
 
 When `delegate_to_data_ops` returns:
 - If the user asked to plot the result, use `delegate_to_visualization` with the output labels

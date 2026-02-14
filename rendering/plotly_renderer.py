@@ -24,68 +24,6 @@ from data_ops.store import DataEntry
 if TYPE_CHECKING:
     from agent.time_utils import TimeRange
 
-# Threshold: above this many points per trace, use Scattergl (WebGL)
-_GL_THRESHOLD = 100_000
-
-# Maximum points per trace for interactive display.
-# Above this, traces are downsampled using min-max decimation to keep
-# visual features (peaks, dips) while reducing JSON payload size.
-_MAX_DISPLAY_POINTS = 5_000
-
-# Default colour sequence (golden-ratio HSL spacing, pre-computed hex)
-_DEFAULT_COLORS = [
-    "#cc6633",  # hue=0.000
-    "#55cc33",  # hue=0.618
-    "#3384cc",  # hue=0.236
-    "#a833cc",  # hue=0.854
-    "#33cc98",  # hue=0.472
-    "#cc3340",  # hue=0.090
-    "#33cccc",  # hue=0.708
-    "#ccbe33",  # hue=0.326
-]
-
-def _downsample_minmax(time_arr, val_arr, max_points: int = _MAX_DISPLAY_POINTS):
-    """Downsample using min-max decimation to preserve peaks and dips.
-
-    Splits data into buckets and keeps the min and max value from each
-    bucket, preserving the visual envelope of the signal.
-
-    Returns (time_out, val_out) as lists ready for Plotly.
-    """
-    n = len(val_arr)
-    if n <= max_points:
-        return time_arr, val_arr
-
-    # Each bucket contributes 2 points (min + max), so use half as many buckets
-    n_buckets = max_points // 2
-    bucket_size = n / n_buckets
-
-    indices = []
-    for i in range(n_buckets):
-        start = int(i * bucket_size)
-        end = int((i + 1) * bucket_size)
-        end = min(end, n)
-        if start >= end:
-            continue
-        chunk = val_arr[start:end]
-        # Handle all-NaN buckets
-        finite_mask = np.isfinite(chunk)
-        if not finite_mask.any():
-            indices.append(start)
-            continue
-        idx_min = start + np.nanargmin(chunk)
-        idx_max = start + np.nanargmax(chunk)
-        # Add in index order
-        if idx_min <= idx_max:
-            indices.extend([idx_min, idx_max])
-        else:
-            indices.extend([idx_max, idx_min])
-
-    # Deduplicate and sort
-    indices = sorted(set(indices))
-    return [time_arr[i] for i in indices], [val_arr[i] for i in indices]
-
-
 # Explicit layout defaults — prevent Gradio dark theme from overriding
 _DEFAULT_LAYOUT = dict(
     paper_bgcolor="white",
@@ -97,46 +35,6 @@ _DEFAULT_LAYOUT = dict(
 _PANEL_HEIGHT = 300  # px per subplot panel
 _DEFAULT_WIDTH = 1100  # px figure width
 
-_LEGEND_MAX_LINE = 30  # max chars per line in legend
-
-
-# ---------------------------------------------------------------------------
-# ColorState — extracted color assignment logic for stateless use
-# ---------------------------------------------------------------------------
-
-class ColorState:
-    """Tracks label-to-color assignments for stable coloring across renders."""
-
-    def __init__(
-        self,
-        label_colors: dict[str, str] | None = None,
-        color_index: int = 0,
-    ):
-        self.label_colors: dict[str, str] = dict(label_colors or {})
-        self.color_index: int = color_index
-
-    def next_color(self, label: str) -> str:
-        """Return a stable colour for *label*, assigning a new one if unseen."""
-        if label in self.label_colors:
-            return self.label_colors[label]
-        color = _DEFAULT_COLORS[self.color_index % len(_DEFAULT_COLORS)]
-        self.color_index += 1
-        self.label_colors[label] = color
-        return color
-
-    def to_dict(self) -> dict:
-        return {
-            "label_colors": dict(self.label_colors),
-            "color_index": self.color_index,
-        }
-
-    @classmethod
-    def from_dict(cls, d: dict) -> ColorState:
-        return cls(
-            label_colors=d.get("label_colors", {}),
-            color_index=d.get("color_index", 0),
-        )
-
 
 # ---------------------------------------------------------------------------
 # RenderResult — return type of fill_figure_data
@@ -145,34 +43,22 @@ class ColorState:
 class RenderResult:
     """Result of a stateless fill_figure_data() call."""
 
-    __slots__ = ("figure", "color_state", "trace_labels", "trace_panels",
-                 "panel_count", "column_count")
+    __slots__ = ("figure", "trace_labels", "panel_count")
 
     def __init__(
         self,
         figure: go.Figure,
-        color_state: ColorState,
         trace_labels: list[str],
-        trace_panels: list[tuple[int, int]],
         panel_count: int,
-        column_count: int,
     ):
         self.figure = figure
-        self.color_state = color_state
         self.trace_labels = trace_labels
-        self.trace_panels = trace_panels
         self.panel_count = panel_count
-        self.column_count = column_count
 
 
 # ---------------------------------------------------------------------------
 # Stateless figure builder
 # ---------------------------------------------------------------------------
-
-def _scatter_cls(n_points: int):
-    """Return go.Scattergl for large datasets, go.Scatter otherwise."""
-    return go.Scattergl if n_points > _GL_THRESHOLD else go.Scatter
-
 
 def _extract_x_data(entry: DataEntry) -> list:
     """Extract x-axis values from a DataEntry.
@@ -189,30 +75,6 @@ def _extract_x_data(entry: DataEntry) -> list:
     return list(idx)
 
 
-def _resolve_column_sublabel(
-    label: str, entry_map: dict[str, DataEntry],
-) -> DataEntry | None:
-    """Try to resolve 'PARENT.column' by selecting a column from a parent entry."""
-    parts = label.split(".")
-    for i in range(len(parts) - 1, 0, -1):
-        parent_label = ".".join(parts[:i])
-        col_name = ".".join(parts[i:])
-        parent = entry_map.get(parent_label)
-        if parent is not None and not parent.is_xarray and col_name in parent.data.columns:
-            return DataEntry(
-                label=label,
-                data=parent.data[[col_name]],
-                units=parent.units,
-                description=(
-                    f"{parent.description} [{col_name}]"
-                    if parent.description else col_name
-                ),
-                source=parent.source,
-                metadata=parent.metadata,
-            )
-    return None
-
-
 # ---------------------------------------------------------------------------
 # Fill function — resolves data_label placeholders in Plotly JSON
 # ---------------------------------------------------------------------------
@@ -220,7 +82,6 @@ def _resolve_column_sublabel(
 def fill_figure_data(
     fig_json: dict,
     entries: dict[str, DataEntry],
-    color_state: ColorState,
     time_range: str | None = None,
 ) -> RenderResult:
     """Fill data_label placeholders in a Plotly figure JSON with actual data.
@@ -232,18 +93,16 @@ def fill_figure_data(
 
     Handles:
     - Time extraction (DatetimeIndex/xarray → ISO 8601 strings)
-    - Vector decomposition (2D data → expand 1 stub into N traces)
-    - Downsampling via min-max decimation for large traces
     - NaN → None conversion (Plotly requirement)
-    - Scatter → Scattergl promotion for >100K points
     - Spectrogram/heatmap data population (x=times, y=bins, z=values)
-    - Colorbar positioning from yaxis domain in layout
+
+    For multi-column (vector) data, the LLM must emit one trace per column.
+    If a single trace references multi-column data, an error is raised.
 
     Args:
         fig_json: Plotly figure dict with ``data`` and ``layout`` keys.
             Each trace in ``data`` must have a ``data_label`` field.
         entries: Mapping of label → DataEntry for all referenced labels.
-        color_state: ColorState for stable cross-render coloring.
         time_range: Optional time range string (``"start to end"``).
 
     Returns:
@@ -254,7 +113,6 @@ def fill_figure_data(
 
     filled_traces: list[dict] = []
     trace_labels: list[str] = []
-    trace_panels: list[tuple[int, int]] = []
 
     for trace_dict in raw_traces:
         trace = dict(trace_dict)  # shallow copy
@@ -267,41 +125,44 @@ def fill_figure_data(
         # Resolve entry
         entry = entries.get(label)
         if entry is None:
-            entry = _resolve_column_sublabel(label, entries)
-        if entry is None:
             raise ValueError(f"data_label '{label}' not found in provided entries")
 
         trace_type = trace.get("type", "scatter").lower()
         is_heatmap = trace_type in ("heatmap", "heatmapgl")
 
-        # Determine axis indices for panel tracking
-        xaxis_ref = trace.get("xaxis", "x")
-        yaxis_ref = trace.get("yaxis", "y")
-        # "x" → 1, "x2" → 2, etc.
-        row = int(yaxis_ref[1:]) if len(yaxis_ref) > 1 else 1
-        col = int(xaxis_ref[1:]) if len(xaxis_ref) > 1 else 1
+        display_name = trace.get("name") or entry.description or entry.label
 
         if is_heatmap:
-            _fill_heatmap_trace(trace, entry, layout, trace_type)
-            display_name = trace.get("name") or entry.description or entry.label
-            trace["name"] = display_name
-            filled_traces.append(trace)
-            trace_labels.append(display_name)
-            trace_panels.append((row, col))
+            _fill_heatmap_trace(trace, entry)
         else:
-            # Scalar or vector data → line/scatter traces
-            expanded = _fill_scatter_traces(trace, entry, color_state)
-            for t, name in expanded:
-                filled_traces.append(t)
-                trace_labels.append(name)
-                trace_panels.append((row, col))
+            # Reject multi-column data — LLM must emit one trace per column
+            if entry.values.ndim == 2 and entry.values.shape[1] > 1:
+                ncols = entry.values.shape[1]
+                col_names = list(entry.data.columns) if hasattr(entry.data, 'columns') else [str(i) for i in range(ncols)]
+                raise ValueError(
+                    f"Entry '{entry.label}' has {ncols} columns {col_names}. "
+                    f"Emit one trace per column using a separate data_label for each, "
+                    f"or use custom_operation to select a single column first."
+                )
+            vals = entry.values.ravel() if entry.values.ndim > 1 else entry.values
+            trace["x"] = _extract_x_data(entry)
+            trace["y"] = [float(v) if np.isfinite(v) else None for v in vals]
+            trace.setdefault("mode", "lines")
+
+        trace["name"] = display_name
+        filled_traces.append(trace)
+        trace_labels.append(display_name)
+
+    # Count panels from layout
+    n_panels = sum(1 for key in layout if key.startswith("yaxis"))
+    n_panels = max(n_panels, 1)
+    n_columns = sum(1 for key in layout if key.startswith("xaxis"))
+    n_columns = max(n_columns, 1)
 
     # Apply default layout settings
-    n_panels = _count_panels(layout)
-    n_columns = _count_columns(layout)
     width = (_DEFAULT_WIDTH if n_columns == 1
              else int(_DEFAULT_WIDTH * n_columns * 0.55))
-    height = _PANEL_HEIGHT * max(n_panels, 1)
+    height = _PANEL_HEIGHT * n_panels
 
     defaults = dict(
         **_DEFAULT_LAYOUT,
@@ -328,19 +189,14 @@ def fill_figure_data(
 
     return RenderResult(
         figure=fig,
-        color_state=color_state,
         trace_labels=trace_labels,
-        trace_panels=trace_panels,
-        panel_count=max(n_panels, 1),
-        column_count=max(n_columns, 1),
+        panel_count=n_panels,
     )
 
 
 def _fill_heatmap_trace(
     trace: dict,
     entry: DataEntry,
-    layout: dict,
-    trace_type: str,
 ) -> None:
     """Populate a heatmap trace dict with data from a DataEntry."""
     meta = entry.metadata or {}
@@ -374,123 +230,6 @@ def _fill_heatmap_trace(
     trace["y"] = [float(b) for b in bin_values]
     trace["z"] = z_values.T.tolist()
 
-    # Colorbar positioning from yaxis domain
-    yaxis_ref = trace.get("yaxis", "y")
-    yaxis_key = "yaxis" if yaxis_ref == "y" else f"yaxis{yaxis_ref[1:]}"
-    yaxis_layout = layout.get(yaxis_key, {})
-    domain = yaxis_layout.get("domain", [0, 1])
-    cb_y = (domain[0] + domain[1]) / 2
-    cb_len = domain[1] - domain[0]
-    colorbar_cfg = dict(y=cb_y, len=cb_len, yanchor="middle")
-    colorbar_title = meta.get("value_label", "")
-    if colorbar_title:
-        colorbar_cfg["title"] = dict(text=colorbar_title)
-    trace.setdefault("colorbar", colorbar_cfg)
-
-
-def _fill_scatter_traces(
-    trace_template: dict,
-    entry: DataEntry,
-    color_state: ColorState,
-) -> list[tuple[dict, str]]:
-    """Expand a scatter trace stub into one or more populated traces.
-
-    For vector data (2D, ncols > 1), creates one trace per component
-    with ``(x)``, ``(y)``, ``(z)`` suffixes.
-
-    Returns list of ``(trace_dict, display_name)`` tuples.
-    """
-    display_name = trace_template.get("name") or entry.description or entry.label
-    time_list = _extract_x_data(entry)
-    results: list[tuple[dict, str]] = []
-
-    if entry.values.ndim == 2 and entry.values.shape[1] > 1:
-        comp_names = ["x", "y", "z"]
-        for comp_col in range(entry.values.shape[1]):
-            comp = comp_names[comp_col] if comp_col < 3 else str(comp_col)
-            label = f"{display_name} ({comp})"
-            val_arr = entry.values[:, comp_col]
-            t_disp, v_disp = _downsample_minmax(time_list, val_arr, _MAX_DISPLAY_POINTS)
-            v_disp = [float(v) if np.isfinite(v) else None for v in v_disp]
-
-            trace = dict(trace_template)
-            n_points = len(v_disp)
-            # Promote to scattergl for large datasets
-            if n_points > _GL_THRESHOLD and trace.get("type", "scatter") == "scatter":
-                trace["type"] = "scattergl"
-            trace["x"] = t_disp
-            trace["y"] = v_disp
-            trace["name"] = _wrap_display_name(label)
-            # Apply color: prefer explicit, then ColorState
-            if "line" not in trace or "color" not in trace.get("line", {}):
-                trace.setdefault("line", {})["color"] = color_state.next_color(label)
-            else:
-                # Register the explicit color in state for stability
-                color_state.label_colors[label] = trace["line"]["color"]
-
-            trace.setdefault("mode", "lines")
-            results.append((trace, label))
-    else:
-        vals = entry.values.ravel() if entry.values.ndim > 1 else entry.values
-        t_disp, v_disp = _downsample_minmax(time_list, vals, _MAX_DISPLAY_POINTS)
-        v_disp = [float(v) if np.isfinite(v) else None for v in v_disp]
-
-        trace = dict(trace_template)
-        n_points = len(v_disp)
-        if n_points > _GL_THRESHOLD and trace.get("type", "scatter") == "scatter":
-            trace["type"] = "scattergl"
-        trace["x"] = t_disp
-        trace["y"] = v_disp
-        trace["name"] = _wrap_display_name(display_name)
-        if "line" not in trace or "color" not in trace.get("line", {}):
-            trace.setdefault("line", {})["color"] = color_state.next_color(display_name)
-        else:
-            color_state.label_colors[display_name] = trace["line"]["color"]
-
-        trace.setdefault("mode", "lines")
-        results.append((trace, display_name))
-
-    return results
-
-
-def _count_panels(layout: dict) -> int:
-    """Count the number of y-axis panels in a layout dict."""
-    count = 0
-    for key in layout:
-        if key.startswith("yaxis"):
-            count += 1
-    return max(count, 1)
-
-
-def _count_columns(layout: dict) -> int:
-    """Count the number of x-axis columns in a layout dict."""
-    count = 0
-    for key in layout:
-        if key.startswith("xaxis"):
-            count += 1
-    # Heuristic: if xaxes have different domains, they're columns
-    # For simple cases, just count unique x-axis domains
-    return max(count, 1)
-
-
-def _wrap_display_name(name: str, max_line: int = _LEGEND_MAX_LINE) -> str:
-    """Wrap a long display name with <br> for multi-line Plotly legends."""
-    if len(name) <= max_line:
-        return name
-    words = name.split()
-    lines: list[str] = []
-    current = ""
-    for word in words:
-        candidate = f"{current} {word}".strip()
-        if len(candidate) > max_line and current:
-            lines.append(current)
-            current = word
-        else:
-            current = candidate
-    if current:
-        lines.append(current)
-    return "<br>".join(lines)
-
 
 class PlotlyRenderer:
     """Stateful Plotly renderer for heliophysics data visualization."""
@@ -500,15 +239,8 @@ class PlotlyRenderer:
         self.gui_mode = gui_mode
         self._figure: Optional[go.Figure] = None
         self._panel_count: int = 0
-        self._column_count: int = 1
         self._current_time_range: Optional[TimeRange] = None
-        self._label_colors: dict[str, str] = {}
-        self._color_index: int = 0
-        # Trace tracking: parallel to fig.data
         self._trace_labels: list[str] = []
-        self._trace_panels: list[tuple[int, int]] = []  # (row, col) per trace
-        # Current plot spec for spec-based rendering
-        self._current_plot_spec: dict = {}
 
     # ------------------------------------------------------------------
     # Helpers
@@ -583,13 +315,8 @@ class PlotlyRenderer:
         self._log("Resetting canvas...")
         self._figure = None
         self._panel_count = 0
-        self._column_count = 1
         self._current_time_range = None
-        self._label_colors.clear()
-        self._color_index = 0
         self._trace_labels.clear()
-        self._trace_panels.clear()
-        self._current_plot_spec = {}
         return {"status": "success", "message": "Canvas reset."}
 
     def get_current_state(self) -> dict:
@@ -601,190 +328,6 @@ class PlotlyRenderer:
             "has_plot": self._figure is not None and len(self._figure.data) > 0,
             "traces": list(self._trace_labels),
         }
-
-    def get_current_spec(self) -> dict:
-        """Return a copy of the current plot spec.
-
-        Returns an empty dict if no spec-based render has occurred.
-        """
-        return dict(self._current_plot_spec)
-
-    # ------------------------------------------------------------------
-    # Review metadata (for LLM self-assessment)
-    # ------------------------------------------------------------------
-
-    def _build_review_metadata(self) -> dict:
-        """Build structured review metadata from the current figure.
-
-        Returns a dict with trace_summary, warnings, and hint that the LLM
-        can inspect to self-assess plot quality and self-correct.
-        """
-        try:
-            return self._build_review_metadata_inner()
-        except Exception:
-            # Graceful degradation — plot still works without review
-            return {}
-
-    def _build_review_metadata_inner(self) -> dict:
-        fig = self._figure
-        if fig is None or len(fig.data) == 0:
-            return {}
-
-        trace_summary = []
-        # Group traces by (row, col) for warning checks
-        panel_traces: dict[tuple[int, int], list[dict]] = {}
-
-        for i, trace in enumerate(fig.data):
-            name = self._trace_labels[i] if i < len(self._trace_labels) else (trace.name or f"trace_{i}")
-            rc = self._trace_panels[i] if i < len(self._trace_panels) else (1, 1)
-
-            is_heatmap = isinstance(trace, go.Heatmap)
-
-            if is_heatmap:
-                z = trace.z
-                if z is not None:
-                    z_arr = np.asarray(z)
-                    points_desc = f"{z_arr.shape[0]}x{z_arr.shape[1]}" if z_arr.ndim == 2 else str(len(z))
-                else:
-                    points_desc = "0"
-                info = {
-                    "name": name,
-                    "row": rc[0],
-                    "col": rc[1],
-                    "panel": rc[0] if self._column_count == 1 else None,
-                    "points": points_desc,
-                    "y_range": None,
-                    "has_gaps": False,
-                }
-            else:
-                y = trace.y
-                if y is not None:
-                    y_arr = np.asarray(y, dtype=float)
-                    n_points = len(y_arr)
-                    finite = y_arr[np.isfinite(y_arr)]
-                    if len(finite) > 0:
-                        y_range = [round(float(finite.min()), 4), round(float(finite.max()), 4)]
-                    else:
-                        y_range = None
-                    has_gaps = bool(np.any(~np.isfinite(y_arr)))
-                else:
-                    n_points = 0
-                    y_range = None
-                    has_gaps = False
-                info = {
-                    "name": name,
-                    "row": rc[0],
-                    "col": rc[1],
-                    "panel": rc[0] if self._column_count == 1 else None,
-                    "points": n_points,
-                    "y_range": y_range,
-                    "has_gaps": has_gaps,
-                }
-
-            trace_summary.append(info)
-            panel_traces.setdefault(rc, []).append(info)
-
-        # --- Warnings ---
-        warnings = []
-
-        for rc, traces_in_panel in sorted(panel_traces.items()):
-            n = len(traces_in_panel)
-            panel_label = f"Panel ({rc[0]},{rc[1]})" if self._column_count > 1 else f"Panel {rc[0]}"
-
-            # Cluttered panel
-            if n > 6:
-                warnings.append(
-                    f"{panel_label} has {n} traces — may be hard to read (consider splitting into separate panels)"
-                )
-
-            # Resolution mismatch (only for numeric point counts)
-            numeric_traces = [(t["name"], t["points"]) for t in traces_in_panel if isinstance(t["points"], int) and t["points"] > 0]
-            if len(numeric_traces) >= 2:
-                counts = [c for _, c in numeric_traces]
-                min_c, max_c = min(counts), max(counts)
-                if min_c > 0 and max_c / min_c > 10:
-                    lo_name = next(n for n, c in numeric_traces if c == min_c)
-                    hi_name = next(n for n, c in numeric_traces if c == max_c)
-                    warnings.append(
-                        f"Resolution mismatch in {panel_label}: '{lo_name}' has {min_c} points vs "
-                        f"'{hi_name}' has {max_c} points — consider resampling"
-                    )
-
-            # Empty panel
-            if n == 0:
-                warnings.append(f"{panel_label} has no traces")
-
-            # Invisible traces (data points exist but all are NaN — nothing renders)
-            invisible = [
-                t["name"] for t in traces_in_panel
-                if isinstance(t["points"], int) and t["points"] > 0 and t["y_range"] is None
-            ]
-            if invisible:
-                names_str = ", ".join(f"'{nm}'" for nm in invisible)
-                if len(invisible) == n:
-                    warnings.append(
-                        f"{panel_label} appears empty — all traces have only NaN/missing data: {names_str}"
-                    )
-                else:
-                    warnings.append(
-                        f"{panel_label} has invisible traces (all NaN/missing data): {names_str}"
-                    )
-
-        # Suspicious y-range (possible fill values)
-        for info in trace_summary:
-            yr = info["y_range"]
-            if yr is not None and (yr[1] - yr[0]) > 1e6:
-                warnings.append(
-                    f"Trace '{info['name']}' has suspicious y-range [{yr[0]}, {yr[1]}] — possible fill values"
-                )
-
-        # --- Hint ---
-        total_traces = len(trace_summary)
-        panel_descs = []
-        for rc in sorted(panel_traces.keys()):
-            names = [t["name"] for t in panel_traces[rc]]
-            if self._column_count > 1:
-                panel_descs.append(f"Panel ({rc[0]},{rc[1]}): {', '.join(names)}")
-            else:
-                panel_descs.append(f"Panel {rc[0]}: {', '.join(names)}")
-        hint = f"Plot has {self._panel_count} panel(s), {total_traces} trace(s). {'. '.join(panel_descs)}."
-        if self._column_count > 1:
-            hint = f"Plot has {self._panel_count} row(s) x {self._column_count} column(s), {total_traces} trace(s). {'. '.join(panel_descs)}."
-        if warnings:
-            hint += " Potential issues found — consider addressing before responding to user."
-
-        # --- Figure sizing ---
-        current_width = _DEFAULT_WIDTH if self._column_count == 1 else int(_DEFAULT_WIDTH * self._column_count * 0.55)
-        current_height = _PANEL_HEIGHT * self._panel_count
-
-        has_spectrogram = any(isinstance(t, go.Heatmap) for t in fig.data)
-        if has_spectrogram:
-            rec_height = max(400, _PANEL_HEIGHT * self._panel_count)
-            rec_width = 1200 if self._column_count == 1 else int(1200 * self._column_count * 0.55)
-            reason = f"{self._panel_count} panel(s) with spectrogram"
-        elif self._panel_count >= 4:
-            rec_height = 250 * self._panel_count
-            rec_width = current_width
-            reason = f"{self._panel_count} panels — compact spacing"
-        elif self._column_count > 1:
-            rec_height = current_height
-            rec_width = current_width
-            reason = f"{self._panel_count} row(s) x {self._column_count} column(s) grid"
-        else:
-            rec_height = current_height
-            rec_width = current_width
-            reason = f"{self._panel_count} panel(s), {total_traces} trace(s) — default sizing"
-
-        result_dict = {
-            "trace_summary": trace_summary,
-            "warnings": warnings,
-            "hint": hint,
-            "figure_size": {"width": current_width, "height": current_height},
-            "sizing_recommendation": {"width": rec_width, "height": rec_height, "reason": reason},
-        }
-        if self._current_time_range:
-            result_dict["current_time_range"] = self._current_time_range.to_time_range_string()
-        return result_dict
 
     # ------------------------------------------------------------------
     # Public API: render_plotly_json
@@ -799,47 +342,49 @@ class PlotlyRenderer:
 
         The LLM produces a Plotly figure dict with ``data_label`` placeholders
         in each trace.  This method resolves them via ``fill_figure_data()``,
-        copies the result into renderer state, and returns review metadata.
+        copies the result into renderer state, and returns basic metadata.
 
         Args:
             fig_json: Plotly figure dict (``data`` + ``layout``).
             entries: Mapping of label → DataEntry for all referenced labels.
 
         Returns:
-            Result dict with status, panels, traces, display, review.
+            Result dict with status, panels, traces, display.
         """
-        cs = ColorState(
-            label_colors=dict(self._label_colors),
-            color_index=self._color_index,
-        )
-
         tr_str = (self._current_time_range.to_time_range_string()
                   if self._current_time_range else None)
 
         try:
-            build_result = fill_figure_data(fig_json, entries, cs, time_range=tr_str)
+            build_result = fill_figure_data(fig_json, entries, time_range=tr_str)
         except (ValueError, KeyError) as e:
             return {"status": "error", "message": str(e)}
 
         # Copy into stateful fields
         self._figure = build_result.figure
         self._panel_count = build_result.panel_count
-        self._column_count = build_result.column_count
         self._trace_labels = build_result.trace_labels
-        self._trace_panels = build_result.trace_panels
-        self._label_colors = build_result.color_state.label_colors
-        self._color_index = build_result.color_state.color_index
-        self._current_plot_spec = dict(fig_json)
 
-        result = {
+        # Build basic trace info for the LLM
+        trace_info = []
+        for i, trace in enumerate(self._figure.data):
+            name = self._trace_labels[i] if i < len(self._trace_labels) else (trace.name or f"trace_{i}")
+            y = trace.y
+            if y is not None:
+                points = len(y)
+            elif hasattr(trace, 'z') and trace.z is not None:
+                z_arr = np.asarray(trace.z)
+                points = f"{z_arr.shape[0]}x{z_arr.shape[1]}" if z_arr.ndim == 2 else len(trace.z)
+            else:
+                points = 0
+            trace_info.append({"name": name, "points": points})
+
+        return {
             "status": "success",
             "panels": build_result.panel_count,
-            "columns": build_result.column_count,
             "traces": list(build_result.trace_labels),
+            "trace_info": trace_info,
             "display": "plotly",
         }
-        result["review"] = self._build_review_metadata()
-        return result
 
     # ------------------------------------------------------------------
     # Accessor for Gradio / external use
@@ -864,13 +409,8 @@ class PlotlyRenderer:
         return {
             "figure_json": self._figure.to_json(),
             "panel_count": self._panel_count,
-            "column_count": self._column_count,
             "time_range": tr.to_time_range_string() if tr else None,
-            "label_colors": dict(self._label_colors),
-            "color_index": self._color_index,
             "trace_labels": list(self._trace_labels),
-            "trace_panels": [{"row": r, "col": c} for r, c in self._trace_panels],
-            "plot_spec": dict(self._current_plot_spec),
         }
 
     def restore_state(self, state: dict) -> None:
@@ -883,25 +423,7 @@ class PlotlyRenderer:
 
         self._figure = pio.from_json(fig_json)
         self._panel_count = state.get("panel_count", 0)
-        self._column_count = state.get("column_count", 1)
-        self._label_colors = state.get("label_colors", {})
-        self._color_index = state.get("color_index", 0)
         self._trace_labels = state.get("trace_labels", [])
-
-        # Deserialize trace_panels: new format is [{"row": r, "col": c}, ...],
-        # legacy format is [int, ...] (flat row numbers).
-        raw_panels = state.get("trace_panels", [])
-        panels: list[tuple[int, int]] = []
-        for item in raw_panels:
-            if isinstance(item, dict):
-                panels.append((item["row"], item["col"]))
-            elif isinstance(item, int):
-                panels.append((item, 1))
-            else:
-                panels.append((1, 1))
-        self._trace_panels = panels
-
-        self._current_plot_spec = state.get("plot_spec", {})
 
         tr_str = state.get("time_range")
         if tr_str:
