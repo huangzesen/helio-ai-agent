@@ -247,7 +247,6 @@ def _add_spectrogram_trace(
     col: int = 1,
     colorscale: str = "Viridis",
     log_y: bool = False,
-    log_z: bool = False,
     z_min: float | None = None,
     z_max: float | None = None,
 ) -> str:
@@ -281,17 +280,10 @@ def _add_spectrogram_trace(
                 bin_values = list(range(len(entry.data.columns)))
         z_values = entry.data.values.astype(float)
 
-    if log_z:
-        z_values = np.where(z_values > 0, np.log10(z_values), np.nan)
-
     z_data = z_values.T.tolist()
     bin_list = [float(b) for b in bin_values]
 
     colorbar_title = meta.get("value_label", "")
-    if log_z and colorbar_title:
-        colorbar_title = f"log\u2081\u2080({colorbar_title})"
-    elif log_z:
-        colorbar_title = "log\u2081\u2080(intensity)"
 
     label = entry.description or entry.label
 
@@ -410,13 +402,12 @@ def _create_figure(
     meta: dict,
     entries: list[DataEntry],
     color_state: ColorState,
-    time_range: str | None,
 ) -> RenderResult | dict:
     """Create subplot grid and dispatch traces (non-commutative operations only).
 
-    This handles everything that depends on ordering: make_subplots, add traces,
-    set date axes, apply time range. Commutative styling (layout JSON, trace
-    patches) is applied by the caller.
+    This handles everything that depends on ordering: make_subplots and
+    add_trace calls. All commutative styling (layout defaults, axis types,
+    time range, trace patches) is applied by the caller.
     """
     panels = meta.get("panels")
     panel_types = meta.get("panel_types")
@@ -456,20 +447,13 @@ def _create_figure(
     if column_titles and len(column_titles) == columns:
         subplot_kwargs["column_titles"] = column_titles
     fig = make_subplots(**subplot_kwargs)
-    width = _DEFAULT_WIDTH if columns == 1 else int(_DEFAULT_WIDTH * columns * 0.55)
-    fig.update_layout(
-        **_DEFAULT_LAYOUT,
-        width=width,
-        height=_PANEL_HEIGHT * max(n_panels, 1),
-        legend=dict(font=dict(size=11), tracegroupgap=2),
-    )
 
     trace_labels: list[str] = []
     trace_panels: list[tuple[int, int]] = []
     all_trace_labels: list[str] = []
 
     spectro_kwargs = {}
-    for sk in ("colorscale", "log_y", "log_z", "z_min", "z_max"):
+    for sk in ("colorscale", "log_y", "z_min", "z_max"):
         if sk in meta:
             spectro_kwargs[sk] = meta[sk]
 
@@ -503,14 +487,6 @@ def _create_figure(
         )
         if err:
             return err
-
-    fig.update_xaxes(type="date")
-
-    if time_range:
-        # Parse simple "start to end" format
-        parts = time_range.split(" to ")
-        if len(parts) == 2:
-            fig.update_xaxes(range=[parts[0].strip(), parts[1].strip()])
 
     return RenderResult(
         figure=fig,
@@ -717,16 +693,33 @@ def _build_from_spec(
         if not meta.get("panel_types"):
             n_panels = len(meta["panels"]) if "panels" in meta else 1
             meta["panel_types"] = [spec["plot_type"]] * n_panels
-    for spectro_key in ("colorscale", "log_y", "log_z", "z_min", "z_max"):
+    for spectro_key in ("colorscale", "log_y", "z_min", "z_max"):
         if spectro_key in spec:
             meta[spectro_key] = spec[spectro_key]
 
     effective_time_range = time_range or spec.get("time_range")
 
-    result = _create_figure(meta, entries, color_state, effective_time_range)
+    result = _create_figure(meta, entries, color_state)
     if isinstance(result, dict):
         return result  # error dict
 
+    # --- Commutative operations: defaults, axis type, time range ---
+    width = (_DEFAULT_WIDTH if result.column_count == 1
+             else int(_DEFAULT_WIDTH * result.column_count * 0.55))
+    result.figure.update_layout(
+        **_DEFAULT_LAYOUT,
+        width=width,
+        height=_PANEL_HEIGHT * result.panel_count,
+        legend=dict(font=dict(size=11), tracegroupgap=2),
+    )
+    result.figure.update_xaxes(type="date")
+    if effective_time_range:
+        parts = effective_time_range.split(" to ")
+        if len(parts) == 2:
+            result.figure.update_xaxes(
+                range=[parts[0].strip(), parts[1].strip()])
+
+    # --- User-specified overrides (applied after defaults) ---
     if layout:
         result.figure.update_layout(**layout)
     if traces_patch:
