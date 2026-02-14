@@ -102,6 +102,7 @@ class VisualizationAgent(BaseSubAgent):
             cancel_event=cancel_event,
             pitfalls=pitfalls,
             token_log_path=token_log_path,
+            llm_retry_timeout=180,
         )
 
         # Build think-phase tool schemas (data inspection only)

@@ -51,6 +51,7 @@ class BaseSubAgent:
         cancel_event: threading.Event | None = None,
         pitfalls: list[str] | None = None,
         token_log_path=None,
+        llm_retry_timeout: int | None = None,
     ):
         self.adapter = adapter
         self.model_name = model_name
@@ -79,6 +80,9 @@ class BaseSubAgent:
         self._total_thinking_tokens = 0
         self._api_calls = 0
         self._last_tool_context = "send_message"
+
+        # Per-agent timeout (falls back to module default)
+        self._llm_retry_timeout = llm_retry_timeout or _LLM_RETRY_TIMEOUT
 
         # Thread pool for timeout-wrapped LLM calls (1 worker — serial calls)
         self._timeout_pool = ThreadPoolExecutor(max_workers=1)
@@ -145,7 +149,7 @@ class BaseSubAgent:
                 # Poll in _LLM_WARN_INTERVAL chunks, warning each time
                 while True:
                     elapsed = time.monotonic() - t0
-                    remaining = _LLM_RETRY_TIMEOUT - elapsed
+                    remaining = self._llm_retry_timeout - elapsed
                     if remaining <= 0:
                         break
                     wait = min(_LLM_WARN_INTERVAL, remaining)
@@ -153,7 +157,7 @@ class BaseSubAgent:
                         return future.result(timeout=wait)
                     except TimeoutError:
                         elapsed = time.monotonic() - t0
-                        if elapsed >= _LLM_RETRY_TIMEOUT:
+                        if elapsed >= self._llm_retry_timeout:
                             break
                         self.logger.warning(
                             f"[{self.agent_name}] LLM API not responding "
