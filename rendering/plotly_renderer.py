@@ -529,6 +529,10 @@ def _create_figure(
         subplot_kwargs["horizontal_spacing"] = 0.08
     if column_titles and len(column_titles) == columns:
         subplot_kwargs["column_titles"] = column_titles
+    if meta.get("row_heights"):
+        subplot_kwargs["row_heights"] = meta["row_heights"]
+    if meta.get("column_widths"):
+        subplot_kwargs["column_widths"] = meta["column_widths"]
     fig = make_subplots(**subplot_kwargs)
 
     trace_labels: list[str] = []
@@ -612,6 +616,10 @@ def _build_from_spec(
         meta["column_titles"] = spec["column_titles"]
     if "shared_xaxes" in spec:
         meta["shared_xaxes"] = spec["shared_xaxes"]
+    if "row_heights" in spec:
+        meta["row_heights"] = spec["row_heights"]
+    if "column_widths" in spec:
+        meta["column_widths"] = spec["column_widths"]
 
     # Build layout dict from style fields
     layout: dict = {}
