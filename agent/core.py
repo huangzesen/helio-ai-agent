@@ -700,76 +700,12 @@ class OrchestratorAgent:
                 return sub_entry, label
         return None, None
 
-    # Fields that define the plot structure — changes trigger full re-render
-    _LAYOUT_FIELDS = {
-        "labels", "panels", "panel_types", "plot_type", "columns",
-        "column_titles", "colorscale", "log_y", "log_z", "z_min", "z_max",
-    }
-
     def _handle_update_plot_spec(self, tool_args: dict) -> dict:
-        """Handle update_plot_spec: diff old vs new spec, re-render or restyle."""
+        """Handle update_plot_spec: always re-render from the merged spec."""
         new_spec = tool_args.get("spec", {})
         if not new_spec.get("labels"):
             return {"status": "error", "message": "spec.labels is required"}
-
-        old_spec = self._renderer.get_current_spec()
-
-        # Determine if any layout field changed
-        layout_changed = any(
-            new_spec.get(k) != old_spec.get(k) for k in self._LAYOUT_FIELDS
-        )
-
-        if layout_changed or not old_spec:
-            # Full re-render: resolve entries, call render_from_spec
-            return self._handle_render_spec({"spec": new_spec})
-        else:
-            # Style-only: extract style fields, call style()
-            style_kwargs = {
-                k: v for k, v in new_spec.items()
-                if k not in self._LAYOUT_FIELDS
-            }
-            if style_kwargs:
-                result = self._handle_style_plot(style_kwargs)
-            else:
-                result = {"status": "success", "message": "No changes detected.", "display": "plotly"}
-            # Update stored spec to reflect new desired state
-            self._renderer._current_plot_spec = dict(new_spec)
-            return result
-
-    def _handle_style_plot(self, tool_args: dict) -> dict:
-        """Apply style changes to the current plot (internal helper).
-
-        Not exposed as an LLM tool — called by _handle_update_plot_spec
-        for restyle-only spec changes and by _handle_render_spec.
-        """
-        import ast
-        # Parse y_label dict string: "{1: 'B (nT)', 2: '...'}" -> dict
-        y_label = tool_args.get("y_label")
-        if isinstance(y_label, str) and y_label.strip().startswith("{"):
-            try:
-                parsed = ast.literal_eval(y_label)
-                if isinstance(parsed, dict):
-                    tool_args = {**tool_args, "y_label": parsed}
-            except (ValueError, SyntaxError):
-                pass
-        # Parse log_scale dict string: "{'4': 'log', '5': 'log'}" -> dict
-        log_scale = tool_args.get("log_scale")
-        if isinstance(log_scale, str) and log_scale.strip().startswith("{"):
-            try:
-                parsed = ast.literal_eval(log_scale)
-                if isinstance(parsed, dict):
-                    tool_args = {**tool_args, "log_scale": parsed}
-            except (ValueError, SyntaxError):
-                pass
-        try:
-            result = self._renderer.style(**tool_args)
-        except Exception as e:
-            return {"status": "error", "message": str(e)}
-
-        for w in result.get("warnings", []):
-            self.logger.debug(f"[StyleWarning] {w}")
-
-        return result
+        return self._handle_render_spec({"spec": new_spec})
 
     def _handle_manage_plot(self, tool_args: dict) -> dict:
         """Handle the manage_plot tool call."""

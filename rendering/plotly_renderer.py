@@ -8,7 +8,6 @@ All figure construction flows through a single stateless builder:
 The PlotlyRenderer class is a thin stateful wrapper that delegates to
 build_figure_from_spec() and provides:
 - render_from_spec() — the spec-to-figure bridge (copies result into state)
-- style() — apply aesthetics via key-value params (no code gen)
 - export(), reset(), set_time_range() — structural operations
 """
 
@@ -606,6 +605,10 @@ def _build_from_spec(
                 axis_key = _panel_to_axis_key(int(panel_str))
                 layout[axis_key] = layout.get(axis_key, {})
                 layout[axis_key]["type"] = scale_type
+        elif isinstance(log_scale, int):
+            axis_key = _panel_to_axis_key(log_scale)
+            layout[axis_key] = layout.get(axis_key, {})
+            layout[axis_key]["type"] = "log"
         elif log_scale == "y":
             layout["yaxis"] = layout.get("yaxis", {})
             layout["yaxis"]["type"] = "log"
@@ -630,13 +633,17 @@ def _build_from_spec(
         annotations = list(layout.get("annotations", []))
         for vl in spec["vlines"]:
             if vl.get("x") is not None:
+                color = vl.get("color", "red")
+                # Auto-correct white vline colors on default light background
+                if color.lower().strip() in ("white", "#fff", "#ffffff", "rgb(255,255,255)"):
+                    color = "red"
                 shapes.append({
                     "type": "line",
                     "x0": vl["x"], "x1": vl["x"],
                     "y0": 0, "y1": 1,
                     "xref": "x", "yref": "paper",
                     "line": {
-                        "color": vl.get("color", "red"),
+                        "color": color,
                         "width": vl.get("width", 1.5),
                         "dash": vl.get("dash", "solid"),
                     },
@@ -647,12 +654,13 @@ def _build_from_spec(
                         "x": vl["x"], "y": 1.02,
                         "xref": "x", "yref": "paper",
                         "text": label, "showarrow": False,
-                        "font": {"size": 11, "color": vl.get("color", "red")},
+                        "font": {"size": 11, "color": color},
                     })
         layout["shapes"] = shapes
         if annotations:
             layout["annotations"] = annotations
     if spec.get("vrects"):
+        import pandas as pd
         shapes = list(layout.get("shapes", []))
         annotations = list(layout.get("annotations", []))
         for vr in spec["vrects"]:
@@ -669,8 +677,13 @@ def _build_from_spec(
                 })
                 label = vr.get("label", "")
                 if label:
+                    try:
+                        mid_x = pd.Timestamp(vr["x0"]) + (pd.Timestamp(vr["x1"]) - pd.Timestamp(vr["x0"])) / 2
+                        x_pos = mid_x.isoformat()
+                    except Exception:
+                        x_pos = vr["x0"]
                     annotations.append({
-                        "x": vr["x0"], "y": 1.02,
+                        "x": x_pos, "y": 1.02,
                         "xref": "x", "yref": "paper",
                         "text": label, "showarrow": False,
                         "font": {"size": 11},
@@ -853,291 +866,6 @@ class PlotlyRenderer:
         if self.verbose:
             print(f"  [PlotlyRenderer] {msg}")
             sys.stdout.flush()
-
-    def _panel_to_rowcol(self, panel: int) -> tuple[int, int]:
-        """Convert a flat 1-based panel number to (row, col) using row-major indexing.
-
-        For a grid with C columns: panel 1→(1,1), 2→(1,2), 3→(2,1), 4→(2,2).
-        When columns=1, panel N → (N, 1) — backward compatible.
-        """
-        cols = max(self._column_count, 1)
-        row = (panel - 1) // cols + 1
-        col = (panel - 1) % cols + 1
-        return (row, col)
-
-    # ------------------------------------------------------------------
-    # Public API: style
-    # ------------------------------------------------------------------
-
-    def style(
-        self,
-        title: str | None = None,
-        x_label: str | None = None,
-        y_label: str | dict | None = None,
-        trace_colors: dict | None = None,
-        line_styles: dict | None = None,
-        log_scale: str | dict | None = None,
-        x_range: list | dict | None = None,
-        y_range: list | dict | None = None,
-        legend: bool | None = None,
-        font_size: int | None = None,
-        canvas_size: dict | None = None,
-        annotations: list | None = None,
-        colorscale: str | None = None,
-        theme: str | None = None,
-        vlines: list | None = None,
-        vrects: list | None = None,
-    ) -> dict:
-        """Apply aesthetic changes to the current figure.
-
-        All parameters are optional. Changes are applied in place.
-
-        Args:
-            title: Plot title.
-            x_label: X-axis label (applied to bottom axis).
-            y_label: Y-axis label. String (all panels) or dict {panel_num: label}.
-            trace_colors: Dict mapping trace label -> color string.
-            line_styles: Dict mapping trace label -> {width, dash, mode}.
-            log_scale: "x", "y", "both", or "linear".
-            x_range: [min, max] list, or dict {panel_num: [min, max]}.
-            y_range: [min, max] list, or dict {panel_num: [min, max]}.
-            legend: Show or hide legend.
-            font_size: Global font size.
-            canvas_size: {width: int, height: int}.
-            annotations: List of {text, x, y} dicts.
-            colorscale: Plotly colorscale name (for heatmap traces).
-            theme: Plotly template name (e.g. "plotly_dark").
-            vlines: List of {x, label, color, dash, width} dicts for vertical lines.
-            vrects: List of {x0, x1, label, color, opacity} dicts for highlighted time ranges.
-
-        Returns:
-            Result dict with status.
-        """
-        if self._figure is None or len(self._figure.data) == 0:
-            return {"status": "error",
-                    "message": "No plot to style. Use plot_data first."}
-
-        fig = self._figure
-        warnings = []
-
-        if title is not None:
-            fig.update_layout(title_text=title)
-
-        if x_label is not None:
-            # Apply to the bottom row, all columns
-            for c in range(1, self._column_count + 1):
-                fig.update_xaxes(title_text=x_label, row=self._panel_count, col=c)
-
-        if y_label is not None:
-            if isinstance(y_label, dict):
-                for panel_str, label_text in y_label.items():
-                    row, col = self._panel_to_rowcol(int(panel_str))
-                    fig.update_yaxes(title_text=_wrap_display_name(str(label_text)), row=row, col=col)
-            else:
-                wrapped = _wrap_display_name(str(y_label))
-                for row in range(1, self._panel_count + 1):
-                    for c in range(1, self._column_count + 1):
-                        fig.update_yaxes(title_text=wrapped, row=row, col=c)
-
-        if trace_colors is not None or line_styles is not None:
-            patches: dict[str, dict] = {}
-            if trace_colors is not None:
-                for trace_label, color in trace_colors.items():
-                    patches[trace_label] = patches.get(trace_label, {})
-                    patches[trace_label]["line"] = {"color": color}
-            if line_styles is not None:
-                for trace_label, style_dict in line_styles.items():
-                    patches[trace_label] = patches.get(trace_label, {})
-                    line = patches[trace_label].get("line", {})
-                    if "width" in style_dict:
-                        line["width"] = style_dict["width"]
-                    if "dash" in style_dict:
-                        line["dash"] = style_dict["dash"]
-                    patches[trace_label]["line"] = line
-                    if "mode" in style_dict:
-                        patches[trace_label]["mode"] = style_dict["mode"]
-            _apply_trace_patches(fig, self._trace_labels, patches)
-
-        if log_scale is not None:
-            if isinstance(log_scale, dict):
-                for panel_str, scale_type in log_scale.items():
-                    axis_type = "log" if scale_type in ("log", "y") else "linear"
-                    row, col = self._panel_to_rowcol(int(panel_str))
-                    fig.update_yaxes(type=axis_type, row=row, col=col)
-            elif isinstance(log_scale, int):
-                # Integer = panel number to apply log scale to
-                row, col = self._panel_to_rowcol(log_scale)
-                fig.update_yaxes(type="log", row=row, col=col)
-            elif log_scale == "y":
-                for row in range(1, self._panel_count + 1):
-                    for c in range(1, self._column_count + 1):
-                        fig.update_yaxes(type="log", row=row, col=c)
-            elif log_scale == "linear":
-                for row in range(1, self._panel_count + 1):
-                    for c in range(1, self._column_count + 1):
-                        fig.update_yaxes(type="linear", row=row, col=c)
-            else:
-                warnings.append(
-                    f"Unrecognized log_scale value '{log_scale}'. "
-                    "Use 'y', 'linear', or a dict like {{'4': 'log', '5': 'log'}}."
-                )
-
-        if x_range is not None:
-            if isinstance(x_range, dict):
-                for panel_str, rng in x_range.items():
-                    row, col = self._panel_to_rowcol(int(panel_str))
-                    fig.update_xaxes(range=rng, row=row, col=col)
-            else:
-                fig.update_xaxes(range=x_range)
-
-        if y_range is not None:
-            if isinstance(y_range, dict):
-                for panel_str, rng in y_range.items():
-                    if isinstance(rng, list) and len(rng) == 2:
-                        row, col = self._panel_to_rowcol(int(panel_str))
-                        fig.update_yaxes(range=rng, row=row, col=col)
-                    elif rng:
-                        warnings.append(f"y_range for panel {panel_str} must be [min, max], got {rng}")
-            elif isinstance(y_range, list) and len(y_range) == 2:
-                for row in range(1, self._panel_count + 1):
-                    for c in range(1, self._column_count + 1):
-                        fig.update_yaxes(range=y_range, row=row, col=c)
-            elif isinstance(y_range, list) and len(y_range) == 0:
-                pass  # empty list — skip silently
-            else:
-                warnings.append(f"y_range must be [min, max], got {y_range}")
-
-        if legend is not None:
-            fig.update_layout(showlegend=legend)
-
-        if font_size is not None:
-            fig.update_layout(font=dict(size=font_size))
-
-        if canvas_size is not None:
-            fig.update_layout(
-                width=canvas_size.get("width"),
-                height=canvas_size.get("height"),
-            )
-
-        if annotations is not None:
-            for ann in annotations:
-                fig.add_annotation(
-                    x=ann.get("x"),
-                    y=ann.get("y"),
-                    text=ann.get("text", ""),
-                    showarrow=ann.get("showarrow", True),
-                )
-
-        if colorscale is not None:
-            for trace in fig.data:
-                if isinstance(trace, go.Heatmap):
-                    trace.colorscale = colorscale
-
-        if theme is not None:
-            fig.update_layout(template=theme)
-
-        if vlines is not None:
-            # Detect background color to avoid invisible vlines
-            bg = (fig.layout.plot_bgcolor or "white").lower().strip()
-            bg_is_light = bg in (
-                "white", "#fff", "#ffffff", "#e5ecf6", "rgb(255,255,255)",
-            )
-            skipped = 0
-            drawn = 0
-            for vl in vlines:
-                x_val = vl.get("x")
-                if x_val is None:
-                    skipped += 1
-                    continue
-                drawn += 1
-                color = vl.get("color", "red")
-                # Override white/near-white colors on light backgrounds
-                if bg_is_light and color.lower().strip() in (
-                    "white", "#fff", "#ffffff", "rgb(255,255,255)",
-                ):
-                    color = "red"
-                width = vl.get("width", 1.5)
-                dash = vl.get("dash", "solid")
-                label = vl.get("label")
-                # Draw line across all panels and columns
-                for row in range(1, self._panel_count + 1):
-                    for c in range(1, self._column_count + 1):
-                        fig.add_vline(
-                            x=x_val, row=row, col=c,
-                            line_width=width, line_dash=dash, line_color=color,
-                        )
-                # Add text annotation at top panel if label provided
-                if label:
-                    fig.add_annotation(
-                        x=x_val, y=1.02, xref="x", yref="paper",
-                        text=label, showarrow=False,
-                        font=dict(size=11, color=color),
-                    )
-            if skipped > 0:
-                total = skipped + drawn
-                warnings.append(
-                    f"{skipped} of {total} vlines skipped — each vline requires "
-                    f"an 'x' field with a timestamp string, e.g. "
-                    f'vlines=[{{"x": "2024-01-15T12:00:00"}}]'
-                )
-
-        if vrects is not None:
-            skipped = 0
-            drawn = 0
-            for vr in vrects:
-                x0 = vr.get("x0")
-                x1 = vr.get("x1")
-                if x0 is None or x1 is None:
-                    skipped += 1
-                    continue
-                drawn += 1
-                color = vr.get("color", "rgba(135,206,250,0.3)")
-                opacity = vr.get("opacity", 0.3)
-                label = vr.get("label")
-                for row in range(1, self._panel_count + 1):
-                    for c in range(1, self._column_count + 1):
-                        fig.add_vrect(
-                            x0=x0, x1=x1, row=row, col=c,
-                            fillcolor=color, opacity=opacity,
-                            line_width=0, layer="below",
-                        )
-                if label:
-                    import pandas as pd
-                    try:
-                        mid_x = pd.Timestamp(x0) + (pd.Timestamp(x1) - pd.Timestamp(x0)) / 2
-                        fig.add_annotation(
-                            x=mid_x.isoformat(), y=1.02,
-                            xref="x", yref="paper",
-                            text=label, showarrow=False,
-                            font=dict(size=11),
-                        )
-                    except Exception:
-                        pass  # skip label if timestamps can't be parsed
-            if skipped > 0:
-                total = skipped + drawn
-                warnings.append(
-                    f"{skipped} of {total} vrects skipped — each vrect requires "
-                    f"'x0' and 'x1' fields with timestamp strings, e.g. "
-                    f'vrects=[{{"x0": "2024-01-10", "x1": "2024-01-15"}}]'
-                )
-
-        # Merge applied style fields into the current spec
-        style_fields = {
-            "title": title, "x_label": x_label, "y_label": y_label,
-            "trace_colors": trace_colors, "line_styles": line_styles,
-            "log_scale": log_scale, "x_range": x_range, "y_range": y_range,
-            "legend": legend, "font_size": font_size, "canvas_size": canvas_size,
-            "annotations": annotations, "colorscale": colorscale, "theme": theme,
-            "vlines": vlines, "vrects": vrects,
-        }
-        for k, v in style_fields.items():
-            if v is not None:
-                self._current_plot_spec[k] = v
-
-        result = {"status": "success", "message": "Style applied.", "display": "plotly"}
-        if warnings:
-            result["warnings"] = warnings
-        return result
 
     # ------------------------------------------------------------------
     # Time range

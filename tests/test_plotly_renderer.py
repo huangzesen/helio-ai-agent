@@ -261,103 +261,104 @@ class TestGridLayout:
 # style
 # ---------------------------------------------------------------------------
 
-class TestStyle:
-    def _plot(self, renderer, entries=None, spec=None):
-        """Helper: render a basic plot so style() has something to modify."""
-        if entries is None:
-            entries = [_make_entry("x")]
-        if spec is None:
-            spec = {"labels": ",".join(e.label for e in entries)}
-        renderer.render_from_spec(spec, entries)
+class TestStyleViaSpec:
+    """Test style fields applied through render_from_spec (formerly via style())."""
 
-    def test_style_title(self, renderer):
-        self._plot(renderer)
-        result = renderer.style(title="New Title")
+    def test_title(self, renderer):
+        entry = _make_entry("x")
+        result = renderer.render_from_spec({"labels": "x", "title": "New Title"}, [entry])
         assert result["status"] == "success"
         assert renderer.get_figure().layout.title.text == "New Title"
 
-    def test_style_y_label_string(self, renderer):
-        self._plot(renderer)
-        result = renderer.style(y_label="B (nT)")
+    def test_y_label_string(self, renderer):
+        entry = _make_entry("x")
+        result = renderer.render_from_spec({"labels": "x", "y_label": "B (nT)"}, [entry])
         assert result["status"] == "success"
         assert renderer.get_figure().layout.yaxis.title.text == "B (nT)"
 
-    def test_style_y_label_dict(self, renderer):
+    def test_y_label_dict(self, renderer):
         e1 = _make_entry("A", n=10)
         e2 = _make_entry("B", n=10)
-        self._plot(renderer, [e1, e2], {"labels": "A,B", "panels": [["A"], ["B"]]})
-        result = renderer.style(y_label={"1": "Panel 1", "2": "Panel 2"})
+        result = renderer.render_from_spec(
+            {"labels": "A,B", "panels": [["A"], ["B"]], "y_label": {"1": "Panel 1", "2": "Panel 2"}},
+            [e1, e2],
+        )
         assert result["status"] == "success"
         fig = renderer.get_figure()
         assert fig.layout.yaxis.title.text == "Panel 1"
         assert fig.layout.yaxis2.title.text == "Panel 2"
 
-    def test_style_trace_colors(self, renderer):
+    def test_trace_colors(self, renderer):
         e1 = _make_entry("A", n=10, desc="Alpha")
-        self._plot(renderer, [e1])
-        result = renderer.style(trace_colors={"Alpha": "red"})
+        result = renderer.render_from_spec(
+            {"labels": "A", "trace_colors": {"Alpha": "red"}}, [e1],
+        )
         assert result["status"] == "success"
         assert renderer.get_figure().data[0].line.color == "red"
 
-    def test_style_log_scale_y(self, renderer):
-        self._plot(renderer)
-        result = renderer.style(log_scale="y")
+    def test_log_scale_y(self, renderer):
+        entry = _make_entry("x")
+        result = renderer.render_from_spec({"labels": "x", "log_scale": "y"}, [entry])
         assert result["status"] == "success"
         assert renderer.get_figure().layout.yaxis.type == "log"
 
-    def test_style_log_scale_int_panel(self, renderer):
+    def test_log_scale_int_panel(self, renderer):
         """Integer log_scale should apply log to that panel number."""
         e1 = _make_entry("A", n=10)
         e2 = _make_entry("B", n=10)
-        self._plot(renderer, [e1, e2], {"labels": "A,B", "panels": [["A"], ["B"]]})
-        result = renderer.style(log_scale=1)
+        result = renderer.render_from_spec(
+            {"labels": "A,B", "panels": [["A"], ["B"]], "log_scale": 1},
+            [e1, e2],
+        )
         assert result["status"] == "success"
         fig = renderer.get_figure()
         assert fig.layout.yaxis.type == "log"
         assert fig.layout.yaxis2.type != "log"
 
-    def test_style_canvas_size(self, renderer):
-        self._plot(renderer)
-        result = renderer.style(canvas_size={"width": 1920, "height": 1080})
+    def test_canvas_size(self, renderer):
+        entry = _make_entry("x")
+        result = renderer.render_from_spec(
+            {"labels": "x", "canvas_size": {"width": 1920, "height": 1080}}, [entry],
+        )
         assert result["status"] == "success"
         fig = renderer.get_figure()
         assert fig.layout.width == 1920
         assert fig.layout.height == 1080
 
-    def test_style_font_size(self, renderer):
-        self._plot(renderer)
-        result = renderer.style(font_size=18)
+    def test_font_size(self, renderer):
+        entry = _make_entry("x")
+        result = renderer.render_from_spec({"labels": "x", "font_size": 18}, [entry])
         assert result["status"] == "success"
         assert renderer.get_figure().layout.font.size == 18
 
-    def test_style_annotations(self, renderer):
-        self._plot(renderer)
-        result = renderer.style(annotations=[{"text": "Event", "x": "2024-01-01", "y": 5}])
+    def test_annotations(self, renderer):
+        entry = _make_entry("x")
+        result = renderer.render_from_spec(
+            {"labels": "x", "annotations": [{"text": "Event", "x": "2024-01-01", "y": 5}]},
+            [entry],
+        )
         assert result["status"] == "success"
-        assert len(renderer.get_figure().layout.annotations) == 1
+        assert any(a.text == "Event" for a in renderer.get_figure().layout.annotations)
 
-    def test_style_no_figure_error(self, renderer):
-        result = renderer.style(title="No Plot")
-        assert result["status"] == "error"
-        assert "No plot" in result["message"]
-
-    def test_style_legend(self, renderer):
-        self._plot(renderer)
-        result = renderer.style(legend=False)
+    def test_legend(self, renderer):
+        entry = _make_entry("x")
+        result = renderer.render_from_spec({"labels": "x", "legend": False}, [entry])
         assert result["status"] == "success"
         assert renderer.get_figure().layout.showlegend is False
 
-    def test_style_theme(self, renderer):
-        self._plot(renderer)
-        result = renderer.style(theme="plotly_dark")
+    def test_theme(self, renderer):
+        entry = _make_entry("x")
+        result = renderer.render_from_spec({"labels": "x", "theme": "plotly_dark"}, [entry])
         assert result["status"] == "success"
 
-    def test_style_y_label_grid(self, renderer):
-        """Dict panel numbers map to correct (row, col) cells in a 2-col grid."""
+    def test_y_label_dict_panel_mapping(self, renderer):
+        """Dict y_label panel numbers map to correct axis keys."""
         entries = [_make_entry(l, n=10, desc=l) for l in ["A", "B", "C", "D"]]
-        self._plot(renderer, entries,
-                   {"labels": "A,B,C,D", "panels": [["A", "B"], ["C", "D"]], "columns": 2})
-        result = renderer.style(y_label={"1": "Top Left", "2": "Top Right"})
+        result = renderer.render_from_spec(
+            {"labels": "A,B,C,D", "panels": [["A", "B"], ["C", "D"]], "columns": 2,
+             "y_label": {"1": "Top Left", "2": "Top Right"}},
+            entries,
+        )
         assert result["status"] == "success"
         fig = renderer.get_figure()
         assert fig.layout.yaxis.title.text == "Top Left"
@@ -780,29 +781,6 @@ class TestRenderFromSpec:
         assert fig.layout.font.size == 16
         assert fig.layout.showlegend is False
 
-    def test_spec_render_then_style_equivalent(self, renderer):
-        """render_from_spec + style produces same result as a single combined spec."""
-        entry = _make_entry("X", n=40, desc="Xray")
-
-        # Method 1: render + separate style call
-        r1 = renderer.render_from_spec({"labels": "X", "title": "Title1"}, [entry])
-        renderer.style(font_size=18, legend=False)
-        fig1_data = renderer.get_figure().to_dict()
-
-        # Method 2: render_from_spec with all fields in one spec
-        renderer2 = PlotlyRenderer(verbose=False)
-        spec = {"labels": "X", "title": "Title1", "font_size": 18, "legend": False}
-        r2 = renderer2.render_from_spec(spec, [entry])
-
-        assert r1["status"] == "success"
-        assert r2["status"] == "success"
-        fig2_data = renderer2.get_figure().to_dict()
-
-        assert len(fig1_data["data"]) == len(fig2_data["data"])
-        assert fig1_data["layout"]["title"]["text"] == fig2_data["layout"]["title"]["text"]
-        assert fig2_data["layout"]["font"]["size"] == 18
-        assert fig2_data["layout"]["showlegend"] is False
-
     def test_spec_trace_colors(self, renderer):
         """Spec trace_colors are applied to traces."""
         entry = _make_entry("M", n=20, desc="Mag")
@@ -873,17 +851,6 @@ class TestSpecTracking:
         assert renderer.get_current_spec() != {}
         renderer.reset()
         assert renderer.get_current_spec() == {}
-
-    def test_style_merges_into_spec(self, renderer):
-        """style() merges its args into the current spec."""
-        entry = _make_entry("A", n=50, desc="Alpha")
-        renderer.render_from_spec({"labels": "A"}, [entry])
-        renderer.style(title="New Title", font_size=16)
-        spec = renderer.get_current_spec()
-        assert spec["title"] == "New Title"
-        assert spec["font_size"] == 16
-        # Original labels preserved
-        assert spec["labels"] == "A"
 
     def test_spec_round_trip(self, renderer):
         """Render with spec, get it back, render again — same figure."""
