@@ -9,6 +9,7 @@ PyWavelets>=1.8.0
 pandas==3.0.0
 matplotlib==3.10.8
 gradio==6.5.1
+panel>=1.5.0
 plotly==6.5.2
 kaleido==1.2.0
 pytest==9.0.2

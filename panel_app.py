@@ -1,0 +1,1282 @@
+#!/usr/bin/env python3
+"""
+Panel Web UI for the Helio AI Agent.
+
+Two-page layout served at separate URLs:
+  /      — Chat page (sessions sidebar + header + plot + chat + follow-ups + examples)
+  /data  — Data Tools page (browse & fetch + data table + preview + tokens + memory)
+
+Both pages share the same process-wide agent and DataStore singleton.
+
+Usage:
+    python panel_app.py                # Launch on localhost:5006
+    python panel_app.py --port 8080    # Custom port
+    python panel_app.py --quiet        # Hide live progress log
+    python panel_app.py --model gemini-2.5-pro  # Override model
+"""
+
+import argparse
+import asyncio
+import gc
+import logging
+import os
+import signal
+import sys
+import threading
+import time
+from concurrent.futures import ThreadPoolExecutor
+from datetime import datetime, timedelta, timezone
+from pathlib import Path
+
+import pandas as pd
+import panel as pn
+import param
+
+from agent.logging import GRADIO_VISIBLE_TAGS
+
+
+# ---------------------------------------------------------------------------
+# Globals (initialized in main())
+# ---------------------------------------------------------------------------
+_agent = None
+_verbose = True
+_executor = ThreadPoolExecutor(max_workers=2)
+_agent_lock = threading.Lock()
+
+
+# ---------------------------------------------------------------------------
+# Logging handler (same pattern as gradio_app.py)
+# ---------------------------------------------------------------------------
+
+class _ListHandler(logging.Handler):
+    """Logging handler that filters log lines for UI display."""
+
+    def __init__(self, target_list: list):
+        super().__init__(level=logging.DEBUG)
+        self.setFormatter(logging.Formatter("%(message)s"))
+        self._target = target_list
+
+    def emit(self, record: logging.LogRecord) -> None:
+        msg = self.format(record)
+        if not msg.strip():
+            return
+        tag = getattr(record, "log_tag", "")
+        if tag in GRADIO_VISIBLE_TAGS:
+            self._target.append(msg)
+
+
+# ---------------------------------------------------------------------------
+# Helper functions (ported from gradio_app.py)
+# ---------------------------------------------------------------------------
+
+def _get_current_figure():
+    """Return the current Plotly figure from the renderer, or None."""
+    if _agent is None:
+        return None
+    return _agent.get_plotly_figure()
+
+
+def _build_data_table() -> pd.DataFrame:
+    """Build a DataFrame for the data-in-memory table."""
+    from data_ops.store import get_store
+
+    store = get_store()
+    entries = store.list_entries()
+    if not entries:
+        return pd.DataFrame(columns=["Label", "Points", "Units", "Time Range", "Source"])
+    rows = []
+    for e in entries:
+        t_min = e.get("time_min", "")[:10] if e.get("time_min") else ""
+        t_max = e.get("time_max", "")[:10] if e.get("time_max") else ""
+        time_range = f"{t_min} to {t_max}" if t_min and t_max else ""
+        rows.append({
+            "Label": e["label"],
+            "Points": e["num_points"],
+            "Units": e.get("units", ""),
+            "Time Range": time_range,
+            "Source": e.get("source", ""),
+        })
+    return pd.DataFrame(rows)
+
+
+def _format_tokens() -> str:
+    """Format token usage and memory as markdown."""
+    from data_ops.store import get_store
+    store = get_store()
+    mem_bytes = store.memory_usage_bytes()
+    if mem_bytes < 1024 * 1024:
+        mem_str = f"{mem_bytes / 1024:.0f} KB"
+    else:
+        mem_str = f"{mem_bytes / (1024 * 1024):.1f} MB"
+    mem_line = f"**Data in RAM:** {mem_str} ({len(store)} entries)"
+
+    if _agent is None:
+        return mem_line
+    usage = _agent.get_token_usage()
+    if usage["api_calls"] == 0:
+        return f"{mem_line}\n\n*No API calls yet*"
+    return (
+        f"{mem_line}\n\n"
+        f"**Input:** {usage['input_tokens']:,}\n\n"
+        f"**Output:** {usage['output_tokens']:,}\n\n"
+        f"**Thinking:** {usage.get('thinking_tokens', 0):,}\n\n"
+        f"**Total:** {usage['total_tokens']:,}\n\n"
+        f"**API calls:** {usage['api_calls']}"
+    )
+
+
+def _get_label_choices() -> list[str]:
+    """Return list of labels currently in the DataStore."""
+    from data_ops.store import get_store
+    return [e["label"] for e in get_store().list_entries()]
+
+
+def _get_mission_choices() -> list[str]:
+    """Return list of mission IDs."""
+    from knowledge.mission_loader import get_mission_ids
+    return get_mission_ids()
+
+
+def _preview_data(label: str) -> pd.DataFrame | None:
+    """Return head+tail preview DataFrame for a DataStore label."""
+    if not label:
+        return None
+    from data_ops.store import get_store
+    entry = get_store().get(label)
+    if entry is None:
+        return None
+    if entry.is_xarray:
+        return None
+    df = entry.data
+    n = len(df)
+    if n <= 20:
+        subset = df
+    else:
+        subset = pd.concat([df.head(10), df.tail(10)])
+    subset = subset.copy()
+    subset.insert(0, "timestamp", subset.index.strftime("%Y-%m-%d %H:%M"))
+    subset = subset.reset_index(drop=True)
+    num_cols = subset.select_dtypes(include="number").columns
+    subset[num_cols] = subset[num_cols].round(4)
+    return subset
+
+
+def _strip_memory_context(text: str) -> str:
+    """Strip or collapse the long-term memory context block."""
+    marker_start = "[CONTEXT FROM LONG-TERM MEMORY]"
+    marker_end = "[END MEMORY CONTEXT]"
+    idx_start = text.find(marker_start)
+    idx_end = text.find(marker_end)
+    if idx_start == -1 or idx_end == -1:
+        return text
+    after = text[idx_end + len(marker_end):].strip()
+    return after
+
+
+def _extract_display_history(contents: list[dict]) -> list[dict]:
+    """Convert Content dicts into chat messages."""
+    messages = []
+    for content in contents:
+        role = content.get("role", "")
+        if role not in ("user", "model"):
+            continue
+        parts = content.get("parts", [])
+        text_parts = []
+        for p in parts:
+            if isinstance(p, dict):
+                if "text" in p and p["text"]:
+                    text_parts.append(p["text"])
+            elif isinstance(p, str):
+                text_parts.append(p)
+        if not text_parts:
+            continue
+        display_text = "\n".join(text_parts)
+        if role == "user":
+            display_text = _strip_memory_context(display_text)
+        messages.append({
+            "role": "User" if role == "user" else "Assistant",
+            "content": display_text,
+        })
+    return messages
+
+
+# ---------------------------------------------------------------------------
+# Session management helpers
+# ---------------------------------------------------------------------------
+
+def _get_active_session_id() -> str | None:
+    return _agent.get_session_id() if _agent else None
+
+
+def _get_session_choices() -> dict[str, str]:
+    """Return {display_label: session_id} for session selector."""
+    from agent.session import SessionManager
+    sm = SessionManager()
+    sessions = sm.list_sessions()[:20]
+    choices = {}
+    choice_ids = set()
+    for s in sessions:
+        preview = s.get("last_message_preview", "").strip()[:40] or "New chat"
+        date_str = s.get("updated_at", "")[:10]
+        turns = s.get("turn_count", 0)
+        label = f"{preview} ({date_str}, {turns} turns)"
+        choices[label] = s["id"]
+        choice_ids.add(s["id"])
+
+    active_id = _get_active_session_id()
+    if active_id and active_id not in choice_ids:
+        choices["New chat (just started)"] = active_id
+
+    return choices
+
+
+# ---------------------------------------------------------------------------
+# Custom CSS
+# ---------------------------------------------------------------------------
+
+CUSTOM_CSS = """
+/* Header styling */
+.helio-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0.6rem 1rem;
+    background: var(--panel-surface-color, #f8fafc);
+    border: 1px solid var(--panel-border-color, #e2e8f0);
+    border-radius: 10px;
+    margin-bottom: 0.5rem;
+}
+.helio-header h1 {
+    font-size: 1.4rem;
+    font-weight: 700;
+    color: #0097b2;
+    margin: 0;
+}
+.helio-header .badge {
+    background: #fff8e1;
+    color: #f57c00;
+    font-size: 0.8rem;
+    font-weight: 600;
+    padding: 0.3rem 0.75rem;
+    border-radius: 20px;
+    border: 1px solid #ffa500;
+}
+.helio-header .nav-link {
+    color: #0097b2;
+    font-size: 0.9rem;
+    font-weight: 600;
+    text-decoration: none;
+    padding: 0.3rem 0.75rem;
+    border: 1px solid #0097b2;
+    border-radius: 20px;
+    transition: background 0.2s;
+}
+.helio-header .nav-link:hover {
+    background: rgba(0, 151, 178, 0.1);
+}
+
+/* Chat messages */
+.chat-feed .message {
+    margin-bottom: 0.5rem;
+}
+
+/* Follow-up pills */
+.followup-btn {
+    border-radius: 20px !important;
+    padding: 0.4rem 1rem !important;
+    font-size: 0.88rem !important;
+    margin: 0.2rem !important;
+}
+
+/* Example prompt buttons */
+.example-btn {
+    border-radius: 12px !important;
+    padding: 0.6rem 1rem !important;
+    font-size: 0.85rem !important;
+    text-align: left !important;
+    white-space: normal !important;
+}
+
+/* Session list items */
+.session-btn {
+    text-align: left !important;
+    font-size: 0.85rem !important;
+    padding: 0.5rem 0.8rem !important;
+    margin-bottom: 2px !important;
+    border-radius: 8px !important;
+    width: 100% !important;
+}
+.session-btn-active {
+    border-left: 3px solid #00b8d9 !important;
+    background: rgba(0, 184, 217, 0.1) !important;
+}
+
+/* Data tables */
+.data-table-widget {
+    font-size: 0.8rem !important;
+}
+
+/* Token display */
+.token-card {
+    background: var(--panel-surface-color, #ffffff);
+    border: 1px solid var(--panel-border-color, #e2e8f0);
+    border-radius: 10px;
+    padding: 0.75rem 1rem;
+}
+
+/* Status banner */
+.status-banner {
+    margin: 0.5rem 0;
+}
+"""
+
+
+# ---------------------------------------------------------------------------
+# Example prompts
+# ---------------------------------------------------------------------------
+
+EXAMPLES = [
+    "How did scientists prove Voyager 1 left the solar system? Show me the data.",
+    "When did Parker Solar Probe first enter the solar corona? Show me what happened.",
+    "Show me a powerful coronal mass ejection hitting Earth. What did it look like in the data?",
+    "Show me electron pitch angle distribution along with Br and |B| and radial solar wind speed for a recent Parker Solar Probe perihelion, +/- 3 days from the perihelion date.",
+    "Compare ACE and Wind magnetic field and solar wind proton density during the September 2017 solar storm.",
+    "Show me MMS burst-mode ion energy spectrogram, electron energy spectrogram, and magnetic field components around a magnetopause crossing on 2024-01-02.",
+]
+
+
+# ---------------------------------------------------------------------------
+# Agent execution helper
+# ---------------------------------------------------------------------------
+
+def _run_agent_sync(message: str) -> str:
+    """Run agent.process_message synchronously (for thread pool), with lock."""
+    with _agent_lock:
+        return _agent.process_message(message)
+
+
+# ---------------------------------------------------------------------------
+# ChatPage — the / route
+# ---------------------------------------------------------------------------
+
+class ChatPage(param.Parameterized):
+    """Chat page: sessions sidebar + header + plot + chat + follow-ups + examples."""
+
+    def __init__(self, **params):
+        super().__init__(**params)
+
+        # --- Chat ---
+        self.chat_interface = pn.chat.ChatInterface(
+            callback=self._chat_callback,
+            show_rerun=False,
+            show_undo=False,
+            show_clear=False,
+            show_button_name=False,
+            sizing_mode="stretch_both",
+            min_height=400,
+        )
+
+        # --- Plot ---
+        self.plot_pane = pn.pane.Plotly(
+            None,
+            sizing_mode="stretch_width",
+            min_height=100,
+            visible=False,
+            config={"responsive": True},
+        )
+
+        # --- Follow-up pills ---
+        self.followup_row = pn.Row(sizing_mode="stretch_width", visible=False)
+
+        # --- Session sidebar widgets ---
+        self.new_session_btn = pn.widgets.Button(
+            name="+ New Chat",
+            button_type="primary",
+            sizing_mode="stretch_width",
+        )
+        self.session_select = pn.widgets.RadioBoxGroup(
+            name="Sessions",
+            options=self._build_session_options(),
+            sizing_mode="stretch_width",
+        )
+        # Manage mode widgets
+        self.manage_btn = pn.widgets.Button(name="Manage", button_type="default", width=80)
+        self.session_checklist = pn.widgets.CheckBoxGroup(
+            name="Select sessions to delete",
+            options=self._build_session_options(),
+            sizing_mode="stretch_width",
+        )
+        self.select_all_btn = pn.widgets.Button(name="Select All", button_type="default", width=80)
+        self.delete_sessions_btn = pn.widgets.Button(name="Delete", button_type="danger", width=80)
+        self.cancel_manage_btn = pn.widgets.Button(name="Cancel", button_type="default", width=80)
+
+        self.normal_mode_col = pn.Column(self.session_select, sizing_mode="stretch_width")
+        self.manage_mode_col = pn.Column(
+            self.session_checklist,
+            pn.Row(self.select_all_btn, self.delete_sessions_btn, self.cancel_manage_btn),
+            sizing_mode="stretch_width",
+            visible=False,
+        )
+
+        # --- Wire up events ---
+        self.new_session_btn.on_click(self._on_new_session)
+        self.session_select.param.watch(self._on_session_select, "value")
+        self.manage_btn.on_click(self._on_enter_manage)
+        self.cancel_manage_btn.on_click(self._on_exit_manage)
+        self.select_all_btn.on_click(self._on_select_all)
+        self.delete_sessions_btn.on_click(self._on_delete_sessions)
+
+    # ----- Chat callback -----
+
+    async def _chat_callback(self, contents: str, user: str, instance: pn.chat.ChatInterface):
+        """Process a user message through the agent."""
+        if not contents or not contents.strip():
+            return
+
+        message = contents.strip()
+
+        if _verbose:
+            # --- Verbose streaming mode ---
+            log_lines: list[str] = []
+            handler = _ListHandler(log_lines)
+            logger = logging.getLogger("helio-agent")
+            saved_level = logger.level
+            if logger.getEffectiveLevel() > logging.DEBUG:
+                logger.setLevel(logging.DEBUG)
+            logger.addHandler(handler)
+
+            result_box: list = [None]
+            error_box: list = [None]
+            t0 = time.monotonic()
+
+            def _run():
+                try:
+                    with _agent_lock:
+                        result_box[0] = _agent.process_message(message)
+                except Exception as exc:
+                    error_box[0] = exc
+
+            thread = threading.Thread(target=_run, daemon=True)
+            thread.start()
+
+            # Immediate feedback before any log lines arrive
+            yield "*Working...*"
+
+            prev_count = 0
+            while thread.is_alive():
+                thread.join(timeout=0.4)
+                elapsed = time.monotonic() - t0
+                if log_lines:
+                    tail = log_lines[-60:]
+                    log_text = "\n".join(tail)
+                    thinking = (
+                        f"*Working... ({elapsed:.1f}s)*\n\n"
+                        f"```\n{log_text}\n```"
+                    )
+                else:
+                    thinking = f"*Working... ({elapsed:.1f}s)*"
+                yield thinking
+
+            logger.removeHandler(handler)
+            logger.setLevel(saved_level)
+
+            elapsed = time.monotonic() - t0
+            if error_box[0] is not None:
+                response_text = f"Error: {error_box[0]}"
+            elif result_box[0]:
+                response_text = result_box[0]
+            else:
+                response_text = "Done."
+
+            verbose_text = "\n".join(log_lines)
+            if verbose_text:
+                full_response = (
+                    f"{response_text}\n\n"
+                    f"*{elapsed:.1f}s*\n\n"
+                    f"<details><summary>Activity Log ({len(log_lines)} events)</summary>\n\n"
+                    f"```\n{verbose_text}\n```\n\n</details>"
+                )
+            else:
+                full_response = f"{response_text}\n\n*{elapsed:.1f}s*"
+
+            self._refresh_sidebar()
+            self._update_followups()
+            yield full_response
+
+        else:
+            # --- Quiet mode ---
+            t0 = time.monotonic()
+
+            loop = asyncio.get_event_loop()
+            try:
+                response = await loop.run_in_executor(_executor, _run_agent_sync, message)
+            except Exception as exc:
+                response = f"Error: {exc}"
+
+            elapsed = time.monotonic() - t0
+            response_text = f"{response}\n\n*{elapsed:.1f}s*"
+
+            self._refresh_sidebar()
+            self._update_followups()
+            yield response_text
+
+    # ----- Sidebar refresh -----
+
+    def _refresh_sidebar(self):
+        """Update plot and session list after agent response."""
+        try:
+            fig = _get_current_figure()
+            if fig is not None:
+                self.plot_pane.object = fig
+                self.plot_pane.visible = True
+            else:
+                self.plot_pane.visible = False
+
+            # Update session list
+            self.session_select.options = self._build_session_options()
+            active = _get_active_session_id()
+            if active:
+                self.session_select.value = active
+        except Exception:
+            pass
+
+    def _update_followups(self):
+        """Generate and display follow-up suggestions."""
+        if _agent is None or _agent.is_cancelled():
+            self.followup_row.visible = False
+            return
+
+        try:
+            suggestions = _agent.generate_follow_ups()
+        except Exception:
+            suggestions = []
+
+        self.followup_row.clear()
+        if suggestions:
+            for text in suggestions:
+                btn = pn.widgets.Button(
+                    name=text,
+                    button_type="light",
+                    css_classes=["followup-btn"],
+                )
+                btn.on_click(lambda event, t=text: self._on_followup_click(t))
+                self.followup_row.append(btn)
+            self.followup_row.visible = True
+        else:
+            self.followup_row.visible = False
+
+    def _on_followup_click(self, text: str):
+        """Send a follow-up suggestion as a new message."""
+        self.chat_interface.send(text, respond=True)
+
+    # ----- Session management -----
+
+    def _build_session_options(self) -> dict[str, str]:
+        """Build {label: id} dict for session widgets."""
+        return _get_session_choices()
+
+    def _on_new_session(self, event):
+        """Start a fresh session."""
+        if _agent is not None:
+            try:
+                _agent.save_session()
+            except Exception:
+                pass
+            _agent.reset()
+
+        from data_ops.store import get_store
+        get_store().clear()
+
+        self.chat_interface.clear()
+        self.plot_pane.object = None
+        self.plot_pane.visible = False
+        self.followup_row.visible = False
+
+        self.session_select.options = self._build_session_options()
+
+    def _on_session_select(self, event):
+        """Load a saved session when clicked."""
+        session_id = event.new
+        if not session_id:
+            return
+
+        if session_id == _get_active_session_id():
+            return
+
+        if _agent is not None:
+            try:
+                _agent.save_session()
+            except Exception:
+                pass
+
+        # Load display history
+        try:
+            history_dicts, _, _, _, _ = _agent._session_manager.load_session(session_id)
+        except Exception as e:
+            self.chat_interface.clear()
+            self.chat_interface.send(
+                f"Failed to read session: {e}",
+                user="System", respond=False,
+            )
+            return
+
+        display = _extract_display_history(history_dicts)
+
+        # Restore agent state
+        try:
+            _agent.load_session(session_id)
+        except Exception as e:
+            display.append({
+                "role": "Assistant",
+                "content": f"*Session history loaded but agent state could not be fully restored: {e}*",
+            })
+
+        # Rebuild chat
+        self.chat_interface.clear()
+        for msg in display:
+            user = msg["role"]
+            self.chat_interface.send(msg["content"], user=user, respond=False)
+
+        self._refresh_sidebar()
+        self.followup_row.visible = False
+
+    def _on_enter_manage(self, event):
+        """Switch to manage mode."""
+        self.normal_mode_col.visible = False
+        self.manage_mode_col.visible = True
+        self.session_checklist.options = self._build_session_options()
+        self.session_checklist.value = []
+
+    def _on_exit_manage(self, event):
+        """Exit manage mode."""
+        self.normal_mode_col.visible = True
+        self.manage_mode_col.visible = False
+
+    def _on_select_all(self, event):
+        """Toggle select all sessions."""
+        all_ids = list(self.session_checklist.options.values()) if isinstance(
+            self.session_checklist.options, dict
+        ) else list(self.session_checklist.options)
+        if set(self.session_checklist.value) == set(all_ids):
+            self.session_checklist.value = []
+        else:
+            self.session_checklist.value = all_ids
+
+    def _on_delete_sessions(self, event):
+        """Delete selected sessions."""
+        selected_ids = self.session_checklist.value
+        if not selected_ids:
+            self._on_exit_manage(event)
+            return
+
+        from agent.session import SessionManager
+        sm = SessionManager()
+
+        active_id = _get_active_session_id()
+        need_reset = False
+
+        for sid in selected_ids:
+            if sid == active_id:
+                need_reset = True
+            sm.delete_session(sid)
+
+        if need_reset and _agent is not None:
+            _agent.reset()
+            from data_ops.store import get_store
+            get_store().clear()
+            self.chat_interface.clear()
+            self.plot_pane.visible = False
+
+        self._on_exit_manage(event)
+        self.session_select.options = self._build_session_options()
+
+    # ----- Build layout -----
+
+    def build(self) -> pn.template.FastListTemplate:
+        """Construct and return the chat page layout."""
+
+        # --- Header with "Open Data Tools" link ---
+        header_html = pn.pane.HTML(
+            """
+            <div class="helio-header">
+                <h1>Helio AI Agent</h1>
+                <div style="display:flex; align-items:center; gap:0.75rem;">
+                    <span style="color:#64748b; font-size:0.9rem;">52 missions &middot; 3,000+ datasets</span>
+                    <span class="badge">Powered by Gemini</span>
+                    <a href="/data" target="_blank" class="nav-link">Open Data Tools</a>
+                </div>
+            </div>
+            """,
+            sizing_mode="stretch_width",
+        )
+
+        # --- Example buttons (one per row, full width) ---
+        example_btns = []
+        for ex_text in EXAMPLES:
+            btn = pn.widgets.Button(
+                name=ex_text,
+                button_type="light",
+                css_classes=["example-btn"],
+                sizing_mode="stretch_width",
+            )
+            btn.on_click(lambda event, t=ex_text: self.chat_interface.send(t, respond=True))
+            example_btns.append(btn)
+
+        examples_section = pn.Column(
+            pn.pane.Markdown("**Try these:**", margin=(10, 0, 5, 0)),
+            *example_btns,
+            sizing_mode="stretch_width",
+        )
+
+        # --- Center column (full width) ---
+        center_col = pn.Column(
+            header_html,
+            self.plot_pane,
+            self.chat_interface,
+            self.followup_row,
+            examples_section,
+            sizing_mode="stretch_both",
+            min_width=500,
+        )
+
+        # --- Left sidebar: Sessions ---
+        sidebar_content = pn.Column(
+            self.new_session_btn,
+            self.normal_mode_col,
+            self.manage_mode_col,
+            pn.layout.Divider(),
+            self.manage_btn,
+            sizing_mode="stretch_width",
+        )
+
+        # --- Template ---
+        template = pn.template.FastListTemplate(
+            title="Helio AI Agent",
+            sidebar=[sidebar_content],
+            main=[center_col],
+            accent_base_color="#00b8d9",
+            header_background="#0097b2",
+            sidebar_width=280,
+            theme="default",
+            theme_toggle=True,
+            raw_css=[CUSTOM_CSS],
+        )
+
+        return template
+
+
+# ---------------------------------------------------------------------------
+# DataPage — the /data route
+# ---------------------------------------------------------------------------
+
+class DataPage(param.Parameterized):
+    """Data Tools page: browse & fetch + data table + preview + tokens + memory."""
+
+    def __init__(self, **params):
+        super().__init__(**params)
+
+        # --- Browse & Fetch widgets ---
+        self.mission_select = pn.widgets.Select(
+            name="Mission",
+            options=_get_mission_choices(),
+            value=None,
+            sizing_mode="stretch_width",
+        )
+        self.dataset_select = pn.widgets.Select(
+            name="Dataset",
+            options=[],
+            value=None,
+            sizing_mode="stretch_width",
+        )
+        self.param_select = pn.widgets.Select(
+            name="Parameter",
+            options=[],
+            value=None,
+            sizing_mode="stretch_width",
+        )
+        self.browse_info = pn.pane.Markdown("", sizing_mode="stretch_width")
+
+        now = datetime.now(tz=timezone.utc).replace(microsecond=0)
+        self.start_picker = pn.widgets.DatetimePicker(
+            name="Start",
+            value=now - timedelta(days=7),
+            sizing_mode="stretch_width",
+        )
+        self.end_picker = pn.widgets.DatetimePicker(
+            name="End",
+            value=now,
+            sizing_mode="stretch_width",
+        )
+        self.fetch_btn = pn.widgets.Button(
+            name="Fetch",
+            button_type="primary",
+            sizing_mode="stretch_width",
+        )
+
+        # --- Status banner ---
+        self.status_banner = pn.pane.Alert(
+            "",
+            alert_type="info",
+            visible=False,
+            sizing_mode="stretch_width",
+            css_classes=["status-banner"],
+        )
+
+        # --- Data in memory table ---
+        self.data_table_widget = pn.widgets.Tabulator(
+            _build_data_table(),
+            name="Data in Memory",
+            sizing_mode="stretch_width",
+            height=250,
+            disabled=True,
+            show_index=False,
+        )
+
+        # --- Preview ---
+        self.preview_select = pn.widgets.Select(
+            name="Preview",
+            options=_get_label_choices() or [],
+            value=None,
+            sizing_mode="stretch_width",
+        )
+        self.preview_table = pn.widgets.Tabulator(
+            pd.DataFrame(),
+            name="Data Preview",
+            sizing_mode="stretch_width",
+            height=300,
+            disabled=True,
+            show_index=False,
+            visible=False,
+        )
+
+        # --- Token display ---
+        self.token_display = pn.pane.Markdown(
+            _format_tokens(),
+            sizing_mode="stretch_width",
+            css_classes=["token-card"],
+        )
+
+        # --- Memory widgets ---
+        self.memory_toggle = pn.widgets.Checkbox(
+            name="Enable long-term memory",
+            value=self._get_memory_enabled(),
+        )
+        self.memory_list = pn.widgets.CheckBoxGroup(
+            name="Memories",
+            options=self._get_memory_options(),
+            sizing_mode="stretch_width",
+        )
+        self.memory_refresh_btn = pn.widgets.Button(name="Refresh", button_type="default", width=80)
+        self.memory_delete_btn = pn.widgets.Button(name="Delete Selected", button_type="danger", width=120)
+        self.memory_clear_btn = pn.widgets.Button(name="Clear All", button_type="danger", width=80)
+
+        # --- Wire up events ---
+        self.mission_select.param.watch(self._on_mission_change, "value")
+        self.dataset_select.param.watch(self._on_dataset_change, "value")
+        self.fetch_btn.on_click(self._on_fetch_click)
+        self.preview_select.param.watch(self._on_preview_change, "value")
+
+        self.memory_toggle.param.watch(self._on_memory_toggle, "value")
+        self.memory_refresh_btn.on_click(self._on_memory_refresh)
+        self.memory_delete_btn.on_click(self._on_memory_delete)
+        self.memory_clear_btn.on_click(self._on_memory_clear)
+
+    # ----- Browse & Fetch -----
+
+    def _on_mission_change(self, event):
+        """Cascade: mission -> datasets."""
+        mission_id = event.new
+        if not mission_id:
+            self.dataset_select.options = []
+            self.param_select.options = []
+            self.browse_info.object = ""
+            return
+
+        from knowledge.mission_loader import load_mission as _load_mission
+        try:
+            _load_mission(mission_id)
+        except FileNotFoundError:
+            pass
+
+        from knowledge.metadata_client import browse_datasets
+        datasets = browse_datasets(mission_id) or []
+        options = {}
+        for d in datasets:
+            n_params = d.get("parameter_count", "?")
+            start = d.get("start_date", "?")[:4]
+            stop = d.get("stop_date", "?")[:4]
+            label = f"{d['id']}  ({n_params} params, {start}--{stop})"
+            options[label] = d["id"]
+
+        self.dataset_select.options = options
+        self.dataset_select.value = None
+        self.param_select.options = []
+        self.browse_info.object = ""
+
+    def _on_dataset_change(self, event):
+        """Cascade: dataset -> parameters + time range."""
+        dataset_id = event.new
+        if not dataset_id:
+            self.param_select.options = []
+            self.browse_info.object = ""
+            return
+
+        from knowledge.metadata_client import list_parameters, get_dataset_time_range
+
+        params = list_parameters(dataset_id)
+        options = {}
+        for p in params:
+            desc = p.get("description", "")
+            units = p.get("units", "")
+            parts = [p["name"]]
+            if desc:
+                parts.append(desc)
+            if units:
+                parts.append(f"[{units}]")
+            options[" -- ".join(parts)] = p["name"]
+
+        self.param_select.options = options
+        self.param_select.value = None
+
+        time_range = get_dataset_time_range(dataset_id)
+        info_parts = [f"**{dataset_id}** — {len(params)} parameters"]
+
+        now = datetime.now(tz=timezone.utc).replace(microsecond=0)
+        end_dt = now
+        start_dt = now - timedelta(days=7)
+        if time_range:
+            start_avail = time_range["start"][:10]
+            stop_avail = time_range["stop"][:10]
+            info_parts.append(f"Available: {start_avail} to {stop_avail}")
+            try:
+                stop_date = datetime.fromisoformat(
+                    time_range["stop"][:19]
+                ).replace(tzinfo=timezone.utc)
+                end_dt = min(stop_date, now)
+                start_dt = end_dt - timedelta(days=7)
+            except ValueError:
+                pass
+
+        self.browse_info.object = "\n\n".join(info_parts)
+        self.start_picker.value = start_dt
+        self.end_picker.value = end_dt
+
+    def _on_fetch_click(self, event):
+        """Fetch data via data page, store it, and notify agent in background."""
+        dataset = self.dataset_select.value
+        param_name = self.param_select.value
+        if not dataset or not param_name:
+            self.status_banner.object = "Please select a dataset and parameter first."
+            self.status_banner.alert_type = "warning"
+            self.status_banner.visible = True
+            return
+
+        import config
+        from data_ops.fetch import fetch_data
+        from data_ops.store import get_store, DataEntry
+
+        start_val = self.start_picker.value
+        end_val = self.end_picker.value
+
+        # Convert datetime to ISO string
+        if isinstance(start_val, datetime):
+            start_iso = start_val.strftime("%Y-%m-%dT%H:%M:%SZ")
+        else:
+            start_iso = str(start_val).replace(" ", "T") + "Z"
+        if isinstance(end_val, datetime):
+            end_iso = end_val.strftime("%Y-%m-%dT%H:%M:%SZ")
+        else:
+            end_iso = str(end_val).replace(" ", "T") + "Z"
+
+        self.status_banner.object = f"Fetching {param_name} from {dataset}..."
+        self.status_banner.alert_type = "info"
+        self.status_banner.visible = True
+
+        try:
+            result = fetch_data(
+                dataset_id=dataset,
+                parameter_id=param_name,
+                time_min=start_iso,
+                time_max=end_iso,
+            )
+        except Exception as e:
+            self.status_banner.object = f"**Fetch failed:** {e}"
+            self.status_banner.alert_type = "danger"
+            return
+
+        label = f"{dataset}.{param_name}"
+        entry = DataEntry(
+            label=label,
+            data=result["data"],
+            units=result["units"],
+            description=result["description"],
+            source=config.DATA_BACKEND,
+        )
+        get_store().put(entry)
+        n_points = len(result["data"])
+        del result
+        gc.collect()
+
+        # Update status banner
+        self.status_banner.object = (
+            f"Fetched **{label}** — {n_points:,} points "
+            f"({start_val} to {end_val})"
+        )
+        self.status_banner.alert_type = "success"
+
+        # Refresh data widgets immediately
+        self._refresh_data_widgets()
+
+        # Notify agent in background thread (agent reply is discarded)
+        notify_msg = (
+            f"[User fetched data via data tools page] "
+            f"{param_name} from {dataset} ({start_val} to {end_val}) "
+            f"is now in memory as '{label}' with {n_points} points."
+        )
+
+        def _notify():
+            try:
+                with _agent_lock:
+                    _agent.process_message(notify_msg)
+            except Exception:
+                pass
+
+        threading.Thread(target=_notify, daemon=True).start()
+
+    # ----- Preview -----
+
+    def _on_preview_change(self, event):
+        """Update preview table when label selection changes."""
+        label = event.new
+        if not label:
+            self.preview_table.visible = False
+            return
+
+        preview_df = _preview_data(label)
+        if preview_df is not None:
+            self.preview_table.value = preview_df
+            self.preview_table.visible = True
+        else:
+            self.preview_table.visible = False
+
+    # ----- Periodic refresh -----
+
+    def _refresh_data_widgets(self):
+        """Refresh data table, preview options, and token display."""
+        try:
+            self.data_table_widget.value = _build_data_table()
+            self.token_display.object = _format_tokens()
+
+            labels = _get_label_choices()
+            old_labels = self.preview_select.options
+            if labels != old_labels:
+                self.preview_select.options = labels
+                if labels:
+                    self.preview_select.value = labels[-1]
+        except Exception:
+            pass
+
+    # ----- Memory -----
+
+    def _get_memory_enabled(self) -> bool:
+        if _agent is None:
+            return True
+        return _agent.memory_store.is_global_enabled()
+
+    def _get_memory_options(self) -> dict[str, str]:
+        if _agent is None:
+            return {}
+        memories = _agent.memory_store.get_all()
+        options = {}
+        for m in memories:
+            tag = "[P]" if m.type == "preference" else "[S]"
+            date_str = m.created_at[:10] if m.created_at else ""
+            preview = m.content[:60] + "..." if len(m.content) > 60 else m.content
+            label = f"{tag} {preview} ({date_str})"
+            options[label] = m.id
+        return options
+
+    def _on_memory_toggle(self, event):
+        if _agent is not None:
+            _agent.memory_store.toggle_global(event.new)
+
+    def _on_memory_refresh(self, event):
+        if _agent is not None:
+            _agent.memory_store.load()
+        self.memory_list.options = self._get_memory_options()
+
+    def _on_memory_delete(self, event):
+        selected_ids = self.memory_list.value
+        if _agent is not None and selected_ids:
+            for mid in selected_ids:
+                _agent.memory_store.remove(mid)
+        self.memory_list.options = self._get_memory_options()
+
+    def _on_memory_clear(self, event):
+        if _agent is not None:
+            _agent.memory_store.clear_all()
+        self.memory_list.options = self._get_memory_options()
+
+    # ----- Build layout -----
+
+    def build(self) -> pn.template.FastListTemplate:
+        """Construct and return the data tools page layout."""
+
+        # --- Header with "Back to Chat" link ---
+        header_html = pn.pane.HTML(
+            """
+            <div class="helio-header">
+                <h1>Data Tools</h1>
+                <div style="display:flex; align-items:center; gap:0.75rem;">
+                    <span style="color:#64748b; font-size:0.9rem;">Browse, fetch & inspect data</span>
+                    <a href="/" class="nav-link">Back to Chat</a>
+                </div>
+            </div>
+            """,
+            sizing_mode="stretch_width",
+        )
+
+        # --- Browse & Fetch section ---
+        browse_section = pn.Card(
+            self.mission_select,
+            self.dataset_select,
+            self.param_select,
+            self.browse_info,
+            pn.Row(self.start_picker, self.end_picker),
+            self.fetch_btn,
+            self.status_banner,
+            title="Browse & Fetch",
+            collapsed=False,
+            sizing_mode="stretch_width",
+        )
+
+        # --- Memory section ---
+        memory_section = pn.Card(
+            self.memory_toggle,
+            self.memory_list,
+            pn.Row(self.memory_refresh_btn, self.memory_delete_btn),
+            self.memory_clear_btn,
+            title="Long-term Memory",
+            collapsed=True,
+            sizing_mode="stretch_width",
+        )
+
+        # --- Left column: browse/fetch + memory ---
+        left_col = pn.Column(
+            browse_section,
+            memory_section,
+            sizing_mode="stretch_width",
+        )
+
+        # --- Right column: data table + preview + tokens ---
+        right_col = pn.Column(
+            pn.pane.Markdown("**Data in Memory**", margin=(10, 0, 5, 0)),
+            self.data_table_widget,
+            self.preview_select,
+            self.preview_table,
+            pn.layout.Divider(),
+            self.token_display,
+            sizing_mode="stretch_width",
+        )
+
+        # --- Two-column layout ---
+        main_area = pn.Row(
+            left_col,
+            right_col,
+            sizing_mode="stretch_both",
+        )
+
+        # --- Template (no sidebar) ---
+        template = pn.template.FastListTemplate(
+            title="Helio AI Agent — Data Tools",
+            main=[header_html, main_area],
+            accent_base_color="#00b8d9",
+            header_background="#0097b2",
+            theme="default",
+            theme_toggle=True,
+            raw_css=[CUSTOM_CSS],
+        )
+
+        # --- Periodic refresh every 4 seconds ---
+        pn.state.add_periodic_callback(self._refresh_data_widgets, period=4000)
+
+        return template
+
+
+# ---------------------------------------------------------------------------
+# Page factory functions (one instance per browser session)
+# ---------------------------------------------------------------------------
+
+def _create_chat_page():
+    return ChatPage().build()
+
+
+def _create_data_page():
+    return DataPage().build()
+
+
+# ---------------------------------------------------------------------------
+# Main entry point
+# ---------------------------------------------------------------------------
+
+def main():
+    global _agent, _verbose
+
+    pn.extension("plotly", "tabulator", sizing_mode="stretch_width")
+
+    parser = argparse.ArgumentParser(description="Helio AI Agent — Panel Web UI")
+    parser.add_argument("--port", type=int, default=5006, help="Port to listen on")
+    parser.add_argument("--quiet", "-q", action="store_true",
+                        help="Hide live progress log")
+    parser.add_argument("--model", "-m", default=None, help="LLM model name")
+    parser.add_argument("--refresh", action="store_true",
+                        help="Refresh dataset time ranges")
+    parser.add_argument("--refresh-full", action="store_true",
+                        help="Full rebuild of primary mission data")
+    parser.add_argument("--refresh-all", action="store_true",
+                        help="Download ALL missions from CDAWeb")
+
+    args = parser.parse_args()
+    _verbose = not args.quiet
+
+    # Mission data refresh
+    from knowledge.startup import resolve_refresh_flags
+    resolve_refresh_flags(
+        refresh=args.refresh,
+        refresh_full=args.refresh_full,
+        refresh_all=args.refresh_all,
+    )
+
+    print("Data backend: CDF (direct file download)")
+
+    # Initialize agent
+    print("Initializing agent...")
+    try:
+        from agent.core import create_agent
+        _agent = create_agent(verbose=_verbose, model=args.model)
+        _agent.web_mode = True
+    except Exception as e:
+        print(f"Error initializing agent: {e}")
+        print("Make sure .env has LLM_API_KEY set.")
+        sys.exit(1)
+    print(f"Agent ready (model: {_agent.model_name})")
+
+    # Start a session for auto-save
+    _agent.start_session()
+
+    # Ensure Ctrl+C works reliably
+    signal.signal(signal.SIGINT, lambda *_: os._exit(0))
+    signal.signal(signal.SIGTERM, lambda *_: os._exit(0))
+
+    # Serve two pages
+    pn.serve(
+        {"/": _create_chat_page, "/data": _create_data_page},
+        port=args.port,
+        show=True,
+        title="Helio AI Agent",
+        websocket_origin="*",
+    )
+
+
+if __name__ == "__main__":
+    main()
