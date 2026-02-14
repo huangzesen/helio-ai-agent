@@ -7,10 +7,9 @@ All figure construction flows through a single stateless builder:
 
 The PlotlyRenderer class is a thin stateful wrapper that delegates to
 build_figure_from_spec() and provides:
-- plot_data() — builds a legacy spec from kwargs, calls render_from_spec()
-- render_from_spec() — the spec→figure bridge (copies result into state)
+- render_from_spec() — the spec-to-figure bridge (copies result into state)
 - style() — apply aesthetics via key-value params (no code gen)
-- manage() — structural ops: export, reset, zoom, add/remove traces
+- export(), reset(), set_time_range() — structural operations
 """
 
 from __future__ import annotations
@@ -489,58 +488,22 @@ def _create_figure(
                             "message": f"Label '{lbl}' not found in provided entries"}
                 panel_entries.append(e)
 
-            if columns > 1:
-                n_entries = len(panel_entries)
-                per_col = max(1, (n_entries + columns - 1) // columns)
-                for col_idx in range(columns):
-                    start = col_idx * per_col
-                    end = min(start + per_col, n_entries)
-                    col_entries = panel_entries[start:end]
-                    if not col_entries:
-                        continue
-                    c = col_idx + 1
-                    result = _dispatch_traces(
-                        col_entries, row, fig, ptype, color_state,
-                        trace_labels, trace_panels, col=c, **spectro_kwargs,
-                    )
-                    if isinstance(result, dict):
-                        return result
-                    all_trace_labels.extend(result)
-            else:
-                result = _dispatch_traces(
-                    panel_entries, row, fig, ptype, color_state,
-                    trace_labels, trace_panels, **spectro_kwargs,
-                )
-                if isinstance(result, dict):
-                    return result
-                all_trace_labels.extend(result)
+            err = _dispatch_to_panels(
+                panel_entries, row, fig, ptype, color_state,
+                trace_labels, trace_panels, columns, all_trace_labels,
+                **spectro_kwargs,
+            )
+            if err:
+                return err
     else:
         ptype = effective_types[0]
-        if columns > 1:
-            n_entries = len(entries)
-            per_col = max(1, (n_entries + columns - 1) // columns)
-            for col_idx in range(columns):
-                start = col_idx * per_col
-                end = min(start + per_col, n_entries)
-                col_entries = entries[start:end]
-                if not col_entries:
-                    continue
-                c = col_idx + 1
-                result = _dispatch_traces(
-                    col_entries, 1, fig, ptype, color_state,
-                    trace_labels, trace_panels, col=c, **spectro_kwargs,
-                )
-                if isinstance(result, dict):
-                    return result
-                all_trace_labels.extend(result)
-        else:
-            result = _dispatch_traces(
-                entries, 1, fig, ptype, color_state,
-                trace_labels, trace_panels, **spectro_kwargs,
-            )
-            if isinstance(result, dict):
-                return result
-            all_trace_labels.extend(result)
+        err = _dispatch_to_panels(
+            entries, 1, fig, ptype, color_state,
+            trace_labels, trace_panels, columns, all_trace_labels,
+            **spectro_kwargs,
+        )
+        if err:
+            return err
 
     fig.update_xaxes(type="date")
 
@@ -754,13 +717,52 @@ def _build_from_spec(
     if layout:
         result.figure.update_layout(**layout)
     if traces_patch:
-        for selector, patch in traces_patch.items():
-            for i, label in enumerate(result.trace_labels):
-                if label == selector or selector in label or label in selector:
-                    if i < len(result.figure.data):
-                        result.figure.data[i].update(**patch)
+        _apply_trace_patches(result.figure, result.trace_labels, traces_patch)
 
     return result
+
+
+def _dispatch_to_panels(
+    source_entries: list[DataEntry],
+    row: int,
+    fig: go.Figure,
+    ptype: str,
+    color_state: ColorState,
+    trace_labels: list[str],
+    trace_panels: list[tuple[int, int]],
+    columns: int,
+    all_trace_labels: list[str],
+    **spectro_kwargs,
+) -> dict | None:
+    """Dispatch entries to one or more columns in a panel row.
+
+    Returns an error dict if any dispatch fails, else None.
+    """
+    if columns > 1:
+        n_entries = len(source_entries)
+        per_col = max(1, (n_entries + columns - 1) // columns)
+        for col_idx in range(columns):
+            start = col_idx * per_col
+            end = min(start + per_col, n_entries)
+            col_entries = source_entries[start:end]
+            if not col_entries:
+                continue
+            result = _dispatch_traces(
+                col_entries, row, fig, ptype, color_state,
+                trace_labels, trace_panels, col=col_idx + 1, **spectro_kwargs,
+            )
+            if isinstance(result, dict):
+                return result
+            all_trace_labels.extend(result)
+    else:
+        result = _dispatch_traces(
+            source_entries, row, fig, ptype, color_state,
+            trace_labels, trace_panels, **spectro_kwargs,
+        )
+        if isinstance(result, dict):
+            return result
+        all_trace_labels.extend(result)
+    return None
 
 
 def _dispatch_traces(
@@ -791,6 +793,19 @@ def _dispatch_traces(
         return _add_line_traces(
             entries, row, fig, color_state, trace_labels, trace_panels, col=col,
         )
+
+
+def _apply_trace_patches(
+    fig: go.Figure,
+    trace_labels: list[str],
+    patches: dict[str, dict],
+) -> None:
+    """Apply per-trace patches matched by label (exact or substring)."""
+    for selector, patch in patches.items():
+        for i, label in enumerate(trace_labels):
+            if label == selector or selector in label or label in selector:
+                if i < len(fig.data):
+                    fig.data[i].update(**patch)
 
 
 def _wrap_display_name(name: str, max_line: int = _LEGEND_MAX_LINE) -> str:
@@ -849,76 +864,6 @@ class PlotlyRenderer:
         row = (panel - 1) // cols + 1
         col = (panel - 1) % cols + 1
         return (row, col)
-
-    # ------------------------------------------------------------------
-    # Public API: plot_data
-    # ------------------------------------------------------------------
-
-    def plot_data(
-        self,
-        entries: list[DataEntry],
-        panels: list[list[str]] | None = None,
-        title: str = "",
-        plot_type: str = "line",
-        panel_types: list[str] | None = None,
-        colorscale: str = "Viridis",
-        log_y: bool = False,
-        log_z: bool = False,
-        z_min: float | None = None,
-        z_max: float | None = None,
-        columns: int = 1,
-        column_titles: list[str] | None = None,
-    ) -> dict:
-        """Create a fresh plot from DataEntry objects.
-
-        Builds a legacy spec dict from the kwargs and delegates to
-        render_from_spec(), which routes through build_figure_from_spec().
-
-        Args:
-            entries: All data to plot.
-            panels: Panel layout, e.g. [["A","B"], ["C"]] for 2-panel.
-                    None = overlay all in one panel.
-            title: Plot title.
-            plot_type: Default plot type: "line" or "spectrogram".
-            panel_types: Per-panel plot type, parallel to panels array.
-            colorscale: Plotly colorscale for spectrogram.
-            log_y: Log scale on y-axis (spectrogram).
-            log_z: Log scale on z-axis (spectrogram).
-            z_min: Min value for spectrogram color scale.
-            z_max: Max value for spectrogram color scale.
-            columns: Number of columns for grid layout (default 1).
-            column_titles: Column header labels (e.g. ['Jan 2020', 'Oct 2024']).
-
-        Returns:
-            Result dict with status, panels, traces, display, columns.
-        """
-        # Build a legacy spec dict from kwargs
-        spec: dict = {"labels": ",".join(e.label for e in entries)}
-        if panels:
-            spec["panels"] = panels
-        if title:
-            spec["title"] = title
-        if plot_type != "line":
-            spec["plot_type"] = plot_type
-        if panel_types:
-            spec["panel_types"] = panel_types
-        if columns != 1:
-            spec["columns"] = columns
-        if column_titles:
-            spec["column_titles"] = column_titles
-        # Spectrogram kwargs
-        if colorscale != "Viridis":
-            spec["colorscale"] = colorscale
-        if log_y:
-            spec["log_y"] = log_y
-        if log_z:
-            spec["log_z"] = log_z
-        if z_min is not None:
-            spec["z_min"] = z_min
-        if z_max is not None:
-            spec["z_max"] = z_max
-
-        return self.render_from_spec(spec, entries)
 
     # ------------------------------------------------------------------
     # Public API: style
@@ -994,27 +939,24 @@ class PlotlyRenderer:
                     for c in range(1, self._column_count + 1):
                         fig.update_yaxes(title_text=wrapped, row=row, col=c)
 
-        if trace_colors is not None:
-            for trace_label, color in trace_colors.items():
-                for i, tl in enumerate(self._trace_labels):
-                    if tl == trace_label and i < len(fig.data):
-                        trace = fig.data[i]
-                        if hasattr(trace, 'line'):
-                            trace.line.color = color
-                        elif hasattr(trace, 'marker'):
-                            trace.marker.color = color
-
-        if line_styles is not None:
-            for trace_label, style_dict in line_styles.items():
-                for i, tl in enumerate(self._trace_labels):
-                    if tl == trace_label and i < len(fig.data):
-                        trace = fig.data[i]
-                        if "width" in style_dict and hasattr(trace, 'line'):
-                            trace.line.width = style_dict["width"]
-                        if "dash" in style_dict and hasattr(trace, 'line'):
-                            trace.line.dash = style_dict["dash"]
-                        if "mode" in style_dict:
-                            trace.mode = style_dict["mode"]
+        if trace_colors is not None or line_styles is not None:
+            patches: dict[str, dict] = {}
+            if trace_colors is not None:
+                for trace_label, color in trace_colors.items():
+                    patches[trace_label] = patches.get(trace_label, {})
+                    patches[trace_label]["line"] = {"color": color}
+            if line_styles is not None:
+                for trace_label, style_dict in line_styles.items():
+                    patches[trace_label] = patches.get(trace_label, {})
+                    line = patches[trace_label].get("line", {})
+                    if "width" in style_dict:
+                        line["width"] = style_dict["width"]
+                    if "dash" in style_dict:
+                        line["dash"] = style_dict["dash"]
+                    patches[trace_label]["line"] = line
+                    if "mode" in style_dict:
+                        patches[trace_label]["mode"] = style_dict["mode"]
+            _apply_trace_patches(fig, self._trace_labels, patches)
 
         if log_scale is not None:
             if isinstance(log_scale, dict):
@@ -1196,100 +1138,6 @@ class PlotlyRenderer:
         if warnings:
             result["warnings"] = warnings
         return result
-
-    # ------------------------------------------------------------------
-    # Public API: manage
-    # ------------------------------------------------------------------
-
-    def manage(self, action: str, **kwargs) -> dict:
-        """Perform structural operations on the plot.
-
-        Args:
-            action: One of "reset", "get_state", "set_time_range",
-                    "export".
-            **kwargs: Action-specific parameters.
-
-        Returns:
-            Result dict with status.
-        """
-        if action == "reset":
-            return self.reset()
-
-        elif action == "get_state":
-            return self.get_current_state()
-
-        elif action == "set_time_range":
-            time_range = kwargs.get("time_range")
-            if time_range is None:
-                return {"status": "error", "message": "time_range is required"}
-            return self.set_time_range(time_range)
-
-        elif action == "export":
-            filename = kwargs.get("filename", "output.png")
-            fmt = kwargs.get("format", "png")
-            return self.export(filename, format=fmt)
-
-        else:
-            return {"status": "error", "message": f"Unknown action: {action}"}
-
-    # ------------------------------------------------------------------
-    # Manage helpers
-    # ------------------------------------------------------------------
-
-    def _remove_trace(self, label: str) -> dict:
-        """Remove a trace by label from the current figure."""
-        if self._figure is None:
-            return {"status": "error", "message": "No figure to modify."}
-
-        # Find indices to remove
-        indices_to_remove = [
-            i for i, tl in enumerate(self._trace_labels) if tl == label
-        ]
-        if not indices_to_remove:
-            return {"status": "error",
-                    "message": f"Trace '{label}' not found. "
-                    f"Available: {', '.join(self._trace_labels)}"}
-
-        # Rebuild fig.data tuple without removed indices
-        keep = set(range(len(self._figure.data))) - set(indices_to_remove)
-        new_data = [self._figure.data[i] for i in sorted(keep)]
-        new_labels = [self._trace_labels[i] for i in sorted(keep)]
-        new_panels = [self._trace_panels[i] for i in sorted(keep)]
-
-        self._figure.data = tuple(new_data)
-        self._trace_labels = new_labels
-        self._trace_panels = new_panels
-
-        return {"status": "success",
-                "message": f"Removed trace '{label}'.",
-                "remaining_traces": self._trace_labels,
-                "display": "plotly"}
-
-    def _add_trace_to_existing(self, entry: DataEntry, panel: int) -> dict:
-        """Add a DataEntry to the existing figure at the specified panel."""
-        if self._figure is None:
-            return {"status": "error", "message": "No figure. Use plot_data first."}
-
-        if len(entry.time) == 0:
-            return {"status": "error",
-                    "message": f"Entry '{entry.label}' has no data points"}
-
-        row, col = self._panel_to_rowcol(panel)
-        cs = ColorState(
-            label_colors=dict(self._label_colors),
-            color_index=self._color_index,
-        )
-        added = _add_line_traces(
-            [entry], row, self._figure, cs,
-            self._trace_labels, self._trace_panels, col=col,
-        )
-        self._label_colors = cs.label_colors
-        self._color_index = cs.color_index
-        self._figure.update_xaxes(type="date")
-
-        return {"status": "success",
-                "added_traces": added,
-                "display": "plotly"}
 
     # ------------------------------------------------------------------
     # Time range

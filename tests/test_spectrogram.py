@@ -200,28 +200,29 @@ class TestDataEntryMetadata:
 
 class TestPlotSpectrogram:
     def test_basic_heatmap(self):
-        """plot_data with plot_type='spectrogram' should create a Heatmap trace."""
+        """render_from_spec with plot_type='spectrogram' should create a Heatmap trace."""
         renderer = PlotlyRenderer()
         entry = _make_spectrogram_entry()
-        result = renderer.plot_data([entry], plot_type="spectrogram")
+        result = renderer.render_from_spec(
+            {"labels": entry.label, "plot_type": "spectrogram"}, [entry])
         assert result["status"] == "success"
         assert result["display"] == "plotly"
 
         fig = renderer.get_figure()
         assert fig is not None
         assert len(fig.data) == 1
-        # Check it's a heatmap trace
         assert "heatmap" in fig.data[0].type.lower()
 
     def test_log_scales(self):
         """log_y and log_z should be applied correctly."""
         renderer = PlotlyRenderer()
         entry = _make_spectrogram_entry()
-        result = renderer.plot_data([entry], plot_type="spectrogram", log_y=True, log_z=True)
+        result = renderer.render_from_spec(
+            {"labels": entry.label, "plot_type": "spectrogram",
+             "log_y": True, "log_z": True}, [entry])
         assert result["status"] == "success"
 
         fig = renderer.get_figure()
-        # log_y sets the y-axis type
         yaxis = fig.layout.yaxis
         assert yaxis.type == "log"
 
@@ -229,7 +230,9 @@ class TestPlotSpectrogram:
         """Custom colorscale should be set on the trace."""
         renderer = PlotlyRenderer()
         entry = _make_spectrogram_entry()
-        renderer.plot_data([entry], plot_type="spectrogram", colorscale="Jet")
+        renderer.render_from_spec(
+            {"labels": entry.label, "plot_type": "spectrogram",
+             "colorscale": "Jet"}, [entry])
 
         fig = renderer.get_figure()
         assert fig.data[0].colorscale is not None
@@ -238,7 +241,9 @@ class TestPlotSpectrogram:
         """Title parameter should set the figure title."""
         renderer = PlotlyRenderer()
         entry = _make_spectrogram_entry()
-        renderer.plot_data([entry], plot_type="spectrogram", title="Test Title")
+        renderer.render_from_spec(
+            {"labels": entry.label, "plot_type": "spectrogram",
+             "title": "Test Title"}, [entry])
 
         fig = renderer.get_figure()
         assert fig.layout.title.text == "Test Title"
@@ -247,10 +252,9 @@ class TestPlotSpectrogram:
         """panels parameter should target a specific panel row."""
         renderer = PlotlyRenderer()
         entry = _make_spectrogram_entry()
-        # Use panels to create a 2-panel layout with spectrogram in second panel
-        result = renderer.plot_data(
-            [entry], panels=[[], [entry.label]], plot_type="spectrogram",
-        )
+        result = renderer.render_from_spec(
+            {"labels": entry.label, "panels": [[], [entry.label]],
+             "plot_type": "spectrogram"}, [entry])
         assert result["status"] == "success"
 
         fig = renderer.get_figure()
@@ -260,7 +264,9 @@ class TestPlotSpectrogram:
         """z_min and z_max should be set on the trace."""
         renderer = PlotlyRenderer()
         entry = _make_spectrogram_entry()
-        renderer.plot_data([entry], plot_type="spectrogram", z_min=0.1, z_max=10.0)
+        renderer.render_from_spec(
+            {"labels": entry.label, "plot_type": "spectrogram",
+             "z_min": 0.1, "z_max": 10.0}, [entry])
 
         fig = renderer.get_figure()
         assert fig.data[0].zmin == 0.1
@@ -276,7 +282,8 @@ class TestPlotSpectrogram:
             data=df,
             metadata={"type": "spectrogram", "bin_values": []},
         )
-        result = renderer.plot_data([entry], plot_type="spectrogram")
+        result = renderer.render_from_spec(
+            {"labels": "empty_spec", "plot_type": "spectrogram"}, [entry])
         assert result["status"] == "error"
 
     def test_scalar_rejected_as_spectrogram(self):
@@ -286,7 +293,8 @@ class TestPlotSpectrogram:
         df = pd.DataFrame({"value": np.random.randn(100)}, index=idx)
         entry = DataEntry(label="scalar_data", data=df, units="nT",
                           description="Scalar timeseries")
-        result = renderer.plot_data([entry], plot_type="spectrogram")
+        result = renderer.render_from_spec(
+            {"labels": "scalar_data", "plot_type": "spectrogram"}, [entry])
         assert result["status"] == "error"
         assert "scalar" in result["message"].lower()
         assert "panel_types" in result["message"]
@@ -380,5 +388,6 @@ result = pd.DataFrame(Sxx.T, index=times, columns=[str(freq) for freq in f])
 
         # Verify we can plot it
         renderer = PlotlyRenderer()
-        result = renderer.plot_data([loaded], plot_type="spectrogram")
+        result = renderer.render_from_spec(
+            {"labels": loaded.label, "plot_type": "spectrogram"}, [loaded])
         assert result["status"] == "success"

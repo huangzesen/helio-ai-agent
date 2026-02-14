@@ -33,13 +33,13 @@ def _make_entry(label: str, n: int = 100, ncols: int = 1, desc: str = "test data
 
 
 # ---------------------------------------------------------------------------
-# plot_data
+# render_from_spec (basic plotting tests, formerly plot_data)
 # ---------------------------------------------------------------------------
 
 class TestPlotData:
     def test_plot_single_scalar(self, renderer):
         entry = _make_entry("mag", n=50)
-        result = renderer.plot_data([entry])
+        result = renderer.render_from_spec({"labels": "mag"}, [entry])
         assert result["status"] == "success"
         assert result["panels"] == 1
         assert result["traces"] == ["test data"]
@@ -50,7 +50,7 @@ class TestPlotData:
 
     def test_plot_vector_decomposition(self, renderer):
         entry = _make_entry("Bvec", n=30, ncols=3)
-        result = renderer.plot_data([entry])
+        result = renderer.render_from_spec({"labels": "Bvec"}, [entry])
         assert result["status"] == "success"
         assert len(result["traces"]) == 3
         assert result["traces"] == ["test data (x)", "test data (y)", "test data (z)"]
@@ -60,7 +60,7 @@ class TestPlotData:
     def test_plot_multiple_overlay(self, renderer):
         e1 = _make_entry("A", n=20, desc="Alpha")
         e2 = _make_entry("B", n=20, desc="Beta")
-        result = renderer.plot_data([e1, e2])
+        result = renderer.render_from_spec({"labels": "A,B"}, [e1, e2])
         assert result["status"] == "success"
         assert len(result["traces"]) == 2
         assert result["panels"] == 1
@@ -68,7 +68,7 @@ class TestPlotData:
         assert len(fig.data) == 2
 
     def test_empty_entries_error(self, renderer):
-        result = renderer.plot_data([])
+        result = renderer.render_from_spec({"labels": ""}, [])
         assert result["status"] == "error"
 
     def test_empty_data_error(self, renderer):
@@ -77,33 +77,31 @@ class TestPlotData:
             data=pd.DataFrame({"v": pd.Series(dtype=float)},
                               index=pd.DatetimeIndex([], name="time")),
         )
-        result = renderer.plot_data([empty])
+        result = renderer.render_from_spec({"labels": "empty"}, [empty])
         assert result["status"] == "error"
         assert "no data points" in result["message"]
 
     def test_empty_entry_among_valid_still_errors(self, renderer):
-        """A 0-point entry passed in entries list should still error.
-
-        The fix for issue 1 is in _handle_plot_data (core.py) which now
-        only passes panel-referenced entries to the renderer.  But if a
-        0-point entry *does* slip through, the renderer must still catch it.
-        """
+        """A 0-point entry passed in entries list should still error."""
         good = _make_entry("A", n=10)
         empty = DataEntry(
             label="empty",
             data=pd.DataFrame({"v": pd.Series(dtype=float)},
                               index=pd.DatetimeIndex([], name="time")),
         )
-        result = renderer.plot_data([good, empty], panels=[["A"], ["empty"]])
+        result = renderer.render_from_spec(
+            {"labels": "A,empty", "panels": [["A"], ["empty"]]},
+            [good, empty],
+        )
         assert result["status"] == "error"
         assert "no data points" in result["message"]
 
     def test_multi_panel(self, renderer):
         e1 = _make_entry("A", n=10, desc="Alpha")
         e2 = _make_entry("B", n=10, desc="Beta")
-        result = renderer.plot_data(
+        result = renderer.render_from_spec(
+            {"labels": "A,B", "panels": [["A"], ["B"]]},
             [e1, e2],
-            panels=[["A"], ["B"]],
         )
         assert result["status"] == "success"
         assert result["panels"] == 2
@@ -115,9 +113,9 @@ class TestPlotData:
         e1 = _make_entry("A", n=10, desc="Alpha")
         e2 = _make_entry("B", n=10, desc="Beta")
         e3 = _make_entry("C", n=10, desc="Gamma")
-        result = renderer.plot_data(
+        result = renderer.render_from_spec(
+            {"labels": "A,B,C", "panels": [["A", "B"], ["C"]]},
             [e1, e2, e3],
-            panels=[["A", "B"], ["C"]],
         )
         assert result["status"] == "success"
         assert result["panels"] == 2
@@ -125,34 +123,37 @@ class TestPlotData:
 
     def test_fresh_figure_each_call(self, renderer):
         e1 = _make_entry("A", n=10)
-        renderer.plot_data([e1])
+        renderer.render_from_spec({"labels": "A"}, [e1])
         fig1_data_count = len(renderer.get_figure().data)
 
         e2 = _make_entry("B", n=10)
-        renderer.plot_data([e2])
+        renderer.render_from_spec({"labels": "B"}, [e2])
         fig2_data_count = len(renderer.get_figure().data)
 
-        # Second plot_data should create fresh figure, not accumulate
+        # Second render should create fresh figure, not accumulate
         assert fig1_data_count == 1
         assert fig2_data_count == 1
 
     def test_trace_label_tracking(self, renderer):
         e1 = _make_entry("A", n=10, desc="Alpha")
         e2 = _make_entry("B", n=10, desc="Beta")
-        renderer.plot_data([e1, e2])
+        renderer.render_from_spec({"labels": "A,B"}, [e1, e2])
         assert renderer._trace_labels == ["Alpha", "Beta"]
         assert renderer._trace_panels == [(1, 1), (1, 1)]
 
     def test_with_title(self, renderer):
         entry = _make_entry("mag", n=10)
-        result = renderer.plot_data([entry], title="My Plot")
+        result = renderer.render_from_spec({"labels": "mag", "title": "My Plot"}, [entry])
         assert result["status"] == "success"
         fig = renderer.get_figure()
         assert fig.layout.title.text == "My Plot"
 
     def test_panel_label_not_found(self, renderer):
         e1 = _make_entry("A", n=10)
-        result = renderer.plot_data([e1], panels=[["A"], ["MISSING"]])
+        result = renderer.render_from_spec(
+            {"labels": "A", "panels": [["A"], ["MISSING"]]},
+            [e1],
+        )
         assert result["status"] == "error"
         assert "MISSING" in result["message"]
 
@@ -161,21 +162,23 @@ class TestPlotData:
         rng = pd.date_range("2024-01-01", periods=50, freq="min")
         df = pd.DataFrame({"B_mag": np.random.randn(50), "dB_dt": np.random.randn(50)}, index=rng)
         entry = DataEntry(label="PSP_B_DERIVATIVE", data=df, units="nT", description="B derivatives")
-        # Pass parent entry, but reference columns in panels
-        result = renderer.plot_data(
+        result = renderer.render_from_spec(
+            {"labels": "PSP_B_DERIVATIVE", "panels": [["PSP_B_DERIVATIVE.B_mag"], ["PSP_B_DERIVATIVE.dB_dt"]]},
             [entry],
-            panels=[["PSP_B_DERIVATIVE.B_mag"], ["PSP_B_DERIVATIVE.dB_dt"]],
         )
         assert result["status"] == "success"
         assert result["panels"] == 2
-        assert len(result["traces"]) == 2  # one scalar trace per panel
+        assert len(result["traces"]) == 2
 
     def test_panel_column_sublabel_not_found(self, renderer):
         """Column sub-label with non-existent column should fail."""
         rng = pd.date_range("2024-01-01", periods=10, freq="min")
         df = pd.DataFrame({"B_mag": np.random.randn(10)}, index=rng)
         entry = DataEntry(label="PARENT", data=df, units="nT")
-        result = renderer.plot_data([entry], panels=[["PARENT.NOPE"]])
+        result = renderer.render_from_spec(
+            {"labels": "PARENT", "panels": [["PARENT.NOPE"]]},
+            [entry],
+        )
         assert result["status"] == "error"
         assert "PARENT.NOPE" in result["message"]
 
@@ -188,10 +191,9 @@ class TestGridLayout:
     def test_grid_2x2(self, renderer):
         """4 entries in a 2x2 grid: trace positions are (1,1),(1,2),(2,1),(2,2)."""
         entries = [_make_entry(l, n=10, desc=l) for l in ["A", "B", "C", "D"]]
-        result = renderer.plot_data(
+        result = renderer.render_from_spec(
+            {"labels": "A,B,C,D", "panels": [["A", "B"], ["C", "D"]], "columns": 2},
             entries,
-            panels=[["A", "B"], ["C", "D"]],
-            columns=2,
         )
         assert result["status"] == "success"
         assert result["panels"] == 2
@@ -202,22 +204,23 @@ class TestGridLayout:
         """columns=1 produces (row, 1) tuples — same as single-column behavior."""
         e1 = _make_entry("A", n=10, desc="Alpha")
         e2 = _make_entry("B", n=10, desc="Beta")
-        result = renderer.plot_data([e1, e2], panels=[["A"], ["B"]], columns=1)
+        result = renderer.render_from_spec(
+            {"labels": "A,B", "panels": [["A"], ["B"]]},
+            [e1, e2],
+        )
         assert result["status"] == "success"
         assert renderer._trace_panels == [(1, 1), (2, 1)]
 
     def test_grid_with_column_titles(self, renderer):
         """column_titles create subplot title annotations."""
         entries = [_make_entry(l, n=10, desc=l) for l in ["A", "B"]]
-        result = renderer.plot_data(
+        result = renderer.render_from_spec(
+            {"labels": "A,B", "panels": [["A", "B"]], "columns": 2,
+             "column_titles": ["Period 1", "Period 2"]},
             entries,
-            panels=[["A", "B"]],
-            columns=2,
-            column_titles=["Period 1", "Period 2"],
         )
         assert result["status"] == "success"
         fig = renderer.get_figure()
-        # Plotly adds column_titles as annotations
         ann_texts = [a.text for a in fig.layout.annotations]
         assert "Period 1" in ann_texts
         assert "Period 2" in ann_texts
@@ -225,27 +228,30 @@ class TestGridLayout:
     def test_grid_overlay_in_cell(self, renderer):
         """4 labels in 1 row with columns=2: A,B in col 1, C,D in col 2."""
         entries = [_make_entry(l, n=10, desc=l) for l in ["A", "B", "C", "D"]]
-        result = renderer.plot_data(
+        result = renderer.render_from_spec(
+            {"labels": "A,B,C,D", "panels": [["A", "B", "C", "D"]], "columns": 2},
             entries,
-            panels=[["A", "B", "C", "D"]],
-            columns=2,
         )
         assert result["status"] == "success"
-        # 4 labels, 2 cols → 2 per column: A,B in col 1, C,D in col 2
         assert renderer._trace_panels == [(1, 1), (1, 1), (1, 2), (1, 2)]
 
     def test_grid_width_scales(self, renderer):
         """Multi-column grid should have wider figure than single-column."""
         entries = [_make_entry(l, n=10, desc=l) for l in ["A", "B"]]
-        renderer.plot_data(entries, panels=[["A", "B"]], columns=2)
+        renderer.render_from_spec(
+            {"labels": "A,B", "panels": [["A", "B"]], "columns": 2},
+            entries,
+        )
         fig = renderer.get_figure()
-        # 2 columns: width = 1100 * 2 * 0.55 = 1210
         assert fig.layout.width > 1100
 
     def test_grid_reset_clears_column_count(self, renderer):
         """reset() should set _column_count back to 1."""
         entries = [_make_entry(l, n=10, desc=l) for l in ["A", "B"]]
-        renderer.plot_data(entries, panels=[["A", "B"]], columns=2)
+        renderer.render_from_spec(
+            {"labels": "A,B", "panels": [["A", "B"]], "columns": 2},
+            entries,
+        )
         assert renderer._column_count == 2
         renderer.reset()
         assert renderer._column_count == 1
@@ -256,14 +262,22 @@ class TestGridLayout:
 # ---------------------------------------------------------------------------
 
 class TestStyle:
+    def _plot(self, renderer, entries=None, spec=None):
+        """Helper: render a basic plot so style() has something to modify."""
+        if entries is None:
+            entries = [_make_entry("x")]
+        if spec is None:
+            spec = {"labels": ",".join(e.label for e in entries)}
+        renderer.render_from_spec(spec, entries)
+
     def test_style_title(self, renderer):
-        renderer.plot_data([_make_entry("x")])
+        self._plot(renderer)
         result = renderer.style(title="New Title")
         assert result["status"] == "success"
         assert renderer.get_figure().layout.title.text == "New Title"
 
     def test_style_y_label_string(self, renderer):
-        renderer.plot_data([_make_entry("x")])
+        self._plot(renderer)
         result = renderer.style(y_label="B (nT)")
         assert result["status"] == "success"
         assert renderer.get_figure().layout.yaxis.title.text == "B (nT)"
@@ -271,7 +285,7 @@ class TestStyle:
     def test_style_y_label_dict(self, renderer):
         e1 = _make_entry("A", n=10)
         e2 = _make_entry("B", n=10)
-        renderer.plot_data([e1, e2], panels=[["A"], ["B"]])
+        self._plot(renderer, [e1, e2], {"labels": "A,B", "panels": [["A"], ["B"]]})
         result = renderer.style(y_label={"1": "Panel 1", "2": "Panel 2"})
         assert result["status"] == "success"
         fig = renderer.get_figure()
@@ -280,13 +294,13 @@ class TestStyle:
 
     def test_style_trace_colors(self, renderer):
         e1 = _make_entry("A", n=10, desc="Alpha")
-        renderer.plot_data([e1])
+        self._plot(renderer, [e1])
         result = renderer.style(trace_colors={"Alpha": "red"})
         assert result["status"] == "success"
         assert renderer.get_figure().data[0].line.color == "red"
 
     def test_style_log_scale_y(self, renderer):
-        renderer.plot_data([_make_entry("x")])
+        self._plot(renderer)
         result = renderer.style(log_scale="y")
         assert result["status"] == "success"
         assert renderer.get_figure().layout.yaxis.type == "log"
@@ -295,16 +309,15 @@ class TestStyle:
         """Integer log_scale should apply log to that panel number."""
         e1 = _make_entry("A", n=10)
         e2 = _make_entry("B", n=10)
-        renderer.plot_data([e1, e2], panels=[["A"], ["B"]])
+        self._plot(renderer, [e1, e2], {"labels": "A,B", "panels": [["A"], ["B"]]})
         result = renderer.style(log_scale=1)
         assert result["status"] == "success"
         fig = renderer.get_figure()
-        # Panel 1 (row 1) should be log, panel 2 (row 2) should remain linear
         assert fig.layout.yaxis.type == "log"
         assert fig.layout.yaxis2.type != "log"
 
     def test_style_canvas_size(self, renderer):
-        renderer.plot_data([_make_entry("x")])
+        self._plot(renderer)
         result = renderer.style(canvas_size={"width": 1920, "height": 1080})
         assert result["status"] == "success"
         fig = renderer.get_figure()
@@ -312,13 +325,13 @@ class TestStyle:
         assert fig.layout.height == 1080
 
     def test_style_font_size(self, renderer):
-        renderer.plot_data([_make_entry("x")])
+        self._plot(renderer)
         result = renderer.style(font_size=18)
         assert result["status"] == "success"
         assert renderer.get_figure().layout.font.size == 18
 
     def test_style_annotations(self, renderer):
-        renderer.plot_data([_make_entry("x")])
+        self._plot(renderer)
         result = renderer.style(annotations=[{"text": "Event", "x": "2024-01-01", "y": 5}])
         assert result["status"] == "success"
         assert len(renderer.get_figure().layout.annotations) == 1
@@ -329,57 +342,52 @@ class TestStyle:
         assert "No plot" in result["message"]
 
     def test_style_legend(self, renderer):
-        renderer.plot_data([_make_entry("x")])
+        self._plot(renderer)
         result = renderer.style(legend=False)
         assert result["status"] == "success"
         assert renderer.get_figure().layout.showlegend is False
 
     def test_style_theme(self, renderer):
-        renderer.plot_data([_make_entry("x")])
+        self._plot(renderer)
         result = renderer.style(theme="plotly_dark")
         assert result["status"] == "success"
 
     def test_style_y_label_grid(self, renderer):
         """Dict panel numbers map to correct (row, col) cells in a 2-col grid."""
         entries = [_make_entry(l, n=10, desc=l) for l in ["A", "B", "C", "D"]]
-        renderer.plot_data(entries, panels=[["A", "B"], ["C", "D"]], columns=2)
-        # Panel 1 = (1,1), Panel 2 = (1,2), Panel 3 = (2,1), Panel 4 = (2,2)
+        self._plot(renderer, entries,
+                   {"labels": "A,B,C,D", "panels": [["A", "B"], ["C", "D"]], "columns": 2})
         result = renderer.style(y_label={"1": "Top Left", "2": "Top Right"})
         assert result["status"] == "success"
         fig = renderer.get_figure()
-        # yaxis = (1,1), yaxis2 = (1,2), yaxis3 = (2,1), yaxis4 = (2,2)
         assert fig.layout.yaxis.title.text == "Top Left"
         assert fig.layout.yaxis2.title.text == "Top Right"
 
 
 # ---------------------------------------------------------------------------
-# manage
+# manage (direct method calls)
 # ---------------------------------------------------------------------------
 
 class TestManage:
     def test_reset(self, renderer):
-        renderer.plot_data([_make_entry("x")])
+        renderer.render_from_spec({"labels": "x"}, [_make_entry("x")])
         assert renderer.get_figure() is not None
-        result = renderer.manage("reset")
+        result = renderer.reset()
         assert result["status"] == "success"
         assert renderer.get_figure() is None
         assert renderer._trace_labels == []
         assert renderer._trace_panels == []
 
     def test_get_state(self, renderer):
-        renderer.plot_data([_make_entry("x", desc="Alpha")])
-        result = renderer.manage("get_state")
+        renderer.render_from_spec({"labels": "x"}, [_make_entry("x", desc="Alpha")])
+        result = renderer.get_current_state()
         assert result["has_plot"] is True
         assert result["traces"] == ["Alpha"]
 
     def test_get_state_empty(self, renderer):
-        result = renderer.manage("get_state")
+        result = renderer.get_current_state()
         assert result["has_plot"] is False
         assert result["traces"] == []
-
-    def test_unknown_action(self, renderer):
-        result = renderer.manage("nonexistent")
-        assert result["status"] == "error"
 
 
 # ---------------------------------------------------------------------------
@@ -389,7 +397,7 @@ class TestManage:
 class TestTimeRange:
     def test_set_time_range(self, renderer):
         from agent.time_utils import parse_time_range
-        renderer.plot_data([_make_entry("x")])
+        renderer.render_from_spec({"labels": "x"}, [_make_entry("x")])
         tr = parse_time_range("2024-01-01 to 2024-01-07")
         result = renderer.set_time_range(tr)
         assert result["status"] == "success"
@@ -402,7 +410,7 @@ class TestTimeRange:
 
 class TestExport:
     def test_export_png(self, renderer, tmp_path):
-        renderer.plot_data([_make_entry("x", n=10)])
+        renderer.render_from_spec({"labels": "x"}, [_make_entry("x", n=10)])
         filepath = str(tmp_path / "test_output.png")
         result = renderer.export(filepath, format="png")
         assert result["status"] == "success"
@@ -414,21 +422,21 @@ class TestExport:
         assert result["status"] == "error"
 
     def test_export_pdf(self, renderer, tmp_path):
-        renderer.plot_data([_make_entry("x", n=10)])
+        renderer.render_from_spec({"labels": "x"}, [_make_entry("x", n=10)])
         filepath = str(tmp_path / "test_output.pdf")
         result = renderer.export(filepath, format="pdf")
         assert result["status"] == "success"
         assert result["size_bytes"] > 0
 
     def test_export_default_format_is_png(self, renderer, tmp_path):
-        renderer.plot_data([_make_entry("x", n=10)])
+        renderer.render_from_spec({"labels": "x"}, [_make_entry("x", n=10)])
         filepath = str(tmp_path / "test_output")
         result = renderer.export(filepath)
         assert result["status"] == "success"
         assert result["filepath"].endswith(".png")
 
     def test_export_adds_extension(self, renderer, tmp_path):
-        renderer.plot_data([_make_entry("x", n=10)])
+        renderer.render_from_spec({"labels": "x"}, [_make_entry("x", n=10)])
         filepath = str(tmp_path / "noext")
         result = renderer.export(filepath, format="pdf")
         assert result["status"] == "success"
@@ -441,7 +449,7 @@ class TestExport:
 
 class TestState:
     def test_reset_clears_state(self, renderer):
-        renderer.plot_data([_make_entry("x")])
+        renderer.render_from_spec({"labels": "x"}, [_make_entry("x")])
         assert renderer.get_figure() is not None
 
         result = renderer.reset()
@@ -458,7 +466,7 @@ class TestState:
         assert state["traces"] == []
 
     def test_get_current_state_after_plot(self, renderer):
-        renderer.plot_data([_make_entry("x", desc="Alpha")])
+        renderer.render_from_spec({"labels": "x"}, [_make_entry("x", desc="Alpha")])
         state = renderer.get_current_state()
         assert state["has_plot"] is True
         assert state["traces"] == ["Alpha"]
@@ -470,9 +478,9 @@ class TestState:
 
 class TestReviewMetadata:
     def test_review_in_plot_result(self, renderer):
-        """plot_data result contains review with required keys."""
+        """render_from_spec result contains review with required keys."""
         entry = _make_entry("mag", n=50)
-        result = renderer.plot_data([entry])
+        result = renderer.render_from_spec({"labels": "mag"}, [entry])
         assert result["status"] == "success"
         assert "review" in result
         review = result["review"]
@@ -483,7 +491,7 @@ class TestReviewMetadata:
     def test_review_trace_details(self, renderer):
         """Vector entry produces 3 trace_summary entries with correct names and panel."""
         entry = _make_entry("Bvec", n=30, ncols=3)
-        result = renderer.plot_data([entry])
+        result = renderer.render_from_spec({"labels": "Bvec"}, [entry])
         review = result["review"]
         assert len(review["trace_summary"]) == 3
         names = [t["name"] for t in review["trace_summary"]]
@@ -497,7 +505,8 @@ class TestReviewMetadata:
     def test_review_warns_cluttered_panel(self, renderer):
         """Overlaying 7+ entries in one panel triggers a cluttered warning."""
         entries = [_make_entry(f"e{i}", n=10, desc=f"Entry{i}") for i in range(8)]
-        result = renderer.plot_data(entries)
+        labels = ",".join(f"e{i}" for i in range(8))
+        result = renderer.render_from_spec({"labels": labels}, entries)
         review = result["review"]
         cluttered = [w for w in review["warnings"] if "hard to read" in w]
         assert len(cluttered) == 1
@@ -507,7 +516,7 @@ class TestReviewMetadata:
         """Traces with >10x point count difference trigger a resolution warning."""
         e_lo = _make_entry("lo", n=10, desc="LowRes")
         e_hi = _make_entry("hi", n=500, desc="HighRes")
-        result = renderer.plot_data([e_lo, e_hi])
+        result = renderer.render_from_spec({"labels": "lo,hi"}, [e_lo, e_hi])
         review = result["review"]
         mismatch = [w for w in review["warnings"] if "Resolution mismatch" in w]
         assert len(mismatch) == 1
@@ -518,7 +527,10 @@ class TestReviewMetadata:
         """Multi-panel plot hint mentions correct panel count."""
         e1 = _make_entry("A", n=10, desc="Alpha")
         e2 = _make_entry("B", n=10, desc="Beta")
-        result = renderer.plot_data([e1, e2], panels=[["A"], ["B"]])
+        result = renderer.render_from_spec(
+            {"labels": "A,B", "panels": [["A"], ["B"]]},
+            [e1, e2],
+        )
         review = result["review"]
         assert "2 panel(s)" in review["hint"]
         assert "Panel 1: Alpha" in review["hint"]
@@ -528,7 +540,7 @@ class TestReviewMetadata:
         """Two similar scalar entries produce no warnings."""
         e1 = _make_entry("A", n=100, desc="Alpha")
         e2 = _make_entry("B", n=100, desc="Beta")
-        result = renderer.plot_data([e1, e2])
+        result = renderer.render_from_spec({"labels": "A,B"}, [e1, e2])
         review = result["review"]
         assert review["warnings"] == []
 
@@ -539,7 +551,7 @@ class TestReviewMetadata:
         vals[10:15] = np.nan
         df = pd.DataFrame({"value": vals}, index=rng)
         entry = DataEntry(label="gappy", data=df, units="nT", description="Gappy data")
-        result = renderer.plot_data([entry])
+        result = renderer.render_from_spec({"labels": "gappy"}, [entry])
         review = result["review"]
         assert len(review["trace_summary"]) == 1
         assert review["trace_summary"][0]["has_gaps"] is True
@@ -547,7 +559,10 @@ class TestReviewMetadata:
     def test_review_grid_positions(self, renderer):
         """Grid layout: trace_summary has row/col fields."""
         entries = [_make_entry(l, n=10, desc=l) for l in ["A", "B", "C", "D"]]
-        result = renderer.plot_data(entries, panels=[["A", "B"], ["C", "D"]], columns=2)
+        result = renderer.render_from_spec(
+            {"labels": "A,B,C,D", "panels": [["A", "B"], ["C", "D"]], "columns": 2},
+            entries,
+        )
         review = result["review"]
         ts = review["trace_summary"]
         assert len(ts) == 4
@@ -555,7 +570,6 @@ class TestReviewMetadata:
         assert (ts[1]["row"], ts[1]["col"]) == (1, 2)
         assert (ts[2]["row"], ts[2]["col"]) == (2, 1)
         assert (ts[3]["row"], ts[3]["col"]) == (2, 2)
-        # Hint should mention grid dimensions
         assert "2 row(s) x 2 column(s)" in review["hint"]
 
     def test_review_warns_all_nan_panel(self, renderer):
@@ -564,7 +578,7 @@ class TestReviewMetadata:
         vals = np.full(50, np.nan)
         df = pd.DataFrame({"value": vals}, index=rng)
         entry = DataEntry(label="allnan", data=df, units="nT", description="AllNaN")
-        result = renderer.plot_data([entry])
+        result = renderer.render_from_spec({"labels": "allnan"}, [entry])
         review = result["review"]
         empty_warns = [w for w in review["warnings"] if "appears empty" in w]
         assert len(empty_warns) == 1
@@ -578,13 +592,12 @@ class TestReviewMetadata:
         good_entry = DataEntry(label="good", data=good_df, units="nT", description="Good")
         nan_df = pd.DataFrame({"value": np.full(50, np.nan)}, index=rng)
         nan_entry = DataEntry(label="bad", data=nan_df, units="nT", description="Bad")
-        result = renderer.plot_data([good_entry, nan_entry])
+        result = renderer.render_from_spec({"labels": "good,bad"}, [good_entry, nan_entry])
         review = result["review"]
         invis_warns = [w for w in review["warnings"] if "invisible traces" in w]
         assert len(invis_warns) == 1
         assert "Bad" in invis_warns[0]
         assert "Good" not in invis_warns[0]
-        # Should NOT say "appears empty" since one trace is valid
         assert all("appears empty" not in w for w in review["warnings"])
 
     def test_review_allnan_trace_summary(self, renderer):
@@ -592,7 +605,7 @@ class TestReviewMetadata:
         rng = pd.date_range("2024-01-01", periods=30, freq="min")
         df = pd.DataFrame({"value": np.full(30, np.nan)}, index=rng)
         entry = DataEntry(label="nanonly", data=df, units="nT", description="NanOnly")
-        result = renderer.plot_data([entry])
+        result = renderer.render_from_spec({"labels": "nanonly"}, [entry])
         ts = result["review"]["trace_summary"]
         assert len(ts) == 1
         assert ts[0]["y_range"] is None
@@ -608,7 +621,10 @@ class TestSerializationGrid:
     def test_save_restore_grid(self, renderer):
         """Round-trip preserves column_count and (row, col) tuples."""
         entries = [_make_entry(l, n=10, desc=l) for l in ["A", "B", "C", "D"]]
-        renderer.plot_data(entries, panels=[["A", "B"], ["C", "D"]], columns=2)
+        renderer.render_from_spec(
+            {"labels": "A,B,C,D", "panels": [["A", "B"], ["C", "D"]], "columns": 2},
+            entries,
+        )
         state = renderer.save_state()
         assert state is not None
         assert state["column_count"] == 2
@@ -617,7 +633,6 @@ class TestSerializationGrid:
             {"row": 2, "col": 1}, {"row": 2, "col": 2},
         ]
 
-        # Restore into a fresh renderer
         r2 = PlotlyRenderer(verbose=False)
         r2.restore_state(state)
         assert r2._column_count == 2
@@ -627,9 +642,11 @@ class TestSerializationGrid:
     def test_restore_legacy_format(self, renderer):
         """Legacy flat int list restores as (row, 1) tuples."""
         entries = [_make_entry(l, n=10, desc=l) for l in ["A", "B"]]
-        renderer.plot_data(entries, panels=[["A"], ["B"]])
+        renderer.render_from_spec(
+            {"labels": "A,B", "panels": [["A"], ["B"]]},
+            entries,
+        )
         state = renderer.save_state()
-        # Simulate legacy format: flat int list, no column_count key
         state["trace_panels"] = [1, 2]
         if "column_count" in state:
             del state["column_count"]
@@ -661,28 +678,27 @@ def _make_spectrogram_entry(label: str, n_times: int = 50, n_bins: int = 20) -> 
 class TestPerPanelType:
     def test_mixed_panel_types(self, renderer):
         """Spectrogram panel 1, line panel 2 — correct trace types."""
-        spec = _make_spectrogram_entry("SPEC")
+        spec_entry = _make_spectrogram_entry("SPEC")
         line = _make_entry("LINE", n=50)
-        result = renderer.plot_data(
-            [spec, line],
-            panels=[["SPEC"], ["LINE"]],
-            panel_types=["spectrogram", "line"],
+        result = renderer.render_from_spec(
+            {"labels": "SPEC,LINE", "panels": [["SPEC"], ["LINE"]],
+             "panel_types": ["spectrogram", "line"]},
+            [spec_entry, line],
         )
         assert result["status"] == "success"
         assert result["panels"] == 2
         fig = renderer.get_figure()
-        # First trace should be Heatmap, second should be Scatter
         assert "heatmap" in fig.data[0].type.lower()
         assert "scatter" in fig.data[1].type.lower()
 
     def test_panel_types_length_mismatch(self, renderer):
         """Wrong length panel_types returns error."""
-        spec = _make_spectrogram_entry("SPEC")
+        spec_entry = _make_spectrogram_entry("SPEC")
         line = _make_entry("LINE", n=50)
-        result = renderer.plot_data(
-            [spec, line],
-            panels=[["SPEC"], ["LINE"]],
-            panel_types=["spectrogram"],  # only 1 for 2 panels
+        result = renderer.render_from_spec(
+            {"labels": "SPEC,LINE", "panels": [["SPEC"], ["LINE"]],
+             "panel_types": ["spectrogram"]},
+            [spec_entry, line],
         )
         assert result["status"] == "error"
         assert "panel_types length" in result["message"]
@@ -690,10 +706,10 @@ class TestPerPanelType:
     def test_spectrogram_on_scalar_returns_error(self, renderer):
         """1-column entry + spectrogram type returns descriptive error."""
         scalar = _make_entry("SCALAR", n=50, ncols=1)
-        result = renderer.plot_data(
+        result = renderer.render_from_spec(
+            {"labels": "SCALAR", "panels": [["SCALAR"]],
+             "panel_types": ["spectrogram"]},
             [scalar],
-            panels=[["SCALAR"]],
-            panel_types=["spectrogram"],
         )
         assert result["status"] == "error"
         assert "scalar" in result["message"].lower()
@@ -701,21 +717,24 @@ class TestPerPanelType:
 
     def test_global_plot_type_still_works(self, renderer):
         """Backward compat: global plot_type=spectrogram without panel_types."""
-        spec = _make_spectrogram_entry("SPEC")
-        result = renderer.plot_data([spec], plot_type="spectrogram")
+        spec_entry = _make_spectrogram_entry("SPEC")
+        result = renderer.render_from_spec(
+            {"labels": "SPEC", "plot_type": "spectrogram"},
+            [spec_entry],
+        )
         assert result["status"] == "success"
         fig = renderer.get_figure()
         assert "heatmap" in fig.data[0].type.lower()
 
     def test_panel_types_overrides_global(self, renderer):
         """panel_types wins over global plot_type."""
-        spec = _make_spectrogram_entry("SPEC")
+        spec_entry = _make_spectrogram_entry("SPEC")
         line = _make_entry("LINE", n=50)
-        result = renderer.plot_data(
-            [spec, line],
-            panels=[["SPEC"], ["LINE"]],
-            plot_type="spectrogram",  # global says spectrogram
-            panel_types=["spectrogram", "line"],  # override panel 2 to line
+        result = renderer.render_from_spec(
+            {"labels": "SPEC,LINE", "panels": [["SPEC"], ["LINE"]],
+             "plot_type": "spectrogram",
+             "panel_types": ["spectrogram", "line"]},
+            [spec_entry, line],
         )
         assert result["status"] == "success"
         fig = renderer.get_figure()
@@ -761,16 +780,16 @@ class TestRenderFromSpec:
         assert fig.layout.font.size == 16
         assert fig.layout.showlegend is False
 
-    def test_spec_matches_plot_data_plus_style(self, renderer):
-        """render_from_spec produces same traces as plot_data + style."""
+    def test_spec_render_then_style_equivalent(self, renderer):
+        """render_from_spec + style produces same result as a single combined spec."""
         entry = _make_entry("X", n=40, desc="Xray")
 
-        # Method 1: plot_data + style
-        r1 = renderer.plot_data([entry], title="Title1")
+        # Method 1: render + separate style call
+        r1 = renderer.render_from_spec({"labels": "X", "title": "Title1"}, [entry])
         renderer.style(font_size=18, legend=False)
         fig1_data = renderer.get_figure().to_dict()
 
-        # Method 2: render_from_spec (fresh renderer)
+        # Method 2: render_from_spec with all fields in one spec
         renderer2 = PlotlyRenderer(verbose=False)
         spec = {"labels": "X", "title": "Title1", "font_size": 18, "legend": False}
         r2 = renderer2.render_from_spec(spec, [entry])
@@ -779,13 +798,9 @@ class TestRenderFromSpec:
         assert r2["status"] == "success"
         fig2_data = renderer2.get_figure().to_dict()
 
-        # Same number of traces
         assert len(fig1_data["data"]) == len(fig2_data["data"])
-        # Same layout title
         assert fig1_data["layout"]["title"]["text"] == fig2_data["layout"]["title"]["text"]
-        # Same font size
         assert fig2_data["layout"]["font"]["size"] == 18
-        # Same legend setting
         assert fig2_data["layout"]["showlegend"] is False
 
     def test_spec_trace_colors(self, renderer):
