@@ -6,6 +6,7 @@ Run with: python -m pytest tests/test_visualization_agent.py -v
 
 import pytest
 from agent.tools import get_tool_schemas
+from agent.base_agent import BaseSubAgent
 from agent.visualization_agent import (
     VisualizationAgent, VIZ_TOOL_CATEGORIES, VIZ_EXTRA_TOOLS,
     _extract_labels_from_instruction,
@@ -101,6 +102,19 @@ class TestExtractLabels:
         assert labels == ["WI_H0_MFI@0.BGSE"]
 
 
+class TestForceToolCallAttribute:
+    """Verify _force_tool_call_in_tasks is disabled for VisualizationAgent."""
+
+    def test_viz_agent_disables_forced_tool_call(self):
+        """VisualizationAgent must not force tool calls — render_plotly_json
+        requires complex JSON that the LLM emits as empty {} under forced mode."""
+        assert VisualizationAgent._force_tool_call_in_tasks is False
+
+    def test_base_agent_default_is_true(self):
+        """Other sub-agents should still default to forced tool calling."""
+        assert BaseSubAgent._force_tool_call_in_tasks is True
+
+
 class TestVizAgentInterface:
     """Verify VisualizationAgent interface matches MissionAgent pattern."""
 
@@ -115,3 +129,31 @@ class TestVizAgentInterface:
     def test_has_get_token_usage(self):
         assert hasattr(VisualizationAgent, "get_token_usage")
         assert callable(getattr(VisualizationAgent, "get_token_usage"))
+
+
+class TestExecuteTaskOverride:
+    """Verify VisualizationAgent overrides execute_task with think→execute."""
+
+    def test_execute_task_override_exists(self):
+        """VisualizationAgent must define its own execute_task, not just inherit."""
+        assert "execute_task" in VisualizationAgent.__dict__
+
+    def test_needs_think_for_plot_task(self):
+        """Plot-creation instructions should trigger the think phase."""
+        agent_cls = VisualizationAgent
+        # _needs_think_phase is an instance method but only uses self for nothing
+        # — test via the unbound check on a known plot instruction
+        assert agent_cls._needs_think_phase(None, "Plot ACE magnetic field data")
+        assert agent_cls._needs_think_phase(None, "Show me the solar wind speed")
+        assert agent_cls._needs_think_phase(None, "Create a spectrogram of PSP data")
+        assert agent_cls._needs_think_phase(None, "Display OMNI proton density")
+        assert agent_cls._needs_think_phase(None, "Compare Wind and ACE Bz")
+
+    def test_skips_think_for_style_task(self):
+        """Style/manage instructions should skip the think phase."""
+        agent_cls = VisualizationAgent
+        assert not agent_cls._needs_think_phase(None, "Change the title to 'Solar Wind'")
+        assert not agent_cls._needs_think_phase(None, "Zoom in to January 10-15")
+        assert not agent_cls._needs_think_phase(None, "Export as PNG")
+        assert not agent_cls._needs_think_phase(None, "Switch to log scale")
+        assert not agent_cls._needs_think_phase(None, "Add a legend")

@@ -33,6 +33,11 @@ class BaseSubAgent:
     Subclasses must call super().__init__() with appropriate parameters.
     """
 
+    # Whether execute_task forces the LLM to produce a tool call on every turn.
+    # Subclasses can set this to False when the tool requires complex arguments
+    # that the LLM may emit as empty placeholders under forced-calling mode.
+    _force_tool_call_in_tasks: bool = True
+
     def __init__(
         self,
         adapter: LLMAdapter,
@@ -431,12 +436,12 @@ class BaseSubAgent:
         self.logger.debug(f"[{self.agent_name}] Executing: {task.description}")
 
         try:
-            # Create a fresh chat with forced function calling
+            # Create a fresh chat for task execution
             chat = self.adapter.create_chat(
                 model=get_active_model(self.model_name),
                 system_prompt=self.system_prompt,
                 tools=self._tool_schemas,
-                force_tool_call=True,
+                force_tool_call=self._force_tool_call_in_tasks,
                 thinking="low",
             )
             task_prompt = self._get_task_prompt(task)
