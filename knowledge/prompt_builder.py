@@ -347,7 +347,7 @@ def build_data_ops_prompt() -> str:
         "## Spectrogram Computation",
         "",
         "Use `custom_operation` with `scipy.signal.spectrogram()` to compute spectrograms.",
-        "`compute_spectrogram` is deprecated — `custom_operation` now has full scipy in the sandbox.",
+        "`custom_operation` has full scipy in the sandbox — use it for spectrograms too.",
         "",
         "For spectrogram results:",
         "- Column names MUST be string representations of bin values (e.g., '0.001', '0.5', '10.0')",
@@ -1058,8 +1058,8 @@ Each task has:
 - browse_datasets(mission_id): Browse all available science datasets for a mission
 - list_parameters(dataset_id): Get available parameters for a dataset
 - fetch_data(dataset_id, parameter_id, time_range): Pull data into memory (label: "DATASET.PARAM")
-- custom_operation(source_labels, pandas_code, output_label, description): pandas/numpy transformation (source_labels is an array)
-- store_dataframe(pandas_code, output_label, description): Create DataFrame from scratch
+- custom_operation(source_labels, code, output_label, description): pandas/numpy/xarray transformation (source_labels is an array)
+- store_dataframe(code, output_label, description): Create DataFrame from scratch
 - describe_data(label): Statistical summary of in-memory data
 - render_plotly_json(figure_json): Plot data from memory via Plotly figure JSON with data_label placeholders
 - save_data(label, filename): Export timeseries to CSV (only when user explicitly asks)

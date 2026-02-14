@@ -130,7 +130,7 @@ class TestSessionManager:
 
         sm.save_session(sid, history, store, {"turn_count": 2})
 
-        loaded_history, data_dir, meta, _fig = sm.load_session(sid)
+        loaded_history, data_dir, meta, _fig, _ops = sm.load_session(sid)
         assert len(loaded_history) == 4
         assert loaded_history[0]["role"] == "user"
         assert loaded_history[0]["parts"][0]["text"] == "Hello"
@@ -146,7 +146,7 @@ class TestSessionManager:
         sm.save_session(sid, [], store)
 
         # Load into a fresh store
-        _, data_dir, _, _ = sm.load_session(sid)
+        _, data_dir, _, _, _ = sm.load_session(sid)
         restored_store = DataStore()
         count = restored_store.load_from_directory(data_dir)
 
@@ -179,7 +179,7 @@ class TestSessionManager:
             "token_usage": {"input_tokens": 100, "output_tokens": 50},
         })
 
-        _, _, meta, _ = sm.load_session(sid)
+        _, _, meta, _, _ = sm.load_session(sid)
         assert meta["turn_count"] == 5
         assert meta["last_message_preview"] == "Show me data"
         assert meta["token_usage"]["input_tokens"] == 100

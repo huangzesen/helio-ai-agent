@@ -207,7 +207,7 @@ The data is stored in memory with a label like 'AC_H2_MFI.BGSEc' for later refer
         "name": "custom_operation",
         "description": """Apply a pandas/numpy/xarray/scipy/pywt operation to in-memory data. This is the universal compute tool — use it for ALL data transformations after fetching data with fetch_data.
 
-The pandas_code must:
+The code must:
 - Assign the result to `result` (DataFrame/Series with DatetimeIndex, or xarray DataArray with 'time' dim)
 - Use only sandbox variables, `pd` (pandas), `np` (numpy), `xr` (xarray), `scipy` (full scipy), and `pywt` (PyWavelets) — no imports, no file I/O
 
@@ -271,7 +271,7 @@ Do NOT call this tool when the request cannot be expressed as a pandas/numpy ope
                     "items": {"type": "string"},
                     "description": "Labels of source timeseries in memory. Each becomes a sandbox variable: df_<SUFFIX> (DataFrame) or da_<SUFFIX> (xarray DataArray) where SUFFIX is the part after the last '.'. First DataFrame also available as 'df'. For single-source ops, pass one-element array."
                 },
-                "pandas_code": {
+                "code": {
                     "type": "string",
                     "description": "Python code using df/da_ variables, pd (pandas), np (numpy), xr (xarray), scipy (full scipy), pywt (PyWavelets). Must assign to 'result'."
                 },
@@ -288,7 +288,7 @@ Do NOT call this tool when the request cannot be expressed as a pandas/numpy ope
                     "description": "Physical units of the result (e.g., 'nT', 'km/s', 'nT/s', 'cm^-3'). If omitted, inherits from source. Set explicitly when the operation changes dimensions (e.g., derivative adds '/s', multiply changes units, normalize produces dimensionless '')."
                 }
             },
-            "required": ["source_labels", "pandas_code", "output_label", "description"]
+            "required": ["source_labels", "code", "output_label", "description"]
         }
     },
 
@@ -300,7 +300,7 @@ Do NOT call this tool when the request cannot be expressed as a pandas/numpy ope
 - The user wants to manually define data points (e.g., from a table in a paper or website)
 - You need to create a dataset that doesn't come from CDAWeb
 
-The pandas_code must:
+The code must:
 - Use only `pd` (pandas) and `np` (numpy) — no imports, no file I/O, no `df` variable
 - Assign the result to `result` (must be a DataFrame or Series with DatetimeIndex)
 - Create a DatetimeIndex from dates using pd.to_datetime() and .set_index()
@@ -324,7 +324,7 @@ Examples:
         "parameters": {
             "type": "object",
             "properties": {
-                "pandas_code": {
+                "code": {
                     "type": "string",
                     "description": "Python code using pd (pandas) and np (numpy) that constructs data and assigns to 'result'. Must produce a DataFrame with DatetimeIndex."
                 },
@@ -341,71 +341,7 @@ Examples:
                     "description": "Optional units for the data columns (e.g., 'W/m²', 'km/s')"
                 }
             },
-            "required": ["pandas_code", "output_label", "description"]
-        }
-    },
-
-    {
-        "category": "data_ops_compute",
-        "name": "compute_spectrogram",
-        "description": """DEPRECATED: Use `custom_operation` instead — it now has full scipy and pywt in the sandbox.
-
-Compute a spectrogram (2D time-frequency or time-energy data) from an in-memory timeseries. Use this when the user wants a spectrogram, power spectral density over time, dynamic spectrum, or frequency-time plot.
-
-The python_code must:
-- Operate on `df` (a pandas DataFrame with DatetimeIndex)
-- Assign the result to `result` (a DataFrame with DatetimeIndex rows and frequency/energy bin columns)
-- Use `df`, `pd` (pandas), `np` (numpy), and `signal` (scipy.signal) — no imports, no file I/O
-- Column names MUST be string representations of bin center values (e.g., "0.001", "0.5", "10.0")
-
-Common patterns:
-- **Power spectrogram (scipy)**:
-  vals = df.iloc[:, 0].dropna().values
-  dt = df.index.to_series().diff().dt.total_seconds().median()
-  fs = 1.0 / dt
-  f, t_seg, Sxx = signal.spectrogram(vals, fs=fs, nperseg=256, noverlap=128)
-  times = pd.to_datetime(df.index[0]) + pd.to_timedelta(t_seg, unit='s')
-  result = pd.DataFrame(Sxx.T, index=times, columns=[str(freq) for freq in f])
-
-- **Welch PSD (single spectrum, not time-varying)**:
-  vals = df.iloc[:, 0].dropna().values
-  dt = df.index.to_series().diff().dt.total_seconds().median()
-  f, Pxx = signal.welch(vals, fs=1.0/dt, nperseg=256)
-  result = pd.DataFrame({'PSD': Pxx}, index=pd.to_datetime(df.index[0]) + pd.to_timedelta(f, unit='s'))
-
-Guidelines:
-- Choose nperseg based on data cadence and desired frequency resolution
-- Use noverlap=nperseg//2 as a reasonable default
-- For large datasets, consider downsampling first with df.resample()""",
-        "parameters": {
-            "type": "object",
-            "properties": {
-                "source_label": {
-                    "type": "string",
-                    "description": "Label of the source timeseries in memory"
-                },
-                "python_code": {
-                    "type": "string",
-                    "description": "Python code using df, pd, np, signal (scipy.signal). Must assign to 'result'."
-                },
-                "output_label": {
-                    "type": "string",
-                    "description": "Label for the output spectrogram (e.g., 'ACE_Bmag_spectrogram')"
-                },
-                "description": {
-                    "type": "string",
-                    "description": "Human-readable description of the spectrogram"
-                },
-                "bin_label": {
-                    "type": "string",
-                    "description": "Y-axis label for the bins (e.g., 'Frequency (Hz)', 'Energy (eV)')"
-                },
-                "value_label": {
-                    "type": "string",
-                    "description": "Colorbar label for the values (e.g., 'PSD (nT²/Hz)', 'Flux')"
-                }
-            },
-            "required": ["source_label", "python_code", "output_label", "description"]
+            "required": ["code", "output_label", "description"]
         }
     },
 

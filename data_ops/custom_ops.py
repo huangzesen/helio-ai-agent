@@ -35,7 +35,7 @@ _DANGEROUS_BUILTINS = frozenset({
 _ALLOWED_NAMES = frozenset({"df", "pd", "np", "xr", "scipy", "pywt", "result"})
 
 
-def validate_pandas_code(code: str, require_result: bool = True) -> list[str]:
+def validate_code(code: str, require_result: bool = True) -> list[str]:
     """Validate pandas code for safety using AST analysis.
 
     Args:
@@ -343,7 +343,7 @@ def run_multi_source_operation(
         ValueError: If code validation fails or result is invalid.
         RuntimeError: If execution fails.
     """
-    violations = validate_pandas_code(code)
+    violations = validate_code(code)
     if violations:
         raise ValueError(
             "Code validation failed:\n" + "\n".join(f"  - {v}" for v in violations)
@@ -393,7 +393,7 @@ def run_custom_operation(df: pd.DataFrame, code: str) -> pd.DataFrame:
         ValueError: If validation fails or result is invalid.
         RuntimeError: If execution fails.
     """
-    violations = validate_pandas_code(code)
+    violations = validate_code(code)
     if violations:
         raise ValueError(
             "Code validation failed:\n" + "\n".join(f"  - {v}" for v in violations)
@@ -422,62 +422,6 @@ def execute_dataframe_creation(code: str) -> pd.DataFrame:
     return _validate_result(result)
 
 
-def execute_spectrogram_computation(df: pd.DataFrame, code: str) -> pd.DataFrame:
-    """Execute code to compute a spectrogram from a timeseries.
-
-    Like execute_custom_operation() but adds scipy.signal to the namespace
-    for FFT, windowing, and spectrogram functions.
-
-    Namespace: df, pd, np, signal (scipy.signal)
-    Output: DataFrame with DatetimeIndex x numeric columns (bin values as column names)
-
-    Args:
-        df: Input DataFrame with timeseries data.
-        code: Validated Python code that assigns to 'result'.
-
-    Returns:
-        Result DataFrame or xarray DataArray.
-
-    Raises:
-        RuntimeError: If code execution fails.
-        ValueError: If result is not a DataFrame/Series/DataArray.
-    """
-    from scipy import signal
-
-    df = df.copy()
-    if not isinstance(df.index, pd.DatetimeIndex):
-        df.index = pd.to_datetime(df.index)
-
-    result = _execute_in_sandbox(
-        code, {"df": df, "pd": pd, "np": np, "xr": xr, "signal": signal, "result": None}
-    )
-    return _validate_result(result, require_timeseries=True)
-
-
-def run_spectrogram_computation(df: pd.DataFrame, code: str) -> pd.DataFrame:
-    """Validate and execute spectrogram computation code.
-
-    Convenience function that combines validation and execution.
-
-    Args:
-        df: Input DataFrame with timeseries data.
-        code: Python code that computes a spectrogram using df, pd, np, signal.
-
-    Returns:
-        Result DataFrame (DatetimeIndex x frequency/energy bins).
-
-    Raises:
-        ValueError: If validation fails or result is invalid.
-        RuntimeError: If execution fails.
-    """
-    violations = validate_pandas_code(code)
-    if violations:
-        raise ValueError(
-            "Code validation failed:\n" + "\n".join(f"  - {v}" for v in violations)
-        )
-    return execute_spectrogram_computation(df, code)
-
-
 def run_dataframe_creation(code: str) -> pd.DataFrame:
     """Validate and execute code that creates a DataFrame from scratch.
 
@@ -493,7 +437,7 @@ def run_dataframe_creation(code: str) -> pd.DataFrame:
         ValueError: If validation fails or result is invalid.
         RuntimeError: If execution fails.
     """
-    violations = validate_pandas_code(code)
+    violations = validate_code(code)
     if violations:
         raise ValueError(
             "Code validation failed:\n" + "\n".join(f"  - {v}" for v in violations)

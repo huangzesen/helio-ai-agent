@@ -414,7 +414,7 @@ def _on_session_radio_change(session_id: str | None):
     # First, read the saved history for display (before _agent.load_session
     # which may fail on Gemini chat recreation but should still restore data)
     try:
-        history_dicts, _, _, _ = _agent._session_manager.load_session(session_id)
+        history_dicts, _, _, _, _ = _agent._session_manager.load_session(session_id)
     except Exception as e:
         # Session files are missing/corrupt — show error in chat
         return (
@@ -649,7 +649,7 @@ def _get_autocomplete_candidates() -> list[str]:
     candidates = []
     for s in sessions:
         try:
-            history_dicts, _, _, _ = sm.load_session(s["id"])
+            history_dicts, _, _, _, _ = sm.load_session(s["id"])
         except Exception:
             continue
         for content in history_dicts:

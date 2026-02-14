@@ -53,7 +53,8 @@ from knowledge.metadata_client import (
 )
 from data_ops.store import get_store, DataEntry, build_source_map, describe_sources
 from data_ops.fetch import fetch_data
-from data_ops.custom_ops import run_custom_operation, run_multi_source_operation, run_dataframe_creation, run_spectrogram_computation
+from data_ops.custom_ops import run_custom_operation, run_multi_source_operation, run_dataframe_creation
+from data_ops.operations_log import get_operations_log
 
 # Orchestrator sees discovery, web search, conversation, and routing tools
 # (NOT data fetching or data_ops — handled by sub-agents)
@@ -972,6 +973,17 @@ class OrchestratorAgent:
                     }
                     if adjustment_note:
                         response["time_range_note"] = adjustment_note
+                    get_operations_log().record(
+                        tool="fetch_data",
+                        args={
+                            "dataset_id": tool_args["dataset_id"],
+                            "parameter_id": tool_args["parameter_id"],
+                            "time_range": tool_args.get("time_range", ""),
+                            "time_range_resolved": [fetch_start.isoformat(), fetch_end.isoformat()],
+                            "already_loaded": True,
+                        },
+                        outputs=[label],
+                    )
                     return response
 
             try:
@@ -1038,6 +1050,17 @@ class OrchestratorAgent:
                     source=DATA_BACKEND,
                 )
                 store.put(entry)
+                get_operations_log().record(
+                    tool="fetch_data",
+                    args={
+                        "dataset_id": tool_args["dataset_id"],
+                        "parameter_id": tool_args["parameter_id"],
+                        "time_range": tool_args.get("time_range", ""),
+                        "time_range_resolved": [fetch_start.isoformat(), fetch_end.isoformat()],
+                        "already_loaded": False,
+                    },
+                    outputs=[label],
+                )
                 self.logger.debug(f"[DataOps] Stored '{label}' (xarray {dict(fetched_data.sizes)})", extra=tagged("data_fetched"))
                 response = {"status": "success", **entry.summary()}
                 response["note"] = (
@@ -1077,6 +1100,17 @@ class OrchestratorAgent:
                     source=DATA_BACKEND,
                 )
                 store.put(entry)
+                get_operations_log().record(
+                    tool="fetch_data",
+                    args={
+                        "dataset_id": tool_args["dataset_id"],
+                        "parameter_id": tool_args["parameter_id"],
+                        "time_range": tool_args.get("time_range", ""),
+                        "time_range_resolved": [fetch_start.isoformat(), fetch_end.isoformat()],
+                        "already_loaded": False,
+                    },
+                    outputs=[label],
+                )
                 self.logger.debug(f"[DataOps] Stored '{label}' ({len(entry.time)} points)", extra=tagged("data_fetched"))
                 response = {"status": "success", **entry.summary()}
 
@@ -1139,13 +1173,26 @@ class OrchestratorAgent:
 
             try:
                 op_result, warnings = run_multi_source_operation(
-                    sources, tool_args["pandas_code"], source_timeseries=source_ts,
+                    sources, tool_args["code"], source_timeseries=source_ts,
                 )
             except (ValueError, RuntimeError) as e:
                 prefix = "Validation" if isinstance(e, ValueError) else "Execution"
+                err_msg = f"{prefix} error: {e}"
+                get_operations_log().record(
+                    tool="custom_operation",
+                    args={
+                        "source_labels": labels,
+                        "code": tool_args["code"],
+                        "output_label": tool_args.get("output_label", ""),
+                    },
+                    inputs=labels,
+                    outputs=[],
+                    status="error",
+                    error=err_msg,
+                )
                 return {
                     "status": "error",
-                    "message": f"{prefix} error: {e}",
+                    "message": err_msg,
                     "available_variables": list(sources.keys()) + df_extra,
                     "source_info": describe_sources(store, labels),
                 }
@@ -1167,6 +1214,18 @@ class OrchestratorAgent:
                 is_timeseries=result_is_ts,
             )
             store.put(entry)
+            get_operations_log().record(
+                tool="custom_operation",
+                args={
+                    "source_labels": labels,
+                    "code": tool_args["code"],
+                    "output_label": tool_args["output_label"],
+                    "description": desc,
+                    "units": units,
+                },
+                inputs=labels,
+                outputs=[tool_args["output_label"]],
+            )
 
             for w in warnings:
                 self.logger.debug(f"[DataOpsValidation] {w}")
@@ -1198,11 +1257,22 @@ class OrchestratorAgent:
 
         elif tool_name == "store_dataframe":
             try:
-                result_df = run_dataframe_creation(tool_args["pandas_code"])
-            except ValueError as e:
-                return {"status": "error", "message": f"Validation error: {e}"}
-            except RuntimeError as e:
-                return {"status": "error", "message": f"Execution error: {e}"}
+                result_df = run_dataframe_creation(tool_args["code"])
+            except (ValueError, RuntimeError) as e:
+                prefix = "Validation" if isinstance(e, ValueError) else "Execution"
+                err_msg = f"{prefix} error: {e}"
+                get_operations_log().record(
+                    tool="store_dataframe",
+                    args={
+                        "code": tool_args["code"],
+                        "output_label": tool_args.get("output_label", ""),
+                    },
+                    inputs=[],
+                    outputs=[],
+                    status="error",
+                    error=err_msg,
+                )
+                return {"status": "error", "message": err_msg}
             entry = DataEntry(
                 label=tool_args["output_label"],
                 data=result_df,
@@ -1213,48 +1283,18 @@ class OrchestratorAgent:
             )
             store = get_store()
             store.put(entry)
-            self.logger.debug(f"[DataOps] Created DataFrame -> '{tool_args['output_label']}' ({len(result_df)} points)")
-            return {"status": "success", **entry.summary()}
-
-        elif tool_name == "compute_spectrogram":
-            store = get_store()
-            source = store.get(tool_args["source_label"])
-            if source is None:
-                return {"status": "error", "message": f"Label '{tool_args['source_label']}' not found"}
-            try:
-                result_df = run_spectrogram_computation(source.data, tool_args["python_code"])
-            except (ValueError, RuntimeError) as e:
-                prefix = "Validation error" if isinstance(e, ValueError) else "Execution error"
-                return {
-                    "status": "error",
-                    "message": f"{prefix}: {e}",
-                    "source_columns": list(source.data.columns),
-                    "source_shape": list(source.data.shape),
-                    "source_dtypes": {str(c): str(source.data[c].dtype) for c in source.data.columns},
-                }
-
-            metadata = {
-                "type": "spectrogram",
-                "bin_label": tool_args.get("bin_label", ""),
-                "value_label": tool_args.get("value_label", ""),
-            }
-            try:
-                bin_values = [float(c) for c in result_df.columns]
-                metadata["bin_values"] = bin_values
-            except (ValueError, TypeError):
-                metadata["bin_values"] = list(range(len(result_df.columns)))
-
-            entry = DataEntry(
-                label=tool_args["output_label"],
-                data=result_df,
-                units=source.units,
-                description=tool_args.get("description", "Spectrogram"),
-                source="computed",
-                metadata=metadata,
-                is_timeseries=True,
+            get_operations_log().record(
+                tool="store_dataframe",
+                args={
+                    "code": tool_args["code"],
+                    "output_label": tool_args["output_label"],
+                    "description": tool_args.get("description", "Created from code"),
+                    "units": tool_args.get("units", ""),
+                },
+                inputs=[],
+                outputs=[tool_args["output_label"]],
             )
-            store.put(entry)
-            self.logger.debug(f"[DataOps] Spectrogram -> '{tool_args['output_label']}' ({result_df.shape})")
+            self.logger.debug(f"[DataOps] Created DataFrame -> '{tool_args['output_label']}' ({len(result_df)} points)")
             return {"status": "success", **entry.summary()}
 
         # --- Function Documentation Tools ---
@@ -2913,6 +2953,7 @@ Example: ["Compare this with solar wind speed", "Zoom in to January 10-15", "Exp
                 "model": self.model_name,
             },
             figure_state=self._renderer.save_state(),
+            operations=get_operations_log().get_records(),
         )
         self.logger.debug(f"[Session] Saved ({turn_count} turns, {len(store)} data entries)")
 
@@ -2925,7 +2966,7 @@ Example: ["Compare this with solar wind speed", "Zoom in to January 10-15", "Exp
         Returns:
             The session metadata dict.
         """
-        history_dicts, data_dir, metadata, figure_state = self._session_manager.load_session(session_id)
+        history_dicts, data_dir, metadata, figure_state, operations = self._session_manager.load_session(session_id)
 
         # Restore chat with saved history — fall back to fresh chat if
         # the adapter can't reconstruct function_call/function_response parts
@@ -2963,6 +3004,13 @@ Example: ["Compare this with solar wind speed", "Zoom in to January 10-15", "Exp
         if data_dir.exists():
             count = store.load_from_directory(data_dir)
             self.logger.debug(f"[Session] Restored {count} data entries")
+
+        # Restore operations log
+        ops_log = get_operations_log()
+        ops_log.clear()
+        if operations:
+            ops_log.load_from_records(operations)
+            self.logger.debug(f"[Session] Restored {len(operations)} operation records")
 
         # Clear sub-agent caches (they'll be recreated on next use)
         self._mission_agents.clear()
@@ -3047,6 +3095,7 @@ Example: ["Compare this with solar wind speed", "Zoom in to January 10-15", "Exp
         self._data_extraction_agent = None
         self._planner_agent = None
         self._renderer.reset()
+        get_operations_log().clear()
 
         # Start a fresh session if auto-save was active
         if self._auto_save:
