@@ -175,11 +175,27 @@ class VisualizationAgent(BaseSubAgent):
         self.logger.debug("[Viz] Think phase complete", extra=tagged("progress"))
         return text or ""
 
+    def _build_enriched_message(
+        self, user_message: str, think_context: str
+    ) -> str:
+        """Combine the user request with think-phase findings."""
+        if not think_context:
+            return user_message
+        return (
+            f"{user_message}\n\n"
+            f"## Data Inspection Findings\n{think_context}\n\n"
+            f"Now create the visualization using render_plotly_json."
+        )
+
     def process_request(self, user_message: str) -> dict:
         """Conditionally run think→execute for plot-creation requests.
 
         Style/manage requests skip the think phase and go straight to
         the execute phase (standard BaseSubAgent.process_request).
+
+        If the execute phase fails with render_plotly_json errors, retries
+        once: re-runs the think phase with error context so it can produce
+        corrected recommendations, then executes again.
 
         Args:
             user_message: The user's visualization request.
@@ -187,20 +203,33 @@ class VisualizationAgent(BaseSubAgent):
         Returns:
             Dict with text, failed, errors (same as BaseSubAgent.process_request).
         """
-        if self._needs_think_phase(user_message):
-            think_context = self._run_think_phase(user_message)
-            if think_context:
-                enriched = (
-                    f"{user_message}\n\n"
-                    f"## Data Inspection Findings\n{think_context}\n\n"
-                    f"Now create the visualization using render_plotly_json."
-                )
-            else:
-                enriched = user_message
-        else:
+        if not self._needs_think_phase(user_message):
             self.logger.debug("[Viz] Skipping think phase (style/manage request)")
-            enriched = user_message
+            return super().process_request(user_message)
 
+        # First attempt: think → execute
+        think_context = self._run_think_phase(user_message)
+        enriched = self._build_enriched_message(user_message, think_context)
+        result = super().process_request(enriched)
+
+        # Check if retry is warranted (render errors only)
+        render_errors = [
+            e for e in result.get("errors", []) if "render_plotly_json" in e
+        ]
+        if not render_errors:
+            return result
+
+        # Retry: re-run think phase with error context, then execute again
+        self.logger.debug("[Viz] Render failed, retrying with error feedback")
+        error_feedback = "\n".join(f"- {e}" for e in render_errors)
+        retry_request = (
+            f"{user_message}\n\n"
+            f"## Previous Attempt Failed\n"
+            f"Errors:\n{error_feedback}\n\n"
+            f"Re-inspect the data and provide corrected recommendations."
+        )
+        think_context = self._run_think_phase(retry_request)
+        enriched = self._build_enriched_message(user_message, think_context)
         return super().process_request(enriched)
 
     def _get_task_prompt(self, task: Task) -> str:
