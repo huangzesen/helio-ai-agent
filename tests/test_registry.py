@@ -31,11 +31,11 @@ class TestRegistryStructure:
         assert len(names) == len(set(names)), f"Duplicate tool names: {[n for n in names if names.count(n) > 1]}"
 
     def test_tool_count(self):
-        assert len(TOOLS) == 3  # render_plotly_json, update_plot_spec (legacy), manage_plot
+        assert len(TOOLS) == 2  # render_plotly_json, manage_plot
 
     def test_tool_names(self):
         names = {t["name"] for t in TOOLS}
-        assert names == {"render_plotly_json", "update_plot_spec", "manage_plot"}
+        assert names == {"render_plotly_json", "manage_plot"}
 
     def test_parameters_have_required_fields(self):
         for t in TOOLS:
@@ -52,14 +52,6 @@ class TestRegistryStructure:
         assert "figure_json" in param_names
         param = next(p for p in t["parameters"] if p["name"] == "figure_json")
         assert param["required"] is True
-
-    def test_update_plot_spec_has_spec_param(self):
-        t = get_method("update_plot_spec")
-        assert t is not None
-        param_names = [p["name"] for p in t["parameters"]]
-        assert "spec" in param_names
-        spec_param = next(p for p in t["parameters"] if p["name"] == "spec")
-        assert spec_param["required"] is True
 
     def test_manage_plot_has_action_param(self):
         t = get_method("manage_plot")
@@ -86,11 +78,6 @@ class TestGetMethod:
         t = get_method("render_plotly_json")
         assert t is not None
         assert t["name"] == "render_plotly_json"
-
-    def test_legacy_tool(self):
-        t = get_method("update_plot_spec")
-        assert t is not None
-        assert t["name"] == "update_plot_spec"
 
     def test_unknown_tool(self):
         assert get_method("nonexistent") is None
@@ -121,14 +108,6 @@ class TestValidateArgs:
         errors = validate_args("render_plotly_json", {
             "figure_json": {"data": [{"data_label": "X"}], "layout": {}}
         })
-        assert errors == []
-
-    def test_legacy_missing_required_param(self):
-        errors = validate_args("update_plot_spec", {})
-        assert any("spec" in e for e in errors)
-
-    def test_legacy_valid_args(self):
-        errors = validate_args("update_plot_spec", {"spec": {"labels": "ACE_Bmag"}})
         assert errors == []
 
     def test_unknown_tool(self):

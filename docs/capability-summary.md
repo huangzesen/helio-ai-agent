@@ -38,13 +38,13 @@ agent/core.py  OrchestratorAgent  (LLM-driven orchestrator)
   |  - Configurable via ~/.helio-agent/config.json (model / sub_agent_model keys)
   |  - Thinking levels: HIGH (orchestrator + planner), LOW (all sub-agents)
   |
-  +---> agent/visualization_agent.py  Visualization sub-agent (spec-based workflow)
+  +---> agent/visualization_agent.py  Visualization sub-agent
   |       VisualizationAgent         Focused Gemini session for all visualization
-  |       update_plot_spec()         Create/update plots via single unified JSON spec
+  |       render_plotly_json()       Create/update plots via Plotly figure JSON with data_label placeholders
   |       list_fetched_data()        Discover available data in memory
   |       process_request()          Full conversational mode (max 5 iter, duplicate detection)
   |       execute_task()             Forced function calling for plan tasks (max 3 iter)
-  |                                  System prompt with spec field reference and examples
+  |                                  System prompt with Plotly JSON examples
   |
   +---> agent/data_ops_agent.py   DataOps sub-agent (compute/describe/export tools)
   |       DataOpsAgent            Focused Gemini session for data transformations
@@ -117,7 +117,7 @@ agent/core.py  OrchestratorAgent  (LLM-driven orchestrator)
   |
   +---> rendering/                Plotly-based visualization engine
   |       plotly_renderer.py        Interactive Plotly figures, multi-panel, WebGL, PNG/PDF export via kaleido
-  |       registry.py               Tool registry (3 declarative tools) — single source of truth for viz capabilities
+  |       registry.py               Tool registry (2 declarative tools) — single source of truth for viz capabilities
   |
   +---> scripts/                  Tooling
           generate_mission_data.py  Auto-populate JSON from CDAS REST + Master CDF
@@ -129,7 +129,7 @@ agent/core.py  OrchestratorAgent  (LLM-driven orchestrator)
           stress_test.py            Stress testing
 ```
 
-## Tools (35 tool schemas)
+## Tools (30 tool schemas)
 
 ### Dataset Discovery
 | Tool | Purpose |
@@ -145,13 +145,13 @@ agent/core.py  OrchestratorAgent  (LLM-driven orchestrator)
 ### Visualization
 | Tool | Purpose |
 |------|---------|
-| `update_plot_spec` | Create or update plots via a single unified JSON spec. Layout changes trigger re-render; style-only changes are applied in-place. |
+| `render_plotly_json` | Create or update the plot by providing a Plotly figure JSON with `data_label` placeholders. The system fills in actual data arrays from memory. |
 | `manage_plot` | Imperative operations on the current figure: export (PNG/PDF), reset, zoom/time range, get state |
 
-The viz agent uses `update_plot_spec` and `manage_plot` for all visualization operations. The system diffs the new spec against the current one and decides whether to re-render (layout changed) or restyle in-place (only aesthetics changed). The tool registry (`rendering/registry.py`) describes both tools with their parameters and examples. `plot_data` and `style_plot` have been removed from the LLM-facing tool set (the Python methods remain as internal implementation).
+The viz agent uses `render_plotly_json` and `manage_plot` for all visualization operations. The LLM provides a Plotly figure JSON with `data_label` placeholders in trace stubs, and the system resolves these against in-memory data. The tool registry (`rendering/registry.py`) describes both tools with their parameters and examples.
 
 ### Plot Self-Review
-Every `update_plot_spec` re-render returns a `review` field with structured metadata for LLM self-assessment:
+Every `render_plotly_json` render returns a `review` field with structured metadata for LLM self-assessment:
 - **`trace_summary`**: per-trace name, panel, point count, y-range, gap status
 - **`warnings`**: heuristic checks — cluttered panels (>6 traces), resolution mismatches (>10x point count difference), suspicious y-ranges (possible fill values), invisible traces (all NaN/missing data), empty panels
 - **`hint`**: one-line summary of panel layout and trace assignments
@@ -204,19 +204,10 @@ The LLM inspects this metadata within the existing tool loop and can self-correc
 | `delegate_to_visualization` | LLM-driven delegation to the visualization sub-agent |
 | `request_planning` | Activate multi-step planning system for complex requests (orchestrator can trigger dynamically) |
 
-### Pipeline
-| Tool | Purpose |
-|------|---------|
-| `save_pipeline` | Save session's data workflow as a reusable pipeline template |
-| `run_pipeline` | Execute a saved pipeline — deterministic by default, or with LLM-mediated modifications |
-| `list_pipelines` | List all saved pipelines with names, descriptions, step counts, and variables |
-| `delete_pipeline` | Delete a saved pipeline by ID |
-| `render_spec` | Render a plot from a unified spec (used by pipeline replay) |
-
 ## Sub-Agent Architecture (5 agents)
 
 ### OrchestratorAgent (agent/core.py)
-- Sees tools: discovery, conversation, routing, document, pipeline + `list_fetched_data` extra
+- Sees tools: discovery, conversation, routing, document + `list_fetched_data` extra
 - Routes: data fetching -> MissionAgent, computation -> DataOpsAgent, text-to-data -> DataExtractionAgent, visualization -> VisualizationAgent
 - Handles multi-step plans with mission-tagged task dispatch (`__data_ops__`, `__data_extraction__`, `__visualization__`)
 
@@ -247,13 +238,9 @@ The LLM inspects this metadata within the existing tool loop and can self-correc
 - No fetch, compute, or plot tools — creates data from text only
 
 ### VisualizationAgent (agent/visualization_agent.py)
-- Sees tools: `update_plot_spec` + `list_fetched_data` (2 tools total)
-- `update_plot_spec`: Single tool for creating and modifying plots via a unified JSON spec
-  - Layout changes (labels, panels, panel_types, etc.) trigger full re-render via `render_from_spec()`
-  - Style-only changes (title, colors, font, etc.) are applied in-place via `style()`
-  - Orchestrator injects current spec into viz agent context for diffing
-- The viz agent owns all visualization: `update_plot_spec` + `manage_plot` + `list_fetched_data`
-- `plot_data` and `style_plot` have been removed from LLM-facing tools (Python methods remain as internal implementation)
+- Sees tools: `render_plotly_json` + `manage_plot` + `list_fetched_data` (3 tools total)
+- `render_plotly_json`: LLM provides Plotly figure JSON with `data_label` placeholders; system fills in actual data
+- The viz agent owns all visualization: `render_plotly_json` + `manage_plot` + `list_fetched_data`
 
 ## Supported Spacecraft
 
@@ -281,7 +268,7 @@ All times are UTC. Outputs `TimeRange` objects with `start`/`end` datetimes.
 ## Key Implementation Details
 
 ### Tool Registry (`rendering/registry.py`)
-- Describes 2 visualization tools: `update_plot_spec`, `manage_plot`
+- Describes 2 visualization tools: `render_plotly_json`, `manage_plot`
 - Each tool has: name, description, typed parameters (with enums for constrained values)
 - `render_method_catalog()` renders the registry into markdown for the LLM prompt
 - `get_method(name)` and `validate_args(name, args)` for dispatch and validation
@@ -313,8 +300,8 @@ All times are UTC. Outputs `TimeRange` objects with `start`/`end` datetimes.
 - **Mission sub-agents**: Each spacecraft has a data fetching specialist with rich system prompt (recommended datasets, analysis patterns). Agents are cached per session. Sub-agents have **fetch-only tools** (discovery, data_ops_fetch, conversation) — no compute, plot, or routing tools.
 - **DataOps sub-agent**: Data transformation specialist with `custom_operation`, `describe_data`, `save_data` + `list_fetched_data`. System prompt includes computation patterns and code guidelines. Singleton, cached per session.
 - **DataExtraction sub-agent**: Text-to-DataFrame specialist with `store_dataframe`, `read_document`, `ask_clarification` + `list_fetched_data`. System prompt includes extraction patterns and DataFrame creation guidelines. Singleton, cached per session.
-- **Visualization sub-agent**: Visualization specialist with `update_plot_spec` + `manage_plot` + `list_fetched_data` tools. Owns all visualization operations (plotting, styling, export, reset, zoom, traces). Uses spec-based workflow: the orchestrator injects the current plot spec into the context, and the viz agent emits a complete desired spec via `update_plot_spec`. The handler diffs layout vs style fields to decide re-render or restyle.
-- **Tool separation**: Tools have a `category` field (`discovery`, `visualization`, `data_ops`, `data_ops_fetch`, `data_ops_compute`, `data_extraction`, `function_docs`, `conversation`, `routing`, `document`). `get_tool_schemas(categories=..., extra_names=...)` filters tools by category. Orchestrator sees `["discovery", "conversation", "routing", "document"]` + `list_fetched_data` extra. MissionAgent sees `["discovery", "data_ops_fetch", "conversation"]` + `list_fetched_data` extra. DataOpsAgent sees `["data_ops_compute", "conversation"]` + `list_fetched_data`, `search_function_docs`, `get_function_docs` extras. DataExtractionAgent sees `["data_extraction", "document", "conversation"]` + `list_fetched_data` extra. VisualizationAgent sees `["visualization"]` + `list_fetched_data`, `manage_plot` extras → `update_plot_spec` + `manage_plot` + `list_fetched_data`.
+- **Visualization sub-agent**: Visualization specialist with `render_plotly_json` + `manage_plot` + `list_fetched_data` tools. Owns all visualization operations (plotting, export, reset, zoom, traces). The LLM provides Plotly figure JSON with `data_label` placeholders, and the system fills in actual data arrays.
+- **Tool separation**: Tools have a `category` field (`discovery`, `visualization`, `data_ops`, `data_ops_fetch`, `data_ops_compute`, `data_extraction`, `function_docs`, `conversation`, `routing`, `document`, `data_export`, `memory`, `web_search`). `get_tool_schemas(categories=..., extra_names=...)` filters tools by category. Orchestrator sees `["discovery", "web_search", "conversation", "routing", "document", "memory", "data_export"]` + `list_fetched_data` extra. MissionAgent sees `["discovery", "data_ops_fetch", "conversation"]` + `list_fetched_data` extra. DataOpsAgent sees `["data_ops_compute", "conversation"]` + `list_fetched_data`, `search_function_docs`, `get_function_docs` extras. DataExtractionAgent sees `["data_extraction", "document", "conversation"]` + `list_fetched_data` extra. VisualizationAgent sees `["visualization"]` + `list_fetched_data`, `manage_plot` extras → `render_plotly_json` + `manage_plot` + `list_fetched_data`.
 - **Post-delegation flow**: After `delegate_to_mission` returns data labels, the orchestrator uses `delegate_to_data_ops` for computation, `delegate_to_data_extraction` for text-to-DataFrame conversion, and then `delegate_to_visualization` to visualize results.
 - **Slim orchestrator**: System prompt contains a routing table (mission names + capabilities) plus delegation instructions. No dataset IDs or analysis tips — those live in mission sub-agents.
 
@@ -406,8 +393,7 @@ All times are UTC. Outputs `TimeRange` objects with `start`/`end` datetimes.
 ### Figure Sizing
 - Renderer sets explicit defaults: `autosize=False`, 300px per panel height, 1100px width
 - Prevents Plotly.js from recalculating dimensions on toolbar interactions (zoom, pan, reset)
-- `update_plot_spec` re-render review metadata includes `figure_size` (current) and `sizing_recommendation` (suggested)
-- Viz agent includes `canvas_size` in the spec when sizing should differ from defaults (4+ panels use compact 250px/panel, spectrograms use ≥400px height and 1200px width)
+- `render_plotly_json` review metadata includes `figure_size` (current) and `sizing_recommendation` (suggested)
 
 ### Gradio Streaming
 - `gradio_app.py` streams live progress by default; use `--quiet` to disable

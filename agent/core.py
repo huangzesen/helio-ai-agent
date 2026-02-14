@@ -36,10 +36,7 @@ from .logging import (
     set_session_id, tagged, log_token_usage, get_token_log_path,
 )
 from .memory_agent import MemoryAgent
-from .pipeline import (
-    Pipeline, PipelineStep, PipelineVariable, PipelineExecutor,
-    PipelineRecorder, get_pipeline_store, _slugify, merge_plot_steps,
-)
+
 from .loop_guard import LoopGuard, make_call_key
 from .model_fallback import activate_fallback, get_active_model, is_quota_error
 from .base_agent import _LLM_WARN_INTERVAL, _LLM_RETRY_TIMEOUT, _LLM_MAX_RETRIES
@@ -60,7 +57,7 @@ from data_ops.custom_ops import run_custom_operation, run_multi_source_operation
 
 # Orchestrator sees discovery, web search, conversation, and routing tools
 # (NOT data fetching or data_ops — handled by sub-agents)
-ORCHESTRATOR_CATEGORIES = ["discovery", "web_search", "conversation", "routing", "document", "memory", "data_export", "pipeline"]
+ORCHESTRATOR_CATEGORIES = ["discovery", "web_search", "conversation", "routing", "document", "memory", "data_export"]
 ORCHESTRATOR_EXTRA_TOOLS = ["list_fetched_data", "preview_data"]
 
 DEFAULT_MODEL = GEMINI_MODEL
@@ -185,9 +182,6 @@ class OrchestratorAgent:
 
         # Passive memory agent (lazy-initialized)
         self._memory_agent: Optional[MemoryAgent] = None
-
-        # Pipeline recording (always-on, passive)
-        self._pipeline_recorder = PipelineRecorder()
 
         # Thread pool for timeout-wrapped Gemini calls
         self._timeout_pool = ThreadPoolExecutor(max_workers=1)
@@ -700,13 +694,6 @@ class OrchestratorAgent:
                 return sub_entry, label
         return None, None
 
-    def _handle_update_plot_spec(self, tool_args: dict) -> dict:
-        """Handle update_plot_spec: always re-render from the merged spec."""
-        new_spec = tool_args.get("spec", {})
-        if not new_spec.get("labels"):
-            return {"status": "error", "message": "spec.labels is required"}
-        return self._handle_render_spec({"spec": new_spec})
-
     def _handle_render_plotly_json(self, tool_args: dict) -> dict:
         """Handle render_plotly_json: fill data_label placeholders and render."""
         fig_json = tool_args.get("figure_json", {})
@@ -931,9 +918,6 @@ class OrchestratorAgent:
 
         elif tool_name == "render_plotly_json":
             return self._handle_render_plotly_json(tool_args)
-
-        elif tool_name == "update_plot_spec":
-            return self._handle_update_plot_spec(tool_args)
 
         elif tool_name == "manage_plot":
             return self._handle_manage_plot(tool_args)
@@ -1795,23 +1779,6 @@ class OrchestratorAgent:
             )
             return {"status": "success", "result": summary, "planning_used": True}
 
-        # ---- Pipeline tools ----
-
-        elif tool_name == "save_pipeline":
-            return self._handle_save_pipeline(tool_args)
-
-        elif tool_name == "run_pipeline":
-            return self._handle_run_pipeline(tool_args)
-
-        elif tool_name == "list_pipelines":
-            return self._handle_list_pipelines(tool_args)
-
-        elif tool_name == "delete_pipeline":
-            return self._handle_delete_pipeline(tool_args)
-
-        elif tool_name == "render_spec":
-            return self._handle_render_spec(tool_args)
-
         else:
             result = {"status": "error", "message": f"Unknown tool: {tool_name}"}
             log_error(
@@ -1819,203 +1786,6 @@ class OrchestratorAgent:
                 context={"tool_name": tool_name, "tool_args": tool_args}
             )
             return result
-
-    # ---- Pipeline handler methods ----
-
-    def _handle_save_pipeline(self, tool_args: dict) -> dict:
-        """Save a pipeline from LLM-provided steps."""
-        name = tool_args["name"]
-        description = tool_args["description"]
-        steps_data = tool_args["steps"]
-        variables_data = tool_args.get("variables")
-
-        pipeline_id = _slugify(name)
-
-        # Build steps with auto-numbered step_ids
-        steps = []
-        for i, sd in enumerate(steps_data, start=1):
-            steps.append(PipelineStep(
-                step_id=i,
-                tool_name=sd["tool_name"],
-                tool_args=sd["tool_args"],
-                intent=sd.get("intent", ""),
-                produces=sd.get("produces", []),
-                depends_on=sd.get("depends_on", []),
-                critical=sd.get("critical", True),
-            ))
-
-        # Merge consecutive plot_data + style_plot into render_spec (backward compat)
-        steps = merge_plot_steps(steps)
-
-        # Build variables — auto-detect $TIME_RANGE if not provided
-        variables = {}
-        if variables_data:
-            for var_name, var_def in variables_data.items():
-                variables[var_name] = PipelineVariable(
-                    type=var_def.get("type", "string"),
-                    description=var_def.get("description", ""),
-                    default=var_def.get("default", ""),
-                )
-        else:
-            # Auto-detect: if any fetch_data step uses a literal time_range, parameterize it
-            time_ranges = set()
-            for s in steps:
-                if s.tool_name == "fetch_data" and "time_range" in s.tool_args:
-                    tr = s.tool_args["time_range"]
-                    if not tr.startswith("$"):
-                        time_ranges.add(tr)
-            if time_ranges:
-                # Use the most common time range as the default
-                default_tr = max(time_ranges, key=lambda t: sum(
-                    1 for s in steps
-                    if s.tool_name == "fetch_data" and s.tool_args.get("time_range") == t
-                ))
-                variables["$TIME_RANGE"] = PipelineVariable(
-                    type="time_range",
-                    description="Date range for data fetching",
-                    default=default_tr,
-                )
-                # Replace literal time ranges with $TIME_RANGE
-                for s in steps:
-                    if s.tool_name == "fetch_data" and s.tool_args.get("time_range") in time_ranges:
-                        s.tool_args["time_range"] = "$TIME_RANGE"
-
-        pipeline = Pipeline(
-            id=pipeline_id,
-            name=name,
-            description=description,
-            steps=steps,
-            variables=variables,
-            source_session=self._session_id or "",
-        )
-
-        store = get_pipeline_store()
-        path = store.save(pipeline)
-        self.logger.info(f"[Pipeline] Saved pipeline '{name}' ({pipeline_id}) with {len(steps)} steps to {path}")
-
-        return {
-            "status": "success",
-            "pipeline_id": pipeline_id,
-            "name": name,
-            "step_count": len(steps),
-            "variables": list(variables.keys()),
-            "message": f"Pipeline '{name}' saved with {len(steps)} steps. "
-                       f"Variables: {', '.join(variables.keys()) if variables else 'none'}. "
-                       f"Run with: run_pipeline(pipeline_id='{pipeline_id}')",
-        }
-
-    def _handle_run_pipeline(self, tool_args: dict) -> dict:
-        """Execute a saved pipeline, optionally with LLM-mediated modifications."""
-        pipeline_id = tool_args["pipeline_id"]
-        variable_overrides = tool_args.get("variable_overrides", {})
-        modifications = tool_args.get("modifications")
-
-        store = get_pipeline_store()
-        pipeline = store.load(pipeline_id)
-        if pipeline is None:
-            available = store.list_pipelines()
-            available_ids = [p["id"] for p in available]
-            return {
-                "status": "error",
-                "message": f"Pipeline '{pipeline_id}' not found. "
-                           f"Available: {', '.join(available_ids) if available_ids else 'none'}",
-            }
-
-        # Deterministic execution first
-        executor = PipelineExecutor(tool_executor=self._execute_tool_safe)
-        result = executor.execute(pipeline, variable_overrides=variable_overrides)
-
-        self.logger.info(
-            f"[Pipeline] Executed '{pipeline.name}': {result['summary']}"
-        )
-
-        if modifications:
-            # LLM-mediated mode: pipeline already executed, now apply modifications
-            context = pipeline.to_llm_context()
-
-            # Detect whether pipeline has render_spec/visualization steps
-            has_render_spec = any(s.tool_name in ("render_spec", "update_plot_spec", "render_plotly_json") for s in pipeline.steps)
-            if has_render_spec:
-                style_guidance = (
-                    "This pipeline uses a plot spec. "
-                    "For style-only changes (colors, labels, scale, etc.), "
-                    "use render_plotly_json — generate the complete Plotly figure JSON. "
-                    "Do NOT re-fetch data unless the modification specifically requires it."
-                )
-            else:
-                style_guidance = (
-                    "For style changes, use render_plotly_json to generate the Plotly figure JSON. "
-                    "For adding new computations, use custom_operation then plot with render_plotly_json."
-                )
-
-            mod_prompt = (
-                f"A saved pipeline has just been executed successfully. "
-                f"The data and plot are ready.\n\n"
-                f"PIPELINE THAT WAS EXECUTED:\n{context}\n\n"
-                f"USER'S REQUESTED MODIFICATIONS: {modifications}\n\n"
-                f"Apply ONLY the user's requested modifications. "
-                f"Do NOT re-fetch data or re-create the plot from scratch unless the modification specifically requires it. "
-                f"{style_guidance}"
-            )
-            mod_response = self._process_single_message(mod_prompt)
-            result["modifications_applied"] = modifications
-            result["modifications_response"] = mod_response
-
-        return result
-
-    def _handle_list_pipelines(self, tool_args: dict) -> dict:
-        """List all saved pipelines."""
-        store = get_pipeline_store()
-        pipelines = store.list_pipelines()
-        return {
-            "status": "success",
-            "count": len(pipelines),
-            "pipelines": pipelines,
-        }
-
-    def _handle_delete_pipeline(self, tool_args: dict) -> dict:
-        """Delete a saved pipeline."""
-        pipeline_id = tool_args["pipeline_id"]
-        store = get_pipeline_store()
-        deleted = store.delete(pipeline_id)
-        if deleted:
-            return {"status": "success", "message": f"Pipeline '{pipeline_id}' deleted."}
-        return {"status": "error", "message": f"Pipeline '{pipeline_id}' not found."}
-
-    def _handle_render_spec(self, tool_args: dict) -> dict:
-        """Render a plot from a unified spec (pipeline use)."""
-        spec = tool_args.get("spec", {})
-        labels_str = spec.get("labels", "")
-        if not labels_str:
-            return {"status": "error", "message": "spec.labels is required"}
-
-        # Resolve labels from the store
-        store = get_store()
-        panels = spec.get("panels")
-        if panels:
-            panel_labels = list(dict.fromkeys(
-                label for panel in panels for label in panel
-            ))
-        else:
-            panel_labels = [l.strip() for l in labels_str.split(",")]
-
-        entries = []
-        for label in panel_labels:
-            entry, _ = self._resolve_entry(store, label)
-            if entry is None:
-                return {"status": "error", "message": f"Label '{label}' not found in memory"}
-            entries.append(entry)
-
-        try:
-            result = self._renderer.render_from_spec(spec, entries)
-        except Exception as e:
-            return {"status": "error", "message": str(e)}
-
-        review = result.get("review", {})
-        for w in review.get("warnings", []):
-            self.logger.debug(f"[PlotReview] {w}")
-
-        return result
 
     def _execute_tool_safe(self, tool_name: str, tool_args: dict) -> dict:
         """Execute a tool with error handling and logging.
@@ -2031,7 +1801,6 @@ class OrchestratorAgent:
         """
         try:
             result = self._execute_tool(tool_name, tool_args)
-            self._pipeline_recorder.record(tool_name, tool_args, result)
             result = _sanitize_for_json(result)
 
             # Log the result
@@ -2345,8 +2114,7 @@ class OrchestratorAgent:
                 self._handle_export_task(task)
             else:
                 # Plot tasks: ensure instruction includes actual labels
-                has_tool_ref = ("render_plotly_json" in instr_lower or
-                                "update_plot_spec" in instr_lower)
+                has_tool_ref = "render_plotly_json" in instr_lower
                 if not has_tool_ref and entries:
                     all_labels = ",".join(e["label"] for e in entries)
                     task.instruction = (
@@ -3262,7 +3030,6 @@ Example: ["Compare this with solar wind speed", "Zoom in to January 10-15", "Exp
         self._dataops_agent = None
         self._data_extraction_agent = None
         self._planner_agent = None
-        self._pipeline_recorder.clear()
         self._renderer.reset()
 
         # Start a fresh session if auto-save was active

@@ -198,108 +198,6 @@ class TestDataEntryMetadata:
 # ---------------------------------------------------------------------------
 
 
-class TestPlotSpectrogram:
-    def test_basic_heatmap(self):
-        """render_from_spec with plot_type='spectrogram' should create a Heatmap trace."""
-        renderer = PlotlyRenderer()
-        entry = _make_spectrogram_entry()
-        result = renderer.render_from_spec(
-            {"labels": entry.label, "plot_type": "spectrogram"}, [entry])
-        assert result["status"] == "success"
-        assert result["display"] == "plotly"
-
-        fig = renderer.get_figure()
-        assert fig is not None
-        assert len(fig.data) == 1
-        assert "heatmap" in fig.data[0].type.lower()
-
-    def test_log_y(self):
-        """log_y should be applied correctly."""
-        renderer = PlotlyRenderer()
-        entry = _make_spectrogram_entry()
-        result = renderer.render_from_spec(
-            {"labels": entry.label, "plot_type": "spectrogram",
-             "log_y": True}, [entry])
-        assert result["status"] == "success"
-
-        fig = renderer.get_figure()
-        yaxis = fig.layout.yaxis
-        assert yaxis.type == "log"
-
-    def test_colorscale(self):
-        """Custom colorscale should be set on the trace."""
-        renderer = PlotlyRenderer()
-        entry = _make_spectrogram_entry()
-        renderer.render_from_spec(
-            {"labels": entry.label, "plot_type": "spectrogram",
-             "colorscale": "Jet"}, [entry])
-
-        fig = renderer.get_figure()
-        assert fig.data[0].colorscale is not None
-
-    def test_title(self):
-        """Title parameter should set the figure title."""
-        renderer = PlotlyRenderer()
-        entry = _make_spectrogram_entry()
-        renderer.render_from_spec(
-            {"labels": entry.label, "plot_type": "spectrogram",
-             "title": "Test Title"}, [entry])
-
-        fig = renderer.get_figure()
-        assert fig.layout.title.text == "Test Title"
-
-    def test_panel_targeting(self):
-        """panels parameter should target a specific panel row."""
-        renderer = PlotlyRenderer()
-        entry = _make_spectrogram_entry()
-        result = renderer.render_from_spec(
-            {"labels": entry.label, "panels": [[], [entry.label]],
-             "plot_type": "spectrogram"}, [entry])
-        assert result["status"] == "success"
-
-        fig = renderer.get_figure()
-        assert len(fig.data) >= 1
-
-    def test_z_range(self):
-        """z_min and z_max should be set on the trace."""
-        renderer = PlotlyRenderer()
-        entry = _make_spectrogram_entry()
-        renderer.render_from_spec(
-            {"labels": entry.label, "plot_type": "spectrogram",
-             "z_min": 0.1, "z_max": 10.0}, [entry])
-
-        fig = renderer.get_figure()
-        assert fig.data[0].zmin == 0.1
-        assert fig.data[0].zmax == 10.0
-
-    def test_empty_entry(self):
-        """Empty entry should return an error."""
-        renderer = PlotlyRenderer()
-        idx = pd.DatetimeIndex([], name="time")
-        df = pd.DataFrame(dtype=float, index=idx)
-        entry = DataEntry(
-            label="empty_spec",
-            data=df,
-            metadata={"type": "spectrogram", "bin_values": []},
-        )
-        result = renderer.render_from_spec(
-            {"labels": "empty_spec", "plot_type": "spectrogram"}, [entry])
-        assert result["status"] == "error"
-
-    def test_scalar_rejected_as_spectrogram(self):
-        """Scalar (1-column) entry with plot_type='spectrogram' returns error."""
-        renderer = PlotlyRenderer()
-        idx = pd.date_range("2024-01-01", periods=100, freq="min")
-        df = pd.DataFrame({"value": np.random.randn(100)}, index=idx)
-        entry = DataEntry(label="scalar_data", data=df, units="nT",
-                          description="Scalar timeseries")
-        result = renderer.render_from_spec(
-            {"labels": "scalar_data", "plot_type": "spectrogram"}, [entry])
-        assert result["status"] == "error"
-        assert "scalar" in result["message"].lower()
-        assert "panel_types" in result["message"]
-
-
 # ---------------------------------------------------------------------------
 # Registry tests
 # ---------------------------------------------------------------------------
@@ -325,10 +223,6 @@ class TestRegistryPlotSpectrogram:
         })
         assert errors == []
 
-    def test_legacy_update_plot_spec_exists(self):
-        """Legacy update_plot_spec still exists in registry."""
-        method = get_method("update_plot_spec")
-        assert method is not None
 
 
 # ---------------------------------------------------------------------------
@@ -393,8 +287,12 @@ result = pd.DataFrame(Sxx.T, index=times, columns=[str(freq) for freq in f])
         s = loaded.summary()
         assert "spectrogram" in s["shape"]
 
-        # Verify we can plot it
+        # Verify we can plot it via render_plotly_json
         renderer = PlotlyRenderer()
-        result = renderer.render_from_spec(
-            {"labels": loaded.label, "plot_type": "spectrogram"}, [loaded])
+        fig_json = {
+            "data": [{"type": "heatmap", "data_label": loaded.label,
+                       "colorscale": "Viridis"}],
+            "layout": {},
+        }
+        result = renderer.render_plotly_json(fig_json, {loaded.label: loaded})
         assert result["status"] == "success"

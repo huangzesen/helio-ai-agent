@@ -21,7 +21,7 @@ class TestToolCategoryFiltering:
 
     def test_no_filter_returns_all_tools(self):
         all_tools = get_tool_schemas()
-        assert len(all_tools) == 33
+        assert len(all_tools) == 28
         names = {t["name"] for t in all_tools}
         assert "render_plotly_json" in names
         assert "manage_plot" in names

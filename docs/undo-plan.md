@@ -36,8 +36,7 @@ Maintain a stack of plot states (spec + figure JSON) so `manage_plot(action="und
   - Store figure JSON (instant undo but memory-heavy)
   - Hybrid: store spec + figure for last N, spec-only beyond that
 - **Session persistence**: Should undo history survive session save/restore?
-- **Pipeline interaction**: Should pipeline replay populate the undo stack?
-- **Granularity**: Is every `update_plot_spec` call one undo step, or should related calls be grouped?
+- **Granularity**: Is every `render_plotly_json` call one undo step, or should related calls be grouped?
 
 ### Prerequisites
 

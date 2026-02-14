@@ -25,21 +25,6 @@ TOOLS = [
         ],
     },
     {
-        "name": "update_plot_spec",
-        "description": "(Legacy) Create or update the plot via a semantic specification. Prefer render_plotly_json for new plots.",
-        "parameters": [
-            {"name": "spec", "type": "object", "required": True,
-             "description": "Complete plot specification. Must include 'labels' (comma-separated). "
-                            "Layout fields: panels, panel_types (line, spectrogram, scatter, bar, "
-                            "histogram, box, violin), plot_type, columns, column_titles, "
-                            "shared_xaxes, colorscale, log_y, z_min, z_max. "
-                            "Style fields: title, x_label, y_label, trace_colors, line_styles, "
-                            "trace_visibility, trace_mode, "
-                            "log_scale, x_range, y_range, legend, font_size, canvas_size, margin, "
-                            "annotations, theme, vlines, vrects."},
-        ],
-    },
-    {
         "name": "manage_plot",
         "description": "Imperative operations on the current figure: export, reset, zoom, get state.",
         "parameters": [
