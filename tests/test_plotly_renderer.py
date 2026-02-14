@@ -69,20 +69,6 @@ class TestManage:
 
 
 # ---------------------------------------------------------------------------
-# Time range
-# ---------------------------------------------------------------------------
-
-class TestTimeRange:
-    def test_set_time_range(self, renderer):
-        from agent.time_utils import parse_time_range
-        _render_one(renderer)
-        tr = parse_time_range("2024-01-01 to 2024-01-07")
-        result = renderer.set_time_range(tr)
-        assert result["status"] == "success"
-        assert "2024-01-01" in result["time_range"]
-
-
-# ---------------------------------------------------------------------------
 # Export
 # ---------------------------------------------------------------------------
 
@@ -139,7 +125,6 @@ class TestState:
     def test_get_current_state_empty(self, renderer):
         state = renderer.get_current_state()
         assert state["has_plot"] is False
-        assert state["time_range"] is None
         assert state["traces"] == []
 
     def test_get_current_state_after_plot(self, renderer):
@@ -253,21 +238,6 @@ class TestFillFigureData:
         with pytest.raises(ValueError, match="MISSING"):
             fill_figure_data(fig_json, {})
 
-    def test_time_range_applied(self):
-        """Time range is applied to x-axes in layout."""
-        entry = _make_entry("mag", n=50)
-        fig_json = {
-            "data": [{"type": "scatter", "data_label": "mag"}],
-            "layout": {"xaxis": {}},
-        }
-        result = fill_figure_data(
-            fig_json, {"mag": entry},
-            time_range="2024-01-01 to 2024-01-02",
-        )
-        xaxis_range = result.figure.layout.xaxis.range
-        assert xaxis_range is not None
-        assert "2024-01-01" in str(xaxis_range[0])
-
     def test_default_layout_applied(self):
         """Default white background and sizing is applied."""
         entry = _make_entry("mag", n=50)
@@ -305,23 +275,6 @@ class TestFillFigureData:
         assert len(fig.data) == 1
         assert list(fig.data[0].x) == [10.0, 20.0, 30.0, 40.0]
         assert fig.data[0].y == (1.0, 4.0, 9.0, 16.0)
-
-    def test_numeric_index_skips_time_range(self):
-        """Time range constraint is not applied to numeric-index traces."""
-        df = pd.DataFrame({"value": [1.0, 2.0, 3.0]},
-                          index=[100.0, 200.0, 300.0])
-        entry = DataEntry(label="num", data=df, units="nT",
-                          description="Numeric data")
-        fig_json = {
-            "data": [{"type": "scatter", "data_label": "num"}],
-            "layout": {"xaxis": {}},
-        }
-        result = fill_figure_data(
-            fig_json, {"num": entry},
-            time_range="2024-01-01 to 2024-01-02",
-        )
-        # xaxis should NOT have a time range set
-        assert result.figure.layout.xaxis.range is None
 
     def test_3row_2col_panel_skeleton(self):
         """3-row × 2-column grid layout with 6 timeseries panels.

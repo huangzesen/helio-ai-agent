@@ -6,23 +6,20 @@ in LLM-generated Plotly figure JSON, populating real data arrays.
 
 The ``PlotlyRenderer`` class is a thin stateful wrapper providing:
 - ``render_plotly_json()`` — fill data → copy into state
-- ``export()``, ``reset()``, ``set_time_range()`` — structural operations
+- ``export()``, ``reset()`` — structural operations
 """
 
 from __future__ import annotations
 
 import sys
 from pathlib import Path
-from typing import TYPE_CHECKING, Optional
+from typing import Optional
 
 import numpy as np
 import plotly.graph_objects as go
 from plotly.subplots import make_subplots
 
 from data_ops.store import DataEntry
-
-if TYPE_CHECKING:
-    from agent.time_utils import TimeRange
 
 # Explicit layout defaults — prevent Gradio dark theme from overriding
 _DEFAULT_LAYOUT = dict(
@@ -98,7 +95,6 @@ def _update_axis_range(
 def fill_figure_data(
     fig_json: dict,
     entries: dict[str, DataEntry],
-    time_range: str | None = None,
 ) -> RenderResult:
     """Fill data_label placeholders in a Plotly figure JSON with actual data.
 
@@ -119,7 +115,6 @@ def fill_figure_data(
         fig_json: Plotly figure dict with ``data`` and ``layout`` keys.
             Each trace in ``data`` must have a ``data_label`` field.
         entries: Mapping of label → DataEntry for all referenced labels.
-        time_range: Optional time range string (``"start to end"``).
 
     Returns:
         RenderResult with the constructed go.Figure and metadata.
@@ -129,7 +124,6 @@ def fill_figure_data(
 
     filled_traces: list[dict] = []
     trace_labels: list[str] = []
-    has_datetime_x = False
     # Track which x-axes carry datetime data (for setting type: "date")
     datetime_xaxes: set[str] = set()
     # Track x-data range per datetime axis (for explicit range on auto-ranged axes)
@@ -156,7 +150,7 @@ def fill_figure_data(
 
         if is_heatmap:
             _fill_heatmap_trace(trace, entry)
-            has_datetime_x = True  # spectrograms are always time-based
+            # spectrograms are always time-based
             # Map trace xaxis ref ("x", "x2") → layout key ("xaxis", "xaxis2")
             xref = trace.get("xaxis", "x")
             ax_key = "xaxis" + xref[1:]  # "x" → "xaxis", "x2" → "xaxis2"
@@ -178,7 +172,6 @@ def fill_figure_data(
             vals = entry.values.ravel() if entry.values.ndim > 1 else entry.values
             x_data, is_dt = _extract_index_data(entry)
             if is_dt:
-                has_datetime_x = True
                 xref = trace.get("xaxis", "x")
                 ax_key = "xaxis" + xref[1:]
                 datetime_xaxes.add(ax_key)
@@ -227,18 +220,6 @@ def fill_figure_data(
             merged_layout[key].setdefault("type", "date")
             if key in datetime_xaxis_ranges and "range" not in merged_layout[key]:
                 merged_layout[key]["range"] = datetime_xaxis_ranges[key]
-
-    # Apply time range constraint only when traces used datetime indices
-    if time_range and has_datetime_x:
-        parts = time_range.split(" to ")
-        if len(parts) == 2:
-            start, end = parts[0].strip(), parts[1].strip()
-            # Apply to all xaxes
-            for key in list(merged_layout.keys()):
-                if key.startswith("xaxis"):
-                    ax = merged_layout[key]
-                    if isinstance(ax, dict):
-                        ax.setdefault("range", [start, end])
 
     fig = go.Figure({"data": filled_traces, "layout": merged_layout})
 
@@ -294,7 +275,6 @@ class PlotlyRenderer:
         self.gui_mode = gui_mode
         self._figure: Optional[go.Figure] = None
         self._panel_count: int = 0
-        self._current_time_range: Optional[TimeRange] = None
         self._trace_labels: list[str] = []
 
     # ------------------------------------------------------------------
@@ -305,18 +285,6 @@ class PlotlyRenderer:
         if self.verbose:
             print(f"  [PlotlyRenderer] {msg}")
             sys.stdout.flush()
-
-    # ------------------------------------------------------------------
-    # Time range
-    # ------------------------------------------------------------------
-
-    def set_time_range(self, time_range: TimeRange) -> dict:
-        tr_str = time_range.to_time_range_string()
-        self._log(f"Setting time range: {tr_str}")
-        if self._figure is not None:
-            self._figure.update_xaxes(range=[time_range.start, time_range.end])
-        self._current_time_range = time_range
-        return {"status": "success", "time_range": tr_str}
 
     # ------------------------------------------------------------------
     # Export
@@ -370,15 +338,12 @@ class PlotlyRenderer:
         self._log("Resetting canvas...")
         self._figure = None
         self._panel_count = 0
-        self._current_time_range = None
         self._trace_labels.clear()
         return {"status": "success", "message": "Canvas reset."}
 
     def get_current_state(self) -> dict:
-        tr_str = self._current_time_range.to_time_range_string() if self._current_time_range else None
         return {
             "uri": None,
-            "time_range": tr_str,
             "panel_count": self._panel_count,
             "has_plot": self._figure is not None and len(self._figure.data) > 0,
             "traces": list(self._trace_labels),
@@ -406,11 +371,8 @@ class PlotlyRenderer:
         Returns:
             Result dict with status, panels, traces, display.
         """
-        tr_str = (self._current_time_range.to_time_range_string()
-                  if self._current_time_range else None)
-
         try:
-            build_result = fill_figure_data(fig_json, entries, time_range=tr_str)
+            build_result = fill_figure_data(fig_json, entries)
         except (ValueError, KeyError) as e:
             return {"status": "error", "message": str(e)}
 
@@ -460,11 +422,9 @@ class PlotlyRenderer:
         """
         if self._figure is None:
             return None
-        tr = self._current_time_range
         return {
             "figure_json": self._figure.to_json(),
             "panel_count": self._panel_count,
-            "time_range": tr.to_time_range_string() if tr else None,
             "trace_labels": list(self._trace_labels),
         }
 
@@ -479,13 +439,3 @@ class PlotlyRenderer:
         self._figure = pio.from_json(fig_json)
         self._panel_count = state.get("panel_count", 0)
         self._trace_labels = state.get("trace_labels", [])
-
-        tr_str = state.get("time_range")
-        if tr_str:
-            try:
-                from agent.time_utils import parse_time_range
-                self._current_time_range = parse_time_range(tr_str)
-            except Exception:
-                self._current_time_range = None
-        else:
-            self._current_time_range = None

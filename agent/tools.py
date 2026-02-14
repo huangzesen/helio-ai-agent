@@ -605,14 +605,14 @@ The system automatically handles:
     {
         "category": "visualization",
         "name": "manage_plot",
-        "description": """Imperative operations on the current figure: export, reset, zoom, get state.
+        "description": """Imperative operations on the current figure: export, reset, get state.
 Use action parameter to select the operation.""",
         "parameters": {
             "type": "object",
             "properties": {
                 "action": {
                     "type": "string",
-                    "enum": ["reset", "get_state", "set_time_range", "export"],
+                    "enum": ["reset", "get_state", "export"],
                     "description": "Action to perform"
                 },
                 "filename": {
@@ -623,10 +623,6 @@ Use action parameter to select the operation.""",
                     "type": "string",
                     "enum": ["png", "pdf"],
                     "description": "Export format: 'png' (default) or 'pdf'"
-                },
-                "time_range": {
-                    "type": "string",
-                    "description": "Time range for set_time_range action (e.g., '2024-01-15 to 2024-01-20')"
                 }
             },
             "required": ["action"]

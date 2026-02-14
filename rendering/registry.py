@@ -30,18 +30,16 @@ TOOLS = [
     },
     {
         "name": "manage_plot",
-        "description": "Imperative operations on the current figure: export, reset, zoom, get state.",
+        "description": "Imperative operations on the current figure: export, reset, get state.",
         "parameters": [
             {"name": "action", "type": "string", "required": True,
-             "enum": ["reset", "get_state", "set_time_range", "export"],
+             "enum": ["reset", "get_state", "export"],
              "description": "Action to perform"},
             {"name": "filename", "type": "string", "required": False,
              "description": "Output filename for export action"},
             {"name": "format", "type": "string", "required": False, "default": "png",
              "enum": ["png", "pdf"],
              "description": "Export format (default: png)"},
-            {"name": "time_range", "type": "string", "required": False,
-             "description": "Time range for set_time_range action (e.g., '2024-01-15 to 2024-01-20')"},
         ],
     },
 ]
@@ -128,7 +126,6 @@ def render_method_catalog() -> str:
         '- New plot: `render_plotly_json(figure_json={"data": [{"type": "scatter", "data_label": "ACE_Bmag"}], "layout": {"title": {"text": "ACE B"}}})`',
         '- Multi-panel: define yaxis/yaxis2 domains in layout, use xaxis/yaxis refs in traces',
         '- Spectrogram: `{"type": "heatmap", "data_label": "ACE_spec", "colorscale": "Viridis"}`',
-        "- Zoom: `manage_plot(action=\"set_time_range\", time_range=\"2024-01-15 to 2024-01-20\")`",
         "- Reset: `manage_plot(action=\"reset\")`",
         "- Get state: `manage_plot(action=\"get_state\")`",
         "",

@@ -737,16 +737,6 @@ class OrchestratorAgent:
         elif action == "get_state":
             return self._renderer.get_current_state()
 
-        elif action == "set_time_range":
-            tr_str = tool_args.get("time_range")
-            if not tr_str:
-                return {"status": "error", "message": "time_range is required for set_time_range"}
-            try:
-                time_range = parse_time_range(tr_str)
-            except TimeRangeError as e:
-                return {"status": "error", "message": str(e)}
-            return self._renderer.set_time_range(time_range)
-
         elif action == "export":
             filename = tool_args.get("filename", "output.png")
             fmt = tool_args.get("format", "png")
@@ -2117,10 +2107,6 @@ class OrchestratorAgent:
         special_missions = {"__visualization__", "__data_ops__", "__data_extraction__"}
 
         if task.mission == "__visualization__":
-            # Set renderer time range from plan so visualization auto-applies it
-            if self._plan_time_range:
-                self._renderer.set_time_range(self._plan_time_range)
-
             instr_lower = task.instruction.lower()
             is_export = "export" in instr_lower or ".png" in instr_lower or ".pdf" in instr_lower
 

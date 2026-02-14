@@ -471,7 +471,6 @@ class TestBuildVisualizationPrompt:
         assert "## Timeseries vs General Data" in prompt
         assert "is_timeseries: true" in prompt
         assert "is_timeseries: false" in prompt
-        assert "set_time_range" in prompt
 
     def test_no_deleted_method_references(self):
         """Deleted registry methods should not appear in the prompt."""
