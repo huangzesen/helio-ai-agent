@@ -275,7 +275,7 @@ Each task is routed based on its `mission` field:
 | `task.mission` | Agent | Method | Tools Available |
 |---|---|---|---|
 | `"ACE"`, `"PSP"`, etc. | `MissionAgent(mission_id)` | `execute_task(task)` | discovery, fetch_data, ask_clarification, list_fetched_data |
-| `"__data_ops__"` | `DataOpsAgent` | `execute_task(task)` | custom_operation, compute_spectrogram, describe_data, preview_data, save_data, list_fetched_data |
+| `"__data_ops__"` | `DataOpsAgent` | `execute_task(task)` | custom_operation, describe_data, preview_data, save_data, list_fetched_data |
 | `"__data_extraction__"` | `DataExtractionAgent` | `execute_task(task)` | store_dataframe, read_document, ask_clarification, list_fetched_data |
 | `"__visualization__"` | `VisualizationAgent` | `execute_task(task)` | plot_data, style_plot, manage_plot, list_fetched_data |
 | `null` or unknown | Orchestrator itself | `_execute_task(task)` | All orchestrator tools |
@@ -408,8 +408,7 @@ All tool calls funnel through `OrchestratorAgent._execute_tool(tool_name, tool_a
 - `fetch_data`: validates dataset/parameter IDs, parses time range, auto-clamps to dataset availability, detects duplicate fetches, reports NaN-only columns
 
 ### Compute
-- `custom_operation`: AST-validated sandboxed execution of LLM-generated pandas/numpy code
-- `compute_spectrogram`: AST-validated scipy.signal code
+- `custom_operation`: AST-validated sandboxed execution of LLM-generated pandas/numpy/scipy code
 
 ### Visualization
 - `plot_data` → `_handle_plot_data`: auto-splits by units, creates multi-panel layouts

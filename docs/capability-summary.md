@@ -156,7 +156,6 @@ The viz agent uses `render_plotly_json` and `manage_plot` for all visualization 
 | `fetch_data` | Pull data into memory via CDF download (label: `DATASET.PARAM`) |
 | `list_fetched_data` | Show all in-memory timeseries |
 | `custom_operation` | LLM-generated pandas/numpy/scipy/pywt code (AST-validated, sandboxed) — handles magnitude, arithmetic, smoothing, resampling, derivatives, filtering, spectrograms, wavelets, and any other transformation |
-| `compute_spectrogram` | DEPRECATED — use `custom_operation` instead (which now has full scipy in the sandbox) |
 | `describe_data` | Statistical summary of in-memory data (min/max/mean/std/percentiles/NaN) |
 | `preview_data` | Preview actual values (first/last N rows) of in-memory timeseries for debugging or inspection |
 | `save_data` | Export in-memory timeseries to CSV file |

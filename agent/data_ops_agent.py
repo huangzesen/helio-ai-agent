@@ -153,7 +153,7 @@ class DataOpsAgent(BaseSubAgent):
             f"Execute this task: {task.instruction}\n\n"
             "RULES:\n"
             "- Do ONLY what the instruction says. Do NOT add extra steps.\n"
-            "- After a successful custom_operation or compute_spectrogram, STOP. "
+            "- After a successful custom_operation, STOP. "
             "Do NOT call list_fetched_data, describe_data, or preview_data afterward.\n"
             "- If the operation fails due to wrong column names, call preview_data ONCE "
             "to check column names, then retry with corrected code.\n"

@@ -73,7 +73,7 @@ OrchestratorAgent (HIGH thinking, Gemini 3 Pro)
 ├── DataOpsAgent (LOW thinking, Gemini 3 Flash)
 │   ├─ Singleton (cached)
 │   ├─ Tools: custom_operation, describe_data,
-│   │         preview_data, save_data, compute_spectrogram
+│   │         preview_data, save_data
 │   └─ AST-validated sandbox for LLM-generated code
 │
 ├── DataExtractionAgent (LOW thinking, Gemini 3 Flash)
@@ -151,7 +151,6 @@ OrchestratorAgent
 │  ├─ list_parameters          │   → AST validate          │
 │  │   → metadata_client           │   → sandbox execute       │
 │  ├─ get_data_availability    │   → DataStore.put()       │
-│  │   → metadata_client           ├─ compute_spectrogram      │
 │  ├─ get_dataset_docs         ├─ describe_data            │
 │  │   → metadata_client           ├─ preview_data             │
 │  └─ search_full_catalog      ├─ save_data                │
