@@ -33,6 +33,23 @@ _PANEL_HEIGHT = 300  # px per subplot panel
 _DEFAULT_WIDTH = 1100  # px figure width
 
 
+def _wrap_axis_title(text: str, max_len: int = 20) -> str:
+    """Insert <br> into a long axis title at word boundaries."""
+    words = text.split()
+    lines: list[str] = []
+    current = ""
+    for w in words:
+        candidate = f"{current} {w}".strip() if current else w
+        if len(candidate) > max_len and current:
+            lines.append(current)
+            current = w
+        else:
+            current = candidate
+    if current:
+        lines.append(current)
+    return "<br>".join(lines)
+
+
 # ---------------------------------------------------------------------------
 # RenderResult — return type of fill_figure_data
 # ---------------------------------------------------------------------------
@@ -220,6 +237,17 @@ def fill_figure_data(
             merged_layout[key].setdefault("type", "date")
             if key in datetime_xaxis_ranges and "range" not in merged_layout[key]:
                 merged_layout[key]["range"] = datetime_xaxis_ranges[key]
+
+    # Auto-wrap long y-axis titles with <br> so they don't get clipped
+    for key, val in merged_layout.items():
+        if key.startswith("yaxis") and isinstance(val, dict):
+            title = val.get("title")
+            if isinstance(title, str) and len(title) > 20 and "<br>" not in title:
+                val["title"] = _wrap_axis_title(title, max_len=20)
+            elif isinstance(title, dict):
+                text = title.get("text", "")
+                if len(text) > 20 and "<br>" not in text:
+                    title["text"] = _wrap_axis_title(text, max_len=20)
 
     fig = go.Figure({"data": filled_traces, "layout": merged_layout})
 

@@ -404,13 +404,34 @@ class ChatPage(param.Parameterized):
         self._log_start_time = 0.0
         self._log_running = False
         self._log_periodic_cb = None
-        self.log_terminal = pn.pane.HTML(
-            self._render_terminal_html(),
+        # Static container — created once, never replaced.
+        # Content is patched via JS in the updater pane below.
+        self.log_container = pn.pane.HTML(
+            '<div class="log-outer" style="display:flex;flex-direction:column;'
+            'height:100%;background:#1a1a1a;border-radius:6px;overflow:hidden;">'
+            '<div class="log-scroll" style="flex:1;overflow-y:auto;padding:6px 8px;">'
+            '<pre class="log-pre" style="margin:0;font-family:Menlo,Consolas,monospace;'
+            'font-size:0.75rem;line-height:1.35;color:#ccc;'
+            'white-space:pre-wrap;word-break:break-word;"></pre>'
+            '</div>'
+            '<div class="log-status" style="padding:2px 8px;font-size:0.72rem;'
+            'color:#888;border-top:1px solid #333;'
+            'font-family:Menlo,Consolas,monospace;"></div>'
+            '</div>',
             sizing_mode="stretch_both",
             min_height=200,
         )
+        # Updater pane — its .object is replaced with a <script> that patches
+        # the log container's textContent without destroying the DOM.
+        self.log_updater = pn.pane.HTML("", sizing_mode="fixed", width=0, height=0)
+        self.stats_pane = pn.pane.HTML(
+            self._render_stats_html(),
+            sizing_mode="stretch_width",
+        )
         self.log_panel = pn.Column(
-            self.log_terminal,
+            self.log_container,
+            self.log_updater,
+            self.stats_pane,
             sizing_mode="stretch_both",
             min_width=350,
             max_width=500,
@@ -516,10 +537,45 @@ class ChatPage(param.Parameterized):
         self._update_followups()
         yield f"{response}\n\n*{elapsed:.1f}s*"
 
+    # ----- Stats display -----
+
+    def _render_stats_html(self) -> str:
+        """Render detailed stats panel matching terminal style."""
+        from data_ops.store import get_store
+        store = get_store()
+        mem_bytes = store.memory_usage_bytes()
+        if mem_bytes < 1024 * 1024:
+            mem_str = f"{mem_bytes / 1024:.0f} KB"
+        else:
+            mem_str = f"{mem_bytes / (1024 * 1024):.1f} MB"
+        n_entries = len(store)
+
+        lines = [f"Data in RAM: {mem_str} ({n_entries} entries)"]
+
+        if _agent is not None:
+            lines.append(f"Model: {_agent.model_name}")
+            usage = _agent.get_token_usage()
+            if usage["api_calls"] > 0:
+                lines.append(f"Input: {usage['input_tokens']:,}")
+                lines.append(f"Output: {usage['output_tokens']:,}")
+                lines.append(f"Thinking: {usage.get('thinking_tokens', 0):,}")
+                lines.append(f"Total: {usage['total_tokens']:,}")
+                lines.append(f"API calls: {usage['api_calls']}")
+
+        import html as html_mod
+        content = html_mod.escape("\n".join(lines))
+        return (
+            f'<div style="padding:6px 8px;background:#1a1a1a;border-radius:6px;'
+            f'margin-top:4px;">'
+            f'<pre style="margin:0;font-family:Menlo,Consolas,monospace;'
+            f'font-size:0.72rem;line-height:1.4;color:#888;">{content}</pre>'
+            f'</div>'
+        )
+
     # ----- Sidebar refresh -----
 
     def _refresh_sidebar(self):
-        """Update plot and session list after agent response."""
+        """Update plot, session list, and stats after agent response."""
         try:
             fig = _get_current_figure()
             if fig is not None:
@@ -533,6 +589,9 @@ class ChatPage(param.Parameterized):
             active = _get_active_session_id()
             if active:
                 self.session_select.value = active
+
+            # Update stats
+            self.stats_pane.object = self._render_stats_html()
         except Exception:
             pass
 
@@ -567,22 +626,26 @@ class ChatPage(param.Parameterized):
 
     # ----- Log panel (terminal-style) -----
 
-    def _render_terminal_html(self) -> str:
-        """Render log lines as a plain terminal-style scrollable block."""
+    def _build_log_update_script(self) -> str:
+        """Build a <script> that patches the log container's text in-place.
+
+        The container DOM is never destroyed, so scrollTop is preserved.
+        Auto-scrolls only if the user is near the bottom (<80px gap).
+        """
         import html as html_mod
+        import json as json_mod
+
         if not self._log_lines:
             content = ""
         else:
-            # Show last 500 lines, with truncation notice
             tail = self._log_lines[-500:]
             truncated = len(self._log_lines) - len(tail)
             lines = []
             if truncated:
                 lines.append(f"... ({truncated} earlier lines hidden)")
             lines.extend(tail)
-            content = html_mod.escape("\n".join(lines))
+            content = "\n".join(lines)
 
-        # Status line
         if self._log_running:
             elapsed = time.monotonic() - self._log_start_time
             status = f"Working... {elapsed:.1f}s"
@@ -591,33 +654,22 @@ class ChatPage(param.Parameterized):
         else:
             status = ""
 
-        status_html = ""
-        if status:
-            status_html = (
-                f'<div style="padding:2px 8px;font-size:0.72rem;color:#888;'
-                f'border-top:1px solid #333;font-family:Menlo,Consolas,monospace;">'
-                f'{html_mod.escape(status)}</div>'
-            )
+        # JSON-encode to safely embed in JS (handles newlines, quotes, etc.)
+        content_js = json_mod.dumps(content)
+        status_js = json_mod.dumps(status)
 
-        # Auto-scroll only if user hasn't scrolled up to read earlier lines.
-        # We store the previous scrollTop in a data attribute so it survives
-        # the HTML replacement cycle.
         return (
-            f'<div style="display:flex;flex-direction:column;height:100%;'
-            f'background:#1a1a1a;border-radius:6px;overflow:hidden;">'
-            f'<div class="log-scroll" style="flex:1;overflow-y:auto;padding:6px 8px;">'
-            f'<pre style="margin:0;font-family:Menlo,Consolas,monospace;'
-            f'font-size:0.75rem;line-height:1.35;color:#ccc;'
-            f'white-space:pre-wrap;word-break:break-word;">{content}</pre>'
-            f'</div>'
-            f'{status_html}'
-            f'</div>'
             f'<script>(function(){{'
-            f'var c=document.currentScript.previousElementSibling;'
-            f'var d=c&&c.querySelector?c.querySelector(".log-scroll"):null;'
-            f'if(!d)return;'
-            f'var gap=d.scrollHeight-d.scrollTop-d.clientHeight;'
-            f'if(gap<80)d.scrollTop=d.scrollHeight;'
+            f'var pre=document.querySelector(".log-pre");'
+            f'var sc=document.querySelector(".log-scroll");'
+            f'var st=document.querySelector(".log-status");'
+            f'if(!pre||!sc)return;'
+            # Check if near bottom BEFORE updating content
+            f'var gap=sc.scrollHeight-sc.scrollTop-sc.clientHeight;'
+            f'pre.textContent={content_js};'
+            f'if(st)st.textContent={status_js};'
+            # Auto-scroll only if was near bottom
+            f'if(gap<80)sc.scrollTop=sc.scrollHeight;'
             f'}})()</script>'
         )
 
@@ -626,8 +678,8 @@ class ChatPage(param.Parameterized):
         self.log_panel.visible = event.new
 
     def _refresh_log_panel(self, status: str = ""):
-        """Update the terminal log content."""
-        self.log_terminal.object = self._render_terminal_html()
+        """Patch the log container content via JS (preserves scroll position)."""
+        self.log_updater.object = self._build_log_update_script()
 
     def _start_log_refresh(self):
         """Start periodic callback to update log panel every 500ms."""
@@ -648,6 +700,7 @@ class ChatPage(param.Parameterized):
             self._stop_log_refresh()
             return
         self._refresh_log_panel()
+        self.stats_pane.object = self._render_stats_html()
 
     # ----- Session management -----
 
