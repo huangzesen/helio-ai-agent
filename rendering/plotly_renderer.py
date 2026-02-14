@@ -77,7 +77,7 @@ def _downsample_minmax(time_arr, val_arr, max_points: int = _MAX_DISPLAY_POINTS)
             continue
         idx_min = start + np.nanargmin(chunk)
         idx_max = start + np.nanargmax(chunk)
-        # Add in chronological order
+        # Add in index order
         if idx_min <= idx_max:
             indices.extend([idx_min, idx_max])
         else:
@@ -176,6 +176,21 @@ def _scatter_cls(n_points: int):
     return go.Scattergl if n_points > _GL_THRESHOLD else go.Scatter
 
 
+def _extract_x_data(entry: DataEntry) -> list:
+    """Extract x-axis values from a DataEntry.
+
+    DatetimeIndex / xarray time coords → ISO 8601 strings.
+    Numeric or other indices → raw values as list.
+    """
+    if entry.is_xarray:
+        import pandas as pd
+        return [pd.Timestamp(t).isoformat() for t in entry.data.coords["time"].values]
+    idx = entry.data.index
+    if hasattr(idx, 'tz') or str(idx.dtype).startswith('datetime'):
+        return [t.isoformat() for t in idx]
+    return list(idx)
+
+
 def _add_line_traces(
     entries: list[DataEntry],
     row: int,
@@ -190,11 +205,7 @@ def _add_line_traces(
 
     for entry in entries:
         display_name = entry.description or entry.label
-        if entry.is_xarray:
-            import pandas as pd
-            time_list = [pd.Timestamp(t).isoformat() for t in entry.data.coords["time"].values]
-        else:
-            time_list = [t.isoformat() for t in entry.data.index]
+        time_list = _extract_x_data(entry)
 
         if entry.values.ndim == 2 and entry.values.shape[1] > 1:
             comp_names = ["x", "y", "z"]
@@ -235,6 +246,12 @@ def _add_line_traces(
             trace_panels.append((row, col))
             added_labels.append(display_name)
 
+    if added_labels:
+        import pandas as pd
+        sample = entries[0]
+        if sample.is_xarray or isinstance(sample.data.index, pd.DatetimeIndex):
+            fig.update_xaxes(type="date", row=row, col=col)
+
     return added_labels
 
 
@@ -253,10 +270,10 @@ def _add_spectrogram_trace(
     """Add a spectrogram heatmap trace to a specific panel cell."""
     meta = entry.metadata or {}
 
+    times = _extract_x_data(entry)
+
     if entry.is_xarray:
-        import pandas as pd
         da = entry.data
-        times = [pd.Timestamp(t).isoformat() for t in da.coords["time"].values]
         non_time_dims = [d for d in da.dims if d != "time"]
         if non_time_dims:
             last_dim = non_time_dims[-1]
@@ -271,7 +288,6 @@ def _add_spectrogram_trace(
             middle_axes = tuple(range(1, z_values.ndim - 1))
             z_values = np.nanmean(z_values, axis=middle_axes)
     else:
-        times = [t.isoformat() for t in entry.data.index]
         bin_values = meta.get("bin_values")
         if bin_values is None:
             try:
@@ -339,6 +355,72 @@ def _validate_spectrogram_entry(entry: DataEntry) -> str | None:
     return None
 
 
+def _add_generic_traces(
+    entries: list[DataEntry],
+    row: int,
+    fig: go.Figure,
+    panel_type: str,
+    color_state: ColorState,
+    trace_labels: list[str],
+    trace_panels: list[tuple[int, int]],
+    col: int = 1,
+    **kwargs,
+) -> list[str]:
+    """Add traces for arbitrary Plotly trace types (scatter, bar, box, etc.).
+
+    Maps panel_type to a go.* class via getattr. Falls back to go.Scatter
+    if the type is unrecognised. Passes remaining kwargs through to the
+    trace constructor.
+    """
+    # Resolve trace class: "bar" → go.Bar, "box" → go.Box, etc.
+    cls_name = panel_type.capitalize()
+    TraceCls = getattr(go, cls_name, go.Scatter)
+
+    added_labels: list[str] = []
+    for entry in entries:
+        display_name = entry.description or entry.label
+        x_data = _extract_x_data(entry)
+
+        if entry.values.ndim == 2 and entry.values.shape[1] > 1:
+            comp_names = ["x", "y", "z"]
+            for comp_col in range(entry.values.shape[1]):
+                comp = comp_names[comp_col] if comp_col < 3 else str(comp_col)
+                label = f"{display_name} ({comp})"
+                vals = entry.values[:, comp_col]
+                y_data = [float(v) if np.isfinite(v) else None for v in vals]
+                trace_kw = dict(
+                    x=x_data, y=y_data,
+                    name=_wrap_display_name(label),
+                    marker=dict(color=color_state.next_color(label)),
+                    **kwargs,
+                )
+                fig.add_trace(TraceCls(**trace_kw), row=row, col=col)
+                trace_labels.append(label)
+                trace_panels.append((row, col))
+                added_labels.append(label)
+        else:
+            vals = entry.values.ravel() if entry.values.ndim > 1 else entry.values
+            y_data = [float(v) if np.isfinite(v) else None for v in vals]
+            trace_kw = dict(
+                x=x_data, y=y_data,
+                name=_wrap_display_name(display_name),
+                marker=dict(color=color_state.next_color(display_name)),
+                **kwargs,
+            )
+            fig.add_trace(TraceCls(**trace_kw), row=row, col=col)
+            trace_labels.append(display_name)
+            trace_panels.append((row, col))
+            added_labels.append(display_name)
+
+    if added_labels:
+        import pandas as pd
+        sample = entries[0]
+        if sample.is_xarray or isinstance(sample.data.index, pd.DatetimeIndex):
+            fig.update_xaxes(type="date", row=row, col=col)
+
+    return added_labels
+
+
 def _resolve_column_sublabel(
     label: str, entry_map: dict[str, DataEntry],
 ) -> DataEntry | None:
@@ -388,7 +470,7 @@ def build_figure_from_spec(
         return {"status": "error", "message": "No entries to plot"}
 
     for entry in entries:
-        if len(entry.time) == 0:
+        if len(entry.data) == 0:
             return {"status": "error",
                     "message": f"Entry '{entry.label}' has no data points"}
 
@@ -439,7 +521,8 @@ def _create_figure(
 
     # Create subplot grid
     subplot_kwargs: dict = dict(
-        rows=max(n_panels, 1), cols=columns, shared_xaxes=True,
+        rows=max(n_panels, 1), cols=columns,
+        shared_xaxes=meta.get("shared_xaxes", True),
         vertical_spacing=0.06,
     )
     if columns > 1:
@@ -452,10 +535,7 @@ def _create_figure(
     trace_panels: list[tuple[int, int]] = []
     all_trace_labels: list[str] = []
 
-    spectro_kwargs = {}
-    for sk in ("colorscale", "log_y", "z_min", "z_max"):
-        if sk in meta:
-            spectro_kwargs[sk] = meta[sk]
+    pkw = meta.get("panel_kwargs", {})
 
     if panels is not None:
         for panel_idx, panel_labels in enumerate(panels):
@@ -474,7 +554,7 @@ def _create_figure(
             err = _dispatch_to_panels(
                 panel_entries, row, fig, ptype, color_state,
                 trace_labels, trace_panels, columns, all_trace_labels,
-                **spectro_kwargs,
+                **pkw,
             )
             if err:
                 return err
@@ -483,7 +563,7 @@ def _create_figure(
         err = _dispatch_to_panels(
             entries, 1, fig, ptype, color_state,
             trace_labels, trace_panels, columns, all_trace_labels,
-            **spectro_kwargs,
+            **pkw,
         )
         if err:
             return err
@@ -530,6 +610,8 @@ def _build_from_spec(
         meta["columns"] = spec["columns"]
     if "column_titles" in spec:
         meta["column_titles"] = spec["column_titles"]
+    if "shared_xaxes" in spec:
+        meta["shared_xaxes"] = spec["shared_xaxes"]
 
     # Build layout dict from style fields
     layout: dict = {}
@@ -688,14 +770,17 @@ def _build_from_spec(
             traces_patch[trace_label] = traces_patch.get(trace_label, {})
             traces_patch[trace_label]["mode"] = mode
 
-    # Carry over spectrogram params into meta if present
+    # Carry over plot_type and panel kwargs into meta
     if spec.get("plot_type"):
         if not meta.get("panel_types"):
             n_panels = len(meta["panels"]) if "panels" in meta else 1
             meta["panel_types"] = [spec["plot_type"]] * n_panels
-    for spectro_key in ("colorscale", "log_y", "z_min", "z_max"):
-        if spectro_key in spec:
-            meta[spectro_key] = spec[spectro_key]
+    panel_kwargs: dict = {}
+    for key in ("colorscale", "log_y", "z_min", "z_max"):
+        if key in spec:
+            panel_kwargs[key] = spec[key]
+    if panel_kwargs:
+        meta["panel_kwargs"] = panel_kwargs
 
     effective_time_range = time_range or spec.get("time_range")
 
@@ -712,12 +797,13 @@ def _build_from_spec(
         height=_PANEL_HEIGHT * result.panel_count,
         legend=dict(font=dict(size=11), tracegroupgap=2),
     )
-    result.figure.update_xaxes(type="date")
     if effective_time_range:
         parts = effective_time_range.split(" to ")
         if len(parts) == 2:
             result.figure.update_xaxes(
-                range=[parts[0].strip(), parts[1].strip()])
+                range=[parts[0].strip(), parts[1].strip()],
+                selector=dict(type="date"),
+            )
 
     # --- User-specified overrides (applied after defaults) ---
     if layout:
@@ -771,6 +857,9 @@ def _dispatch_to_panels(
     return None
 
 
+_SPECTROGRAM_KEYS = frozenset(("colorscale", "log_y", "z_min", "z_max"))
+
+
 def _dispatch_traces(
     entries: list[DataEntry],
     row: int,
@@ -780,10 +869,11 @@ def _dispatch_traces(
     trace_labels: list[str],
     trace_panels: list[tuple[int, int]],
     col: int = 1,
-    **spectro_kwargs,
+    **panel_kwargs,
 ) -> list[str] | dict:
     """Add traces for a single panel cell, dispatching by panel_type."""
     if panel_type == "spectrogram":
+        spectro_kwargs = {k: v for k, v in panel_kwargs.items() if k in _SPECTROGRAM_KEYS}
         labels: list[str] = []
         for e in entries:
             err = _validate_spectrogram_entry(e)
@@ -795,9 +885,15 @@ def _dispatch_traces(
             )
             labels.append(label)
         return labels
-    else:
+    elif panel_type == "line":
         return _add_line_traces(
             entries, row, fig, color_state, trace_labels, trace_panels, col=col,
+        )
+    else:
+        extra = {k: v for k, v in panel_kwargs.items() if k not in _SPECTROGRAM_KEYS}
+        return _add_generic_traces(
+            entries, row, fig, panel_type, color_state,
+            trace_labels, trace_panels, col=col, **extra,
         )
 
 

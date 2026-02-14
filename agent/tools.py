@@ -541,8 +541,9 @@ The spec is a single JSON object containing all layout and style fields. The sys
 the new spec to the current one and decides whether to re-render (layout changed) or just
 restyle (only aesthetics changed). Creating a new plot = updating an empty spec.
 
-Layout fields (trigger re-render when changed): labels, panels, panel_types, plot_type,
-columns, column_titles, colorscale, log_y, log_z, z_min, z_max.
+Layout fields (trigger re-render when changed): labels, panels, panel_types (line, spectrogram,
+scatter, bar, histogram, box, violin), plot_type, columns, column_titles, shared_xaxes,
+colorscale, log_y, z_min, z_max.
 
 Style fields (applied in-place): title, x_label, y_label, trace_colors, line_styles,
 log_scale, x_range, y_range, legend, font_size, canvas_size, annotations, theme, vlines, vrects.
@@ -944,7 +945,7 @@ If the user requests modifications (e.g., 'run my ACE pipeline but with red line
 
 The spec is a single JSON object containing all layout and aesthetic fields. Same spec = same plot, always.
 
-Layout fields: labels, panels, panel_types, title, plot_type, colorscale, log_y, log_z, z_min, z_max, columns, column_titles.
+Layout fields: labels, panels, panel_types (line, spectrogram, scatter, bar, histogram, box, violin), title, plot_type, colorscale, log_y, z_min, z_max, columns, column_titles, shared_xaxes.
 Style fields: x_label, y_label, trace_colors, line_styles, log_scale, x_range, y_range, legend, font_size, canvas_size, annotations, theme, vlines, vrects.
 
 All fields are optional except 'labels'.""",

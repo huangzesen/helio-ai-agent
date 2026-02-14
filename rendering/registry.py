@@ -19,8 +19,9 @@ TOOLS = [
         "parameters": [
             {"name": "spec", "type": "object", "required": True,
              "description": "Complete plot specification. Must include 'labels' (comma-separated). "
-                            "Layout fields: panels, panel_types, plot_type, columns, column_titles, "
-                            "colorscale, log_y, log_z, z_min, z_max. "
+                            "Layout fields: panels, panel_types (line, spectrogram, scatter, bar, "
+                            "histogram, box, violin), plot_type, columns, column_titles, "
+                            "shared_xaxes, colorscale, log_y, z_min, z_max. "
                             "Style fields: title, x_label, y_label, trace_colors, line_styles, "
                             "trace_visibility, trace_mode, "
                             "log_scale, x_range, y_range, legend, font_size, canvas_size, margin, "
@@ -127,7 +128,7 @@ def render_method_catalog() -> str:
         "- New plot via spec: `update_plot_spec(spec={\"labels\": \"ACE_Bmag,PSP_Bmag\", \"title\": \"Comparison\"})`",
         "- Multi-panel spec: `update_plot_spec(spec={\"labels\": \"Bmag,Density\", \"panels\": [[\"Bmag\"], [\"Density\"]], \"y_label\": {\"1\": \"nT\", \"2\": \"cm^-3\"}})`",
         "- Style change via spec: `update_plot_spec(spec={\"labels\": \"ACE_Bmag\", \"title\": \"New Title\", \"trace_colors\": {\"ACE Bmag\": \"red\"}})`",
-        "- Spectrogram spec: `update_plot_spec(spec={\"labels\": \"ACE_spec\", \"plot_type\": \"spectrogram\", \"colorscale\": \"Jet\", \"log_z\": true})`",
+        "- Spectrogram spec: `update_plot_spec(spec={\"labels\": \"ACE_spec\", \"plot_type\": \"spectrogram\", \"colorscale\": \"Jet\"})`",
         "- Zoom: `manage_plot(action=\"set_time_range\", time_range=\"2024-01-15 to 2024-01-20\")`",
         "- Reset: `manage_plot(action=\"reset\")`",
         "- Get state: `manage_plot(action=\"get_state\")`",

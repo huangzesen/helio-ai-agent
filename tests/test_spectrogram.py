@@ -213,13 +213,13 @@ class TestPlotSpectrogram:
         assert len(fig.data) == 1
         assert "heatmap" in fig.data[0].type.lower()
 
-    def test_log_scales(self):
-        """log_y and log_z should be applied correctly."""
+    def test_log_y(self):
+        """log_y should be applied correctly."""
         renderer = PlotlyRenderer()
         entry = _make_spectrogram_entry()
         result = renderer.render_from_spec(
             {"labels": entry.label, "plot_type": "spectrogram",
-             "log_y": True, "log_z": True}, [entry])
+             "log_y": True}, [entry])
         assert result["status"] == "success"
 
         fig = renderer.get_figure()
