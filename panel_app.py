@@ -409,6 +409,7 @@ class ChatPage(param.Parameterized):
         self.stats_pane = pn.pane.HTML(
             self._render_stats_html(),
             sizing_mode="stretch_width",
+            height=250,
         )
         self.log_terminal = pn.pane.HTML(
             self._render_terminal_html(),
@@ -933,7 +934,7 @@ class ChatPage(param.Parameterized):
             header_background="#0097b2",
             sidebar_width=280,
             collapsed_sidebar=True,
-            right_sidebar_width=420,
+            right_sidebar_width=550,
             collapsed_right_sidebar=True,
             theme="default",
             theme_toggle=False,
