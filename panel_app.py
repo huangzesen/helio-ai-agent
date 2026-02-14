@@ -599,18 +599,26 @@ class ChatPage(param.Parameterized):
                 f'{html_mod.escape(status)}</div>'
             )
 
+        # Auto-scroll only if user hasn't scrolled up to read earlier lines.
+        # We store the previous scrollTop in a data attribute so it survives
+        # the HTML replacement cycle.
         return (
             f'<div style="display:flex;flex-direction:column;height:100%;'
             f'background:#1a1a1a;border-radius:6px;overflow:hidden;">'
-            f'<div id="log-scroll" style="flex:1;overflow-y:auto;padding:6px 8px;">'
+            f'<div class="log-scroll" style="flex:1;overflow-y:auto;padding:6px 8px;">'
             f'<pre style="margin:0;font-family:Menlo,Consolas,monospace;'
             f'font-size:0.75rem;line-height:1.35;color:#ccc;'
             f'white-space:pre-wrap;word-break:break-word;">{content}</pre>'
             f'</div>'
             f'{status_html}'
             f'</div>'
-            f'<script>(function(){{var d=document.getElementById("log-scroll");'
-            f'if(d)d.scrollTop=d.scrollHeight;}})()</script>'
+            f'<script>(function(){{'
+            f'var c=document.currentScript.previousElementSibling;'
+            f'var d=c&&c.querySelector?c.querySelector(".log-scroll"):null;'
+            f'if(!d)return;'
+            f'var gap=d.scrollHeight-d.scrollTop-d.clientHeight;'
+            f'if(gap<80)d.scrollTop=d.scrollHeight;'
+            f'}})()</script>'
         )
 
     def _on_log_toggle(self, event):
