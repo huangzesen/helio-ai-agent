@@ -404,33 +404,18 @@ class ChatPage(param.Parameterized):
         self._log_start_time = 0.0
         self._log_running = False
         self._log_periodic_cb = None
-        # Static container — created once, never replaced.
-        # Content is patched via JS in the updater pane below.
-        self.log_container = pn.pane.HTML(
-            '<div class="log-outer" style="display:flex;flex-direction:column;'
-            'height:100%;background:#1a1a1a;border-radius:6px;overflow:hidden;">'
-            '<div class="log-scroll" style="flex:1;overflow-y:auto;padding:6px 8px;">'
-            '<pre class="log-pre" style="margin:0;font-family:Menlo,Consolas,monospace;'
-            'font-size:0.75rem;line-height:1.35;color:#ccc;'
-            'white-space:pre-wrap;word-break:break-word;"></pre>'
-            '</div>'
-            '<div class="log-status" style="padding:2px 8px;font-size:0.72rem;'
-            'color:#888;border-top:1px solid #333;'
-            'font-family:Menlo,Consolas,monospace;"></div>'
-            '</div>',
+        self._log_prev_count = 0  # track last rendered line count
+        self.log_terminal = pn.pane.HTML(
+            self._render_terminal_html(),
             sizing_mode="stretch_both",
             min_height=200,
         )
-        # Updater pane — its .object is replaced with a <script> that patches
-        # the log container's textContent without destroying the DOM.
-        self.log_updater = pn.pane.HTML("", sizing_mode="fixed", width=0, height=0)
         self.stats_pane = pn.pane.HTML(
             self._render_stats_html(),
             sizing_mode="stretch_width",
         )
         self.log_panel = pn.Column(
-            self.log_container,
-            self.log_updater,
+            self.log_terminal,
             self.stats_pane,
             sizing_mode="stretch_both",
             min_width=350,
@@ -540,8 +525,10 @@ class ChatPage(param.Parameterized):
     # ----- Stats display -----
 
     def _render_stats_html(self) -> str:
-        """Render detailed stats panel matching terminal style."""
+        """Render detailed stats panel with per-agent breakdown."""
+        import html as html_mod
         from data_ops.store import get_store
+
         store = get_store()
         mem_bytes = store.memory_usage_bytes()
         if mem_bytes < 1024 * 1024:
@@ -549,22 +536,47 @@ class ChatPage(param.Parameterized):
         else:
             mem_str = f"{mem_bytes / (1024 * 1024):.1f} MB"
         n_entries = len(store)
+        entries = store.list_entries()
 
-        lines = [f"Data in RAM: {mem_str} ({n_entries} entries)"]
+        lines = []
+        lines.append(f"Data in RAM: {mem_str} ({n_entries} entries)")
+        if entries:
+            for e in entries:
+                pts = f"{e['num_points']:,}" if e.get("num_points") else "?"
+                lines.append(f"  {e['label']}  ({pts} pts)")
 
         if _agent is not None:
+            lines.append("")
             lines.append(f"Model: {_agent.model_name}")
+            sid = _agent.get_session_id()
+            if sid:
+                lines.append(f"Session: {sid[:20]}")
+
             usage = _agent.get_token_usage()
             if usage["api_calls"] > 0:
-                lines.append(f"Input: {usage['input_tokens']:,}")
-                lines.append(f"Output: {usage['output_tokens']:,}")
-                thinking = usage.get('thinking_tokens', 0)
+                lines.append("")
+                lines.append("Token Usage")
+                lines.append(f"  Input:    {usage['input_tokens']:>10,}")
+                lines.append(f"  Output:   {usage['output_tokens']:>10,}")
+                thinking = usage.get("thinking_tokens", 0)
                 if thinking:
-                    lines.append(f"Thinking: {thinking:,}")
-                lines.append(f"Total: {usage['total_tokens']:,}")
-                lines.append(f"API calls: {usage['api_calls']}")
+                    lines.append(f"  Thinking: {thinking:>10,}")
+                lines.append(f"  Total:    {usage['total_tokens']:>10,}")
+                lines.append(f"  API calls: {usage['api_calls']}")
 
-        import html as html_mod
+                # Per-agent breakdown
+                breakdown = _agent.get_token_usage_breakdown()
+                if len(breakdown) > 1:
+                    lines.append("")
+                    lines.append("Per-Agent Breakdown")
+                    for row in breakdown:
+                        total = row["input"] + row["output"] + row["thinking"]
+                        lines.append(
+                            f"  {row['agent']:<20s} "
+                            f"{total:>8,} tok  "
+                            f"{row['calls']:>2} calls"
+                        )
+
         content = html_mod.escape("\n".join(lines))
         return (
             f'<div style="padding:6px 8px;background:#1a1a1a;border-radius:6px;'
@@ -628,15 +640,12 @@ class ChatPage(param.Parameterized):
 
     # ----- Log panel (terminal-style) -----
 
-    def _build_log_update_script(self) -> str:
-        """Build a <script> that patches the log container's text in-place.
+    def _render_terminal_html(self) -> str:
+        """Render log lines as a terminal-style scrollable block.
 
-        The container DOM is never destroyed, so scrollTop is preserved.
-        Auto-scrolls only if the user is near the bottom (<80px gap).
+        Always scrolls to the bottom to show the latest output.
         """
         import html as html_mod
-        import json as json_mod
-
         if not self._log_lines:
             content = ""
         else:
@@ -646,33 +655,39 @@ class ChatPage(param.Parameterized):
             if truncated:
                 lines.append(f"... ({truncated} earlier lines hidden)")
             lines.extend(tail)
-            content = "\n".join(lines)
+            content = html_mod.escape("\n".join(lines))
 
         if self._log_running:
             elapsed = time.monotonic() - self._log_start_time
-            status = f"Working... {elapsed:.1f}s"
+            status = html_mod.escape(f"Working... {elapsed:.1f}s")
         elif self._log_lines:
-            status = f"{len(self._log_lines)} lines"
+            status = html_mod.escape(f"{len(self._log_lines)} lines")
         else:
             status = ""
 
-        # JSON-encode to safely embed in JS (handles newlines, quotes, etc.)
-        content_js = json_mod.dumps(content)
-        status_js = json_mod.dumps(status)
+        status_html = ""
+        if status:
+            status_html = (
+                f'<div style="padding:2px 8px;font-size:0.72rem;color:#888;'
+                f'border-top:1px solid #333;font-family:Menlo,Consolas,monospace;">'
+                f'{status}</div>'
+            )
 
+        # Use flex-direction:column-reverse so the container naturally
+        # shows the bottom (latest) content. The <pre> is wrapped in a
+        # div with column-reverse, which flips the overflow anchor to
+        # the bottom — no JS scrolling needed.
         return (
-            f'<script>(function(){{'
-            f'var pre=document.querySelector(".log-pre");'
-            f'var sc=document.querySelector(".log-scroll");'
-            f'var st=document.querySelector(".log-status");'
-            f'if(!pre||!sc)return;'
-            # Check if near bottom BEFORE updating content
-            f'var gap=sc.scrollHeight-sc.scrollTop-sc.clientHeight;'
-            f'pre.textContent={content_js};'
-            f'if(st)st.textContent={status_js};'
-            # Auto-scroll only if was near bottom
-            f'if(gap<80)sc.scrollTop=sc.scrollHeight;'
-            f'}})()</script>'
+            f'<div style="display:flex;flex-direction:column;height:100%;'
+            f'background:#1a1a1a;border-radius:6px;overflow:hidden;">'
+            f'<div style="flex:1;overflow-y:auto;padding:6px 8px;'
+            f'display:flex;flex-direction:column-reverse;">'
+            f'<pre style="margin:0;font-family:Menlo,Consolas,monospace;'
+            f'font-size:0.75rem;line-height:1.35;color:#ccc;'
+            f'white-space:pre-wrap;word-break:break-word;">{content}</pre>'
+            f'</div>'
+            f'{status_html}'
+            f'</div>'
         )
 
     def _on_log_toggle(self, event):
@@ -680,8 +695,8 @@ class ChatPage(param.Parameterized):
         self.log_panel.visible = event.new
 
     def _refresh_log_panel(self, status: str = ""):
-        """Patch the log container content via JS (preserves scroll position)."""
-        self.log_updater.object = self._build_log_update_script()
+        """Update the terminal log content."""
+        self.log_terminal.object = self._render_terminal_html()
 
     def _start_log_refresh(self):
         """Start periodic callback to update log panel every 500ms."""

@@ -562,6 +562,62 @@ class OrchestratorAgent:
             "api_calls": api_calls,
         }
 
+    def get_token_usage_breakdown(self) -> list[dict]:
+        """Return per-agent token usage breakdown.
+
+        Returns a list of dicts with keys: agent, input, output, thinking, calls.
+        Only includes agents that have made at least one API call.
+        """
+        rows = []
+
+        def _add(name, usage):
+            if usage["api_calls"] > 0:
+                rows.append({
+                    "agent": name,
+                    "input": usage["input_tokens"],
+                    "output": usage["output_tokens"],
+                    "thinking": usage.get("thinking_tokens", 0),
+                    "calls": usage["api_calls"],
+                })
+
+        # Orchestrator's own usage
+        _add("Orchestrator", {
+            "input_tokens": self._total_input_tokens,
+            "output_tokens": self._total_output_tokens,
+            "thinking_tokens": self._total_thinking_tokens,
+            "api_calls": self._api_calls,
+        })
+
+        # Mission agents
+        for mission_id, agent in self._mission_agents.items():
+            _add(f"Mission/{mission_id}", agent.get_token_usage())
+
+        # Visualization agent
+        if self._viz_agent:
+            _add("Visualization", self._viz_agent.get_token_usage())
+
+        # Data ops agent
+        if self._dataops_agent:
+            _add("DataOps", self._dataops_agent.get_token_usage())
+
+        # Data extraction agent
+        if self._data_extraction_agent:
+            _add("DataExtraction", self._data_extraction_agent.get_token_usage())
+
+        # Planner agent
+        if self._planner_agent:
+            usage = self._planner_agent.get_token_usage()
+            if usage["api_calls"] > 0 or usage["input_tokens"] > 0:
+                rows.append({
+                    "agent": "Planner",
+                    "input": usage["input_tokens"],
+                    "output": usage["output_tokens"],
+                    "thinking": usage.get("thinking_tokens", 0),
+                    "calls": usage.get("api_calls", 0),
+                })
+
+        return rows
+
     def _validate_time_range(self, dataset_id: str, start, end) -> dict | None:
         """Check a requested time range against a dataset's availability.
 
