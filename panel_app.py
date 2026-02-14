@@ -409,7 +409,7 @@ class ChatPage(param.Parameterized):
         self.stats_pane = pn.pane.HTML(
             self._render_stats_html(),
             sizing_mode="stretch_width",
-            height=250,
+            height=300,
         )
         self.log_terminal = pn.pane.HTML(
             self._render_terminal_html(),
@@ -529,7 +529,9 @@ class ChatPage(param.Parameterized):
         lines = []
 
         if _agent is not None:
-            lines.append(f"Model: {_agent.model_name}")
+            from agent.core import SUB_AGENT_MODEL
+            lines.append(f"Main-agent: {_agent.model_name}")
+            lines.append(f"Sub-agent:  {SUB_AGENT_MODEL}")
             sid = _agent.get_session_id()
             if sid:
                 lines.append(f"Session: {sid[:20]}")
@@ -701,7 +703,7 @@ class ChatPage(param.Parameterized):
             f'display:flex;flex-direction:column-reverse;">'
             f'<pre style="margin:0;font-family:Menlo,Consolas,monospace;'
             f'font-size:0.75rem;line-height:1.35;color:#ccc;'
-            f'white-space:pre-wrap;word-break:break-word;">{content}</pre>'
+            f'white-space:pre;">{content}</pre>'
             f'</div>'
             f'{status_html}'
             f'</div>'
