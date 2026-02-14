@@ -415,23 +415,47 @@ def build_figure_from_spec(
     meta = spec.get("_meta", {})
 
     if meta:
+        # Raw path: _meta + layout + traces
         layout = spec.get("layout", {})
         traces = spec.get("traces", {})
-        return _build_from_meta(meta, layout, traces, entries, color_state, time_range)
+        result = _create_figure(meta, entries, color_state, time_range)
+        if isinstance(result, dict):
+            return result  # error dict
+        if layout:
+            result.figure.update_layout(**layout)
+        if traces:
+            _apply_trace_patches(result.figure, result.trace_labels, traces)
+        return result
     else:
-        # Legacy format: flat spec with labels, panels, etc.
-        return _build_from_legacy(spec, entries, color_state, time_range)
+        # Semantic format: flat spec with labels, panels, title, etc.
+        return _build_from_spec(spec, entries, color_state, time_range)
 
 
-def _build_from_meta(
-    meta: dict,
-    layout: dict,
+def _apply_trace_patches(
+    fig: go.Figure,
+    trace_labels: list[str],
     traces: dict,
+) -> None:
+    """Apply per-trace patches matched by label (commutative operation)."""
+    for selector, patch in traces.items():
+        for i, label in enumerate(trace_labels):
+            if label == selector or selector in label or label in selector:
+                if i < len(fig.data):
+                    fig.data[i].update(**patch)
+
+
+def _create_figure(
+    meta: dict,
     entries: list[DataEntry],
     color_state: ColorState,
     time_range: str | None,
 ) -> RenderResult | dict:
-    """Build figure from _meta + layout/traces format."""
+    """Create subplot grid and dispatch traces (non-commutative operations only).
+
+    This handles everything that depends on ordering: make_subplots, add traces,
+    set date axes, apply time range. Commutative styling (layout JSON, trace
+    patches) is applied by the caller.
+    """
     panels = meta.get("panels")
     panel_types = meta.get("panel_types")
     columns = max(meta.get("columns", 1), 1)
@@ -562,18 +586,6 @@ def _build_from_meta(
         if len(parts) == 2:
             fig.update_xaxes(range=[parts[0].strip(), parts[1].strip()])
 
-    # Apply layout passthrough (raw Plotly JSON)
-    if layout:
-        fig.update_layout(**layout)
-
-    # Apply per-trace patches matched by label
-    if traces:
-        for trace_selector, patch in traces.items():
-            for i, label in enumerate(trace_labels):
-                if label == trace_selector or trace_selector in label or label in trace_selector:
-                    if i < len(fig.data):
-                        fig.data[i].update(**patch)
-
     return RenderResult(
         figure=fig,
         color_state=color_state,
@@ -594,15 +606,17 @@ def _panel_to_axis_key(panel: int, axis_prefix: str = "yaxis") -> str:
     return axis_prefix if panel == 1 else f"{axis_prefix}{panel}"
 
 
-def _build_from_legacy(
+def _build_from_spec(
     spec: dict,
     entries: list[DataEntry],
     color_state: ColorState,
     time_range: str | None,
 ) -> RenderResult | dict:
-    """Build figure from the legacy flat spec format (for backward compat).
+    """Build figure from the semantic spec format (labels, panels, title, etc.).
 
-    Converts the flat spec into _meta + layout/traces dicts and delegates.
+    Translates semantic fields into Plotly JSON, calls _create_figure() for the
+    non-commutative work (subplot grid + traces), then applies commutative
+    styling (layout + trace patches) on top.
     """
     # Build _meta from flat spec
     meta: dict = {}
@@ -759,7 +773,16 @@ def _build_from_legacy(
 
     effective_time_range = time_range or spec.get("time_range")
 
-    return _build_from_meta(meta, layout, traces_patch, entries, color_state, effective_time_range)
+    result = _create_figure(meta, entries, color_state, effective_time_range)
+    if isinstance(result, dict):
+        return result  # error dict
+
+    if layout:
+        result.figure.update_layout(**layout)
+    if traces_patch:
+        _apply_trace_patches(result.figure, result.trace_labels, traces_patch)
+
+    return result
 
 
 def _dispatch_traces(
