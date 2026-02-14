@@ -290,6 +290,39 @@ class TestFillFigureData:
         result = fill_figure_data(fig_json, {"mag": entry})
         assert result.figure.data[0].line.color == "red"
 
+    def test_numeric_index_scatter(self):
+        """Scatter trace with numeric (non-datetime) index works correctly."""
+        df = pd.DataFrame({"value": [1.0, 4.0, 9.0, 16.0]},
+                          index=[10.0, 20.0, 30.0, 40.0])
+        entry = DataEntry(label="numeric", data=df, units="km/s",
+                          description="Velocity scatter")
+        fig_json = {
+            "data": [{"type": "scatter", "data_label": "numeric"}],
+            "layout": {"xaxis": {}},
+        }
+        result = fill_figure_data(fig_json, {"numeric": entry})
+        fig = result.figure
+        assert len(fig.data) == 1
+        assert list(fig.data[0].x) == [10.0, 20.0, 30.0, 40.0]
+        assert fig.data[0].y == (1.0, 4.0, 9.0, 16.0)
+
+    def test_numeric_index_skips_time_range(self):
+        """Time range constraint is not applied to numeric-index traces."""
+        df = pd.DataFrame({"value": [1.0, 2.0, 3.0]},
+                          index=[100.0, 200.0, 300.0])
+        entry = DataEntry(label="num", data=df, units="nT",
+                          description="Numeric data")
+        fig_json = {
+            "data": [{"type": "scatter", "data_label": "num"}],
+            "layout": {"xaxis": {}},
+        }
+        result = fill_figure_data(
+            fig_json, {"num": entry},
+            time_range="2024-01-01 to 2024-01-02",
+        )
+        # xaxis should NOT have a time range set
+        assert result.figure.layout.xaxis.range is None
+
 
 # ---------------------------------------------------------------------------
 # PlotlyRenderer.render_plotly_json (stateful wrapper)

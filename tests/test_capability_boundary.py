@@ -323,12 +323,13 @@ class TestTier6Limitations:
         with pytest.raises(ValueError, match="validation failed"):
             run_custom_operation(df, "from sklearn.linear_model import LinearRegression\nresult = df")
 
-    def test_result_must_keep_datetime_index(self):
-        """Operations that destroy the time axis fail validation."""
+    def test_result_with_numeric_index_accepted(self):
+        """Operations that produce a numeric index are accepted."""
         idx = _make_time(5)
         df = _make_df(np.arange(5, dtype=float), idx)
-        with pytest.raises(ValueError, match="DatetimeIndex"):
-            run_custom_operation(df, "result = pd.DataFrame({'a': df.values.squeeze()})")
+        result = run_custom_operation(df, "result = pd.DataFrame({'a': df.values.squeeze()})")
+        assert isinstance(result, pd.DataFrame)
+        assert len(result) == 5
 
     def test_cannot_return_scalar(self):
         """Cannot return a single number — must be DataFrame/Series."""

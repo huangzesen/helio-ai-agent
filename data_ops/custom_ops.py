@@ -121,25 +121,22 @@ def _execute_in_sandbox(code: str, namespace: dict) -> object:
     return result
 
 
-def _validate_result(
-    result: object, datetime_index_hint: str = ""
-) -> pd.DataFrame | xr.DataArray:
+def _validate_result(result: object) -> pd.DataFrame | xr.DataArray:
     """Validate that the sandbox result is a DataFrame or xarray DataArray.
 
     - Series → converted to single-column DataFrame
     - xarray DataArray with ``time`` dim → returned as-is (any dimensionality)
-    - DataFrame without DatetimeIndex → error
+    - DataFrame with any index type (DatetimeIndex, numeric, string) → accepted
     - Other types → error
 
     Args:
         result: The value produced by sandbox execution.
-        datetime_index_hint: Extra guidance appended to the DatetimeIndex error message.
 
     Returns:
         Validated DataFrame or DataArray.
 
     Raises:
-        ValueError: If result is None, wrong type, or missing DatetimeIndex.
+        ValueError: If result is None or wrong type.
     """
     if result is None:
         raise ValueError("Code did not assign a value to 'result'")
@@ -164,14 +161,6 @@ def _validate_result(
             f"Result must be a DataFrame, Series, or xarray DataArray, "
             f"got {type(result).__name__}"
         )
-
-    if not isinstance(result.index, pd.DatetimeIndex):
-        msg = "Result must have a DatetimeIndex (time axis). "
-        if datetime_index_hint:
-            msg += datetime_index_hint
-        else:
-            msg += "Make sure your operation preserves the DataFrame index."
-        raise ValueError(msg)
 
     return result
 
@@ -345,11 +334,11 @@ def execute_custom_operation(df: pd.DataFrame, code: str) -> pd.DataFrame:
         code: Validated Python code that assigns to 'result'.
 
     Returns:
-        Result DataFrame with DatetimeIndex.
+        Result DataFrame or xarray DataArray.
 
     Raises:
         RuntimeError: If code execution fails.
-        ValueError: If result is not a DataFrame/Series or loses DatetimeIndex.
+        ValueError: If result is not a DataFrame/Series/DataArray.
     """
     import scipy
     import pywt
@@ -396,20 +385,14 @@ def execute_dataframe_creation(code: str) -> pd.DataFrame:
         code: Validated Python code that assigns to 'result'.
 
     Returns:
-        Result DataFrame with DatetimeIndex.
+        Result DataFrame (any index type).
 
     Raises:
         RuntimeError: If code execution fails.
-        ValueError: If result is not a DataFrame/Series or lacks DatetimeIndex.
+        ValueError: If result is not a DataFrame/Series/DataArray.
     """
     result = _execute_in_sandbox(code, {"pd": pd, "np": np, "xr": xr, "result": None})
-    return _validate_result(
-        result,
-        datetime_index_hint=(
-            "Use pd.to_datetime() on your date column and .set_index() to create one. "
-            "Example: df = df.set_index(pd.to_datetime(df['date']))"
-        ),
-    )
+    return _validate_result(result)
 
 
 def execute_spectrogram_computation(df: pd.DataFrame, code: str) -> pd.DataFrame:
@@ -426,11 +409,11 @@ def execute_spectrogram_computation(df: pd.DataFrame, code: str) -> pd.DataFrame
         code: Validated Python code that assigns to 'result'.
 
     Returns:
-        Result DataFrame with DatetimeIndex.
+        Result DataFrame or xarray DataArray.
 
     Raises:
         RuntimeError: If code execution fails.
-        ValueError: If result is not a DataFrame or loses DatetimeIndex.
+        ValueError: If result is not a DataFrame/Series/DataArray.
     """
     from scipy import signal
 
@@ -441,10 +424,7 @@ def execute_spectrogram_computation(df: pd.DataFrame, code: str) -> pd.DataFrame
     result = _execute_in_sandbox(
         code, {"df": df, "pd": pd, "np": np, "xr": xr, "signal": signal, "result": None}
     )
-    return _validate_result(
-        result,
-        datetime_index_hint="Make sure your spectrogram output preserves datetime timestamps.",
-    )
+    return _validate_result(result)
 
 
 def run_spectrogram_computation(df: pd.DataFrame, code: str) -> pd.DataFrame:

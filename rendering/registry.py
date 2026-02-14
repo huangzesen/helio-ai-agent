@@ -21,6 +21,9 @@ TOOLS = [
              "description": "Plotly figure dict with 'data' (array of trace stubs, "
                             "each with 'data_label' and standard Plotly trace properties) "
                             "and 'layout' (standard Plotly layout dict). "
+                            "Each trace's 'data_label' fills x from the DataFrame index "
+                            "(timestamps for timeseries, numeric values for non-time data) "
+                            "and y from column values. "
                             "Multi-panel: define yaxis, yaxis2 with domains."},
         ],
     },

@@ -193,11 +193,13 @@ class TestExecuteCustomOperation:
         with pytest.raises(ValueError, match="DataFrame, Series, or xarray DataArray"):
             execute_custom_operation(df, "result = 42")
 
-    def test_lost_index_error(self):
+    def test_numeric_index_accepted(self):
+        """A result with numeric index (not DatetimeIndex) is accepted."""
         idx = _make_time(3)
         df = _make_df(np.ones(3), idx)
-        with pytest.raises(ValueError, match="DatetimeIndex"):
-            execute_custom_operation(df, "result = pd.DataFrame({'a': [1, 2, 3]})")
+        result = execute_custom_operation(df, "result = pd.DataFrame({'a': [1.0, 2.0, 3.0]})")
+        assert isinstance(result, pd.DataFrame)
+        assert list(result["a"]) == [1.0, 2.0, 3.0]
 
     def test_multiline_code(self):
         idx = _make_time(5)
@@ -341,9 +343,11 @@ class TestExecuteDataframeCreation:
         with pytest.raises(ValueError, match="DataFrame, Series, or xarray DataArray"):
             execute_dataframe_creation("result = 42")
 
-    def test_missing_datetime_index_error(self):
-        with pytest.raises(ValueError, match="DatetimeIndex"):
-            execute_dataframe_creation("result = pd.DataFrame({'a': [1, 2, 3]})")
+    def test_numeric_index_accepted(self):
+        """DataFrame with default numeric index is accepted."""
+        result = execute_dataframe_creation("result = pd.DataFrame({'a': [1.0, 2.0, 3.0]})")
+        assert isinstance(result, pd.DataFrame)
+        assert len(result) == 3
 
     def test_series_auto_converted_to_dataframe(self):
         code = "result = pd.Series([1.0, 2.0], index=pd.date_range('2024-01-01', periods=2, freq='D'))"
@@ -391,9 +395,11 @@ class TestRunDataframeCreation:
         with pytest.raises(ValueError, match="validation failed"):
             run_dataframe_creation("x = pd.DataFrame()")
 
-    def test_missing_datetime_index_propagates(self):
-        with pytest.raises(ValueError, match="DatetimeIndex"):
-            run_dataframe_creation("result = pd.DataFrame({'a': [1]})")
+    def test_numeric_index_accepted(self):
+        """DataFrame with numeric index passes through run_dataframe_creation."""
+        result = run_dataframe_creation("result = pd.DataFrame({'a': [1.0]})")
+        assert isinstance(result, pd.DataFrame)
+        assert len(result) == 1
 
 
 # ── Multi-Source Operation Tests ──────────────────────────────────────────────

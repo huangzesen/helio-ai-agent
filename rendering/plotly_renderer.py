@@ -60,19 +60,22 @@ class RenderResult:
 # Stateless figure builder
 # ---------------------------------------------------------------------------
 
-def _extract_x_data(entry: DataEntry) -> list:
-    """Extract x-axis values from a DataEntry.
+def _extract_index_data(entry: DataEntry) -> tuple[list, bool]:
+    """Extract index values from a DataEntry for use as x-axis data.
 
-    DatetimeIndex / xarray time coords → ISO 8601 strings.
-    Numeric or other indices → raw values as list.
+    DatetimeIndex / xarray time coords → ISO 8601 strings (is_datetime=True).
+    Numeric or other indices → raw values as list (is_datetime=False).
+
+    Returns:
+        Tuple of (values list, is_datetime flag).
     """
     if entry.is_xarray:
         import pandas as pd
-        return [pd.Timestamp(t).isoformat() for t in entry.data.coords["time"].values]
+        return [pd.Timestamp(t).isoformat() for t in entry.data.coords["time"].values], True
     idx = entry.data.index
     if hasattr(idx, 'tz') or str(idx.dtype).startswith('datetime'):
-        return [t.isoformat() for t in idx]
-    return list(idx)
+        return [t.isoformat() for t in idx], True
+    return list(idx), False
 
 
 # ---------------------------------------------------------------------------
@@ -113,6 +116,7 @@ def fill_figure_data(
 
     filled_traces: list[dict] = []
     trace_labels: list[str] = []
+    has_datetime_x = False
 
     for trace_dict in raw_traces:
         trace = dict(trace_dict)  # shallow copy
@@ -134,6 +138,7 @@ def fill_figure_data(
 
         if is_heatmap:
             _fill_heatmap_trace(trace, entry)
+            has_datetime_x = True  # spectrograms are always time-based
         else:
             # Reject multi-column data — LLM must emit one trace per column
             if entry.values.ndim == 2 and entry.values.shape[1] > 1:
@@ -145,7 +150,10 @@ def fill_figure_data(
                     f"or use custom_operation to select a single column first."
                 )
             vals = entry.values.ravel() if entry.values.ndim > 1 else entry.values
-            trace["x"] = _extract_x_data(entry)
+            x_data, is_dt = _extract_index_data(entry)
+            if is_dt:
+                has_datetime_x = True
+            trace["x"] = x_data
             trace["y"] = [float(v) if np.isfinite(v) else None for v in vals]
             trace.setdefault("mode", "lines")
 
@@ -173,8 +181,8 @@ def fill_figure_data(
     # Merge defaults under layout (user layout wins)
     merged_layout = {**defaults, **layout}
 
-    # Apply time range constraint
-    if time_range:
+    # Apply time range constraint only when traces used datetime indices
+    if time_range and has_datetime_x:
         parts = time_range.split(" to ")
         if len(parts) == 2:
             start, end = parts[0].strip(), parts[1].strip()
@@ -200,7 +208,7 @@ def _fill_heatmap_trace(
 ) -> None:
     """Populate a heatmap trace dict with data from a DataEntry."""
     meta = entry.metadata or {}
-    times = _extract_x_data(entry)
+    times, _ = _extract_index_data(entry)
 
     if entry.is_xarray:
         da = entry.data
