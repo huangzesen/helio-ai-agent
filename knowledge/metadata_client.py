@@ -56,6 +56,103 @@ def _find_local_cache(dataset_id: str) -> Optional[Path]:
     return None
 
 
+def _load_dataset_override(dataset_id: str) -> dict | None:
+    """Load a dataset-level override file.
+
+    Scans ``{overrides_dir}/{stem}/{dataset_id}.json`` across all mission
+    stem directories under the overrides dir.
+
+    Returns:
+        Parsed dict, or ``None`` if no override file exists.
+    """
+    from .mission_loader import _get_overrides_dir
+
+    overrides_dir = _get_overrides_dir()
+    if not overrides_dir.exists():
+        return None
+
+    # Scan stem subdirectories for a matching dataset override
+    for stem_dir in overrides_dir.iterdir():
+        if not stem_dir.is_dir():
+            continue
+        path = stem_dir / f"{dataset_id}.json"
+        if path.exists():
+            try:
+                with open(path, "r", encoding="utf-8") as f:
+                    data = json.load(f)
+                if not isinstance(data, dict):
+                    logger.warning(
+                        "Dataset override %s is not a JSON object; ignoring", path
+                    )
+                    return None
+                return data
+            except json.JSONDecodeError as exc:
+                logger.warning("Malformed JSON in dataset override %s: %s", path, exc)
+                return None
+            except OSError as exc:
+                logger.warning("Cannot read dataset override %s: %s", path, exc)
+                return None
+    return None
+
+
+def update_dataset_override(dataset_id: str, patch: dict,
+                            mission_stem: str | None = None) -> dict:
+    """Read-modify-write a dataset override file.
+
+    Args:
+        dataset_id: CDAWeb dataset ID (e.g. ``"AC_H2_MFI"``).
+        patch: Sparse dict to merge into the override.
+        mission_stem: Mission stem directory name (e.g. ``"ace"``).
+            If ``None``, auto-detected from local metadata cache.
+
+    Returns:
+        The full override dict after merging.
+
+    Raises:
+        ValueError: If *mission_stem* is not provided and cannot be
+            auto-detected.
+    """
+    from .mission_loader import _get_overrides_dir, _deep_merge
+
+    if mission_stem is None:
+        local = _find_local_cache(dataset_id)
+        if local is not None:
+            # .../missions/{stem}/metadata/{file}.json → stem = parent.parent.name
+            mission_stem = local.parent.parent.name
+        else:
+            raise ValueError(
+                f"Cannot auto-detect mission for dataset '{dataset_id}'. "
+                f"Pass mission_stem explicitly."
+            )
+
+    overrides_dir = _get_overrides_dir()
+    ds_dir = overrides_dir / mission_stem
+    ds_dir.mkdir(parents=True, exist_ok=True)
+
+    path = ds_dir / f"{dataset_id}.json"
+
+    # Load existing
+    existing: dict = {}
+    if path.exists():
+        try:
+            with open(path, "r", encoding="utf-8") as f:
+                existing = json.load(f)
+        except (json.JSONDecodeError, OSError):
+            existing = {}
+
+    _deep_merge(existing, patch)
+
+    with open(path, "w", encoding="utf-8") as f:
+        json.dump(existing, f, indent=2, ensure_ascii=False)
+        f.write("\n")
+    logger.debug("Saved dataset override: %s", path)
+
+    # Invalidate in-memory cache for this dataset
+    _info_cache.pop(dataset_id, None)
+
+    return existing
+
+
 def get_dataset_info(dataset_id: str, use_cache: bool = True) -> dict:
     """Fetch parameter metadata for a dataset.
 
@@ -63,6 +160,9 @@ def get_dataset_info(dataset_id: str, use_cache: bool = True) -> dict:
     1. In-memory cache (fastest)
     2. Local file cache in knowledge/missions/*/metadata/ (instant, no network)
     3. Master CDF skeleton file (network fallback)
+
+    After loading from source 2 or 3, any dataset-level override from
+    ``{overrides_dir}/{stem}/{dataset_id}.json`` is deep-merged on top.
 
     Args:
         dataset_id: CDAWeb dataset ID (e.g., "PSP_FLD_L2_MAG_RTN_1MIN")
@@ -83,6 +183,11 @@ def get_dataset_info(dataset_id: str, use_cache: bool = True) -> dict:
         local_path = _find_local_cache(dataset_id)
         if local_path is not None:
             info = json.loads(local_path.read_text(encoding="utf-8"))
+            # Apply dataset-level override
+            ds_override = _load_dataset_override(dataset_id)
+            if ds_override is not None:
+                from .mission_loader import _deep_merge
+                _deep_merge(info, ds_override)
             _info_cache[dataset_id] = info
             return info
 
@@ -91,6 +196,11 @@ def get_dataset_info(dataset_id: str, use_cache: bool = True) -> dict:
     info = fetch_dataset_metadata_from_master(dataset_id)
     if info is not None:
         logger.debug("Got metadata from Master CDF for %s", dataset_id)
+        # Apply dataset-level override
+        ds_override = _load_dataset_override(dataset_id)
+        if ds_override is not None:
+            from .mission_loader import _deep_merge
+            _deep_merge(info, ds_override)
         if use_cache:
             _info_cache[dataset_id] = info
             _save_to_local_cache(dataset_id, info)
