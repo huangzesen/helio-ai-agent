@@ -42,6 +42,30 @@ _verbose = True
 _executor = ThreadPoolExecutor(max_workers=2)
 _agent_lock = threading.Lock()
 
+# Input history file (persistent across sessions, like shell history)
+_INPUT_HISTORY_MAX = 500
+
+def _get_history_path() -> Path:
+    from config import get_data_dir
+    return get_data_dir() / "input_history.txt"
+
+def _load_input_history() -> list[str]:
+    p = _get_history_path()
+    if not p.exists():
+        return []
+    lines = p.read_text(encoding="utf-8").splitlines()
+    return [l for l in lines if l.strip()]
+
+def _append_input_history(message: str):
+    p = _get_history_path()
+    p.parent.mkdir(parents=True, exist_ok=True)
+    with open(p, "a", encoding="utf-8") as f:
+        f.write(message + "\n")
+    # Trim if too long
+    lines = _load_input_history()
+    if len(lines) > _INPUT_HISTORY_MAX:
+        p.write_text("\n".join(lines[-_INPUT_HISTORY_MAX:]) + "\n", encoding="utf-8")
+
 
 # ---------------------------------------------------------------------------
 # Logging handler (same pattern as gradio_app.py)
@@ -476,6 +500,7 @@ class ChatPage(param.Parameterized):
             return
 
         message = contents.strip()
+        _append_input_history(message)
         t0 = time.monotonic()
 
         if _verbose:
@@ -959,55 +984,57 @@ class ChatPage(param.Parameterized):
             raw_css=[CUSTOM_CSS],
         )
 
-        # --- Input history (up/down arrow keys like terminal) ---
-        _input_history_js = """
+        # --- Input history (up/down arrow keys like shell history) ---
+        import json as _json
+        _hist_data = _json.dumps(_load_input_history())
+        _input_history_js = f"""
         <script>
-        (function() {
-            var hist = [];
+        (function() {{
+            var hist = {_hist_data};
             var idx = -1;
             var draft = '';
 
-            function setVal(ta, v) {
+            function setVal(ta, v) {{
                 var s = Object.getOwnPropertyDescriptor(
                     HTMLTextAreaElement.prototype, 'value').set;
                 s.call(ta, v);
-                ta.dispatchEvent(new Event('input', {bubbles: true}));
+                ta.dispatchEvent(new Event('input', {{bubbles: true}}));
                 ta.selectionStart = ta.selectionEnd = v.length;
-            }
+            }}
 
-            function attach(ta) {
+            function attach(ta) {{
                 if (ta._hist) return;
                 ta._hist = true;
-                ta.addEventListener('keydown', function(e) {
-                    if (e.key === 'Enter' && !e.shiftKey) {
+                ta.addEventListener('keydown', function(e) {{
+                    if (e.key === 'Enter' && !e.shiftKey) {{
                         var v = ta.value && ta.value.trim();
                         if (v && (hist.length === 0 || hist[hist.length-1] !== v))
                             hist.push(v);
                         idx = -1; draft = '';
-                    }
-                    if (e.key === 'ArrowUp' && hist.length > 0) {
-                        if (ta.value.substring(0, ta.selectionStart).indexOf('\\n') === -1) {
+                    }}
+                    if (e.key === 'ArrowUp' && hist.length > 0) {{
+                        if (ta.value.substring(0, ta.selectionStart).indexOf('\\n') === -1) {{
                             e.preventDefault();
-                            if (idx === -1) { draft = ta.value; idx = hist.length - 1; }
+                            if (idx === -1) {{ draft = ta.value; idx = hist.length - 1; }}
                             else if (idx > 0) idx--;
                             setVal(ta, hist[idx]);
-                        }
-                    }
-                    if (e.key === 'ArrowDown' && idx !== -1) {
-                        if (ta.value.substring(ta.selectionEnd).indexOf('\\n') === -1) {
+                        }}
+                    }}
+                    if (e.key === 'ArrowDown' && idx !== -1) {{
+                        if (ta.value.substring(ta.selectionEnd).indexOf('\\n') === -1) {{
                             e.preventDefault();
-                            if (idx < hist.length - 1) { idx++; setVal(ta, hist[idx]); }
-                            else { idx = -1; setVal(ta, draft); }
-                        }
-                    }
-                }, true);
-            }
+                            if (idx < hist.length - 1) {{ idx++; setVal(ta, hist[idx]); }}
+                            else {{ idx = -1; setVal(ta, draft); }}
+                        }}
+                    }}
+                }}, true);
+            }}
 
-            var iv = setInterval(function() {
+            var iv = setInterval(function() {{
                 var ta = document.querySelector('.chat-interface textarea');
-                if (ta) { clearInterval(iv); attach(ta); }
-            }, 500);
-        })();
+                if (ta) {{ clearInterval(iv); attach(ta); }}
+            }}, 500);
+        }})();
         </script>
         """
         template.main.append(pn.pane.HTML(_input_history_js, margin=0))
