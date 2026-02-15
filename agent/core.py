@@ -767,6 +767,26 @@ class OrchestratorAgent:
                 ),
             }
 
+        # Guard: reject figures with too many layout objects (shapes + annotations).
+        # LLMs struggle to generate large arrays of complex objects — the JSON
+        # often arrives garbled (dicts collapsed to floats, arrays to integers).
+        layout = fig_json.get("layout", {})
+        n_shapes = len(layout.get("shapes", []))
+        n_annotations = len(layout.get("annotations", []))
+        _MAX_LAYOUT_OBJECTS = 30
+        if n_shapes + n_annotations > _MAX_LAYOUT_OBJECTS:
+            return {
+                "status": "error",
+                "message": (
+                    f"Too many layout objects: {n_shapes} shapes + {n_annotations} annotations "
+                    f"= {n_shapes + n_annotations} (limit: {_MAX_LAYOUT_OBJECTS}). "
+                    f"Reduce the number of shapes/annotations. For many similar markers, "
+                    f"consider: (1) showing only the most significant events, "
+                    f"(2) using a single legend entry instead of per-event labels, or "
+                    f"(3) omitting annotations and keeping only the shapes."
+                ),
+            }
+
         # Collect all data_label values and resolve entries
         store = get_store()
         entry_map: dict = {}
