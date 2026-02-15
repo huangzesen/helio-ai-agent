@@ -383,7 +383,7 @@ def _get_session_choices() -> dict[str, str]:
 # ---------------------------------------------------------------------------
 
 CUSTOM_CSS = """
-/* Header styling */
+/* Header styling (content-area sub-headers, e.g. Data Tools) */
 .helio-header {
     display: flex;
     align-items: center;
@@ -394,26 +394,17 @@ CUSTOM_CSS = """
     border-radius: 10px;
     margin-bottom: 0.5rem;
 }
-.helio-header h1 {
-    font-size: 1.4rem;
-    font-weight: 700;
-    color: #0097b2;
-    margin: 0;
-}
-.helio-header .badge {
-    background: #fff8e1;
-    color: #f57c00;
-    font-size: 0.8rem;
-    font-weight: 600;
-    padding: 0.3rem 0.75rem;
-    border-radius: 20px;
-    border: 1px solid #ffa500;
-}
+
 /* Header nav links (in template header bar) */
 .header-nav {
     display: flex;
     align-items: center;
-    gap: 0.5rem;
+    gap: 1rem;
+}
+.header-nav .header-stat {
+    color: rgba(255,255,255,0.7);
+    font-size: 0.85rem;
+    margin-right: 0.25rem;
 }
 .header-nav a {
     color: #fff;
@@ -1028,23 +1019,7 @@ class ChatPage(param.Parameterized):
     def build(self) -> pn.template.FastListTemplate:
         """Construct and return the chat page layout."""
 
-        # --- Header bar (inside template header) ---
-        header_html = pn.pane.HTML(
-            """
-            <div class="helio-header">
-                <div style="display:flex; align-items:center; gap:0.75rem;">
-                    <span style="color:#64748b; font-size:0.9rem;">52 missions &middot; 3,000+ datasets</span>
-                    <span class="badge">Powered by Gemini</span>
-                </div>
-            </div>
-            """,
-            sizing_mode="stretch_width",
-        )
-
-        header_row = pn.Row(
-            header_html,
-            sizing_mode="stretch_width",
-        )
+        # (header content is in the template header bar now)
 
         # --- Example buttons (one per row, full width) ---
         example_btns = []
@@ -1066,7 +1041,6 @@ class ChatPage(param.Parameterized):
 
         # --- Center column ---
         center_col = pn.Column(
-            header_row,
             self.plot_pane,
             self.chat_interface,
             self.followup_row,
@@ -1097,15 +1071,16 @@ class ChatPage(param.Parameterized):
         )
 
         # --- Template ---
-        nav_html = pn.pane.HTML(
+        header_nav = pn.pane.HTML(
             '<nav class="header-nav">'
+            '<span class="header-stat">54 missions &middot; 2,500+ datasets</span>'
             '<a href="/data" target="_blank">Data Tools</a>'
             '<a href="/settings" target="_blank">Settings</a>'
             '</nav>',
         )
         template = pn.template.FastListTemplate(
             title="Helio AI Agent",
-            header=[nav_html],
+            header=[header_nav],
             sidebar=[sidebar_content],
             main=[center_col],
             right_sidebar=[right_sidebar_content],
@@ -1543,7 +1518,7 @@ class DataPage(param.Parameterized):
         )
 
         # --- Template (no sidebar) ---
-        nav_html = pn.pane.HTML(
+        header_nav = pn.pane.HTML(
             '<nav class="header-nav">'
             '<a href="/">Chat</a>'
             '<a href="/settings" target="_blank">Settings</a>'
@@ -1551,7 +1526,7 @@ class DataPage(param.Parameterized):
         )
         template = pn.template.FastListTemplate(
             title="Helio AI Agent — Data Tools",
-            header=[nav_html],
+            header=[header_nav],
             main=[header_html, main_area],
             accent_base_color="#00b8d9",
             header_background="#0097b2",
@@ -1873,7 +1848,7 @@ class SettingsPage(param.Parameterized):
             margin=(10, 0),
         )
 
-        nav_html = pn.pane.HTML(
+        header_nav = pn.pane.HTML(
             '<nav class="header-nav">'
             '<a href="/">Chat</a>'
             '<a href="/data" target="_blank">Data Tools</a>'
@@ -1881,7 +1856,7 @@ class SettingsPage(param.Parameterized):
         )
         template = pn.template.FastListTemplate(
             title="Helio AI Agent — Settings",
-            header=[nav_html],
+            header=[header_nav],
             main=[header_html, main_area, save_row],
             accent_base_color="#00b8d9",
             header_background="#0097b2",
