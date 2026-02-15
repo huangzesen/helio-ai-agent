@@ -66,6 +66,63 @@ def _append_input_history(message: str):
     if len(lines) > _INPUT_HISTORY_MAX:
         p.write_text("\n".join(lines[-_INPUT_HISTORY_MAX:]) + "\n", encoding="utf-8")
 
+_STATIC_DIR = Path(__file__).parent / "static"
+
+def _write_input_history_js():
+    """Write the input history JS file with embedded history data."""
+    import json
+    _STATIC_DIR.mkdir(exist_ok=True)
+    hist_data = json.dumps(_load_input_history())
+    js = f"""\
+(function() {{
+    var hist = {hist_data};
+    var idx = -1;
+    var draft = '';
+
+    function setVal(ta, v) {{
+        var s = Object.getOwnPropertyDescriptor(
+            HTMLTextAreaElement.prototype, 'value').set;
+        s.call(ta, v);
+        ta.dispatchEvent(new Event('input', {{bubbles: true}}));
+        ta.selectionStart = ta.selectionEnd = v.length;
+    }}
+
+    function attach(ta) {{
+        if (ta._hist) return;
+        ta._hist = true;
+        ta.addEventListener('keydown', function(e) {{
+            if (e.key === 'Enter' && !e.shiftKey) {{
+                var v = ta.value && ta.value.trim();
+                if (v && (hist.length === 0 || hist[hist.length-1] !== v))
+                    hist.push(v);
+                idx = -1; draft = '';
+            }}
+            if (e.key === 'ArrowUp' && hist.length > 0) {{
+                if (ta.value.substring(0, ta.selectionStart).indexOf('\\n') === -1) {{
+                    e.preventDefault();
+                    if (idx === -1) {{ draft = ta.value; idx = hist.length - 1; }}
+                    else if (idx > 0) idx--;
+                    setVal(ta, hist[idx]);
+                }}
+            }}
+            if (e.key === 'ArrowDown' && idx !== -1) {{
+                if (ta.value.substring(ta.selectionEnd).indexOf('\\n') === -1) {{
+                    e.preventDefault();
+                    if (idx < hist.length - 1) {{ idx++; setVal(ta, hist[idx]); }}
+                    else {{ idx = -1; setVal(ta, draft); }}
+                }}
+            }}
+        }}, true);
+    }}
+
+    var iv = setInterval(function() {{
+        var ta = document.querySelector('.chat-interface-input-widget textarea');
+        if (ta) {{ clearInterval(iv); attach(ta); }}
+    }}, 500);
+}})();
+"""
+    (_STATIC_DIR / "input_history.js").write_text(js, encoding="utf-8")
+
 
 # ---------------------------------------------------------------------------
 # Logging handler (same pattern as gradio_app.py)
@@ -984,61 +1041,6 @@ class ChatPage(param.Parameterized):
             raw_css=[CUSTOM_CSS],
         )
 
-        # --- Input history (up/down arrow keys like shell history) ---
-        import json as _json
-        _hist_data = _json.dumps(_load_input_history())
-        _input_history_js = f"""
-        <script>
-        (function() {{
-            var hist = {_hist_data};
-            var idx = -1;
-            var draft = '';
-
-            function setVal(ta, v) {{
-                var s = Object.getOwnPropertyDescriptor(
-                    HTMLTextAreaElement.prototype, 'value').set;
-                s.call(ta, v);
-                ta.dispatchEvent(new Event('input', {{bubbles: true}}));
-                ta.selectionStart = ta.selectionEnd = v.length;
-            }}
-
-            function attach(ta) {{
-                if (ta._hist) return;
-                ta._hist = true;
-                ta.addEventListener('keydown', function(e) {{
-                    if (e.key === 'Enter' && !e.shiftKey) {{
-                        var v = ta.value && ta.value.trim();
-                        if (v && (hist.length === 0 || hist[hist.length-1] !== v))
-                            hist.push(v);
-                        idx = -1; draft = '';
-                    }}
-                    if (e.key === 'ArrowUp' && hist.length > 0) {{
-                        if (ta.value.substring(0, ta.selectionStart).indexOf('\\n') === -1) {{
-                            e.preventDefault();
-                            if (idx === -1) {{ draft = ta.value; idx = hist.length - 1; }}
-                            else if (idx > 0) idx--;
-                            setVal(ta, hist[idx]);
-                        }}
-                    }}
-                    if (e.key === 'ArrowDown' && idx !== -1) {{
-                        if (ta.value.substring(ta.selectionEnd).indexOf('\\n') === -1) {{
-                            e.preventDefault();
-                            if (idx < hist.length - 1) {{ idx++; setVal(ta, hist[idx]); }}
-                            else {{ idx = -1; setVal(ta, draft); }}
-                        }}
-                    }}
-                }}, true);
-            }}
-
-            var iv = setInterval(function() {{
-                var ta = document.querySelector('.chat-interface-input-widget textarea');
-                if (ta) {{ clearInterval(iv); attach(ta); }}
-            }}, 500);
-        }})();
-        </script>
-        """
-        template.main.append(pn.pane.HTML(_input_history_js, margin=0))
-
         return template
 
 
@@ -1557,6 +1559,12 @@ def main():
 
     pn.state.execute(_reinstall_signals)
 
+    # Write input history JS (with embedded history data)
+    _write_input_history_js()
+
+    # Load input history JS in the browser
+    pn.config.js_files["input_history"] = "static/input_history.js"
+
     # Serve two pages
     pn.serve(
         {"/": _create_chat_page, "/data": _create_data_page},
@@ -1564,6 +1572,7 @@ def main():
         show=True,
         title="Helio AI Agent",
         websocket_origin="*",
+        static_dirs={"static": str(_STATIC_DIR)},
     )
 
 

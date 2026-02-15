@@ -46,6 +46,7 @@ scripts/test_*.py
 # Generated files
 *.vap
 *.pdf
+static/
 
 # Claude Code (user-specific)
 .claude/
