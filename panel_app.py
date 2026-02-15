@@ -397,23 +397,25 @@ CUSTOM_CSS = """
 
 /* Header nav links (in template header bar) */
 .header-nav {
-    display: flex;
-    align-items: center;
-    gap: 1rem;
+    display: flex !important;
+    align-items: center !important;
+    gap: 1.2rem !important;
 }
 .header-nav .header-stat {
     color: rgba(255,255,255,0.7);
     font-size: 0.85rem;
-    margin-right: 0.25rem;
+    margin-right: 0.5rem;
 }
 .header-nav a {
     color: #fff;
     font-size: 0.85rem;
     font-weight: 600;
     text-decoration: none;
-    padding: 0.25rem 0.7rem;
+    padding: 0.25rem 0.75rem;
+    margin-left: 0.3rem;
     border: 1px solid rgba(255,255,255,0.5);
     border-radius: 16px;
+    white-space: nowrap;
     transition: background 0.2s, border-color 0.2s;
 }
 .header-nav a:hover {
@@ -1072,10 +1074,10 @@ class ChatPage(param.Parameterized):
 
         # --- Template ---
         header_nav = pn.pane.HTML(
-            '<nav class="header-nav">'
-            '<span class="header-stat">54 missions &middot; 2,500+ datasets</span>'
-            '<a href="/data" target="_blank">Data Tools</a>'
-            '<a href="/settings" target="_blank">Settings</a>'
+            '<nav style="display:flex;align-items:center;gap:1.2rem;">'
+            '<span style="color:rgba(255,255,255,0.7);font-size:0.85rem;margin-right:0.5rem;">54 missions &middot; 2,500+ datasets</span>'
+            '<a href="/data" target="_blank" style="color:#fff;font-size:0.85rem;font-weight:600;text-decoration:none;padding:0.25rem 0.75rem;border:1px solid rgba(255,255,255,0.5);border-radius:16px;white-space:nowrap;">Data Tools</a>'
+            '<a href="/settings" target="_blank" style="color:#fff;font-size:0.85rem;font-weight:600;text-decoration:none;padding:0.25rem 0.75rem;border:1px solid rgba(255,255,255,0.5);border-radius:16px;white-space:nowrap;">Settings</a>'
             '</nav>',
         )
         template = pn.template.FastListTemplate(
@@ -1519,9 +1521,9 @@ class DataPage(param.Parameterized):
 
         # --- Template (no sidebar) ---
         header_nav = pn.pane.HTML(
-            '<nav class="header-nav">'
-            '<a href="/">Chat</a>'
-            '<a href="/settings" target="_blank">Settings</a>'
+            '<nav style="display:flex;align-items:center;gap:1.2rem;">'
+            '<a href="/" style="color:#fff;font-size:0.85rem;font-weight:600;text-decoration:none;padding:0.25rem 0.75rem;border:1px solid rgba(255,255,255,0.5);border-radius:16px;white-space:nowrap;">Chat</a>'
+            '<a href="/settings" target="_blank" style="color:#fff;font-size:0.85rem;font-weight:600;text-decoration:none;padding:0.25rem 0.75rem;border:1px solid rgba(255,255,255,0.5);border-radius:16px;white-space:nowrap;">Settings</a>'
             '</nav>',
         )
         template = pn.template.FastListTemplate(
@@ -1849,9 +1851,9 @@ class SettingsPage(param.Parameterized):
         )
 
         header_nav = pn.pane.HTML(
-            '<nav class="header-nav">'
-            '<a href="/">Chat</a>'
-            '<a href="/data" target="_blank">Data Tools</a>'
+            '<nav style="display:flex;align-items:center;gap:1.2rem;">'
+            '<a href="/" style="color:#fff;font-size:0.85rem;font-weight:600;text-decoration:none;padding:0.25rem 0.75rem;border:1px solid rgba(255,255,255,0.5);border-radius:16px;white-space:nowrap;">Chat</a>'
+            '<a href="/data" target="_blank" style="color:#fff;font-size:0.85rem;font-weight:600;text-decoration:none;padding:0.25rem 0.75rem;border:1px solid rgba(255,255,255,0.5);border-radius:16px;white-space:nowrap;">Data Tools</a>'
             '</nav>',
         )
         template = pn.template.FastListTemplate(
