@@ -1563,7 +1563,7 @@ def main():
     _write_input_history_js()
 
     # Load input history JS in the browser
-    pn.config.js_files["input_history"] = "static/input_history.js"
+    pn.config.js_files["input_history"] = "assets/input_history.js"
 
     # Serve two pages
     pn.serve(
@@ -1572,7 +1572,7 @@ def main():
         show=True,
         title="Helio AI Agent",
         websocket_origin="*",
-        static_dirs={"static": str(_STATIC_DIR)},
+        static_dirs={"assets": str(_STATIC_DIR)},
     )
 
 
