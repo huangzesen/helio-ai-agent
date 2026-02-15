@@ -123,13 +123,18 @@ console.log('[InputHistory] Script loaded, hist length:', {len(json.loads(hist_d
         attempts++;
         var ta = document.querySelector('textarea');
         if (!ta) {{
-            // Search inside shadow roots
-            var els = document.querySelectorAll('*');
-            for (var i = 0; i < els.length; i++) {{
-                var sr = els[i].shadowRoot;
-                if (sr) {{
-                    ta = sr.querySelector('textarea');
-                    if (ta) break;
+            // Deep search: recursively check nested shadow roots
+            var queue = [document];
+            while (queue.length && !ta) {{
+                var node = queue.shift();
+                var children = node.querySelectorAll('*');
+                for (var i = 0; i < children.length; i++) {{
+                    var sr = children[i].shadowRoot;
+                    if (sr) {{
+                        ta = sr.querySelector('textarea');
+                        if (ta) break;
+                        queue.push(sr);
+                    }}
                 }}
             }}
         }}
@@ -138,6 +143,25 @@ console.log('[InputHistory] Script loaded, hist length:', {len(json.loads(hist_d
             attach(ta);
         }} else if (attempts % 10 === 0) {{
             console.log('[InputHistory] Still searching for textarea... attempt', attempts);
+            console.log('[InputHistory] All textareas in DOM:', document.querySelectorAll('textarea').length);
+            // Deep search: recursively check all shadow roots
+            var queue = [document];
+            var shadowCount = 0;
+            while (queue.length) {{
+                var node = queue.shift();
+                var children = node.querySelectorAll('*');
+                for (var j = 0; j < children.length; j++) {{
+                    if (children[j].shadowRoot) {{
+                        shadowCount++;
+                        var stas = children[j].shadowRoot.querySelectorAll('textarea');
+                        if (stas.length) {{
+                            console.log('[InputHistory] FOUND textarea in shadow of:', children[j].tagName, children[j].className, children[j].id);
+                        }}
+                        queue.push(children[j].shadowRoot);
+                    }}
+                }}
+            }}
+            console.log('[InputHistory] Searched', shadowCount, 'shadow roots');
         }}
     }}, 500);
 }})();
