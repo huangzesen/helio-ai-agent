@@ -382,6 +382,10 @@ class ChatPage(param.Parameterized):
             show_undo=False,
             show_clear=False,
             show_button_name=False,
+            show_stop=True,
+            button_properties={
+                "stop": {"callback": self._on_stop_click},
+            },
             sizing_mode="stretch_both",
             min_height=400,
         )
@@ -457,6 +461,11 @@ class ChatPage(param.Parameterized):
 
     # ----- Chat callback -----
 
+    def _on_stop_click(self, instance, event):
+        """Signal the agent to cancel when the stop button is clicked."""
+        if _agent is not None:
+            _agent.request_cancel()
+
     async def _chat_callback(self, contents: str, user: str, instance: pn.chat.ChatInterface):
         """Process a user message through the agent.
 
@@ -470,13 +479,17 @@ class ChatPage(param.Parameterized):
         t0 = time.monotonic()
 
         if _verbose:
+            # Remove any leftover handler from a previous cancelled run
+            logger = logging.getLogger("helio-agent")
+            if self._log_handler is not None:
+                logger.removeHandler(self._log_handler)
+
             # Setup log capture (append to existing log with separator)
             if self._log_lines:
                 self._log_lines.append("")
                 self._log_lines.append(f"{'─' * 40}")
                 self._log_lines.append("")
             self._log_handler = _ListHandler(self._log_lines)
-            logger = logging.getLogger("helio-agent")
             self._saved_log_level = logger.level
             if logger.getEffectiveLevel() > logging.DEBUG:
                 logger.setLevel(logging.DEBUG)
@@ -492,19 +505,18 @@ class ChatPage(param.Parameterized):
         loop = asyncio.get_event_loop()
         try:
             response = await loop.run_in_executor(_executor, _run_agent_sync, message)
-        except Exception as exc:
-            response = f"Error: {exc}"
-
-        elapsed = time.monotonic() - t0
-
-        if _verbose:
-            # Stop log capture and periodic refresh
-            logger = logging.getLogger("helio-agent")
-            logger.removeHandler(self._log_handler)
-            logger.setLevel(self._saved_log_level)
-            self._log_running = False
-            self._stop_log_refresh()
-            self._refresh_log_panel()
+        except (Exception, asyncio.CancelledError) as exc:
+            response = f"*Interrupted.*" if isinstance(exc, asyncio.CancelledError) else f"Error: {exc}"
+        finally:
+            elapsed = time.monotonic() - t0
+            if _verbose:
+                # Stop log capture and periodic refresh
+                logger = logging.getLogger("helio-agent")
+                logger.removeHandler(self._log_handler)
+                logger.setLevel(self._saved_log_level)
+                self._log_running = False
+                self._stop_log_refresh()
+                self._refresh_log_panel()
 
         self._refresh_sidebar()
         self._update_followups()
