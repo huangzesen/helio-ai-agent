@@ -74,7 +74,6 @@ def _write_input_history_js():
     _STATIC_DIR.mkdir(exist_ok=True)
     hist_data = json.dumps(_load_input_history())
     js = f"""\
-console.log('[InputHistory] Script loaded, hist length:', {len(json.loads(hist_data))});
 (function() {{
     var hist = {hist_data};
     var idx = -1;
@@ -114,16 +113,12 @@ console.log('[InputHistory] Script loaded, hist length:', {len(json.loads(hist_d
                 }}
             }}
         }}, true);
-        console.log('[InputHistory] Keydown listener attached to:', ta);
     }}
 
-    // Poll for textarea — try multiple selectors and shadow roots
-    var attempts = 0;
+    // Poll for textarea — deep search through nested shadow roots
     var iv = setInterval(function() {{
-        attempts++;
         var ta = document.querySelector('textarea');
         if (!ta) {{
-            // Deep search: recursively check nested shadow roots
             var queue = [document];
             while (queue.length && !ta) {{
                 var node = queue.shift();
@@ -141,27 +136,6 @@ console.log('[InputHistory] Script loaded, hist length:', {len(json.loads(hist_d
         if (ta) {{
             clearInterval(iv);
             attach(ta);
-        }} else if (attempts % 10 === 0) {{
-            console.log('[InputHistory] Still searching for textarea... attempt', attempts);
-            console.log('[InputHistory] All textareas in DOM:', document.querySelectorAll('textarea').length);
-            // Deep search: recursively check all shadow roots
-            var queue = [document];
-            var shadowCount = 0;
-            while (queue.length) {{
-                var node = queue.shift();
-                var children = node.querySelectorAll('*');
-                for (var j = 0; j < children.length; j++) {{
-                    if (children[j].shadowRoot) {{
-                        shadowCount++;
-                        var stas = children[j].shadowRoot.querySelectorAll('textarea');
-                        if (stas.length) {{
-                            console.log('[InputHistory] FOUND textarea in shadow of:', children[j].tagName, children[j].className, children[j].id);
-                        }}
-                        queue.push(children[j].shadowRoot);
-                    }}
-                }}
-            }}
-            console.log('[InputHistory] Searched', shadowCount, 'shadow roots');
         }}
     }}, 500);
 }})();
