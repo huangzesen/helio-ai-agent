@@ -1581,13 +1581,14 @@ class SettingsPage(param.Parameterized):
         self.display_name = pn.widgets.TextInput(
             name="Display name",
             value=settings.get("display_name", "User"),
+            placeholder="default: User",
             sizing_mode="stretch_width",
         )
         self.avatar_upload.param.watch(self._on_avatar_upload, "value")
 
         # --- LLM Provider & Models ---
         self.provider_select = pn.widgets.Select(
-            name="LLM Provider",
+            name="LLM Provider (default: gemini)",
             options=["gemini", "openai", "anthropic"],
             value=settings.get("llm_provider", "gemini"),
             sizing_mode="stretch_width",
@@ -1601,33 +1602,37 @@ class SettingsPage(param.Parameterized):
         self.model_input = pn.widgets.TextInput(
             name="Main model",
             value=settings.get("model", "gemini-2.5-flash"),
+            placeholder="default: gemini-2.5-flash",
             sizing_mode="stretch_width",
         )
         self.sub_agent_model = pn.widgets.TextInput(
             name="Sub-agent model",
             value=settings.get("sub_agent_model", "gemini-2.5-flash"),
+            placeholder="default: gemini-2.5-flash",
             sizing_mode="stretch_width",
         )
         self.planner_model = pn.widgets.TextInput(
             name="Planner model (empty = inherit from main)",
             value=settings.get("planner_model") or "",
+            placeholder="default: inherit from main model",
             sizing_mode="stretch_width",
         )
         self.fallback_model = pn.widgets.TextInput(
             name="Fallback model",
             value=settings.get("fallback_model", "gemini-2.5-flash"),
+            placeholder="default: gemini-2.5-flash",
             sizing_mode="stretch_width",
         )
 
         gemini_cfg = settings.get("gemini", {})
         self.thinking_model = pn.widgets.Select(
-            name="Gemini thinking (model)",
+            name="Gemini thinking (model) (default: high)",
             options=["off", "low", "high"],
             value=gemini_cfg.get("thinking_model", "high"),
             sizing_mode="stretch_width",
         )
         self.thinking_sub = pn.widgets.Select(
-            name="Gemini thinking (sub-agent)",
+            name="Gemini thinking (sub-agent) (default: low)",
             options=["off", "low", "high"],
             value=gemini_cfg.get("thinking_sub_agent", "low"),
             sizing_mode="stretch_width",
@@ -1635,17 +1640,17 @@ class SettingsPage(param.Parameterized):
 
         # --- Data & Search ---
         self.catalog_method = pn.widgets.Select(
-            name="Catalog search method",
+            name="Catalog search method (default: semantic)",
             options=["semantic", "substring"],
             value=settings.get("catalog_search_method", "semantic"),
             sizing_mode="stretch_width",
         )
         self.parallel_fetch = pn.widgets.Checkbox(
-            name="Parallel fetch",
+            name="Parallel fetch (default: on)",
             value=settings.get("parallel_fetch", True),
         )
         self.parallel_workers = pn.widgets.IntSlider(
-            name="Max workers",
+            name="Max workers (default: 4)",
             start=1, end=8,
             value=settings.get("parallel_max_workers", 4),
             sizing_mode="stretch_width",
@@ -1655,24 +1660,28 @@ class SettingsPage(param.Parameterized):
         self.max_preferences = pn.widgets.IntInput(
             name="Max preferences",
             value=settings.get("max_preferences", 15),
+            placeholder="default: 15",
             start=0, step=1,
             sizing_mode="stretch_width",
         )
         self.max_summaries = pn.widgets.IntInput(
             name="Max summaries",
             value=settings.get("max_summaries", 10),
+            placeholder="default: 10",
             start=0, step=1,
             sizing_mode="stretch_width",
         )
         self.max_pitfalls = pn.widgets.IntInput(
             name="Max pitfalls",
             value=settings.get("max_pitfalls", 20),
+            placeholder="default: 20",
             start=0, step=1,
             sizing_mode="stretch_width",
         )
         self.poll_interval = pn.widgets.IntInput(
             name="Memory poll interval (seconds)",
             value=settings.get("memory_poll_interval_seconds", 30),
+            placeholder="default: 30",
             start=5, step=5,
             sizing_mode="stretch_width",
         )
@@ -1681,6 +1690,7 @@ class SettingsPage(param.Parameterized):
         self.ops_max = pn.widgets.IntInput(
             name="Ops library max entries",
             value=settings.get("ops_library_max_entries", 50),
+            placeholder="default: 50",
             start=1, step=1,
             sizing_mode="stretch_width",
         )
