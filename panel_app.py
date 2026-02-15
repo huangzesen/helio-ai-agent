@@ -959,6 +959,59 @@ class ChatPage(param.Parameterized):
             raw_css=[CUSTOM_CSS],
         )
 
+        # --- Input history (up/down arrow keys like terminal) ---
+        _input_history_js = """
+        <script>
+        (function() {
+            var hist = [];
+            var idx = -1;
+            var draft = '';
+
+            function setVal(ta, v) {
+                var s = Object.getOwnPropertyDescriptor(
+                    HTMLTextAreaElement.prototype, 'value').set;
+                s.call(ta, v);
+                ta.dispatchEvent(new Event('input', {bubbles: true}));
+                ta.selectionStart = ta.selectionEnd = v.length;
+            }
+
+            function attach(ta) {
+                if (ta._hist) return;
+                ta._hist = true;
+                ta.addEventListener('keydown', function(e) {
+                    if (e.key === 'Enter' && !e.shiftKey) {
+                        var v = ta.value && ta.value.trim();
+                        if (v && (hist.length === 0 || hist[hist.length-1] !== v))
+                            hist.push(v);
+                        idx = -1; draft = '';
+                    }
+                    if (e.key === 'ArrowUp' && hist.length > 0) {
+                        if (ta.value.substring(0, ta.selectionStart).indexOf('\\n') === -1) {
+                            e.preventDefault();
+                            if (idx === -1) { draft = ta.value; idx = hist.length - 1; }
+                            else if (idx > 0) idx--;
+                            setVal(ta, hist[idx]);
+                        }
+                    }
+                    if (e.key === 'ArrowDown' && idx !== -1) {
+                        if (ta.value.substring(ta.selectionEnd).indexOf('\\n') === -1) {
+                            e.preventDefault();
+                            if (idx < hist.length - 1) { idx++; setVal(ta, hist[idx]); }
+                            else { idx = -1; setVal(ta, draft); }
+                        }
+                    }
+                }, true);
+            }
+
+            var iv = setInterval(function() {
+                var ta = document.querySelector('.chat-interface textarea');
+                if (ta) { clearInterval(iv); attach(ta); }
+            }, 500);
+        })();
+        </script>
+        """
+        template.main.append(pn.pane.HTML(_input_history_js, margin=0))
+
         return template
 
 
