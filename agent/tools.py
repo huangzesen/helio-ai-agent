@@ -225,6 +225,9 @@ xarray operations (DataArray sources — check storage_type in fetch_data respon
 - Convert to DataFrame: `result = da_EFLUX_VS_PA_E.isel(dim1=0).to_pandas()` (also valid)
 - For spectrogram: fetch a 2D variable (size=[N]) and plot as heatmap with `render_plotly_json`
 - For 3D variables (size=[M, N]): use `custom_operation` to slice/average to 2D first, then plot as spectrogram
+- IMPORTANT: When producing a DataFrame for heatmap/spectrogram plotting, use meaningful column names
+  (e.g., pitch angle values, energy bins, frequency bins) — NOT generic indices ('0', '1', '2').
+  The renderer uses column names as y-axis tick values. Use support variables for bin labels.
 - For log-scale spectrograms: apply np.log10 in the same or separate custom_operation.
   Example: `result = np.log10(da_EFLUX_VS_PA_E.mean(dim='dim1').clip(min=1e-10))`
   The viz agent CANNOT apply log scaling — do it here.
