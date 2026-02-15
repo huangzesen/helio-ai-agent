@@ -115,9 +115,31 @@ def _write_input_history_js():
         }}, true);
     }}
 
+    function findTextarea() {{
+        // Direct DOM query
+        var ta = document.querySelector('.chat-interface-input-widget textarea')
+              || document.querySelector('textarea.bk-input')
+              || document.querySelector('textarea');
+        if (ta) return ta;
+        // Search inside shadow roots (Panel 1.x wraps widgets in shadow DOM)
+        var shadows = document.querySelectorAll('*');
+        for (var i = 0; i < shadows.length; i++) {{
+            var sr = shadows[i].shadowRoot;
+            if (sr) {{
+                ta = sr.querySelector('textarea');
+                if (ta) return ta;
+            }}
+        }}
+        return null;
+    }}
+
     var iv = setInterval(function() {{
-        var ta = document.querySelector('.chat-interface-input-widget textarea');
-        if (ta) {{ clearInterval(iv); attach(ta); }}
+        var ta = findTextarea();
+        if (ta) {{
+            console.log('[InputHistory] Attached to textarea:', ta);
+            clearInterval(iv);
+            attach(ta);
+        }}
     }}, 500);
 }})();
 """
