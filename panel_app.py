@@ -2,11 +2,12 @@
 """
 Panel Web UI for the Helio AI Agent.
 
-Two-page layout served at separate URLs:
-  /      — Chat page (sessions sidebar + header + plot + chat + follow-ups + examples)
-  /data  — Data Tools page (browse & fetch + data table + preview + tokens + memory)
+Three-page layout served at separate URLs:
+  /         — Chat page (sessions sidebar + header + plot + chat + follow-ups + examples)
+  /data     — Data Tools page (browse & fetch + data table + preview + tokens + memory)
+  /settings — Settings page (profile, LLM, data, memory, operations config)
 
-Both pages share the same process-wide agent and DataStore singleton.
+All pages share the same process-wide agent and DataStore singleton.
 
 Usage:
     python panel_app.py                # Launch on localhost:5006
@@ -67,6 +68,45 @@ def _append_input_history(message: str):
         p.write_text("\n".join(lines[-_INPUT_HISTORY_MAX:]) + "\n", encoding="utf-8")
 
 _STATIC_DIR = Path(__file__).parent / "static"
+
+
+# ---------------------------------------------------------------------------
+# Settings / config helpers
+# ---------------------------------------------------------------------------
+
+def _get_avatar_path() -> Path:
+    from config import get_data_dir
+    return get_data_dir() / "avatar.png"
+
+
+def _load_settings() -> dict:
+    """Load current config.json values (merged local + user)."""
+    from config import _load_config
+    return _load_config()
+
+
+def _save_settings(settings: dict):
+    """Write settings to ~/.helio-agent/config.json (merge with existing)."""
+    from config import CONFIG_PATH
+    existing = {}
+    if CONFIG_PATH.exists():
+        try:
+            import json
+            existing = json.loads(CONFIG_PATH.read_text(encoding="utf-8"))
+        except (json.JSONDecodeError, OSError):
+            pass
+    existing.update(settings)
+    CONFIG_PATH.parent.mkdir(parents=True, exist_ok=True)
+    import json
+    CONFIG_PATH.write_text(
+        json.dumps(existing, indent=2, ensure_ascii=False) + "\n",
+        encoding="utf-8",
+    )
+
+
+def _get_display_name() -> str:
+    """Load saved display name from config, default 'User'."""
+    return _load_settings().get("display_name", "User")
 
 def _write_input_history_js():
     """Write the input history JS file with embedded history data."""
@@ -475,9 +515,17 @@ class ChatPage(param.Parameterized):
     def __init__(self, **params):
         super().__init__(**params)
 
-        # --- Chat ---
+        # --- Chat (with avatar support) ---
+        avatar_path = _get_avatar_path()
+        user_avatar = str(avatar_path) if avatar_path.exists() else "👤"
+        display_name = _get_display_name()
+
         self.chat_interface = pn.chat.ChatInterface(
             callback=self._chat_callback,
+            user=display_name,
+            avatar=user_avatar,
+            callback_user="Helio Agent",
+            callback_avatar="🤖",
             show_rerun=False,
             show_undo=False,
             show_clear=False,
@@ -981,7 +1029,8 @@ class ChatPage(param.Parameterized):
                 <div style="display:flex; align-items:center; gap:0.75rem;">
                     <span style="color:#64748b; font-size:0.9rem;">52 missions &middot; 3,000+ datasets</span>
                     <span class="badge">Powered by Gemini</span>
-                    <a href="/data" target="_blank" class="nav-link">Open Data Tools</a>
+                    <a href="/data" target="_blank" class="nav-link">Data Tools</a>
+                    <a href="/settings" target="_blank" class="nav-link">Settings</a>
                 </div>
             </div>
             """,
@@ -1428,6 +1477,7 @@ class DataPage(param.Parameterized):
                 <div style="display:flex; align-items:center; gap:0.75rem;">
                     <span style="color:#64748b; font-size:0.9rem;">Browse, fetch & inspect data</span>
                     <a href="/" class="nav-link">Back to Chat</a>
+                    <a href="/settings" target="_blank" class="nav-link">Settings</a>
                 </div>
             </div>
             """,
@@ -1502,6 +1552,318 @@ class DataPage(param.Parameterized):
 
 
 # ---------------------------------------------------------------------------
+# SettingsPage — the /settings route
+# ---------------------------------------------------------------------------
+
+class SettingsPage(param.Parameterized):
+    """Settings page: profile, LLM, data, memory, and operations configuration."""
+
+    def __init__(self, **params):
+        super().__init__(**params)
+        settings = _load_settings()
+
+        # --- Profile ---
+        self.avatar_upload = pn.widgets.FileInput(
+            accept=".png,.jpg,.jpeg,.gif,.svg",
+            sizing_mode="stretch_width",
+        )
+        avatar_path = _get_avatar_path()
+        if avatar_path.exists():
+            self.avatar_preview = pn.pane.Image(
+                str(avatar_path), width=80, height=80,
+            )
+        else:
+            self.avatar_preview = pn.pane.HTML(
+                '<div style="width:80px;height:80px;border-radius:50%;'
+                'background:#e2e8f0;display:flex;align-items:center;'
+                'justify-content:center;font-size:2rem;">👤</div>',
+            )
+        self.display_name = pn.widgets.TextInput(
+            name="Display name",
+            value=settings.get("display_name", "User"),
+            sizing_mode="stretch_width",
+        )
+        self.avatar_upload.param.watch(self._on_avatar_upload, "value")
+
+        # --- LLM Provider & Models ---
+        self.provider_select = pn.widgets.Select(
+            name="LLM Provider",
+            options=["gemini", "openai", "anthropic"],
+            value=settings.get("llm_provider", "gemini"),
+            sizing_mode="stretch_width",
+        )
+        self.base_url = pn.widgets.TextInput(
+            name="API Base URL (OpenAI-compatible only)",
+            value=settings.get("llm_base_url") or "",
+            placeholder="https://openrouter.ai/api/v1",
+            sizing_mode="stretch_width",
+        )
+        self.model_input = pn.widgets.TextInput(
+            name="Main model",
+            value=settings.get("model", "gemini-2.5-flash"),
+            sizing_mode="stretch_width",
+        )
+        self.sub_agent_model = pn.widgets.TextInput(
+            name="Sub-agent model",
+            value=settings.get("sub_agent_model", "gemini-2.5-flash"),
+            sizing_mode="stretch_width",
+        )
+        self.planner_model = pn.widgets.TextInput(
+            name="Planner model (empty = inherit from main)",
+            value=settings.get("planner_model") or "",
+            sizing_mode="stretch_width",
+        )
+        self.fallback_model = pn.widgets.TextInput(
+            name="Fallback model",
+            value=settings.get("fallback_model", "gemini-2.5-flash"),
+            sizing_mode="stretch_width",
+        )
+
+        gemini_cfg = settings.get("gemini", {})
+        self.thinking_model = pn.widgets.Select(
+            name="Gemini thinking (model)",
+            options=["off", "low", "high"],
+            value=gemini_cfg.get("thinking_model", "high"),
+            sizing_mode="stretch_width",
+        )
+        self.thinking_sub = pn.widgets.Select(
+            name="Gemini thinking (sub-agent)",
+            options=["off", "low", "high"],
+            value=gemini_cfg.get("thinking_sub_agent", "low"),
+            sizing_mode="stretch_width",
+        )
+
+        # --- Data & Search ---
+        self.catalog_method = pn.widgets.Select(
+            name="Catalog search method",
+            options=["semantic", "substring"],
+            value=settings.get("catalog_search_method", "semantic"),
+            sizing_mode="stretch_width",
+        )
+        self.parallel_fetch = pn.widgets.Checkbox(
+            name="Parallel fetch",
+            value=settings.get("parallel_fetch", True),
+        )
+        self.parallel_workers = pn.widgets.IntSlider(
+            name="Max workers",
+            start=1, end=8,
+            value=settings.get("parallel_max_workers", 4),
+            sizing_mode="stretch_width",
+        )
+
+        # --- Memory ---
+        self.max_preferences = pn.widgets.IntInput(
+            name="Max preferences",
+            value=settings.get("max_preferences", 15),
+            start=0, step=1,
+            sizing_mode="stretch_width",
+        )
+        self.max_summaries = pn.widgets.IntInput(
+            name="Max summaries",
+            value=settings.get("max_summaries", 10),
+            start=0, step=1,
+            sizing_mode="stretch_width",
+        )
+        self.max_pitfalls = pn.widgets.IntInput(
+            name="Max pitfalls",
+            value=settings.get("max_pitfalls", 20),
+            start=0, step=1,
+            sizing_mode="stretch_width",
+        )
+        self.poll_interval = pn.widgets.IntInput(
+            name="Memory poll interval (seconds)",
+            value=settings.get("memory_poll_interval_seconds", 30),
+            start=5, step=5,
+            sizing_mode="stretch_width",
+        )
+
+        # --- Operations ---
+        self.ops_max = pn.widgets.IntInput(
+            name="Ops library max entries",
+            value=settings.get("ops_library_max_entries", 50),
+            start=1, step=1,
+            sizing_mode="stretch_width",
+        )
+
+        # --- Save button ---
+        self.save_btn = pn.widgets.Button(
+            name="Save Settings",
+            button_type="primary",
+            sizing_mode="stretch_width",
+        )
+        self.save_alert = pn.pane.Alert(
+            "", alert_type="success", visible=False, sizing_mode="stretch_width",
+        )
+        self.save_btn.on_click(self._on_save)
+
+    def _on_avatar_upload(self, event):
+        """Save uploaded avatar to disk and update preview."""
+        data = self.avatar_upload.value
+        if data is None:
+            return
+        avatar_path = _get_avatar_path()
+        # Determine extension from filename
+        filename = self.avatar_upload.filename or "avatar.png"
+        ext = Path(filename).suffix.lower() or ".png"
+        # Always save as the canonical path (strip old, write new)
+        target = avatar_path.with_suffix(ext)
+        # Remove any old avatar files
+        for old in avatar_path.parent.glob("avatar.*"):
+            try:
+                old.unlink()
+            except OSError:
+                pass
+        target.write_bytes(data)
+        # If extension isn't .png, also create a .png symlink/copy for simple lookup
+        if ext != ".png":
+            import shutil
+            shutil.copy2(target, avatar_path)
+        self.avatar_preview.object = str(target)
+
+    def _on_save(self, event):
+        """Collect all widget values and save to config.json."""
+        settings = {
+            "display_name": self.display_name.value or "User",
+            "llm_provider": self.provider_select.value,
+            "llm_base_url": self.base_url.value or None,
+            "model": self.model_input.value,
+            "sub_agent_model": self.sub_agent_model.value,
+            "planner_model": self.planner_model.value or None,
+            "fallback_model": self.fallback_model.value,
+            "gemini": {
+                "thinking_model": self.thinking_model.value,
+                "thinking_sub_agent": self.thinking_sub.value,
+            },
+            "catalog_search_method": self.catalog_method.value,
+            "parallel_fetch": self.parallel_fetch.value,
+            "parallel_max_workers": self.parallel_workers.value,
+            "max_preferences": self.max_preferences.value,
+            "max_summaries": self.max_summaries.value,
+            "max_pitfalls": self.max_pitfalls.value,
+            "memory_poll_interval_seconds": self.poll_interval.value,
+            "ops_library_max_entries": self.ops_max.value,
+        }
+        _save_settings(settings)
+        self.save_alert.object = (
+            "Settings saved. Restart the app to apply model/provider changes."
+        )
+        self.save_alert.alert_type = "success"
+        self.save_alert.visible = True
+
+    def build(self) -> pn.template.FastListTemplate:
+        """Construct and return the settings page layout."""
+
+        header_html = pn.pane.HTML(
+            """
+            <div class="helio-header">
+                <h1>Settings</h1>
+                <div style="display:flex; align-items:center; gap:0.75rem;">
+                    <a href="/" class="nav-link">Back to Chat</a>
+                    <a href="/data" target="_blank" class="nav-link">Data Tools</a>
+                </div>
+            </div>
+            """,
+            sizing_mode="stretch_width",
+        )
+
+        profile_section = pn.Card(
+            pn.Row(
+                self.avatar_preview,
+                pn.Column(
+                    pn.pane.Markdown("Upload a new avatar image:"),
+                    self.avatar_upload,
+                    sizing_mode="stretch_width",
+                ),
+                sizing_mode="stretch_width",
+            ),
+            self.display_name,
+            title="Profile",
+            collapsed=False,
+            sizing_mode="stretch_width",
+        )
+
+        llm_section = pn.Card(
+            self.provider_select,
+            self.base_url,
+            pn.layout.Divider(),
+            self.model_input,
+            self.sub_agent_model,
+            self.planner_model,
+            self.fallback_model,
+            pn.layout.Divider(),
+            self.thinking_model,
+            self.thinking_sub,
+            title="LLM Provider & Models",
+            collapsed=False,
+            sizing_mode="stretch_width",
+        )
+
+        data_section = pn.Card(
+            self.catalog_method,
+            self.parallel_fetch,
+            self.parallel_workers,
+            title="Data & Search",
+            collapsed=False,
+            sizing_mode="stretch_width",
+        )
+
+        memory_section = pn.Card(
+            self.max_preferences,
+            self.max_summaries,
+            self.max_pitfalls,
+            self.poll_interval,
+            title="Memory",
+            collapsed=False,
+            sizing_mode="stretch_width",
+        )
+
+        ops_section = pn.Card(
+            self.ops_max,
+            title="Operations",
+            collapsed=False,
+            sizing_mode="stretch_width",
+        )
+
+        # Two-column layout: left = profile + LLM, right = data + memory + ops
+        left_col = pn.Column(
+            profile_section,
+            llm_section,
+            sizing_mode="stretch_width",
+        )
+        right_col = pn.Column(
+            data_section,
+            memory_section,
+            ops_section,
+            sizing_mode="stretch_width",
+        )
+
+        main_area = pn.Row(
+            left_col,
+            right_col,
+            sizing_mode="stretch_both",
+        )
+
+        save_row = pn.Column(
+            self.save_btn,
+            self.save_alert,
+            sizing_mode="stretch_width",
+            margin=(10, 0),
+        )
+
+        template = pn.template.FastListTemplate(
+            title="Helio AI Agent — Settings",
+            main=[header_html, main_area, save_row],
+            accent_base_color="#00b8d9",
+            header_background="#0097b2",
+            theme="default",
+            theme_toggle=False,
+            raw_css=[CUSTOM_CSS],
+        )
+
+        return template
+
+
+# ---------------------------------------------------------------------------
 # Page factory functions (one instance per browser session)
 # ---------------------------------------------------------------------------
 
@@ -1511,6 +1873,10 @@ def _create_chat_page():
 
 def _create_data_page():
     return DataPage().build()
+
+
+def _create_settings_page():
+    return SettingsPage().build()
 
 
 # ---------------------------------------------------------------------------
@@ -1584,9 +1950,9 @@ def main():
     # Load input history JS in the browser
     pn.config.js_files["input_history"] = "assets/input_history.js"
 
-    # Serve two pages
+    # Serve pages
     pn.serve(
-        {"/": _create_chat_page, "/data": _create_data_page},
+        {"/": _create_chat_page, "/data": _create_data_page, "/settings": _create_settings_page},
         port=args.port,
         show=True,
         title="Helio AI Agent",
