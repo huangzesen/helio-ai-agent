@@ -409,18 +409,25 @@ CUSTOM_CSS = """
     border-radius: 20px;
     border: 1px solid #ffa500;
 }
-.helio-header .nav-link {
-    color: #0097b2;
-    font-size: 0.9rem;
+/* Header nav links (in template header bar) */
+.header-nav {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+.header-nav a {
+    color: #fff;
+    font-size: 0.85rem;
     font-weight: 600;
     text-decoration: none;
-    padding: 0.3rem 0.75rem;
-    border: 1px solid #0097b2;
-    border-radius: 20px;
-    transition: background 0.2s;
+    padding: 0.25rem 0.7rem;
+    border: 1px solid rgba(255,255,255,0.5);
+    border-radius: 16px;
+    transition: background 0.2s, border-color 0.2s;
 }
-.helio-header .nav-link:hover {
-    background: rgba(0, 151, 178, 0.1);
+.header-nav a:hover {
+    background: rgba(255,255,255,0.15);
+    border-color: #fff;
 }
 
 /* Chat messages */
@@ -1021,16 +1028,13 @@ class ChatPage(param.Parameterized):
     def build(self) -> pn.template.FastListTemplate:
         """Construct and return the chat page layout."""
 
-        # --- Header with "Open Data Tools" link and Log toggle ---
+        # --- Header bar (inside template header) ---
         header_html = pn.pane.HTML(
             """
             <div class="helio-header">
-                <h1>Helio AI Agent</h1>
                 <div style="display:flex; align-items:center; gap:0.75rem;">
                     <span style="color:#64748b; font-size:0.9rem;">52 missions &middot; 3,000+ datasets</span>
                     <span class="badge">Powered by Gemini</span>
-                    <a href="/data" target="_blank" class="nav-link">Data Tools</a>
-                    <a href="/settings" target="_blank" class="nav-link">Settings</a>
                 </div>
             </div>
             """,
@@ -1093,8 +1097,15 @@ class ChatPage(param.Parameterized):
         )
 
         # --- Template ---
+        nav_html = pn.pane.HTML(
+            '<nav class="header-nav">'
+            '<a href="/data" target="_blank">Data Tools</a>'
+            '<a href="/settings" target="_blank">Settings</a>'
+            '</nav>',
+        )
         template = pn.template.FastListTemplate(
             title="Helio AI Agent",
+            header=[nav_html],
             sidebar=[sidebar_content],
             main=[center_col],
             right_sidebar=[right_sidebar_content],
@@ -1469,15 +1480,12 @@ class DataPage(param.Parameterized):
     def build(self) -> pn.template.FastListTemplate:
         """Construct and return the data tools page layout."""
 
-        # --- Header with "Back to Chat" link ---
+        # --- Header bar ---
         header_html = pn.pane.HTML(
             """
             <div class="helio-header">
-                <h1>Data Tools</h1>
                 <div style="display:flex; align-items:center; gap:0.75rem;">
                     <span style="color:#64748b; font-size:0.9rem;">Browse, fetch & inspect data</span>
-                    <a href="/" class="nav-link">Back to Chat</a>
-                    <a href="/settings" target="_blank" class="nav-link">Settings</a>
                 </div>
             </div>
             """,
@@ -1535,8 +1543,15 @@ class DataPage(param.Parameterized):
         )
 
         # --- Template (no sidebar) ---
+        nav_html = pn.pane.HTML(
+            '<nav class="header-nav">'
+            '<a href="/">Chat</a>'
+            '<a href="/settings" target="_blank">Settings</a>'
+            '</nav>',
+        )
         template = pn.template.FastListTemplate(
             title="Helio AI Agent — Data Tools",
+            header=[nav_html],
             main=[header_html, main_area],
             accent_base_color="#00b8d9",
             header_background="#0097b2",
@@ -1766,10 +1781,8 @@ class SettingsPage(param.Parameterized):
         header_html = pn.pane.HTML(
             """
             <div class="helio-header">
-                <h1>Settings</h1>
                 <div style="display:flex; align-items:center; gap:0.75rem;">
-                    <a href="/" class="nav-link">Back to Chat</a>
-                    <a href="/data" target="_blank" class="nav-link">Data Tools</a>
+                    <span style="color:#64748b; font-size:0.9rem;">Runtime configuration</span>
                 </div>
             </div>
             """,
@@ -1860,8 +1873,15 @@ class SettingsPage(param.Parameterized):
             margin=(10, 0),
         )
 
+        nav_html = pn.pane.HTML(
+            '<nav class="header-nav">'
+            '<a href="/">Chat</a>'
+            '<a href="/data" target="_blank">Data Tools</a>'
+            '</nav>',
+        )
         template = pn.template.FastListTemplate(
             title="Helio AI Agent — Settings",
+            header=[nav_html],
             main=[header_html, main_area, save_row],
             accent_base_color="#00b8d9",
             header_background="#0097b2",
