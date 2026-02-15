@@ -277,6 +277,14 @@ All times are UTC. Outputs `TimeRange` objects with `start`/`end` datetimes.
 - `custom_ops.py`: AST-validated, sandboxed executor for LLM-generated pandas/numpy/scipy/pywt code. Replaces all hardcoded compute functions — the LLM writes the code directly. Sandbox includes `pd`, `np`, `xr`, `scipy` (full scipy), and `pywt` (PyWavelets).
 - Data fetching uses the CDF backend exclusively — downloads CDF files from CDAWeb REST API, caches locally, reads with cdflib. Errors propagate directly for the agent to learn from.
 
+### Custom Operations Library (`data_ops/ops_library.py`)
+- Persists successful `custom_operation` code (5+ lines) to `~/.helio-agent/custom_ops_library.json`.
+- Simple operations (magnitude, smoothing, arithmetic) are cheap to regenerate — only complex multi-step pipelines are saved.
+- Deduplicates by normalized description; bumps `use_count` on match.
+- Evicts least-used entries (tiebreak: oldest `last_used_at`) when the library hits a cap (default 50, configurable via `ops_library_max_entries`).
+- During the DataOps think phase, the top 20 entries are injected into the prompt so the LLM can reuse proven code.
+- Reuse tracking: LLM includes `[from <id>]` in the description when adapting library code; the system bumps that entry's count.
+
 ### LLM Abstraction Layer (`agent/llm/`)
 - **Phases 1-3 complete (February 2026)**: All LLM SDK calls go through `agent/llm/` adapter layer. Three adapters implemented.
 - `agent/llm/base.py` — Abstract types: `ToolCall`, `UsageMetadata`, `LLMResponse`, `FunctionSchema`, `ChatSession` ABC, `LLMAdapter` ABC

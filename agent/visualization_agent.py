@@ -191,7 +191,8 @@ class VisualizationAgent(BaseSubAgent):
         return (
             f"{user_message}\n\n"
             f"## Data Inspection Findings\n{think_context}\n\n"
-            f"Now create the visualization using render_plotly_json."
+            f"Now create the visualization using render_plotly_json.\n"
+            f"Follow the recommended time range from the findings above for x-axis range."
         )
 
     def process_request(self, user_message: str) -> dict:

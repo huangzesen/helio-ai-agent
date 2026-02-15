@@ -45,6 +45,9 @@
   "memory_error_count_threshold": 5,
   "memory_max_log_bytes_kb": 50,
 
+  "_comment_ops_library": "Max saved operations in the custom_ops_library. Least-used entries are evicted when full.",
+  "ops_library_max_entries": 50,
+
   "_comment_console_format": "Options: 'simple' (bare messages for DEBUG/INFO, [LEVEL] prefix for WARNING+, default), 'full' (timestamp + level + name + session_id + message), 'gui' (curated tagged records only — mirrors Gradio live-log sidebar), 'clean' (no console output at all, file logging still active).",
   "console_format": "simple"
 }

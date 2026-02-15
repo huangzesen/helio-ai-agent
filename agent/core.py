@@ -1314,6 +1314,29 @@ class OrchestratorAgent:
                 outputs=[tool_args["output_label"]],
             )
 
+            # Save to persistent ops library (only complex code: 5+ lines)
+            try:
+                import re as _re_lib
+                from data_ops.ops_library import get_ops_library
+                lib = get_ops_library()
+                code = tool_args["code"]
+                # Track reuse when description contains [from <id>]
+                ref_match = _re_lib.search(r'\[from ([a-f0-9]{8})\]', desc)
+                if ref_match:
+                    lib.record_reuse(ref_match.group(1))
+                # Count logical lines (split on newlines and semicolons)
+                line_count = sum(1 for line in code.replace(";", "\n").split("\n") if line.strip())
+                if line_count >= 5:
+                    lib.add_or_update(
+                        description=desc,
+                        code=code,
+                        source_labels=labels,
+                        units=units,
+                        session_id=self._session_id or "",
+                    )
+            except Exception:
+                self.logger.debug("[OpsLibrary] Failed to save operation", exc_info=True)
+
             for w in warnings:
                 self.logger.debug(f"[DataOpsValidation] {w}")
 

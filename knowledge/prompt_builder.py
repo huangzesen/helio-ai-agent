@@ -389,6 +389,13 @@ def build_data_ops_prompt() -> str:
         "- **Interpolation**:",
         "  `from_func = scipy.interpolate.interp1d(np.arange(len(vals)), vals, kind='cubic'); ...`",
         "",
+        "## Saved Operations",
+        "",
+        "If the research findings mention a saved operation from the library,",
+        "you can adapt its code to the current data labels (rename df_SUFFIX variables).",
+        "When you do, include the library ID in your description, e.g.:",
+        "  description: \"Compute magnitude [from a1b2c3d4]\"",
+        "",
         "## Code Guidelines",
         "",
         "- Always assign to `result` — must be DataFrame/Series with DatetimeIndex",
@@ -468,6 +475,15 @@ def build_data_ops_think_prompt() -> str:
         "Your job is research only — the execute phase writes the code.",
         "",
     ]
+
+    # Inject saved operations library (if any entries exist)
+    try:
+        from data_ops.ops_library import get_ops_library
+        library_section = get_ops_library().build_prompt_section()
+        if library_section:
+            lines.append(library_section)
+    except Exception:
+        pass
 
     return "\n".join(lines)
 
@@ -582,6 +598,13 @@ def build_visualization_think_prompt() -> str:
         "- **Data characteristics**: cadence, NaN %, value ranges, 1D (scatter) vs 2D (heatmap)",
         "- **Data mode**: which entries are timeseries (`is_timeseries: true`) vs general-data (`is_timeseries: false`) — this affects x-axis handling",
         "- **Plot recommendation**: labels to plot, suggested panel layout, trace types",
+        "- **Recommended x-axis range(s)**: for each independent x-axis group,",
+        "  compute the union of time ranges (earliest start, latest end).",
+        "  For stacked panels (shared x-axis via `matches`): one range covering all entries,",
+        "  e.g. 'Recommended x-axis range: 1995-01-01 to 2025-06-30'.",
+        "  For side-by-side columns (independent x-axes): one range per column,",
+        "  e.g. 'xaxis range: 2024-01-01 to 2024-01-31, xaxis2 range: 2024-10-01 to 2024-10-31'.",
+        "  The execute phase will use these to set x-axis ranges.",
         "- **Sizing hint**: number of panels, spectrogram presence (affects height)",
         "- **Potential issues**: mismatched cadences, high NaN counts, labels needing filtering",
         "",
@@ -642,12 +665,21 @@ def build_visualization_prompt(gui_mode: bool = False) -> str:
         "- NaN → None conversion",
         "- Heatmap colorbar positioning from yaxis domain",
         "",
+        "## X-Axis Range Rule",
+        "",
+        "When the Data Inspection Findings include **Recommended x-axis range(s)**,",
+        "set `range` on each x-axis accordingly. For stacked panels with `matches`,",
+        "only set `range` on the primary xaxis — linked axes inherit it.",
+        "For side-by-side columns (independent x-axes), set `range` on each.",
+        "When there is no recommended range, do NOT set `range` — the renderer auto-computes it.",
+        "Never hardcode a narrow range around an annotation or event marker — always show the full data span.",
+        "Only narrow the range when the user explicitly asks to zoom.",
+        "",
         "## Timeseries vs General Data",
         "",
         "Call `list_fetched_data` to check each entry's `is_timeseries` field:",
         "- **`is_timeseries: true`** (default for most data): x-axis is time (ISO 8601 dates).",
         "  Time-based axis formatting is applied automatically.",
-        "  To zoom, set `range` on the relevant xaxis in the layout (e.g., `\"range\": [\"2024-01-15\", \"2024-01-20\"]`).",
         "- **`is_timeseries: false`**: x-axis uses the index values as-is (numeric, string, etc.).",
         "  Do NOT apply time-based formatting (no `tickformat` with dates, no `type: date`).",
         "- **Mixed plots** (some traces timeseries, some not): use separate x-axes with appropriate domains.",
