@@ -39,7 +39,21 @@ python main.py --continue       # Resume last session
 python main.py "Show me ACE magnetic field for last week"  # Single command
 ```
 
-### Run (Web UI)
+### Run (Web UI — Panel)
+
+```bash
+python panel_app.py             # Opens at localhost:5006
+python panel_app.py --port 8080 # Custom port
+python panel_app.py --model gemini-2.5-pro  # Override model
+```
+
+The Panel UI provides a two-page layout:
+- **`/`** — Chat page with sessions sidebar, interactive Plotly plots, follow-up suggestions, and example prompts
+- **`/data`** — Data Tools page with dataset browser, data table preview, token usage, and memory viewer
+
+Both pages share the same agent process and in-memory data store.
+
+### Run (Web UI — Gradio, legacy)
 
 ```bash
 python gradio_app.py            # Opens at localhost:7860
@@ -59,7 +73,8 @@ python gradio_app.py --share    # Generate a public URL
 - **Interactive Plotly plots** — zoom, pan, hover tooltips, multi-panel subplots, WebGL for large datasets
 - **Session persistence** — auto-saves every turn, resume with `--continue`
 - **PNG/PDF export** — publication-ready static images via kaleido
-- **Gradio web UI** — browser-based chat with inline plots, data sidebar, browse & fetch panel, file upload
+- **Panel web UI** — two-page browser interface with chat, interactive plots, dataset browser, data table preview, and token tracking
+- **Gradio web UI** — legacy browser-based chat with inline plots and data sidebar
 
 ## Example Workflows
 
@@ -150,7 +165,8 @@ rendering/              Plotly visualization engine
   registry.py             3 declarative visualization tools (plot_data, style_plot, manage_plot)
 
 main.py                 CLI entry point
-gradio_app.py           Gradio web UI with inline plots
+panel_app.py            Panel web UI (primary — two-page layout)
+gradio_app.py           Gradio web UI (legacy)
 ```
 
 ## Configuration
@@ -173,9 +189,10 @@ python -m pytest tests/ -x -q     # Stop on first failure
 
 - **Google Gemini 3** (Pro + Flash) — function calling, thinking levels, structured output, multimodal vision, Google Search grounding
 - **Plotly** — interactive scientific data visualization with WebGL
-- **Gradio** — browser-based chat UI with inline plots and file upload
+- **Panel** — primary browser-based UI with two-page layout (chat + data tools)
+- **Gradio** — legacy browser-based chat UI with inline plots and file upload
 - **pandas / numpy / scipy** — data pipeline, computation, spectral analysis
-- **CDAWeb HAPI** — NASA Heliophysics Data Application Programmer's Interface
+- **CDAWeb** — NASA Coordinated Data Analysis Web (CDF file downloads)
 - **kaleido** — static image export (PNG, PDF)
 
 ## License
