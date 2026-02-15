@@ -1031,7 +1031,7 @@ class ChatPage(param.Parameterized):
             }}
 
             var iv = setInterval(function() {{
-                var ta = document.querySelector('.chat-interface textarea');
+                var ta = document.querySelector('.chat-interface-input-widget textarea');
                 if (ta) {{ clearInterval(iv); attach(ta); }}
             }}, 500);
         }})();
