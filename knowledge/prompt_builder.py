@@ -354,6 +354,12 @@ def build_data_ops_prompt() -> str:
         "- Result must have DatetimeIndex (time window centers)",
         "- Choose nperseg based on data cadence and desired frequency resolution",
         "",
+        "## Log-Scale Spectrograms",
+        "",
+        "For log-scale spectrograms, apply `np.log10()` to the z-values in the custom_operation.",
+        "The viz agent has no log-z capability — all log transforms must happen in dataops.",
+        "Example: `result = np.log10(da_EFLUX.clip(min=1e-10))` (clip to avoid log(0))",
+        "",
         "## Multi-Source Operations",
         "",
         "`source_labels` is an array. Each label becomes a sandbox variable named by storage type:",
@@ -607,6 +613,9 @@ def build_visualization_think_prompt() -> str:
         "  The execute phase will use these to set x-axis ranges.",
         "- **Sizing hint**: number of panels, spectrogram presence (affects height)",
         "- **Potential issues**: mismatched cadences, high NaN counts, labels needing filtering",
+        "- **Log-z note**: If spectrogram/heatmap data has a wide value range suggesting log scaling,",
+        "  note this in 'Potential issues' but do NOT recommend coloraxis.type or ztype — those properties",
+        "  don't exist in Plotly. Instead note that the data should have been log-transformed before reaching the viz agent.",
         "",
         "IMPORTANT: Do NOT call render_plotly_json or manage_plot.",
         "Your job is research only — the execute phase creates the visualization.",
@@ -842,6 +851,10 @@ def build_visualization_prompt(gui_mode: bool = False) -> str:
         "",
         "- NEVER apply log scale on y-axis unless the user explicitly requests it.",
         "- Data with negative values (e.g., magnetic field components Br, Bt, Bn) will be invisible on log scale.",
+        "- For heatmaps/spectrograms: there is NO log-z property in Plotly. Do NOT use `ztype`, `zscale`,",
+        "  `coloraxis.type`, or any log-scaling property on heatmap traces — these will cause errors.",
+        "  If the data needs log scaling, it must be pre-transformed (np.log10) before plotting.",
+        "  Just plot the data as-is with `type: heatmap`.",
         "",
         "## Notes",
         "",
@@ -1141,6 +1154,11 @@ Tag each task with the "mission" field:
 - For side-by-side epoch comparisons (different time periods of the same quantities),
   instruct the visualization task to use a 2-column layout in the render_plotly_json call.
   Example: "Use render_plotly_json to plot Vsw_Jan,Bmag_Jan,Vsw_Oct,Bmag_Oct in a 2-column layout"
+- For spectrogram/heatmap data with wide value ranges, apply log10 transform via `custom_operation`
+  BEFORE plotting. The viz agent cannot apply log scaling — it only passes Plotly JSON properties.
+  Example dataops task: "Apply np.log10 to the electron flux data for log-scale visualization"
+- For 3D xarray data (e.g., time x pitch_angle x energy): ALWAYS route through dataops first
+  to slice or average down to 2D before delegating to visualization.
 
 ## Planning Guidelines
 
